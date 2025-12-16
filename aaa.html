@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f2f5; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 350px; }
+        input, select { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .toggle { text-align: center; margin-bottom: 20px; }
+        .toggle span { cursor: pointer; color: #007bff; margin: 0 10px; }
+        .active { font-weight: bold; text-decoration: underline; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="toggle">
+        <span id="showLogin" class="active" onclick="switchMode('login')">Login</span> | 
+        <span id="showSignup" onclick="switchMode('signup')">Sign Up</span>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm">
+        <h3>Login</h3>
+        <input type="email" id="loginEmail" placeholder="Email ID">
+        <input type="password" id="loginPass" placeholder="Password">
+        <button onclick="handleLogin()">Login</button>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="signupForm" class="hidden">
+        <h3>Sign Up</h3>
+        <input type="text" id="fname" placeholder="First Name">
+        <input type="text" id="lname" placeholder="Last Name">
+        <input type="url" id="pfp" placeholder="Profile Picture URL">
+        <label style="font-size: 12px; color:#666">Date of Birth</label>
+        <input type="date" id="dob">
+        <select id="gender">
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+        </select>
+        <input type="email" id="regEmail" placeholder="Email ID">
+        <input type="password" id="regPass" placeholder="Password">
+        <button onclick="handleSignup()">Sign Up</button>
+    </div>
+</div>
+
+<script>
+    // --- Config for Project A (Users) ---
+    const firebaseConfigUser = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        storageBucket: "xperts-metadata.firebasestorage.app",
+        messagingSenderId: "514845910910",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+        measurementId: "G-CQ5KWGJSZB"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfigUser);
+    const db = firebase.firestore();
+
+    function switchMode(mode) {
+        if(mode === 'login'){
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('showLogin').classList.add('active');
+            document.getElementById('showSignup').classList.remove('active');
+        } else {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.remove('hidden');
+            document.getElementById('showLogin').classList.remove('active');
+            document.getElementById('showSignup').classList.add('active');
+        }
+    }
+
+    function generateEncyKey() {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    async function handleSignup() {
+        const fname = document.getElementById('fname').value;
+        const lname = document.getElementById('lname').value;
+        const pfp = document.getElementById('pfp').value;
+        const dob = document.getElementById('dob').value;
+        const gender = document.getElementById('gender').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPass').value;
+
+        if(!email || !password) return alert("Email and Password required");
+
+        const ency_key = generateEncyKey().toUpperCase(); // Generating the key for url params
+
+        try {
+            // Storing in 'users' collection as per screenshot 2
+            await db.collection('users').add({
+                first_name: fname,
+                last_name: lname,
+                profile_pic: pfp,
+                dob: dob,
+                gender: gender,
+                email: email,
+                password: password, // Storing plain text as requested
+                ency_key: ency_key
+            });
+            alert("Signup Successful! Your Key: " + ency_key);
+            switchMode('login');
+        } catch (error) {
+            console.error(error);
+            alert("Error: " + error.message);
+        }
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPass').value;
+
+        try {
+            const snapshot = await db.collection('users')
+                .where('email', '==', email)
+                .where('password', '==', password)
+                .get();
+
+            if (snapshot.empty) {
+                alert("Invalid Credentials");
+            } else {
+                const user = snapshot.docs[0].data();
+                alert("Login Successful. Welcome " + user.first_name);
+                // Redirect or save session here
+            }
+        } catch (error) {
+            alert("Login Error");
+        }
+    }
+</script>
+</body>
+</html>

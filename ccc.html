@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mail Configuration</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #e0e0e0; }
+        .container { background: white; padding: 2rem; border-radius: 8px; width: 400px; }
+        input, select { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #28a745; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Auto Mail Setup</h2>
+    <input type="text" id="compName" placeholder="Company Name">
+    <input type="text" id="legalName" placeholder="Legal Name">
+    <input type="email" id="emailId" placeholder="Email ID">
+    <input type="url" id="pfp" placeholder="Profile Picture URL">
+    
+    <label>Type of Auto Mail</label>
+    <select id="mailType">
+        <option value="Welcome">Welcome Email</option>
+        <option value="Invoice">Invoice</option>
+        <option value="Notification">Notification</option>
+    </select>
+
+    <button onclick="saveConfig()">Save Configuration</button>
+</div>
+
+<script>
+    // --- Config for Project B (Emails/Storage) ---
+    const firebaseConfigMail = {
+        apiKey: "AIzaSyBnkCh8r_Ewx8lbr0RBB7i6M-xdABphd9w",
+        authDomain: "initialisation-cfb78.firebaseapp.com",
+        projectId: "initialisation-cfb78",
+        storageBucket: "initialisation-cfb78.firebasestorage.app",
+        messagingSenderId: "217554560023",
+        appId: "1:217554560023:web:5ca34ac80acd8aba872852",
+        measurementId: "G-S9T0PWGZQX"
+    };
+
+    const app = firebase.initializeApp(firebaseConfigMail);
+    const db = firebase.firestore();
+
+    async function saveConfig() {
+        const configData = {
+            companyName: document.getElementById('compName').value,
+            legalName: document.getElementById('legalName').value,
+            email: document.getElementById('emailId').value,
+            profilePic: document.getElementById('pfp').value,
+            mailType: document.getElementById('mailType').value,
+            createdAt: new Date()
+        };
+
+        try {
+            // Saving to a 'configs' collection in Project B
+            await db.collection('configs').add(configData);
+            alert("Configuration Saved Successfully!");
+        } catch (error) {
+            console.error(error);
+            alert("Error saving config");
+        }
+    }
+</script>
+</body>
+</html>

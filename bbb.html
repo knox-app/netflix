@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Processing Email...</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
+        #log { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h3>System Status:</h3>
+    <div id="log">Initializing...</div>
+
+<script>
+    // 1. Initialize EmailJS
+    emailjs.init("Yr9MutUoHOEONnFgn");
+
+    // 2. Define Configs
+    const configUser = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f"
+    };
+
+    const configMail = {
+        apiKey: "AIzaSyBnkCh8r_Ewx8lbr0RBB7i6M-xdABphd9w",
+        authDomain: "initialisation-cfb78.firebaseapp.com",
+        projectId: "initialisation-cfb78",
+        appId: "1:217554560023:web:5ca34ac80acd8aba872852"
+    };
+
+    // 3. Initialize Multiple Firebase Apps
+    const appUser = firebase.initializeApp(configUser, "appUser"); // Project A
+    const appMail = firebase.initializeApp(configMail, "appMail"); // Project B
+
+    const dbUser = appUser.firestore();
+    const dbMail = appMail.firestore();
+
+    const logDiv = document.getElementById('log');
+    function log(txt) { logDiv.innerHTML += txt + "\n"; }
+
+    // 4. Main Logic
+    async function processRequest() {
+        const params = new URLSearchParams(window.location.search);
+        const fromKey = params.get('from');
+        const toKey = params.get('to');
+        const msg = params.get('msg');
+
+        if (!fromKey || !toKey) {
+            log("Error: Missing 'from' or 'to' parameters.");
+            return;
+        }
+
+        log(`Processing: From [${fromKey}] To [${toKey}]`);
+
+        try {
+            // Step A: Find Sender in Project A
+            let senderEmail = "unknown@sender.com";
+            const senderSnap = await dbUser.collection('users').where('ency_key', '==', fromKey).get();
+            if (!senderSnap.empty) {
+                senderEmail = senderSnap.docs[0].data().email;
+                log("Sender Identified: " + senderEmail);
+            } else {
+                log("Sender Key not found in DB.");
+                senderEmail = fromKey; // Fallback if from is just an email
+            }
+
+            // Step B: Check Receiver in Project A
+            let recipientEmail = "";
+            let type = "External";
+            
+            const receiverSnap = await dbUser.collection('users').where('ency_key', '==', toKey).get();
+            
+            if (!receiverSnap.empty) {
+                // FOUND in Database -> Internal
+                recipientEmail = receiverSnap.docs[0].data().email;
+                type = "Internal";
+                log("Recipient Found in DB: " + recipientEmail);
+            } else {
+                // NOT FOUND -> External (Assume 'to' param is the email address itself if key lookup failed)
+                // Note: If 'toKey' is a random string that isn't an email, this will fail delivery, 
+                // but per logic, we treat it as external.
+                recipientEmail = toKey; 
+                type = "External";
+                log("Recipient Not in DB. Treating as External: " + recipientEmail);
+            }
+
+            // Step C: Prepare Data for Project B (Emails Collection)
+            const emailData = {
+                senderEmail: senderEmail,
+                senderKey: fromKey,
+                recipientEmail: recipientEmail,
+                subject: "PPLX Message", // Default subject as per prompt/screenshot context
+                body: msg || "No content",
+                type: type,
+                timestamp: new Date().toString(),
+                schedule: "Now",
+                confidential: "None",
+                attachments: [] 
+            };
+
+            // Step D: Save to Project B
+            await dbMail.collection('emails').add(emailData);
+            log("Saved to Database (Project B).");
+
+            // Step E: If External, Send via EmailJS
+            if (type === "External") {
+                log("Sending External Email via EmailJS...");
+                
+                const templateParams = {
+                    to_email: recipientEmail,
+                    from_name: senderEmail,
+                    message: msg
+                };
+
+                // service_id, template_id, params
+                await emailjs.send("service_5hs4mqf", "template_rm8jf2c", templateParams);
+                log("EmailJS Sent Successfully.");
+            } else {
+                log("Internal Email - Skipped EmailJS.");
+            }
+
+            log("Process Complete.");
+
+        } catch (error) {
+            console.error(error);
+            log("Error: " + error.message);
+        }
+    }
+
+    // Run
+    processRequest();
+</script>
+</body>
+</html>
