@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Information</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --google-blue: #1a73e8;
+            --error-red: #d93025;
+            --border-grey: #dadce0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #202124;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            border: 1px solid var(--border-grey);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .logo span:nth-child(1) { color: #4285F4; }
+        .logo span:nth-child(2) { color: #EA4335; }
+        .logo span:nth-child(3) { color: #FBBC05; }
+        .logo span:nth-child(4) { color: #4285F4; }
+        .logo span:nth-child(5) { color: #34A853; }
+        .logo span:nth-child(6) { color: #EA4335; }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group {
+            flex: 1;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #5f6368;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-grey);
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border: 2px solid var(--google-blue);
+            padding: 11px;
+        }
+
+        .gender-container {
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 40px;
+        }
+
+        button {
+            background-color: var(--google-blue);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #185abc;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+
+        .error {
+            color: var(--error-red);
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: left;
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                border: none;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">
+        <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+    </div>
+    <h1>Basic information</h1>
+    <p class="subtitle">Enter your birthday and gender</p>
+
+    <form id="dobForm">
+        <div class="form-row">
+            <div class="input-group">
+                <label>Month</label>
+                <select id="month" required>
+                    <option value="" disabled selected>Month</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Day</label>
+                <input type="number" id="day" placeholder="Day" required>
+            </div>
+            <div class="input-group">
+                <label>Year</label>
+                <input type="number" id="year" placeholder="Year" required>
+            </div>
+        </div>
+        <div id="dateError" class="error">Please enter a valid date</div>
+
+        <div class="gender-container">
+            <label>Gender</label>
+            <select id="gender" required>
+                <option value="" disabled selected>Gender</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+        </div>
+
+        <div class="btn-container">
+            <button type="submit" id="submitBtn">Next</button>
+        </div>
+    </form>
+</div>
+
+<!-- Firebase Scripts -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        storageBucket: "xperts-metadata.firebasestorage.app",
+        messagingSenderId: "514845910910",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+        measurementId: "G-CQ5KWGJSZB"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Get ID from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+
+    const form = document.getElementById('dobForm');
+    const dateError = document.getElementById('dateError');
+
+    // Function to validate date and leap year
+    function isValidDate(d, m, y) {
+        m = parseInt(m) - 1; // JS months are 0-11
+        const date = new Date(y, m, d);
+        return date.getFullYear() == y && date.getMonth() == m && date.getDate() == d;
+    }
+
+    // Function to calculate age
+    function calculateAge(birthDate) {
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const day = document.getElementById('day').value;
+        const month = document.getElementById('month').value;
+        const year = document.getElementById('year').value;
+        const gender = document.getElementById('gender').value;
+
+        // Reset Error
+        dateError.style.display = 'none';
+
+        if (!userId) {
+            alert("No User ID found in URL (?id=...)");
+            return;
+        }
+
+        // Validate Date
+        if (!isValidDate(day, month, year)) {
+            dateError.style.display = 'block';
+            return;
+        }
+
+        const dobString = `${day.padStart(2, '0')}/${month}/${year}`;
+        const birthDateObj = new Date(year, parseInt(month) - 1, day);
+        const age = calculateAge(birthDateObj);
+        
+        // Logic for family field
+        const familyStatus = age >= 13 ? "off" : "commit";
+
+        try {
+            document.getElementById('submitBtn').innerText = "Processing...";
+            
+            // Reference to the document in Firestore
+            // We use updateDoc so existing fields (Name, Last Name) are preserved
+            const userRef = doc(db, "users", userId);
+            
+            await updateDoc(userRef, {
+                Gender: gender,
+                DOB: dobString,
+                family: familyStatus
+            });
+
+            alert("Data saved successfully!");
+            // Redirect or show success UI here
+            
+        } catch (error) {
+            console.error("Error updating document: ", error);
+            alert("Error saving data. Make sure the ID exists in Firestore.");
+        } finally {
+            document.getElementById('submitBtn').innerText = "Next";
+        }
+    });
+</script>
+
+</body>
+</html>
