@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic information</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 75px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 10px;
+            color: #202124;
+        }
+
+        p {
+            font-size: 16px;
+            color: #202124;
+            margin-bottom: 24px;
+        }
+
+        .dob-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 13px 15px;
+            font-size: 16px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            outline: none;
+            background: white;
+        }
+
+        input:focus, select:focus {
+            border: 2px solid #1a73e8;
+            padding: 12px 14px;
+        }
+
+        .day-input { flex: 1; }
+        .month-input { flex: 2; }
+        .year-input { flex: 1.5; }
+
+        .btn-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #1557b0;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error {
+            color: #d93025;
+            font-size: 12px;
+            text-align: left;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <img src="https://www.gstatic.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="Google" class="logo">
+    <h1>Basic information</h1>
+    <p>Enter your birthday and gender</p>
+
+    <form id="infoForm">
+        <div class="dob-container">
+            <div class="month-input">
+                <select id="month" required>
+                    <option value="" disabled selected>Month</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="day-input">
+                <input type="number" id="day" placeholder="Day" min="1" max="31" required>
+            </div>
+            <div class="year-input">
+                <input type="number" id="year" placeholder="Year" min="1900" max="2025" required>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <select id="gender" required>
+                <option value="" disabled selected>Gender</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+        </div>
+
+        <div id="errorMsg" class="error">Please fill all fields and check your URL.</div>
+
+        <div class="btn-container">
+            <button type="submit" id="submitBtn">Next</button>
+        </div>
+    </form>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        storageBucket: "xperts-metadata.firebasestorage.app",
+        messagingSenderId: "514845910910",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+        measurementId: "G-CQ5KWGJSZB"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Get ID from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+
+    const form = document.getElementById('infoForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!userId) {
+            alert("No User ID found in URL parameters.");
+            return;
+        }
+
+        const day = document.getElementById('day').value.padStart(2, '0');
+        const month = document.getElementById('month').value;
+        const year = document.getElementById('year').value;
+        const gender = document.getElementById('gender').value;
+
+        // Calculate Age
+        const birthDate = new Date(`${year}-${month}-${day}`);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+
+        // Logic: if 13+ family=off, else family=commit
+        const familyStatus = age >= 13 ? "off" : "commit";
+        const dobFormatted = `${day}/${month}/${year}`;
+
+        try {
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerText = "Processing...";
+
+            // Use setDoc with merge:true to update existing record or create if not exists
+            // and keep existing Name/Last Name if they are already there
+            const userRef = doc(db, "users", userId);
+            await setDoc(userRef, {
+                gender: gender,
+                dob: dobFormatted,
+                family: familyStatus
+            }, { merge: true });
+
+            alert("Information saved successfully!");
+            // Redirect or show success UI here if needed
+            
+        } catch (error) {
+            console.error("Error writing document: ", error);
+            errorMsg.style.display = "block";
+            errorMsg.innerText = "Error saving data. Please check your connection.";
+        } finally {
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerText = "Next";
+        }
+    });
+</script>
+
+</body>
+</html>
