@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Linking | Secure Verification</title>
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #1a1c1e;
+            --card: #282a2d;
+            --border: #3f4448;
+            --text: #e3e3e3;
+            --accent: #8ab4f8;
+            --input-bg: #1e1e1e;
+            --error: #f28b82;
+            --success: #81c995;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 380px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            color: var(--accent);
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-size: 11px; color: #9aa0a6; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--accent); }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent);
+            color: #202124;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .hidden { display: none; }
+        
+        #status-msg {
+            font-size: 13px;
+            margin-top: 15px;
+            text-align: center;
+            color: #9aa0a6;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header" id="title">Verifying Request...</div>
+
+    <!-- Step 1: Parent Search -->
+    <div id="view-parent" class="hidden">
+        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Guardian approval is required. Please enter your parent's registered email.</p>
+        <div class="form-group">
+            <label>Guardian Email Address</label>
+            <input type="email" id="p-email" placeholder="guardian@example.com">
+        </div>
+        <button id="send-btn" onclick="validateGuardian()">Search & Send OTP</button>
+    </div>
+
+    <!-- Step 2: OTP Verification -->
+    <div id="view-otp" class="hidden">
+        <div class="form-group">
+            <label>6-Digit Security Code</label>
+            <input type="text" id="otp-code" maxlength="6" style="text-align: center; font-size: 24px; letter-spacing: 5px;">
+        </div>
+        <button id="verify-btn" onclick="processLinking()">Verify & Link Account</button>
+    </div>
+
+    <!-- Step 3: Success View -->
+    <div id="view-success" class="hidden" style="text-align: center;">
+        <h3 style="color: var(--success);">Linking Successful</h3>
+        <p style="font-size: 14px;">The accounts are now linked. A confirmation email has been sent to the guardian.</p>
+    </div>
+
+    <div id="status-msg">Accessing Firestore...</div>
+</div>
+
+<script>
+    // --- 1. FIREBASE INITIALIZATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        storageBucket: "xperts-metadata.firebasestorage.app",
+        messagingSenderId: "514845910910",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+        measurementId: "G-CQ5KWGJSZB"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // --- 2. EMAILJS INITIALIZATION ---
+    emailjs.init("Yr9MutUoHOEONnFgn");
+
+    // --- 3. GLOBAL VARIABLES ---
+    let minorId = "";
+    let minorEmail = "";
+    let minorName = "";
+    let parentDocId = "";
+    let parentEmail = "";
+    let parentName = "";
+    let systemOTP = "";
+
+    // --- 4. ON PAGE LOAD: VERIFY MINOR ---
+    window.onload = async function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        minorId = urlParams.get('id');
+
+        if (!minorId) {
+            updateStatus("Error: Missing ID parameter in URL.", true);
+            return;
+        }
+
+        try {
+            const doc = await db.collection("users").doc(minorId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.family === "commit") {
+                    minorEmail = data.email;
+                    minorName = data.firstName + " " + data.lastName;
+                    
+                    // Proceed to Parent Search
+                    document.getElementById('title').innerText = "Account Linkage";
+                    document.getElementById('view-parent').classList.remove('hidden');
+                    updateStatus("Minor account located: " + minorName);
+                } else {
+                    updateStatus("Linking ignored. Account status is: " + data.family, true);
+                }
+            } else {
+                updateStatus("Error: Minor ID not found in database.", true);
+            }
+        } catch (e) {
+            updateStatus("Database Connection Error.", true);
+        }
+    };
+
+    // --- 5. SEARCH GUARDIAN & SEND OTP ---
+    async function validateGuardian() {
+        const inputEmail = document.getElementById('p-email').value.trim();
+        if (!inputEmail) return alert("Please enter guardian email");
+
+        updateStatus("Searching for guardian record...");
+        document.getElementById('send-btn').disabled = true;
+
+        try {
+            // Find parent document where email matches and family is 'off'
+            const q = await db.collection("users")
+                .where("email", "==", inputEmail)
+                .where("family", "==", "off")
+                .get();
+
+            if (!q.empty) {
+                const pData = q.docs[0].data();
+                parentDocId = q.docs[0].id;
+                parentEmail = inputEmail;
+                parentName = pData.firstName + " " + pData.lastName;
+
+                sendOTPEmail();
+            } else {
+                updateStatus("No guardian account found with status 'off'.", true);
+                document.getElementById('send-btn').disabled = false;
+            }
+        } catch (e) {
+            updateStatus("Error searching database.", true);
+            document.getElementById('send-btn').disabled = false;
+        }
+    }
+
+    function sendOTPEmail() {
+        systemOTP = Math.floor(100000 + Math.random() * 900000).toString();
+        const now = new Date().toLocaleTimeString();
+
+        const params = {
+            to_email: parentEmail,
+            passcode: systemOTP,
+            time: now
+        };
+
+        emailjs.send('service_qiyll9e', 'template_vssk4uu', params)
+            .then(() => {
+                document.getElementById('view-parent').classList.add('hidden');
+                document.getElementById('view-otp').classList.remove('hidden');
+                document.getElementById('title').innerText = "Verification Code";
+                updateStatus("OTP sent to " + parentEmail);
+            }, (err) => {
+                alert("Email failed to send. Check EmailJS Template settings.");
+                document.getElementById('send-btn').disabled = false;
+            });
+    }
+
+    // --- 6. FINAL BATCH UPDATE & SUCCESS EMAIL ---
+    async function processLinking() {
+        const entered = document.getElementById('otp-code').value;
+        if (entered !== systemOTP) {
+            alert("Incorrect verification code.");
+            return;
+        }
+
+        updateStatus("Committing changes to Firestore...");
+        document.getElementById('verify-btn').disabled = true;
+
+        try {
+            const batch = db.batch();
+
+            // 1. Update Minor Account
+            const minorRef = db.collection("users").doc(minorId);
+            batch.update(minorRef, {
+                family: "commited",
+                guardianID: parentDocId
+            });
+
+            // 2. Update Parent Account
+            const parentRef = db.collection("users").doc(parentDocId);
+            batch.update(parentRef, {
+                family: "linked",
+                minorEmail: minorEmail,
+                minorID: minorId
+            });
+
+            await batch.commit();
+            
+            // SEND SUCCESS NOTIFICATION
+            await sendSuccessEmail();
+
+            document.getElementById('view-otp').classList.add('hidden');
+            document.getElementById('view-success').classList.remove('hidden');
+            document.getElementById('title').innerText = "Linked Successfully";
+            updateStatus("All records updated and notification sent.");
+
+        } catch (e) {
+            updateStatus("Link failure: " + e.message, true);
+            document.getElementById('verify-btn').disabled = false;
+        }
+    }
+
+    async function sendSuccessEmail() {
+        const successParams = {
+            to_email: parentEmail,
+            guardian_name: parentName,
+            minor_name: minorName,
+            time: new Date().toLocaleString()
+        };
+
+        return emailjs.send('service_qiyll9e', 'template_zuzyrsu', successParams);
+    }
+
+    function updateStatus(txt, isError = false) {
+        const s = document.getElementById('status-msg');
+        s.innerText = txt;
+        s.style.color = isError ? "var(--error)" : "#9aa0a6";
+    }
+</script>
+
+</body>
+</html>
