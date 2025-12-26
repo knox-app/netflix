@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Console - Update User</title>
+    <style>
+        /* CSS to mimic Firebase Console Dark Mode */
+        :root {
+            --bg-color: #1a1b1e;
+            --sidebar-color: #202124;
+            --border-color: #3c4043;
+            --text-main: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --accent-blue: #8ab4f8;
+            --accent-hover: #aecbfa;
+            --error-red: #f28b82;
+            --success-green: #81c995;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif, Arial;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            background-color: var(--sidebar-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 400;
+            margin: 0;
+        }
+
+        .id-badge {
+            font-size: 12px;
+            background: #303134;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--accent-blue);
+            font-family: monospace;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .field-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            background-color: #303134;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input[type="email"]:focus {
+            border-color: var(--accent-blue);
+        }
+
+        button {
+            background-color: var(--accent-blue);
+            color: #202124;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button:disabled {
+            background-color: #5f6368;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-size: 13px;
+            text-align: center;
+            min-height: 20px;
+        }
+
+        .success { color: var(--success-green); }
+        .error { color: var(--error-red); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Add User Email</h1>
+        <span id="display-id" class="id-badge">No ID detected</span>
+    </div>
+    <div class="content">
+        <div class="field-group">
+            <label for="email">Email Address (String)</label>
+            <input type="email" id="email" placeholder="example@gmail.com" required>
+        </div>
+        <button id="saveBtn">Update Document</button>
+        <div id="status"></div>
+    </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // Your provided Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        storageBucket: "xperts-metadata.firebasestorage.app",
+        messagingSenderId: "514845910910",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+        measurementId: "G-CQ5KWGJSZB"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Get ID from URL Parameters (?id=xyz)
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+
+    const emailInput = document.getElementById('email');
+    const saveBtn = document.getElementById('saveBtn');
+    const statusDiv = document.getElementById('status');
+    const displayId = document.getElementById('display-id');
+
+    // UI Initial Check
+    if (userId) {
+        displayId.textContent = userId;
+    } else {
+        statusDiv.innerHTML = '<span class="error">Error: No ID found in URL (?id=...)</span>';
+        saveBtn.disabled = true;
+    }
+
+    // Save Data Function
+    saveBtn.addEventListener('click', async () => {
+        const emailValue = emailInput.value;
+
+        if (!emailValue || !emailValue.includes('@')) {
+            showStatus("Please enter a valid email.", "error");
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.innerText = "Updating...";
+
+        try {
+            // Reference to the specific user document in the "users" collection
+            const userRef = doc(db, "users", userId);
+
+            // Update the document with the new email field
+            await updateDoc(userRef, {
+                email: emailValue
+            });
+
+            showStatus("Email saved successfully to Firestore!", "success");
+        } catch (error) {
+            console.error("Error updating document: ", error);
+            showStatus("Error: " + error.message, "error");
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerText = "Update Document";
+        }
+    });
+
+    function showStatus(msg, type) {
+        statusDiv.className = type;
+        statusDiv.textContent = msg;
+    }
+</script>
+
+</body>
+</html>
