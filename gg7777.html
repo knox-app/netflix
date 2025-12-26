@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Verification</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #1a1c1e;
+            --card: #282a2d;
+            --border: #3f4448;
+            --text: #e3e3e3;
+            --accent: #8ab4f8;
+            --input-bg: #1e1e1e;
+            --error: #f28b82;
+            --success: #81c995;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 380px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            color: var(--accent);
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-size: 11px; color: #9aa0a6; margin-bottom: 6px; text-transform: uppercase; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--accent); }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent);
+            color: #202124;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .hidden { display: none; }
+        
+        #status-msg {
+            font-size: 13px;
+            margin-top: 15px;
+            text-align: center;
+            color: #9aa0a6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header" id="title">Verifying...</div>
+
+    <div id="view-parent" class="hidden">
+        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Guardian approval needed. Enter parent email.</p>
+        <div class="form-group">
+            <label>Guardian Email Address</label>
+            <input type="email" id="p-email" placeholder="example@gmail.com">
+        </div>
+        <button id="send-btn" onclick="checkParentAndSendOTP()">Request Linking</button>
+    </div>
+
+    <div id="view-otp" class="hidden">
+        <div class="form-group">
+            <label>6-Digit Verification Code</label>
+            <input type="text" id="otp-code" maxlength="6" style="text-align: center; font-size: 24px; letter-spacing: 5px;">
+        </div>
+        <button id="verify-btn" onclick="verifyOTP()">Verify Code</button>
+    </div>
+
+    <div id="view-success" class="hidden" style="text-align: center;">
+        <h3 style="color: var(--success);">Linking Complete!</h3>
+        <p style="font-size: 14px;">The account status is now 'commited'.</p>
+    </div>
+
+    <div id="status-msg">Checking database...</div>
+</div>
+
+<script>
+    // Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        storageBucket: "xperts-metadata.firebasestorage.app",
+        messagingSenderId: "514845910910",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+        measurementId: "G-CQ5KWGJSZB"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    emailjs.init("Yr9MutUoHOEONnFgn");
+
+    let mId = "";
+    let mEmail = "";
+    let pDocId = "";
+    let systemOTP = "";
+
+    window.onload = async function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        mId = urlParams.get('id');
+
+        if (!mId) {
+            updateStatus("Error: No ID found in URL.", true);
+            return;
+        }
+
+        try {
+            const doc = await db.collection("users").doc(mId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.family === "commit") {
+                    mEmail = data.email;
+                    document.getElementById('title').innerText = "Guardian Link";
+                    document.getElementById('view-parent').classList.remove('hidden');
+                    updateStatus("Account located: " + (data.firstName || "User"));
+                } else {
+                    updateStatus("Account status is '" + data.family + "'. No linking needed.", true);
+                }
+            } else {
+                updateStatus("Error: ID not found in database.", true);
+            }
+        } catch (e) {
+            updateStatus("Database Error: " + e.message, true);
+        }
+    };
+
+    async function checkParentAndSendOTP() {
+        const emailInput = document.getElementById('p-email').value.trim();
+        if (!emailInput) return alert("Please enter email");
+
+        updateStatus("Searching for guardian...");
+        document.getElementById('send-btn').disabled = true;
+
+        try {
+            const q = await db.collection("users")
+                .where("email", "==", emailInput)
+                .where("family", "==", "off")
+                .get();
+
+            if (!q.empty) {
+                const parentDoc = q.docs[0];
+                pDocId = parentDoc.id;
+                sendOTP(emailInput);
+            } else {
+                updateStatus("No guardian account found with status 'off'.", true);
+                document.getElementById('send-btn').disabled = false;
+            }
+        } catch (e) {
+            updateStatus("Error: " + e.message, true);
+            document.getElementById('send-btn').disabled = false;
+        }
+    }
+
+    function sendOTP(emailAddress) {
+        systemOTP = Math.floor(100000 + Math.random() * 900000).toString();
+        const timeLimit = new Date(new Date().getTime() + 15 * 60000).toLocaleTimeString();
+
+        // Send multiple variations of the email key to avoid errors
+        const templateParams = {
+            passcode: systemOTP,
+            time: timeLimit,
+            to_email: emailAddress,
+            email: emailAddress
+        };
+
+        emailjs.send('service_qiyll9e', 'template_vssk4uu', templateParams)
+            .then(() => {
+                document.getElementById('view-parent').classList.add('hidden');
+                document.getElementById('view-otp').classList.remove('hidden');
+                document.getElementById('title').innerText = "Verify Guardian";
+                updateStatus("OTP sent to " + emailAddress);
+            }, (err) => {
+                console.error("EmailJS Error Object:", err);
+                alert("Email failed to send. Check your EmailJS template settings.\n\nError: " + err.text);
+                document.getElementById('send-btn').disabled = false;
+            });
+    }
+
+    async function verifyOTP() {
+        const input = document.getElementById('otp-code').value;
+        if (input !== systemOTP) {
+            alert("Incorrect code");
+            return;
+        }
+
+        updateStatus("Linking accounts...");
+        document.getElementById('verify-btn').disabled = true;
+
+        try {
+            const batch = db.batch();
+
+            // 1. Update Minor Account
+            const mRef = db.collection("users").doc(mId);
+            batch.update(mRef, {
+                family: "commited",
+                guardianID: pDocId
+            });
+
+            // 2. Update Parent Account
+            const pRef = db.collection("users").doc(pDocId);
+            batch.update(pRef, {
+                family: "linked",
+                minorEmail: mEmail,
+                minorID: mId
+            });
+
+            await batch.commit();
+            
+            document.getElementById('view-otp').classList.add('hidden');
+            document.getElementById('view-success').classList.remove('hidden');
+            document.getElementById('title').innerText = "Success";
+            updateStatus("Process completed successfully.");
+
+        } catch (e) {
+            updateStatus("Link failed: " + e.message, true);
+            document.getElementById('verify-btn').disabled = false;
+        }
+    }
+
+    function updateStatus(txt, isError = false) {
+        const s = document.getElementById('status-msg');
+        s.innerText = txt;
+        s.style.color = isError ? "var(--error)" : "#9aa0a6";
+    }
+</script>
+
+</body>
+</html>
