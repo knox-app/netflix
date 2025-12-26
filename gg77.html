@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Account Linking</title>
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- EmailJS -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #1a1c1e;
+            --surface: #282a2d;
+            --border: #3f4448;
+            --text: #e3e3e3;
+            --accent: #8ab4f8;
+            --error: #f28b82;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: var(--accent);
+        }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 12px; color: #9aa0a6; margin-bottom: 5px; text-transform: uppercase; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #1e1e1e;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--accent); }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent);
+            color: #202124;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .hidden { display: none; }
+        
+        #status {
+            font-size: 13px;
+            margin-top: 15px;
+            text-align: center;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header" id="step-title">Account Verification</div>
+
+    <!-- Step 1: Check Minor ID -->
+    <div id="view-init">
+        <p id="init-msg">Verifying account status...</p>
+    </div>
+
+    <!-- Step 2: Parent Email Input -->
+    <div id="view-parent-email" class="hidden">
+        <div class="form-group">
+            <label>Parent/Guardian Email Address</label>
+            <input type="email" id="parent-email" placeholder="email@example.com">
+        </div>
+        <button onclick="findParentAndSendOTP()">Request Linking</button>
+    </div>
+
+    <!-- Step 3: OTP Input -->
+    <div id="view-otp" class="hidden">
+        <div class="form-group">
+            <label>Enter OTP Code</label>
+            <input type="text" id="otp-code" maxlength="6" style="text-align:center; font-size:24px; letter-spacing:8px;">
+        </div>
+        <button onclick="verifyOTP()">Verify & Link</button>
+    </div>
+
+    <!-- Step 4: Success -->
+    <div id="view-success" class="hidden" style="text-align: center;">
+        <h3 style="color: #4caf50;">Linking Successful!</h3>
+        <p>Your account is now 'commited' and linked to your guardian.</p>
+    </div>
+
+    <div id="status"></div>
+</div>
+
+<script>
+    // 1. Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        storageBucket: "xperts-metadata.firebasestorage.app",
+        messagingSenderId: "514845910910",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+        measurementId: "G-CQ5KWGJSZB"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 2. EmailJS Init
+    emailjs.init("Yr9MutUoHOEONnFgn");
+
+    let kidID = "";
+    let parentDocID = "";
+    let parentEmailAddr = "";
+    let generatedOTP = "";
+
+    // Initialization Logic
+    window.onload = async function() {
+        const params = new URLSearchParams(window.location.search);
+        kidID = params.get('id');
+        const familyParam = params.get('Family');
+
+        if (!kidID || familyParam !== 'commit') {
+            showError("Access Denied: Invalid URL parameters.");
+            return;
+        }
+
+        try {
+            // Check if the Minor ID exists and family == "commit"
+            const doc = await db.collection("users").doc(kidID).get();
+            if (doc.exists && doc.data().family === "commit") {
+                showView('view-parent-email');
+                document.getElementById('step-title').innerText = "Link Guardian";
+                setStatus("Minor account found. Please provide Parent Email.");
+            } else {
+                showError("Minor account not found or already linked.");
+            }
+        } catch (e) {
+            showError("Database error: " + e.message);
+        }
+    };
+
+    async function findParentAndSendOTP() {
+        const email = document.getElementById('parent-email').value.trim();
+        if (!email) return alert("Enter an email");
+
+        setStatus("Searching for parent record...");
+        
+        try {
+            // Search for a document in 'users' where 'email' matches
+            const q = await db.collection("users").where("email", "==", email).get();
+
+            if (!q.empty) {
+                const parentDoc = q.docs[0];
+                parentDocID = parentDoc.id;
+                parentEmailAddr = email;
+
+                // Send OTP
+                sendOTP(email);
+            } else {
+                showError("Parent email not found in our database.");
+            }
+        } catch (e) {
+            showError("Search failed: " + e.message);
+        }
+    }
+
+    function sendOTP(email) {
+        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiry = new Date(new Date().getTime() + 15 * 60000).toLocaleTimeString();
+
+        const templateParams = {
+            passcode: generatedOTP,
+            time: expiry,
+            to_email: email
+        };
+
+        emailjs.send('service_qiyll9e', 'template_vssk4uu', templateParams)
+            .then(() => {
+                showView('view-otp');
+                document.getElementById('step-title').innerText = "Verify Parent";
+                setStatus("OTP sent to " + email);
+            }, (err) => {
+                showError("Email failed: " + JSON.stringify(err));
+            });
+    }
+
+    async function verifyOTP() {
+        const typed = document.getElementById('otp-code').value;
+        if (typed !== generatedOTP) {
+            alert("Invalid OTP");
+            return;
+        }
+
+        setStatus("Linking accounts...");
+
+        try {
+            const batch = db.batch();
+
+            // 1. Update Minor Account
+            const minorRef = db.collection("users").doc(kidID);
+            batch.update(minorRef, {
+                family: "commited",
+                guardianID: parentDocID
+            });
+
+            // 2. Update Parent Account
+            const parentRef = db.collection("users").doc(parentDocID);
+            batch.update(parentRef, {
+                family: "linked",
+                minorID: kidID
+            });
+
+            await batch.commit();
+            
+            showView('view-success');
+            document.getElementById('step-title').innerText = "Finished";
+            setStatus("");
+        } catch (e) {
+            showError("Commit failed: " + e.message);
+        }
+    }
+
+    // Helper functions
+    function showView(viewId) {
+        ['view-init', 'view-parent-email', 'view-otp', 'view-success'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(viewId).classList.remove('hidden');
+    }
+
+    function setStatus(text) {
+        const s = document.getElementById('status');
+        s.style.color = "#9aa0a6";
+        s.innerText = text;
+    }
+
+    function showError(text) {
+        const s = document.getElementById('status');
+        s.style.color = "var(--error)";
+        s.innerText = text;
+        document.getElementById('view-init').classList.add('hidden');
+    }
+</script>
+
+</body>
+    </html>
