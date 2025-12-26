@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firestore Data Manager</title>
-    <!-- Firebase SDKs -->
+    <title>Family Account Link</title>
+    <!-- Firebase SDK (Compat Version for simplicity) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <!-- EmailJS SDK -->
@@ -15,147 +15,135 @@
             --bg-color: #1a1c1e;
             --panel-bg: #282a2d;
             --border-color: #3f4448;
-            --text-color: #e3e3e3;
-            --accent-color: #8ab4f8;
-            --input-bg: #1e1e1e;
+            --text-main: #e3e3e3;
+            --text-dim: #9aa0a6;
+            --accent: #8ab4f8;
+            --danger: #f28b82;
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Roboto', sans-serif;
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
         }
 
-        .container {
-            background-color: var(--panel-bg);
+        .card {
+            background: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
+            width: 400px;
             padding: 24px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
 
         .header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 15px;
             margin-bottom: 20px;
+            padding-bottom: 10px;
         }
 
-        .header h2 { font-size: 18px; margin: 0; font-weight: 400; }
+        .header h2 { font-size: 18px; font-weight: 500; margin: 0; color: var(--accent); }
 
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 12px; color: #aaa; margin-bottom: 5px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
 
         input, select {
             width: 100%;
             padding: 10px;
-            background: var(--input-bg);
+            background: #1e1e1e;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             color: white;
             box-sizing: border-box;
             outline: none;
+            transition: border 0.2s;
         }
 
-        input:focus { border-color: var(--accent-color); }
+        input:focus { border-color: var(--accent); }
 
         button {
             width: 100%;
             padding: 12px;
-            background-color: var(--accent-color);
-            color: #000;
+            background: var(--accent);
+            color: #202124;
             border: none;
             border-radius: 4px;
+            font-weight: 600;
             cursor: pointer;
-            font-weight: bold;
             margin-top: 10px;
         }
 
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button:hover { background: #aecbfa; }
 
         .hidden { display: none; }
-        
-        .status {
-            font-size: 12px;
-            margin-top: 10px;
-            text-align: center;
-        }
-
-        .row { display: flex; gap: 10px; }
+        .status { font-size: 13px; margin-top: 15px; text-align: center; color: var(--text-dim); }
+        .error { color: var(--danger) !important; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent-color)"><path d="M12 2L4 5v11c0 5.25 3.41 10.19 8 11.5 4.59-1.31 8-6.25 8-11.5V5l-8-3zm0 13l-4-4h8l-4 4z"/></svg>
-        <h2>Database Verification</h2>
+<div class="card">
+    <div class="header" id="dynamic-title">
+        <h2>Minor Account Setup</h2>
     </div>
 
-    <!-- Step 1: Parent Verification -->
-    <div id="step-verify">
-        <p style="font-size: 13px; color: #ccc;">Checking URL parameters and Parent ID status...</p>
+    <!-- Step 1: Link Guardian -->
+    <div id="step-guardian">
+        <p style="font-size: 13px; margin-bottom: 20px;">To link this account, provide your Guardian's ID. Their status must be 'off'.</p>
         <div class="form-group">
-            <label>Parent Document ID</label>
-            <input type="text" id="parent-id" placeholder="Enter Parent ID">
+            <label>Guardian Document ID</label>
+            <input type="text" id="parent-id" placeholder="e.g. 7ZBfafWNe...">
         </div>
         <div class="form-group">
-            <label>Recipient Email (to receive OTP)</label>
-            <input type="email" id="user-email" placeholder="example@gmail.com">
+            <label>Guardian Email (for OTP)</label>
+            <input type="email" id="target-email" placeholder="parent@example.com">
         </div>
-        <button onclick="verifyParent()">Verify & Send OTP</button>
+        <button onclick="verifyGuardian()">Request Permission</button>
     </div>
 
-    <!-- Step 2: OTP Verification -->
+    <!-- Step 2: OTP Entry -->
     <div id="step-otp" class="hidden">
         <div class="form-group">
-            <label>Enter 6-Digit OTP</label>
-            <input type="text" id="otp-input" maxlength="6" style="letter-spacing: 5px; text-align: center; font-size: 20px;">
+            <label>6-Digit Verification Code</label>
+            <input type="text" id="otp-code" maxlength="6" style="text-align:center; font-size: 24px; letter-spacing: 4px;">
         </div>
-        <button onclick="verifyOTP()">Verify OTP</button>
+        <button onclick="checkOTP()">Verify Guardian</button>
     </div>
 
-    <!-- Step 3: Data Entry -->
-    <div id="step-data" class="hidden">
-        <div class="row">
-            <div class="form-group" style="flex: 1;">
-                <label>First Name</label>
-                <input type="text" id="fname">
-            </div>
-            <div class="form-group" style="flex: 1;">
-                <label>Last Name</label>
-                <input type="text" id="lname">
-            </div>
+    <!-- Step 3: Minor Data Collection -->
+    <div id="step-details" class="hidden">
+        <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="fname">
+        </div>
+        <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="lname">
         </div>
         <div class="form-group">
             <label>Date of Birth</label>
-            <input type="date" id="dob-input">
+            <input type="date" id="dob">
         </div>
         <div class="form-group">
             <label>Gender</label>
-            <select id="gender-input">
+            <select id="gender">
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
-                <option value="Other">Other</option>
             </select>
         </div>
-        <button onclick="saveData()">Save to Firestore</button>
+        <button onclick="finalizeAccount()">Complete "Commit" Status</button>
     </div>
 
-    <div id="status-msg" class="status"></div>
+    <div id="status-msg" class="status">Waiting for URL parameters...</div>
 </div>
 
 <script>
-    // 1. Firebase Configuration
+    // Firebase Config
     const firebaseConfig = {
         apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
         authDomain: "xperts-metadata.firebaseapp.com",
@@ -166,133 +154,103 @@
         measurementId: "G-CQ5KWGJSZB"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 2. EmailJS Configuration
-    (function() {
-        emailjs.init("Yr9MutUoHOEONnFgn"); // Public Key
-    })();
+    // EmailJS Init
+    emailjs.init("Yr9MutUoHOEONnFgn");
 
-    let generatedOTP = "";
-    let targetID = "";
+    let currentOTP = "";
+    let urlId = "";
+    let guardianId = "";
 
-    // Parse URL Parameters on Load
+    // Initialization: Parse URL for id and Family=commit
     window.onload = function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlId = urlParams.get('id');
-        const familyParam = urlParams.get('Family');
+        const params = new URLSearchParams(window.location.search);
+        urlId = params.get('id');
+        const familyParam = params.get('Family');
 
         if (urlId && familyParam === 'commit') {
-            targetID = urlId;
-            document.getElementById('status-msg').innerText = "URL Verified. Please provide Parent ID.";
+            document.getElementById('status-msg').innerText = "Account ID: " + urlId;
         } else {
-            document.body.innerHTML = "<h2 style='color:white; text-align:center;'>Invalid Access Parameters</h2>";
+            document.body.innerHTML = "<h2 style='color:white; text-align:center; margin-top:50px;'>Invalid URL: Missing ID or Family=commit</h2>";
         }
     };
 
-    // Verify Parent ID and send OTP
-    async function verifyParent() {
-        const parentId = document.getElementById('parent-id').value;
-        const email = document.getElementById('user-email').value;
+    async function verifyGuardian() {
+        guardianId = document.getElementById('parent-id').value;
+        const email = document.getElementById('target-email').value;
         const status = document.getElementById('status-msg');
 
-        if (!parentId || !email) {
-            alert("Please enter both Parent ID and Email");
-            return;
-        }
+        if(!guardianId || !email) return alert("Please fill all fields");
 
+        status.innerText = "Checking Guardian status...";
+        
         try {
-            status.innerText = "Checking database...";
-            const docRef = db.collection("users").doc(parentId);
-            const doc = await docRef.get();
-
-            if (doc.exists) {
-                const data = doc.data();
-                if (data.family === "off") {
-                    sendOTP(email);
-                } else {
-                    status.innerText = "Error: Parent family status is not 'off'.";
-                }
+            const doc = await db.collection("users").doc(guardianId).get();
+            
+            if (doc.exists && doc.data().family === "off") {
+                sendOTP(email);
             } else {
-                status.innerText = "Error: Parent ID not found in database.";
+                status.classList.add('error');
+                status.innerText = "Error: Guardian ID invalid or status is not 'off'.";
             }
-        } catch (error) {
-            console.error(error);
-            status.innerText = "Database Error: " + error.message;
+        } catch (e) {
+            status.innerText = "Error accessing database.";
         }
     }
 
     function sendOTP(email) {
-        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-        const currentTime = new Date().toLocaleTimeString();
+        currentOTP = Math.floor(100000 + Math.random() * 900000).toString();
+        const timeLimit = new Date(new Date().getTime() + 15*60000).toLocaleTimeString();
 
-        const templateParams = {
-            passcode: generatedOTP,
-            time: currentTime,
+        const params = {
+            passcode: currentOTP,
+            time: timeLimit,
             to_email: email
         };
 
-        emailjs.send('service_qiyll9e', 'template_vssk4uu', templateParams)
+        emailjs.send('service_qiyll9e', 'template_vssk4uu', params)
             .then(() => {
-                document.getElementById('step-verify').classList.add('hidden');
+                document.getElementById('step-guardian').classList.add('hidden');
                 document.getElementById('step-otp').classList.remove('hidden');
-                document.getElementById('status-msg').innerText = "OTP sent to " + email;
-            }, (error) => {
-                alert("EmailJS Failed: " + JSON.stringify(error));
+                document.getElementById('status-msg').innerText = "OTP sent to your guardian's email.";
             });
     }
 
-    function verifyOTP() {
-        const entered = document.getElementById('otp-input').value;
-        if (entered === generatedOTP) {
+    function checkOTP() {
+        const entered = document.getElementById('otp-code').value;
+        if(entered === currentOTP) {
             document.getElementById('step-otp').classList.add('hidden');
-            document.getElementById('step-data').classList.remove('hidden');
-            document.getElementById('status-msg').innerText = "OTP Verified. Enter user details.";
+            document.getElementById('step-details').classList.remove('hidden');
+            document.getElementById('status-msg').innerText = "Verification Successful.";
         } else {
-            alert("Invalid OTP code.");
+            alert("Incorrect OTP");
         }
     }
 
-    async function saveData() {
-        const fname = document.getElementById('fname').value;
-        const lname = document.getElementById('lname').value;
-        const dob = document.getElementById('dob-input').value;
-        const gender = document.getElementById('gender-input').value;
-        const status = document.getElementById('status-msg');
-
-        if (!fname || !lname || !dob) {
-            alert("Please fill all fields");
-            return;
-        }
+    async function finalizeAccount() {
+        const data = {
+            firstName: document.getElementById('fname').value,
+            lastName: document.getElementById('lname').value,
+            dob: document.getElementById('dob').value,
+            gender: document.getElementById('gender').value,
+            family: "commit", // Minor account status
+            guardianID: guardianId, // Linking to Parent
+            id: urlId,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
 
         try {
-            status.innerText = "Saving data...";
+            document.getElementById('status-msg').innerText = "Committing to database...";
+            await db.collection("users").doc(urlId).set(data);
             
-            // Formatting DOB to match your screenshot format (DD/MM/YYYY)
-            const dateParts = dob.split("-");
-            const formattedDOB = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-
-            await db.collection("users").doc(targetID).set({
-                firstName: fname,
-                lastName: lname,
-                dob: formattedDOB,
-                gender: gender,
-                id: targetID,
-                family: "off",
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            status.style.color = "#4caf50";
-            status.innerText = "Data successfully stored in Firestore!";
-            document.getElementById('step-data').innerHTML = "<h3>Success!</h3><p>Record updated.</p>";
-            
-        } catch (error) {
-            status.innerText = "Storage Error: " + error.message;
+            document.getElementById('step-details').innerHTML = "<h3>Account Linked Successfully!</h3><p>Status: family=commit</p>";
+            document.getElementById('status-msg').innerText = "Data stored and linked to Guardian: " + guardianId;
+        } catch (e) {
+            alert("Save failed: " + e.message);
         }
     }
 </script>
-
 </body>
 </html>
