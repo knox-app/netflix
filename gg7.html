@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Data Manager</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #1a1c1e;
+            --panel-bg: #282a2d;
+            --border-color: #3f4448;
+            --text-color: #e3e3e3;
+            --accent-color: #8ab4f8;
+            --input-bg: #1e1e1e;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .header h2 { font-size: 18px; margin: 0; font-weight: 400; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 12px; color: #aaa; margin-bottom: 5px; }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--accent-color); }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .hidden { display: none; }
+        
+        .status {
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .row { display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent-color)"><path d="M12 2L4 5v11c0 5.25 3.41 10.19 8 11.5 4.59-1.31 8-6.25 8-11.5V5l-8-3zm0 13l-4-4h8l-4 4z"/></svg>
+        <h2>Database Verification</h2>
+    </div>
+
+    <!-- Step 1: Parent Verification -->
+    <div id="step-verify">
+        <p style="font-size: 13px; color: #ccc;">Checking URL parameters and Parent ID status...</p>
+        <div class="form-group">
+            <label>Parent Document ID</label>
+            <input type="text" id="parent-id" placeholder="Enter Parent ID">
+        </div>
+        <div class="form-group">
+            <label>Recipient Email (to receive OTP)</label>
+            <input type="email" id="user-email" placeholder="example@gmail.com">
+        </div>
+        <button onclick="verifyParent()">Verify & Send OTP</button>
+    </div>
+
+    <!-- Step 2: OTP Verification -->
+    <div id="step-otp" class="hidden">
+        <div class="form-group">
+            <label>Enter 6-Digit OTP</label>
+            <input type="text" id="otp-input" maxlength="6" style="letter-spacing: 5px; text-align: center; font-size: 20px;">
+        </div>
+        <button onclick="verifyOTP()">Verify OTP</button>
+    </div>
+
+    <!-- Step 3: Data Entry -->
+    <div id="step-data" class="hidden">
+        <div class="row">
+            <div class="form-group" style="flex: 1;">
+                <label>First Name</label>
+                <input type="text" id="fname">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Last Name</label>
+                <input type="text" id="lname">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" id="dob-input">
+        </div>
+        <div class="form-group">
+            <label>Gender</label>
+            <select id="gender-input">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <button onclick="saveData()">Save to Firestore</button>
+    </div>
+
+    <div id="status-msg" class="status"></div>
+</div>
+
+<script>
+    // 1. Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDL7sPp-FkG59L-mRQ7BrCGgeKMhQC80iw",
+        authDomain: "xperts-metadata.firebaseapp.com",
+        projectId: "xperts-metadata",
+        storageBucket: "xperts-metadata.firebasestorage.app",
+        messagingSenderId: "514845910910",
+        appId: "1:514845910910:web:5a2402130a97b5d749b52f",
+        measurementId: "G-CQ5KWGJSZB"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 2. EmailJS Configuration
+    (function() {
+        emailjs.init("Yr9MutUoHOEONnFgn"); // Public Key
+    })();
+
+    let generatedOTP = "";
+    let targetID = "";
+
+    // Parse URL Parameters on Load
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlId = urlParams.get('id');
+        const familyParam = urlParams.get('Family');
+
+        if (urlId && familyParam === 'commit') {
+            targetID = urlId;
+            document.getElementById('status-msg').innerText = "URL Verified. Please provide Parent ID.";
+        } else {
+            document.body.innerHTML = "<h2 style='color:white; text-align:center;'>Invalid Access Parameters</h2>";
+        }
+    };
+
+    // Verify Parent ID and send OTP
+    async function verifyParent() {
+        const parentId = document.getElementById('parent-id').value;
+        const email = document.getElementById('user-email').value;
+        const status = document.getElementById('status-msg');
+
+        if (!parentId || !email) {
+            alert("Please enter both Parent ID and Email");
+            return;
+        }
+
+        try {
+            status.innerText = "Checking database...";
+            const docRef = db.collection("users").doc(parentId);
+            const doc = await docRef.get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.family === "off") {
+                    sendOTP(email);
+                } else {
+                    status.innerText = "Error: Parent family status is not 'off'.";
+                }
+            } else {
+                status.innerText = "Error: Parent ID not found in database.";
+            }
+        } catch (error) {
+            console.error(error);
+            status.innerText = "Database Error: " + error.message;
+        }
+    }
+
+    function sendOTP(email) {
+        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+        const currentTime = new Date().toLocaleTimeString();
+
+        const templateParams = {
+            passcode: generatedOTP,
+            time: currentTime,
+            to_email: email
+        };
+
+        emailjs.send('service_qiyll9e', 'template_vssk4uu', templateParams)
+            .then(() => {
+                document.getElementById('step-verify').classList.add('hidden');
+                document.getElementById('step-otp').classList.remove('hidden');
+                document.getElementById('status-msg').innerText = "OTP sent to " + email;
+            }, (error) => {
+                alert("EmailJS Failed: " + JSON.stringify(error));
+            });
+    }
+
+    function verifyOTP() {
+        const entered = document.getElementById('otp-input').value;
+        if (entered === generatedOTP) {
+            document.getElementById('step-otp').classList.add('hidden');
+            document.getElementById('step-data').classList.remove('hidden');
+            document.getElementById('status-msg').innerText = "OTP Verified. Enter user details.";
+        } else {
+            alert("Invalid OTP code.");
+        }
+    }
+
+    async function saveData() {
+        const fname = document.getElementById('fname').value;
+        const lname = document.getElementById('lname').value;
+        const dob = document.getElementById('dob-input').value;
+        const gender = document.getElementById('gender-input').value;
+        const status = document.getElementById('status-msg');
+
+        if (!fname || !lname || !dob) {
+            alert("Please fill all fields");
+            return;
+        }
+
+        try {
+            status.innerText = "Saving data...";
+            
+            // Formatting DOB to match your screenshot format (DD/MM/YYYY)
+            const dateParts = dob.split("-");
+            const formattedDOB = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+            await db.collection("users").doc(targetID).set({
+                firstName: fname,
+                lastName: lname,
+                dob: formattedDOB,
+                gender: gender,
+                id: targetID,
+                family: "off",
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            status.style.color = "#4caf50";
+            status.innerText = "Data successfully stored in Firestore!";
+            document.getElementById('step-data').innerHTML = "<h3>Success!</h3><p>Record updated.</p>";
+            
+        } catch (error) {
+            status.innerText = "Storage Error: " + error.message;
+        }
+    }
+</script>
+
+</body>
+</html>
