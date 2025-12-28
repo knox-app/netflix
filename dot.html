@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>JW Player DRM</title>
+  <script src="https://cdn.jwplayer.com/libraries/XXXXXXXX.js"></script>
+  <style>
+    body { margin:0; background:black; }
+    #player { width:100vw; height:100vh; }
+  </style>
+</head>
+<body>
+
+<div id="player"></div>
+
+<script>
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+
+  const mpd = getParam("mpd");
+  const drm = getParam("drm");
+  const license = getParam("license");
+
+  if (!mpd || !drm || !license) {
+    document.body.innerHTML =
+      "<h2 style='color:white;text-align:center'>Missing parameters</h2>";
+    throw new Error("Missing parameters");
+  }
+
+  jwplayer("player").setup({
+    file: mpd,
+    type: "dash",
+    autostart: true,
+    width: "100%",
+    height: "100%",
+    drm: {
+      [drm]: {
+        url: license
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
