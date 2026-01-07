@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Media Player</title>
+    <style>
+        :root { --primary: #1f80e0; --bg: #000; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
+
+        #player-container {
+            position: relative; width: 100vw; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+
+        /* The Video Scaler for Pinch-to-Zoom */
+        #video-wrapper {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.1s ease-out;
+            transform-origin: center;
+        }
+        video { width: 100%; height: 100%; object-fit: contain; }
+
+        /* UI Overlays */
+        .overlay { 
+            position: absolute; inset: 0; z-index: 10; 
+            transition: opacity 0.4s, visibility 0.4s;
+            background: rgba(0,0,0,0.3);
+        }
+        .overlay.hidden { opacity: 0; visibility: hidden; }
+        .locked-overlay { z-index: 20; } /* Lock button stays above */
+
+        /* Icons & Buttons */
+        .btn {
+            background: rgba(255,255,255,0.1); border: 2px solid transparent;
+            border-radius: 50%; width: 60px; height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; outline: none; transition: 0.2s;
+        }
+        .btn:focus { background: var(--primary); border-color: white; transform: scale(1.1); }
+        .btn svg { width: 30px; height: 30px; fill: white; }
+
+        /* Lock Button Position */
+        #lock-btn { position: absolute; left: 30px; top: 50%; transform: translateY(-50%); z-index: 100; opacity: 0.7; }
+        #lock-btn.locked { opacity: 1; background: rgba(255, 0, 0, 0.5); }
+
+        /* Top Bar */
+        .top-bar { position: absolute; top: 0; left: 0; right: 0; padding: 30px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); display: flex; justify-content: space-between; }
+
+        /* Bottom Controls */
+        .bottom-bar { 
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; 
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); 
+        }
+
+        /* Draggable Progress Bar */
+        .seek-container { width: 100%; height: 40px; display: flex; align-items: center; cursor: pointer; }
+        .seek-track { width: 100%; height: 6px; background: rgba(255,255,255,0.3); border-radius: 3px; position: relative; }
+        .seek-fill { height: 100%; background: var(--primary); border-radius: 3px; width: 0%; pointer-events: none; }
+        .seek-handle { 
+            position: absolute; top: 50%; transform: translate(-50%, -50%);
+            width: 20px; height: 20px; background: white; border-radius: 50%; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* Loading Spinner */
+        #loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 5; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="player-container">
+    <!-- Pinch to zoom wrapper -->
+    <div id="video-wrapper">
+        <video id="video" playsinline></video>
+    </div>
+
+    <div id="loader"><div class="spinner"></div></div>
+
+    <!-- Lock Button (Always visible when UI is triggered) -->
+    <button class="btn" id="lock-btn" tabindex="1">
+        <svg id="lock-icon" viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/></svg>
+    </button>
+
+    <!-- UI Controls -->
+    <div class="overlay" id="ui-controls">
+        <div class="top-bar">
+            <h2 id="video-title">Live Stream</h2>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="seek-container" id="seek-bar">
+                <div class="seek-track">
+                    <div class="seek-fill" id="seek-fill"></div>
+                    <div class="seek-handle" id="seek-handle"></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; align-items: center; margin-top: 10px;">
+                <button class="btn" id="play-btn" tabindex="2">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <button class="btn" id="fs-btn" tabindex="3">
+                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zm0-4h2V7h3V5H7zm10 9h-3v2h5v-5h-2zm0-14V5h-5v2h3v3z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+    const video = document.getElementById('video');
+    const wrapper = document.getElementById('video-wrapper');
+    const ui = document.getElementById('ui-controls');
+    const lockBtn = document.getElementById('lock-btn');
+    const loader = document.getElementById('loader');
+    const seekFill = document.getElementById('seek-fill');
+    const seekHandle = document.getElementById('seek-handle');
+    const seekBar = document.getElementById('seek-bar');
+
+    let isLocked = false;
+    let scale = 1;
+    let lastTouchTime = 0;
+
+    /* 1. LOAD STREAM */
+    const params = new URLSearchParams(window.location.search);
+    const src = params.get('src') || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
+    
+    if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+    }
+
+    /* 2. LOCK/UNLOCK LOGIC */
+    lockBtn.onclick = (e) => {
+        e.stopPropagation();
+        isLocked = !isLocked;
+        lockBtn.classList.toggle('locked', isLocked);
+        document.getElementById('lock-icon').innerHTML = isLocked ? 
+            '<path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>' : 
+            '<path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>';
+        
+        if (isLocked) ui.classList.add('hidden');
+        else ui.classList.remove('hidden');
+    };
+
+    /* 3. PINCH TO SCALE */
+    let initialDist = 0;
+    document.addEventListener('touchmove', (e) => {
+        if (isLocked) return;
+        if (e.touches.length === 2) {
+            let dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            if (initialDist === 0) initialDist = dist;
+            else {
+                scale = Math.min(Math.max(1, scale * (dist / initialDist)), 4);
+                wrapper.style.transform = `scale(${scale})`;
+                initialDist = dist;
+            }
+        }
+    }, {passive: false});
+
+    document.addEventListener('touchend', () => initialDist = 0);
+
+    /* 4. DOUBLE TAP TO FULLSCREEN */
+    document.addEventListener('touchstart', (e) => {
+        if (isLocked) return;
+        let now = Date.now();
+        if (now - lastTouchTime < 300) {
+            toggleFS();
+        }
+        lastTouchTime = now;
+        showUI();
+    });
+
+    function toggleFS() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape');
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    /* 5. DRAGGABLE PROGRESS BAR */
+    let isDragging = false;
+    const handleSeek = (e) => {
+        if (isLocked) return;
+        const rect = seekBar.getBoundingClientRect();
+        const offsetX = (e.clientX || e.touches[0].clientX) - rect.left;
+        const pos = Math.min(Math.max(0, offsetX / rect.width), 1);
+        seekFill.style.width = (pos * 100) + "%";
+        seekHandle.style.left = (pos * 100) + "%";
+        if (!isDragging && e.type === 'mousedown') isDragging = true;
+        if (e.type === 'mouseup' || e.type === 'touchend') {
+            video.currentTime = pos * video.duration;
+            isDragging = false;
+        }
+    };
+
+    seekBar.addEventListener('mousedown', handleSeek);
+    window.addEventListener('mousemove', (e) => isDragging && handleSeek(e));
+    window.addEventListener('mouseup', handleSeek);
+    seekBar.addEventListener('touchstart', (e) => { isDragging = true; handleSeek(e); });
+    seekBar.addEventListener('touchmove', (e) => isDragging && handleSeek(e));
+    seekBar.addEventListener('touchend', (e) => { if(isDragging) handleSeek(e); });
+
+    /* 6. TV REMOTE & UI LOGIC */
+    let uiTimer;
+    function showUI() {
+        if (isLocked) {
+            lockBtn.style.opacity = "1";
+            setTimeout(() => lockBtn.style.opacity = "0.3", 3000);
+            return;
+        }
+        ui.classList.remove('hidden');
+        lockBtn.style.display = "flex";
+        clearTimeout(uiTimer);
+        if (!video.paused) uiTimer = setTimeout(() => {
+            ui.classList.add('hidden');
+            lockBtn.style.display = "none";
+        }, 5000);
+    }
+
+    window.addEventListener('keydown', (e) => {
+        showUI();
+        if (isLocked && e.key !== "Enter") return;
+        switch(e.key) {
+            case "Enter": if(!isLocked) (video.paused ? video.play() : video.pause()); break;
+            case "ArrowRight": video.currentTime += 10; break;
+            case "ArrowLeft": video.currentTime -= 10; break;
+            case "ArrowUp": video.volume = Math.min(1, video.volume + 0.1); break;
+            case "ArrowDown": video.volume = Math.max(0, video.volume - 0.1); break;
+        }
+    });
+
+    video.onplaying = () => { loader.style.display = 'none'; showUI(); };
+    video.onwaiting = () => loader.style.display = 'flex';
+    video.ontimeupdate = () => {
+        if (!isDragging && video.duration) {
+            const p = (video.currentTime / video.duration) * 100;
+            seekFill.style.width = p + "%";
+            seekHandle.style.left = p + "%";
+        }
+    };
+
+    document.getElementById('play-btn').onclick = () => video.paused ? video.play() : video.pause();
+    document.getElementById('fs-btn').onclick = toggleFS;
+
+</script>
+</body>
+</html>
