@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ultimate TV Player</title>
+    <style>
+        :root {
+            --primary: #0078ff;
+            --surface: rgba(20, 20, 20, 0.95);
+            --text: #ffffff;
+            --focus-bg: rgba(255, 255, 255, 0.2);
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #000; overflow: hidden;
+            font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: var(--text);
+        }
+
+        #app { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+        video { width: 100%; height: 100%; object-fit: contain; }
+
+        /* --- LOADING SPINNER --- */
+        .loader {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.5); z-index: 100; visibility: hidden;
+        }
+        .loader.active { visibility: visible; }
+        .spinner {
+            width: 70px; height: 70px; border: 6px solid #444; border-top-color: var(--primary);
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- TOP INFO BAR --- */
+        .top-bar {
+            position: absolute; top: 0; left: 0; right: 0; padding: 30px 50px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            display: flex; justify-content: space-between; align-items: flex-start;
+            transition: transform 0.4s ease; z-index: 20;
+        }
+        .live-indicator { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #ff0000; text-transform: uppercase; }
+        .live-dot { width: 10px; height: 10px; background: red; border-radius: 50%; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* --- SIDEBAR (CHANNEL LIST) --- */
+        .sidebar {
+            position: absolute; left: 0; top: 0; bottom: 0; width: 350px;
+            background: var(--surface); z-index: 50; transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 40px 20px; box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+        }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar h2 { margin-left: 15px; margin-bottom: 30px; font-size: 24px; color: var(--primary); }
+        .channel-item {
+            padding: 15px 20px; margin: 5px 0; border-radius: 8px;
+            cursor: pointer; display: flex; align-items: center; gap: 15px; outline: none;
+        }
+        .channel-item:focus { background: var(--primary); transform: scale(1.05); }
+        .channel-item img { width: 40px; height: 40px; border-radius: 4px; background: #333; }
+
+        /* --- BOTTOM CONTROLS --- */
+        .controls-wrapper {
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 40px 60px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            transition: transform 0.4s ease; z-index: 20;
+        }
+        .ui-hidden .top-bar { transform: translateY(-100%); }
+        .ui-hidden .controls-wrapper { transform: translateY(100%); }
+
+        .progress-container { width: 100%; height: 8px; background: rgba(255,255,255,0.2); margin-bottom: 25px; border-radius: 4px; overflow: hidden; }
+        #progress-bar { width: 0%; height: 100%; background: var(--primary); }
+
+        .btn-row { display: flex; align-items: center; gap: 25px; }
+        .btn {
+            background: none; border: 3px solid transparent; border-radius: 12px;
+            padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            outline: none; transition: 0.2s;
+        }
+        .btn:focus { background: var(--primary); border-color: #fff; transform: scale(1.15); }
+        .btn svg { width: 35px; height: 35px; fill: #fff; }
+
+        /* --- SETTINGS MENU (QUALITY) --- */
+        .settings-menu {
+            position: absolute; right: 60px; bottom: 150px;
+            background: var(--surface); border-radius: 15px; padding: 15px;
+            display: none; flex-direction: column; z-index: 60;
+        }
+        .settings-menu.open { display: flex; }
+        .menu-item {
+            padding: 12px 30px; border-radius: 8px; cursor: pointer; outline: none;
+        }
+        .menu-item:focus { background: var(--primary); }
+
+        /* --- OVERLAYS --- */
+        #vol-overlay {
+            position: absolute; top: 100px; right: 50px; background: rgba(0,0,0,0.8);
+            padding: 20px; border-radius: 10px; display: none; text-align: center; z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="loader" id="loader"><div class="spinner"></div></div>
+
+    <video id="video"></video>
+
+    <!-- Side Menu (Channels) -->
+    <div class="sidebar" id="sidebar">
+        <h2>Channels</h2>
+        <div id="channel-list">
+            <!-- Channels injected by JS -->
+        </div>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div>
+            <div class="live-indicator"><div class="live-dot"></div> Live</div>
+            <h1 id="current-title" style="margin: 5px 0;">Loading...</h1>
+        </div>
+        <div id="clock" style="font-size: 24px;">00:00</div>
+    </div>
+
+    <!-- Volume Overlay -->
+    <div id="vol-overlay">
+        <div id="vol-text" style="font-size: 24px; font-weight: bold;">100%</div>
+        <div style="height: 5px; width: 100px; background: #333; margin-top: 10px;">
+            <div id="vol-bar" style="height: 100%; background: var(--primary); width: 100%;"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="controls-wrapper" id="controls">
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btn-play" tabindex="1">
+                <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button class="btn" id="btn-menu" tabindex="2">
+                <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+            </button>
+            <button class="btn" id="btn-quality" tabindex="3">
+                <svg viewBox="0 0 24 24"><path d="M15.95 10.78c.03-.25.05-.51.05-.78s-.02-.53-.06-.78l1.69-1.32c.15-.12.19-.34.1-.51l-1.6-2.77c-.1-.18-.31-.24-.49-.17l-1.99.8c-.42-.32-.86-.58-1.35-.78L12.26 2.4c-.03-.2-.21-.35-.41-.35h-3.2c-.2 0-.38.15-.41.35l-.29 2.12c-.49.2-.94.47-1.35.78l-1.99-.8c-.18-.07-.39 0-.49.17l-1.6 2.77c-.1.17-.06.39.1.51l1.69 1.32c-.04.25-.07.52-.07.78s.02.53.06.78L2.37 12.1c-.15.12-.19.34-.1.51l1.6 2.77c.1.18.31.24.49.17l1.99-.8c.42.32.86.58 1.35.78l.29 2.12c.03.2.21.35.41.35h3.2c.2 0 .38-.15.41-.35l.29-2.12c.49-.2.94-.47 1.35-.78l1.99.8c.18.07.39 0 .49-.17l1.6-2.77c.1-.17.06-.39-.1-.51l-1.67-1.32zM10 13c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Quality Selection -->
+    <div class="settings-menu" id="quality-menu">
+        <h3 style="margin: 0 0 10px 10px;">Quality</h3>
+        <div id="quality-list"></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+    const video = document.getElementById('video');
+    const loader = document.getElementById('loader');
+    const sidebar = document.getElementById('sidebar');
+    const qualityMenu = document.getElementById('quality-menu');
+    const btnPlay = document.getElementById('btn-play');
+    let hls = new Hls();
+
+    const channels = [
+        { name: "News 24 Live", src: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", logo: "https://via.placeholder.com/40/0078ff/fff?text=N" },
+        { name: "Sports HD", src: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8", logo: "https://via.placeholder.com/40/ff0000/fff?text=S" },
+        { name: "Movies Now", src: "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8", logo: "https://via.placeholder.com/40/00ff00/fff?text=M" }
+    ];
+
+    /* --- INITIALIZATION --- */
+    function loadChannel(index) {
+        const ch = channels[index];
+        document.getElementById('current-title').innerText = ch.name;
+        sidebar.classList.remove('open');
+        loader.classList.add('active');
+        
+        if (Hls.isSupported()) {
+            hls.destroy();
+            hls = new Hls();
+            hls.loadSource(ch.src);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play();
+                setupQualityMenu();
+            });
+        } else {
+            video.src = ch.src;
+            video.play();
+        }
+    }
+
+    /* --- SIDEBAR & CHANNELS --- */
+    const channelContainer = document.getElementById('channel-list');
+    channels.forEach((ch, idx) => {
+        const div = document.createElement('div');
+        div.className = "channel-item";
+        div.tabIndex = 10 + idx;
+        div.innerHTML = `<img src="${ch.logo}"> <span>${ch.name}</span>`;
+        div.onclick = () => loadChannel(idx);
+        div.onkeydown = (e) => { if(e.key === "Enter") loadChannel(idx); };
+        channelContainer.appendChild(div);
+    });
+
+    /* --- QUALITY CONTROL --- */
+    function setupQualityMenu() {
+        const list = document.getElementById('quality-list');
+        list.innerHTML = '';
+        hls.levels.forEach((level, idx) => {
+            const item = document.createElement('div');
+            item.className = "menu-item";
+            item.tabIndex = 100 + idx;
+            item.innerText = level.height + "p";
+            item.onclick = () => {
+                hls.currentLevel = idx;
+                qualityMenu.classList.remove('open');
+            };
+            list.appendChild(item);
+        });
+    }
+
+    /* --- TV REMOTE KEYBOARD LOGIC --- */
+    let uiTimer;
+    function showUI() {
+        document.getElementById('app').classList.remove('ui-hidden');
+        clearTimeout(uiTimer);
+        if (!video.paused) {
+            uiTimer = setTimeout(() => {
+                if (!sidebar.classList.contains('open') && !qualityMenu.classList.contains('open')) {
+                    document.getElementById('app').classList.add('ui-hidden');
+                    document.activeElement.blur();
+                }
+            }, 5000);
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        showUI();
+        switch(e.key) {
+            case "ArrowLeft":
+                if (!sidebar.classList.contains('open') && document.activeElement.tabIndex < 10) {
+                    sidebar.classList.add('open');
+                    document.querySelector('.channel-item').focus();
+                }
+                break;
+            case "ArrowUp":
+                adjustVolume(0.05);
+                break;
+            case "ArrowDown":
+                adjustVolume(-0.05);
+                break;
+            case "Enter":
+                if (document.activeElement === document.body || document.activeElement === video) {
+                    togglePlay();
+                }
+                break;
+            case "Backspace":
+            case "Escape":
+                if (sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                    btnPlay.focus();
+                    e.preventDefault();
+                } else if (qualityMenu.classList.contains('open')) {
+                    qualityMenu.classList.remove('open');
+                    e.preventDefault();
+                }
+                break;
+        }
+    });
+
+    /* --- HELPERS --- */
+    function togglePlay() {
+        video.paused ? video.play() : video.pause();
+    }
+
+    function adjustVolume(val) {
+        video.volume = Math.min(1, Math.max(0, video.volume + val));
+        const volOverlay = document.getElementById('vol-overlay');
+        document.getElementById('vol-text').innerText = Math.round(video.volume * 100) + "%";
+        document.getElementById('vol-bar').style.width = (video.volume * 100) + "%";
+        volOverlay.style.display = "block";
+        clearTimeout(window.vTimer);
+        window.vTimer = setTimeout(() => volOverlay.style.display = "none", 2000);
+    }
+
+    // Update Clock
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+    }, 1000);
+
+    // Video Events
+    video.onwaiting = () => loader.classList.add('active');
+    video.onplaying = () => loader.classList.remove('active');
+    video.ontimeupdate = () => {
+        document.getElementById('progress-bar').style.width = (video.currentTime / video.duration * 100) + "%";
+    };
+
+    // Button Listeners
+    btnPlay.onclick = togglePlay;
+    document.getElementById('btn-menu').onclick = () => sidebar.classList.add('open');
+    document.getElementById('btn-quality').onclick = () => qualityMenu.classList.toggle('open');
+
+    // Start App
+    loadChannel(0);
+    showUI();
+
+</script>
+</body>
+</html>
