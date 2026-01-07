@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Smart TV Player</title>
+    <style>
+        :root { --primary: #1f80e0; --bg: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
+        
+        #app { position: relative; width: 100%; height: 100%; }
+        video { width: 100%; height: 100%; background: #000; }
+
+        /* UI Overlays */
+        .overlay { position: absolute; inset: 0; pointer-events: none; z-index: 10; transition: opacity 0.5s; }
+        .hide { opacity: 0; }
+
+        /* Top Bar */
+        .top-bar { position: absolute; top: 0; left: 0; right: 0; padding: 40px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        #title { font-size: 32px; margin: 0; font-weight: bold; }
+
+        /* Loading Spinner */
+        #loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); z-index: 20; }
+        .spinner { width: 60px; height: 60px; border: 6px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Bottom Controls */
+        .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 40px; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); pointer-events: auto; }
+        .progress-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; margin-bottom: 20px; }
+        #progress-bar { width: 0%; height: 100%; background: var(--primary); border-radius: 4px; }
+        
+        .btn { background: transparent; border: 3px solid transparent; border-radius: 50%; padding: 10px; outline: none; transition: 0.2s; display: inline-flex; }
+        .btn:focus { background: var(--primary); border-color: #fff; transform: scale(1.2); }
+        .btn svg { width: 40px; height: 40px; fill: white; }
+
+        /* Volume Card */
+        #vol-card { position: absolute; top: 50px; right: 50px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="loader"><div class="spinner"></div></div>
+
+    <video id="video" playsinline autoplay></video>
+
+    <div id="vol-card">VOL: <span id="vol-val">100</span>%</div>
+
+    <div class="overlay" id="ui">
+        <div class="top-bar">
+            <h1 id="title">My Stream</h1>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="progress-bg"><div id="progress-bar"></div></div>
+            <div class="row">
+                <button class="btn" id="play-btn" tabindex="1">
+                    <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+    const video = document.getElementById('video');
+    const ui = document.getElementById('ui');
+    const loader = document.getElementById('loader');
+    const progressBar = document.getElementById('progress-bar');
+    const titleText = document.getElementById('title');
+
+    // 1. GET YOUR URL FROM THE ADDRESS BAR
+    // Use it like this: index.html?name=MyChannel&src=http://myserver.com/live.m3u8
+    const params = new URLSearchParams(window.location.search);
+    const myUrl = params.get('src'); 
+    const myName = params.get('name') || "Live Stream";
+
+    if (myUrl) {
+        titleText.innerText = myName;
+        loadStream(myUrl);
+    } else {
+        titleText.innerText = "Error: No URL provided";
+        loader.innerHTML = "<div style='color:white'>Please add ?src=YOUR_URL to the end of the address</div>";
+    }
+
+    function loadStream(url) {
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+            hls.on(Hls.Events.ERROR, (e, data) => {
+                if(data.fatal) console.error("Could not load stream");
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+        }
+    }
+
+    /* --- TV REMOTE CONTROLS --- */
+    let uiTimer;
+    function showUI() {
+        ui.classList.remove('hide');
+        clearTimeout(uiTimer);
+        if (!video.paused) {
+            uiTimer = setTimeout(() => ui.classList.add('hide'), 5000);
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        showUI();
+        switch(e.key) {
+            case "Enter":
+                if (video.paused) video.play(); else video.pause();
+                break;
+            case "ArrowUp":
+                video.volume = Math.min(1, video.volume + 0.1);
+                showVolume();
+                break;
+            case "ArrowDown":
+                video.volume = Math.max(0, video.volume - 0.1);
+                showVolume();
+                break;
+            case "ArrowRight":
+                video.currentTime += 10;
+                break;
+            case "ArrowLeft":
+                video.currentTime -= 10;
+                break;
+        }
+    });
+
+    function showVolume() {
+        const card = document.getElementById('vol-card');
+        document.getElementById('vol-val').innerText = Math.round(video.volume * 100);
+        card.style.display = 'block';
+        clearTimeout(window.vT);
+        window.vT = setTimeout(() => card.style.display = 'none', 2000);
+    }
+
+    video.onplaying = () => loader.style.display = 'none';
+    video.onwaiting = () => loader.style.display = 'flex';
+    video.ontimeupdate = () => {
+        progressBar.style.width = (video.currentTime / video.duration * 100) + "%";
+    };
+
+    // Auto-focus the play button for TV Remote
+    document.getElementById('play-btn').focus();
+</script>
+</body>
+</html>
