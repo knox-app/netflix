@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium M3U8 Player</title>
-    <!-- Hls.js Library for M3U8 support -->
+    <title>ProStream TV</title>
+    <!-- Hls.js for M3U8 Support -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.10/hls.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -12,368 +12,344 @@
         :root {
             --hotstar-blue: #1f80e0;
             --bg-dark: #030b17;
-            --control-bg: rgba(0, 0, 0, 0.7);
+            --card-bg: #161d2f;
+            --text-main: #ffffff;
+            --text-dim: #8f98b2;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 
         body {
             background-color: var(--bg-dark);
-            color: white;
+            color: var(--text-main);
             overflow: hidden;
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Input Area */
-        #setup-screen {
-            position: absolute;
-            z-index: 100;
-            text-align: center;
-            background: var(--bg-dark);
-            padding: 20px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-        }
-
-        input {
-            width: 100%;
-            padding: 15px;
-            border-radius: 8px;
-            border: none;
-            margin-bottom: 10px;
-            background: #161d2f;
-            color: white;
-            outline: 2px solid transparent;
-        }
-
-        input:focus { outline: 2px solid var(--hotstar-blue); }
-
-        button.load-btn {
-            background: var(--hotstar-blue);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        /* Player Container */
-        #player-wrapper {
-            position: relative;
             width: 100vw;
+        }
+
+        /* --- DASHBOARD / HOME SCREEN --- */
+        #home-screen {
+            padding: 5% 8%;
             height: 100vh;
-            background: black;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
+            overflow-y: auto;
+            display: block;
         }
 
-        video {
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        /* Controls Overlay */
-        #controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
-            padding: 20px;
-            transition: opacity 0.5s;
-            opacity: 1;
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 30px;
+            color: var(--hotstar-blue);
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 10px;
         }
 
-        .hide-cursor { cursor: none; }
-        .hidden { opacity: 0 !important; pointer-events: none; }
-
-        /* Progress Bar */
-        .progress-container {
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.2);
-            cursor: pointer;
-            position: relative;
-            border-radius: 3px;
+        .section-title {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        #progress-bar {
-            height: 100%;
-            background: var(--hotstar-blue);
-            width: 0%;
-            border-radius: 3px;
-            position: relative;
-        }
-
-        #progress-bar::after {
-            content: '';
-            position: absolute;
-            right: -5px;
-            top: -4px;
-            width: 14px;
-            height: 14px;
-            background: white;
-            border-radius: 50%;
-        }
-
-        /* Buttons Row */
-        .buttons {
-            display: flex;
-            align-items: center;
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 25px;
         }
 
-        .control-btn {
-            background: none;
-            border: none;
-            color: white;
+        /* TV REMOTE FOCUS LOGIC */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 3px solid transparent;
             cursor: pointer;
+            position: relative;
             outline: none;
-            padding: 5px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s;
         }
 
-        /* TV Focus State */
-        .control-btn:focus {
-            background: rgba(255,255,255,0.2);
-            transform: scale(1.2);
-            color: var(--hotstar-blue);
+        .card:focus {
+            transform: scale(1.08);
+            border-color: var(--hotstar-blue);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
-        .time-display {
-            font-size: 14px;
-            margin-left: 10px;
-        }
+        .card img { width: 100%; height: 160px; object-fit: cover; opacity: 0.8; }
+        .card:focus img { opacity: 1; }
 
-        /* Gesture Feedback */
-        #feedback {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.5);
-            padding: 20px;
-            border-radius: 50%;
+        .card-body { padding: 15px; }
+        .card-title { font-weight: 600; font-size: 1.1rem; }
+
+        /* --- PLAYER OVERLAY --- */
+        #player-wrapper {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: #000;
             display: none;
-            pointer-events: none;
+            z-index: 1000;
         }
 
+        video { width: 100%; height: 100%; }
+
+        /* Controls UI */
+        #ui-overlay {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            padding: 40px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+            transition: opacity 0.4s;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .progress-area { width: 100%; height: 6px; background: rgba(255,255,255,0.2); border-radius: 10px; cursor: pointer; }
+        #progress-bar { 
+            height: 100%; width: 0%; 
+            background: var(--hotstar-blue); 
+            border-radius: 10px; 
+            position: relative; 
+            transition: width 0.1s linear;
+        }
+
+        .controls-row { display: flex; align-items: center; gap: 30px; }
+        
+        .icon-btn {
+            background: none; border: none; color: white;
+            cursor: pointer; border-radius: 50%; padding: 10px;
+            display: flex; align-items: center; justify-content: center;
+            outline: none; transition: 0.2s;
+        }
+
+        .icon-btn:focus { background: var(--hotstar-blue); transform: scale(1.2); }
+
+        .time-info { font-size: 0.9rem; font-weight: 500; color: #ccc; }
+
+        /* Notifications (Volume/Seek) */
+        #toast {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            padding: 25px; border-radius: 50%;
+            display: none; pointer-events: none;
+        }
+
+        .hidden { opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <!-- Setup Screen -->
-    <div id="setup-screen">
-        <h2 style="margin-bottom: 20px;">Premium M3U8 Player</h2>
-        <input type="text" id="m3u8-url" placeholder="Paste your .m3u8 link here..." value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
-        <button class="load-btn" onclick="initPlayer()" id="load-btn">Load Stream</button>
-        <p style="margin-top: 15px; font-size: 12px; color: #888;">Supports: Android TV Remote (Arrows, OK), Touch Swipes, Keyboard</p>
+    <!-- Home Screen -->
+    <div id="home-screen">
+        <div class="logo"><i data-lucide="play-circle"></i> PROSTREAM</div>
+        
+        <p class="section-title">Continue Watching</p>
+        <div class="grid" id="content-grid">
+            <!-- Content injected via JS -->
+        </div>
     </div>
 
-    <!-- Player Wrapper -->
+    <!-- Video Player Screen -->
     <div id="player-wrapper">
         <video id="main-video" playsinline></video>
-        
-        <div id="feedback"><i data-lucide="play" id="feedback-icon" size="48"></i></div>
 
-        <!-- Custom Controls -->
-        <div id="controls">
-            <div class="progress-container" id="seek-container">
+        <div id="toast"><i data-lucide="play" id="toast-icon" color="white" size="48"></i></div>
+
+        <div id="ui-overlay">
+            <div class="progress-area" id="progress-container">
                 <div id="progress-bar"></div>
             </div>
+            
+            <div class="controls-row">
+                <button class="icon-btn" id="btn-rw" tabindex="101"><i data-lucide="rewind"></i></button>
+                <button class="icon-btn" id="btn-play" tabindex="102"><i data-lucide="pause"></i></button>
+                <button class="icon-btn" id="btn-ff" tabindex="103"><i data-lucide="fast-forward"></i></button>
+                <button class="icon-btn" id="btn-mute" tabindex="104"><i data-lucide="volume-2"></i></button>
+                
+                <div class="time-info">
+                    <span id="cur-time">00:00</span> / <span id="dur-time">00:00</span>
+                </div>
 
-            <div class="buttons">
-                <button class="control-btn" id="btn-rewind" tabindex="1"><i data-lucide="rewind"></i></button>
-                <button class="control-btn" id="btn-play-pause" tabindex="2"><i data-lucide="play"></i></button>
-                <button class="control-btn" id="btn-fast-forward" tabindex="3"><i data-lucide="fast-forward"></i></button>
-                <button class="control-btn" id="btn-mute" tabindex="4"><i data-lucide="volume-2"></i></button>
-                <span class="time-display"><span id="current-time">00:00</span> / <span id="duration">00:00</span></span>
-                <button class="control-btn" id="btn-fullscreen" tabindex="5" style="margin-left: auto;"><i data-lucide="maximize"></i></button>
+                <button class="icon-btn" id="btn-exit" tabindex="105" style="margin-left: auto;">
+                    <i data-lucide="log-out"></i> <span style="margin-left:8px; font-size:14px;">EXIT</span>
+                </button>
             </div>
         </div>
     </div>
 
     <script>
+        // --- 1. CONFIGURATION (Put your M3U8 links here) ---
+        const PLAYLIST = [
+            { title: "Sample Live Stream", url: "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8", thumb: "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=500" },
+            { title: "Big Buck Bunny", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", thumb: "https://peach.blender.org/wp-content/uploads/bbb-splash.png" },
+            { title: "Sintel Movie", url: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8", thumb: "https://bitdash-a.akamaihd.net/content/sintel/poster.png" },
+            { title: "Art of Motion", url: "https://playertest.longtailvideo.com/adaptive/art-of-motion/manifest.m3u8", thumb: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500" }
+        ];
+
         const video = document.getElementById('main-video');
+        const homeScreen = document.getElementById('home-screen');
         const playerWrapper = document.getElementById('player-wrapper');
-        const setupScreen = document.getElementById('setup-screen');
-        const controls = document.getElementById('controls');
+        const uiOverlay = document.getElementById('ui-overlay');
         const progressBar = document.getElementById('progress-bar');
-        const seekContainer = document.getElementById('seek-container');
         
-        const btnPlayPause = document.getElementById('btn-play-pause');
-        const btnMute = document.getElementById('btn-mute');
-        const currentTimeText = document.getElementById('current-time');
-        const durationText = document.getElementById('duration');
-
         let hls = new Hls();
-        let hideTimeout;
+        let uiTimer;
 
-        // Initialize Icons
-        lucide.createIcons();
+        // --- 2. INITIALIZE DASHBOARD ---
+        const grid = document.getElementById('content-grid');
+        PLAYLIST.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.tabIndex = index + 1; // Allows TV Remote focusing
+            card.innerHTML = `
+                <img src="${item.thumb}">
+                <div class="card-body">
+                    <div class="card-title">${item.title}</div>
+                    <div style="color:var(--text-dim); font-size:0.8rem; margin-top:5px;">M3U8 Ultra HD</div>
+                </div>
+            `;
+            card.onclick = () => startStream(item.url);
+            card.onkeydown = (e) => { if(e.key === 'Enter') startStream(item.url); };
+            grid.appendChild(card);
+        });
 
-        function initPlayer() {
-            const url = document.getElementById('m3u8-url').value;
-            if (!url) return alert("Please enter a URL");
+        // Set initial focus for Smart TV
+        document.querySelector('.card').focus();
+
+        // --- 3. STREAMING ENGINE ---
+        function startStream(url) {
+            homeScreen.style.display = 'none';
+            playerWrapper.style.display = 'block';
 
             if (Hls.isSupported()) {
                 hls.loadSource(url);
                 hls.attachMedia(video);
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+            } else {
                 video.src = url;
+                video.play();
             }
-
-            setupScreen.style.display = 'none';
-            playerWrapper.style.display = 'flex';
-            video.play();
-            showControls();
-            btnPlayPause.focus(); // Focus for TV Remote
+            showUI();
+            document.getElementById('btn-play').focus();
         }
 
-        // Play/Pause Logic
+        function closePlayer() {
+            video.pause();
+            hls.detachMedia();
+            playerWrapper.style.display = 'none';
+            homeScreen.style.display = 'block';
+            document.querySelector('.card').focus();
+        }
+
+        // --- 4. TV REMOTE & KEYBOARD CONTROLS ---
+        window.addEventListener('keydown', (e) => {
+            showUI();
+            switch(e.key) {
+                case 'Backspace': 
+                case 'Escape': 
+                    if(playerWrapper.style.display === 'block') { e.preventDefault(); closePlayer(); }
+                    break;
+                case 'ArrowRight': seek(10); break;
+                case 'ArrowLeft': seek(-10); break;
+                case 'MediaPlayPause': 
+                case ' ': togglePlay(); break;
+            }
+        });
+
+        // --- 5. MOBILE SWIPE GESTURES ---
+        let touchX = 0;
+        playerWrapper.addEventListener('touchstart', e => touchX = e.touches[0].clientX);
+        playerWrapper.addEventListener('touchend', e => {
+            let diff = e.changedTouches[0].clientX - touchX;
+            if (Math.abs(diff) > 80) {
+                seek(diff > 0 ? 10 : -10);
+            } else {
+                togglePlay();
+            }
+        });
+
+        // --- 6. PLAYER UI LOGIC ---
         function togglePlay() {
             if (video.paused) {
                 video.play();
-                updateIcon(btnPlayPause, 'pause');
-                showFeedback('play');
+                updateIcon('btn-play', 'pause');
+                triggerToast('play');
             } else {
                 video.pause();
-                updateIcon(btnPlayPause, 'play');
-                showFeedback('pause');
+                updateIcon('btn-play', 'play');
+                triggerToast('pause');
             }
         }
 
-        function updateIcon(btn, iconName) {
-            btn.innerHTML = `<i data-lucide="${iconName}"></i>`;
+        function seek(time) {
+            video.currentTime += time;
+            triggerToast(time > 0 ? 'fast-forward' : 'rewind');
+        }
+
+        function showUI() {
+            uiOverlay.classList.remove('hidden');
+            clearTimeout(uiTimer);
+            if (!video.paused) {
+                uiTimer = setTimeout(() => uiOverlay.classList.add('hidden'), 4000);
+            }
+        }
+
+        function triggerToast(iconName) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            icon.setAttribute('data-lucide', iconName);
+            lucide.createIcons();
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 600);
+        }
+
+        function updateIcon(id, iconName) {
+            document.getElementById(id).innerHTML = `<i data-lucide="${iconName}"></i>`;
             lucide.createIcons();
         }
 
-        // Rewind/Forward
-        function seek(amount) {
-            video.currentTime += amount;
-            showFeedback(amount > 0 ? 'fast-forward' : 'rewind');
-        }
-
-        // Mute
-        function toggleMute() {
-            video.muted = !video.muted;
-            updateIcon(btnMute, video.muted ? 'volume-x' : 'volume-2');
-        }
-
-        // Progress Update
-        video.addEventListener('timeupdate', () => {
-            const pct = (video.currentTime / video.duration) * 100;
-            progressBar.style.width = `${pct}%`;
-            currentTimeText.innerText = formatTime(video.currentTime);
-            durationText.innerText = formatTime(video.duration);
-        });
-
-        function formatTime(seconds) {
-            if (isNaN(seconds)) return "00:00";
-            let min = Math.floor(seconds / 60);
-            let sec = Math.floor(seconds % 60);
-            return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-        }
-
-        // --- REMOTE CONTROL & KEYBOARD SUPPORT ---
-        document.addEventListener('keydown', (e) => {
-            showControls();
-            switch(e.key) {
-                case 'Enter': 
-                    if(document.activeElement.classList.contains('control-btn')) {
-                        document.activeElement.click();
-                    } else {
-                        togglePlay();
-                    }
-                    break;
-                case ' ': togglePlay(); break;
-                case 'ArrowRight': seek(10); break;
-                case 'ArrowLeft': seek(-10); break;
-                case 'ArrowUp': video.volume = Math.min(1, video.volume + 0.1); break;
-                case 'ArrowDown': video.volume = Math.max(0, video.volume - 0.1); break;
-                case 'Escape': setupScreen.style.display = 'block'; playerWrapper.style.display = 'none'; break;
+        // Progress & Time Update
+        video.ontimeupdate = () => {
+            const cur = video.currentTime;
+            const dur = video.duration;
+            if (dur) {
+                progressBar.style.width = (cur / dur * 100) + '%';
+                document.getElementById('cur-time').innerText = formatTime(cur);
+                document.getElementById('dur-time').innerText = formatTime(dur);
             }
-        });
-
-        // --- TOUCH / SWIPE GESTURES FOR MOBILE ---
-        let touchStartX = 0;
-        let touchStartTime = 0;
-
-        playerWrapper.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartTime = new Date().getTime();
-        });
-
-        playerWrapper.addEventListener('touchend', e => {
-            let touchEndX = e.changedTouches[0].screenX;
-            let diffX = touchEndX - touchStartX;
-            let diffTime = new Date().getTime() - touchStartTime;
-
-            if (diffTime < 300) { // Fast tap
-                if (Math.abs(diffX) > 50) { // Swipe
-                    if (diffX > 0) seek(10); else seek(-10);
-                } else {
-                    (controls.classList.contains('hidden')) ? showControls() : togglePlay();
-                }
-            }
-        });
-
-        // --- UI VISIBILITY LOGIC ---
-        function showControls() {
-            controls.classList.remove('hidden');
-            document.body.classList.remove('hide-cursor');
-            clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(() => {
-                if (!video.paused) {
-                    controls.classList.add('hidden');
-                    document.body.classList.add('hide-cursor');
-                }
-            }, 3000);
-        }
-
-        function showFeedback(icon) {
-            const fb = document.getElementById('feedback');
-            const fbIcon = document.getElementById('feedback-icon');
-            fbIcon.setAttribute('data-lucide', icon);
-            lucide.createIcons();
-            fb.style.display = 'block';
-            setTimeout(() => fb.style.display = 'none', 500);
-        }
-
-        // Mouse move shows controls
-        playerWrapper.addEventListener('mousemove', showControls);
-
-        // Control Click Handlers
-        btnPlayPause.onclick = togglePlay;
-        btnMute.onclick = toggleMute;
-        document.getElementById('btn-rewind').onclick = () => seek(-10);
-        document.getElementById('btn-fast-forward').onclick = () => seek(10);
-        document.getElementById('btn-fullscreen').onclick = () => {
-            if (!document.fullscreenElement) playerWrapper.requestFullscreen();
-            else document.exitFullscreen();
         };
 
-        // Click on Progress Bar to seek
-        seekContainer.onclick = (e) => {
-            const rect = seekContainer.getBoundingClientRect();
+        function formatTime(s) {
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = Math.floor(s % 60);
+            return `${h > 0 ? h + ':' : ''}${m < 10 ? '0' + m : m}:${sec < 10 ? '0' + sec : sec}`;
+        }
+
+        // --- 7. BUTTON EVENTS ---
+        document.getElementById('btn-play').onclick = togglePlay;
+        document.getElementById('btn-rw').onclick = () => seek(-10);
+        document.getElementById('btn-ff').onclick = () => seek(10);
+        document.getElementById('btn-exit').onclick = closePlayer;
+        document.getElementById('btn-mute').onclick = () => {
+            video.muted = !video.muted;
+            updateIcon('btn-mute', video.muted ? 'volume-x' : 'volume-2');
+        };
+
+        // Click progress bar to seek
+        document.getElementById('progress-container').onclick = (e) => {
+            const rect = e.target.getBoundingClientRect();
             const pos = (e.clientX - rect.left) / rect.width;
             video.currentTime = pos * video.duration;
         };
 
+        lucide.createIcons();
     </script>
 </body>
 </html>
