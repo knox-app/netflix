@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV Player</title>
+
+<style>
+html,body{
+  margin:0;height:100%;
+  background:#000;overflow:hidden;
+  font-family:Roboto,Arial;
+}
+#app{
+  position:relative;
+  width:100%;
+  height:100%;
+}
+video{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:#000;
+}
+
+/* UI */
+.top{
+  position:absolute;
+  top:0;left:0;right:0;
+  padding:16px;
+  color:#fff;
+  background:linear-gradient(#000d,transparent);
+  font-size:18px;
+}
+
+.controls{
+  position:absolute;
+  left:0;right:0;bottom:0;
+  padding:16px;
+  background:linear-gradient(transparent,#000d);
+  transition:.3s;
+}
+.controls.hide{opacity:0}
+
+.seek-wrap{
+  height:6px;background:#444;
+}
+.seek{
+  height:100%;width:0%;
+  background:#1f80e0;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  margin-top:14px;
+}
+.btn{
+  background:none;
+  border:none;
+  outline:none;
+}
+.btn:focus{
+  outline:2px solid #1f80e0;
+}
+.btn svg{
+  width:30px;height:30px;
+  fill:#fff;
+}
+
+.center{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.center svg{
+  width:80px;height:80px;fill:#fff;
+}
+</style>
+</head>
+
+<body>
+<div id="app">
+
+<video id="video" playsinline muted></video>
+
+<div class="top" id="title">Live</div>
+
+<div class="center" id="playBtn">
+<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+</div>
+
+<div class="controls" id="controls">
+  <div class="seek-wrap">
+    <div class="seek" id="seek"></div>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="muteBtn" tabindex="0">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+      </svg>
+    </button>
+
+    <button class="btn" id="fsBtn" tabindex="0">
+      <svg viewBox="0 0 24 24">
+        <path d="M7 14H5v5h5v-2H7zm0-4h2V7h3V5H7zm10 9h-3v2h5v-5h-2zm0-14V5h-5v2h3v3z"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+const video=document.getElementById("video");
+const controls=document.getElementById("controls");
+const playBtn=document.getElementById("playBtn");
+const seek=document.getElementById("seek");
+
+/* LOAD STREAM */
+const q=new URLSearchParams(location.search);
+title.textContent=q.get("name")||"Live";
+const src=q.get("src");
+if(Hls.isSupported()){
+ const h=new Hls({liveSyncDurationCount:3});
+ h.loadSource(src);
+ h.attachMedia(video);
+ h.on(Hls.Events.MANIFEST_PARSED,()=>video.play());
+}else video.src=src;
+
+/* AUTOPLAY FIX */
+let activated=false;
+function activate(){
+ if(!activated){
+  video.muted=false;
+  video.volume=1;
+  activated=true;
+ }
+}
+document.addEventListener("keydown",activate,{once:true});
+document.addEventListener("click",activate,{once:true});
+
+/* PLAY */
+playBtn.onclick=()=>video.play();
+video.onplay=()=>playBtn.style.display="none";
+video.onpause=()=>playBtn.style.display="flex";
+
+/* SEEK BAR */
+video.ontimeupdate=()=>{
+ if(video.duration){
+  seek.style.width=(video.currentTime/video.duration*100)+"%";
+ }
+};
+
+/* FULLSCREEN */
+fsBtn.onclick=()=>{
+ document.fullscreenElement?
+ document.exitFullscreen():
+ app.requestFullscreen();
+};
+
+/* MUTE */
+muteBtn.onclick=()=>video.muted=!video.muted;
+
+/* AUTO HIDE CONTROLS */
+let t;
+function show(){
+ controls.classList.remove("hide");
+ clearTimeout(t);
+ t=setTimeout(()=>!video.paused&&controls.classList.add("hide"),4000);
+}
+show();
+document.addEventListener("keydown",show);
+
+/* ANDROID TV REMOTE SUPPORT */
+document.addEventListener("keydown",e=>{
+ switch(e.key){
+  case "ArrowRight":
+    video.currentTime+=10;
+    break;
+  case "ArrowLeft":
+    video.currentTime-=10;
+    break;
+  case "ArrowUp":
+    video.volume=Math.min(1,video.volume+.05);
+    break;
+  case "ArrowDown":
+    video.volume=Math.max(0,video.volume-.05);
+    break;
+  case "Enter":
+  case " ":
+    video.paused?video.play():video.pause();
+    break;
+  case "Backspace":
+  case "Escape":
+    if(document.fullscreenElement) document.exitFullscreen();
+    break;
+ }
+});
+</script>
+</body>
+</html>
