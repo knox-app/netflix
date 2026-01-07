@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium M3U8 Player</title>
+    <!-- Hls.js Library for M3U8 support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.10/hls.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --hotstar-blue: #1f80e0;
+            --bg-dark: #030b17;
+            --control-bg: rgba(0, 0, 0, 0.7);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Input Area */
+        #setup-screen {
+            position: absolute;
+            z-index: 100;
+            text-align: center;
+            background: var(--bg-dark);
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 10px;
+            background: #161d2f;
+            color: white;
+            outline: 2px solid transparent;
+        }
+
+        input:focus { outline: 2px solid var(--hotstar-blue); }
+
+        button.load-btn {
+            background: var(--hotstar-blue);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Player Container */
+        #player-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* Controls Overlay */
+        #controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            padding: 20px;
+            transition: opacity 0.5s;
+            opacity: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hide-cursor { cursor: none; }
+        .hidden { opacity: 0 !important; pointer-events: none; }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            cursor: pointer;
+            position: relative;
+            border-radius: 3px;
+        }
+
+        #progress-bar {
+            height: 100%;
+            background: var(--hotstar-blue);
+            width: 0%;
+            border-radius: 3px;
+            position: relative;
+        }
+
+        #progress-bar::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: -4px;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        /* Buttons Row */
+        .buttons {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            outline: none;
+            padding: 5px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        /* TV Focus State */
+        .control-btn:focus {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.2);
+            color: var(--hotstar-blue);
+        }
+
+        .time-display {
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        /* Gesture Feedback */
+        #feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 50%;
+            display: none;
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Setup Screen -->
+    <div id="setup-screen">
+        <h2 style="margin-bottom: 20px;">Premium M3U8 Player</h2>
+        <input type="text" id="m3u8-url" placeholder="Paste your .m3u8 link here..." value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
+        <button class="load-btn" onclick="initPlayer()" id="load-btn">Load Stream</button>
+        <p style="margin-top: 15px; font-size: 12px; color: #888;">Supports: Android TV Remote (Arrows, OK), Touch Swipes, Keyboard</p>
+    </div>
+
+    <!-- Player Wrapper -->
+    <div id="player-wrapper">
+        <video id="main-video" playsinline></video>
+        
+        <div id="feedback"><i data-lucide="play" id="feedback-icon" size="48"></i></div>
+
+        <!-- Custom Controls -->
+        <div id="controls">
+            <div class="progress-container" id="seek-container">
+                <div id="progress-bar"></div>
+            </div>
+
+            <div class="buttons">
+                <button class="control-btn" id="btn-rewind" tabindex="1"><i data-lucide="rewind"></i></button>
+                <button class="control-btn" id="btn-play-pause" tabindex="2"><i data-lucide="play"></i></button>
+                <button class="control-btn" id="btn-fast-forward" tabindex="3"><i data-lucide="fast-forward"></i></button>
+                <button class="control-btn" id="btn-mute" tabindex="4"><i data-lucide="volume-2"></i></button>
+                <span class="time-display"><span id="current-time">00:00</span> / <span id="duration">00:00</span></span>
+                <button class="control-btn" id="btn-fullscreen" tabindex="5" style="margin-left: auto;"><i data-lucide="maximize"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('main-video');
+        const playerWrapper = document.getElementById('player-wrapper');
+        const setupScreen = document.getElementById('setup-screen');
+        const controls = document.getElementById('controls');
+        const progressBar = document.getElementById('progress-bar');
+        const seekContainer = document.getElementById('seek-container');
+        
+        const btnPlayPause = document.getElementById('btn-play-pause');
+        const btnMute = document.getElementById('btn-mute');
+        const currentTimeText = document.getElementById('current-time');
+        const durationText = document.getElementById('duration');
+
+        let hls = new Hls();
+        let hideTimeout;
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        function initPlayer() {
+            const url = document.getElementById('m3u8-url').value;
+            if (!url) return alert("Please enter a URL");
+
+            if (Hls.isSupported()) {
+                hls.loadSource(url);
+                hls.attachMedia(video);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+            }
+
+            setupScreen.style.display = 'none';
+            playerWrapper.style.display = 'flex';
+            video.play();
+            showControls();
+            btnPlayPause.focus(); // Focus for TV Remote
+        }
+
+        // Play/Pause Logic
+        function togglePlay() {
+            if (video.paused) {
+                video.play();
+                updateIcon(btnPlayPause, 'pause');
+                showFeedback('play');
+            } else {
+                video.pause();
+                updateIcon(btnPlayPause, 'play');
+                showFeedback('pause');
+            }
+        }
+
+        function updateIcon(btn, iconName) {
+            btn.innerHTML = `<i data-lucide="${iconName}"></i>`;
+            lucide.createIcons();
+        }
+
+        // Rewind/Forward
+        function seek(amount) {
+            video.currentTime += amount;
+            showFeedback(amount > 0 ? 'fast-forward' : 'rewind');
+        }
+
+        // Mute
+        function toggleMute() {
+            video.muted = !video.muted;
+            updateIcon(btnMute, video.muted ? 'volume-x' : 'volume-2');
+        }
+
+        // Progress Update
+        video.addEventListener('timeupdate', () => {
+            const pct = (video.currentTime / video.duration) * 100;
+            progressBar.style.width = `${pct}%`;
+            currentTimeText.innerText = formatTime(video.currentTime);
+            durationText.innerText = formatTime(video.duration);
+        });
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "00:00";
+            let min = Math.floor(seconds / 60);
+            let sec = Math.floor(seconds % 60);
+            return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        // --- REMOTE CONTROL & KEYBOARD SUPPORT ---
+        document.addEventListener('keydown', (e) => {
+            showControls();
+            switch(e.key) {
+                case 'Enter': 
+                    if(document.activeElement.classList.contains('control-btn')) {
+                        document.activeElement.click();
+                    } else {
+                        togglePlay();
+                    }
+                    break;
+                case ' ': togglePlay(); break;
+                case 'ArrowRight': seek(10); break;
+                case 'ArrowLeft': seek(-10); break;
+                case 'ArrowUp': video.volume = Math.min(1, video.volume + 0.1); break;
+                case 'ArrowDown': video.volume = Math.max(0, video.volume - 0.1); break;
+                case 'Escape': setupScreen.style.display = 'block'; playerWrapper.style.display = 'none'; break;
+            }
+        });
+
+        // --- TOUCH / SWIPE GESTURES FOR MOBILE ---
+        let touchStartX = 0;
+        let touchStartTime = 0;
+
+        playerWrapper.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartTime = new Date().getTime();
+        });
+
+        playerWrapper.addEventListener('touchend', e => {
+            let touchEndX = e.changedTouches[0].screenX;
+            let diffX = touchEndX - touchStartX;
+            let diffTime = new Date().getTime() - touchStartTime;
+
+            if (diffTime < 300) { // Fast tap
+                if (Math.abs(diffX) > 50) { // Swipe
+                    if (diffX > 0) seek(10); else seek(-10);
+                } else {
+                    (controls.classList.contains('hidden')) ? showControls() : togglePlay();
+                }
+            }
+        });
+
+        // --- UI VISIBILITY LOGIC ---
+        function showControls() {
+            controls.classList.remove('hidden');
+            document.body.classList.remove('hide-cursor');
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                if (!video.paused) {
+                    controls.classList.add('hidden');
+                    document.body.classList.add('hide-cursor');
+                }
+            }, 3000);
+        }
+
+        function showFeedback(icon) {
+            const fb = document.getElementById('feedback');
+            const fbIcon = document.getElementById('feedback-icon');
+            fbIcon.setAttribute('data-lucide', icon);
+            lucide.createIcons();
+            fb.style.display = 'block';
+            setTimeout(() => fb.style.display = 'none', 500);
+        }
+
+        // Mouse move shows controls
+        playerWrapper.addEventListener('mousemove', showControls);
+
+        // Control Click Handlers
+        btnPlayPause.onclick = togglePlay;
+        btnMute.onclick = toggleMute;
+        document.getElementById('btn-rewind').onclick = () => seek(-10);
+        document.getElementById('btn-fast-forward').onclick = () => seek(10);
+        document.getElementById('btn-fullscreen').onclick = () => {
+            if (!document.fullscreenElement) playerWrapper.requestFullscreen();
+            else document.exitFullscreen();
+        };
+
+        // Click on Progress Bar to seek
+        seekContainer.onclick = (e) => {
+            const rect = seekContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            video.currentTime = pos * video.duration;
+        };
+
+    </script>
+</body>
+</html>
