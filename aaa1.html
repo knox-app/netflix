@@ -1,367 +1,258 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>OTT Player</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player</title>
 
 <style>
 html,body{
-    margin:0;
-    height:100%;
-    background:#000;
-    overflow:hidden;
-    font-family:system-ui,Roboto,Arial;
+  margin:0;
+  height:100%;
+  background:#000;
+  overflow:hidden;
+  font-family:system-ui,Roboto,Arial;
 }
 #app{
-    position:relative;
-    width:100%;
-    height:100%;
-    background:#000;
+  position:relative;
+  width:100%;
+  height:100%;
 }
 video{
-    width:100%;
-    height:100%;
-    background:#000;
-    object-fit:contain;
-    transition:object-fit .25s ease, transform .25s ease;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:#000;
+  transition:transform .25s ease, object-fit .25s ease;
 }
 
-/* ZOOM MODE */
-video.zoomed{
-    object-fit:cover;
-    transform:scale(1.25);
+/* pinch scale ONLY */
+video.scale{
+  object-fit:cover;
+  transform:scale(1.2);
 }
 
-/* TOP BAR */
+/* top bar */
 .top{
-    position:absolute;
-    top:0;
-    left:0;
-    right:0;
-    padding:14px 16px;
-    padding-top:calc(14px + env(safe-area-inset-top));
-    background:linear-gradient(to bottom,rgba(0,0,0,.85),transparent);
-    color:#fff;
-    z-index:20;
-}
-.top .name{
-    font-size:16px;
-    font-weight:500;
+  position:absolute;
+  top:0;left:0;right:0;
+  padding:14px;
+  background:linear-gradient(#000c,transparent);
+  color:#fff;
+  z-index:10;
 }
 
-/* CENTER PLAY */
-.center{
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:15;
-}
-.center svg{
-    width:64px;
-    height:64px;
-    fill:#fff;
-    opacity:.9;
-}
-
-/* CONTROLS */
+/* controls */
 .controls{
-    position:absolute;
-    left:0;
-    right:0;
-    bottom:0;
-    padding:16px;
-    padding-bottom:calc(16px + env(safe-area-inset-bottom));
-    background:linear-gradient(to top,rgba(0,0,0,.9),transparent);
-    z-index:20;
-    transition:.3s;
+  position:absolute;
+  left:0;right:0;bottom:0;
+  padding:12px;
+  background:linear-gradient(transparent,#000d);
+  transition:.3s;
 }
-.controls.hide{
-    opacity:0;
-    pointer-events:none;
-}
+.controls.hide{opacity:0;pointer-events:none}
 
-/* SEEK BAR */
+/* seek */
 .seek-wrap{
-    width:100%;
-    height:4px;
-    background:rgba(255,255,255,.3);
+  height:4px;
+  background:#444;
 }
 .seek{
-    width:0%;
-    height:100%;
-    background:#1f80e0;
+  height:100%;
+  width:0%;
+  background:#1f80e0;
 }
 
-/* BUTTON ROW */
+/* buttons */
 .row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-top:10px;
-}
-.leftBtns,.rightBtns{
-    display:flex;
-    gap:14px;
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
 }
 .btn{
-    background:none;
-    border:none;
-    padding:0;
+  background:none;
+  border:none;
 }
 .btn svg{
-    width:24px;
-    height:24px;
-    fill:#fff;
+  width:26px;
+  height:26px;
+  fill:#fff;
 }
 
-/* TAP ZONES */
-.tap{
-    position:absolute;
-    top:0;
-    bottom:0;
-    width:50%;
-    z-index:10;
+/* center play */
+.center{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
-.tap.left{left:0}
-.tap.right{right:0}
+.center svg{width:64px;height:64px;fill:#fff}
 
-/* SETTINGS PANEL */
-.panel{
-    position:absolute;
-    right:16px;
-    bottom:90px;
-    background:#111;
-    color:#fff;
-    padding:10px;
-    border-radius:8px;
-    display:none;
-    z-index:30;
-}
-.panel button{
-    width:100%;
-    margin:4px 0;
-    background:#222;
-    color:#fff;
-    border:none;
-    padding:6px;
+/* preview */
+.preview{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  color:#fff;
+  font-size:18px;
+  display:none;
 }
 
-/* LOCK */
-.lock-btn{
-    position:absolute;
-    left:16px;
-    bottom:110px;
-    z-index:25;
-}
-.locked{
-    pointer-events:none;
-}
+/* lock */
+.locked *{pointer-events:none}
 </style>
 </head>
 
 <body>
 <div id="app">
 
-<video id="video" playsinline muted preload="auto"></video>
+<video id="video" playsinline muted></video>
 
-<div class="tap left" id="leftTap"></div>
-<div class="tap right" id="rightTap"></div>
+<div class="top" id="title">Live</div>
 
-<div class="top">
-    <div class="name" id="name">Live</div>
+<div class="center" id="playBtn">
+<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
 </div>
 
-<div class="center" id="center">
-    <svg viewBox="0 0 24 24">
-        <path d="M8 5v14l11-7z"/>
-    </svg>
-</div>
-
-<div class="lock-btn">
-<button class="btn" id="lockBtn">
-<svg viewBox="0 0 24 24">
-<path d="M12 17a2 2 0 100-4 2 2 0 000 4zm6-7h-1V7a5 5 0 00-10 0v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2zm-7-3a3 3 0 016 0v3H11V7z"/>
-</svg>
-</button>
-</div>
+<div class="preview" id="preview">+10s</div>
 
 <div class="controls" id="controls">
-    <div class="seek-wrap" id="seekWrap">
-        <div class="seek" id="seek"></div>
+  <div class="seek-wrap" id="seekWrap">
+    <div class="seek" id="seek"></div>
+  </div>
+
+  <div class="row">
+    <div>
+      <button class="btn" id="muteBtn">
+        <svg id="muteIcon" viewBox="0 0 24 24">
+          <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+        </svg>
+      </button>
+      <button class="btn" id="lockBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 17a2 2 0 100-4 2 2 0 000 4zm6-7h-1V7a5 5 0 00-10 0v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2z"/>
+        </svg>
+      </button>
     </div>
-
-    <div class="row">
-        <div class="leftBtns">
-            <button class="btn" id="volBtn">
-                <svg id="volIcon" viewBox="0 0 24 24">
-                    <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-                </svg>
-            </button>
-
-            <button class="btn" id="settingsBtn">
-                <svg viewBox="0 0 24 24">
-                    <path d="M19.14 12.94a7.97 7.97 0 000-1.88l2.03-1.58-1.92-3.32-2.39.96a8.07 8.07 0 00-1.63-.94l-.36-2.54h-3.84l-.36 2.54a8.07 8.07 0 00-1.63.94l-2.39-.96-1.92 3.32 2.03 1.58a7.97 7.97 0 000 1.88L2.7 14.52l1.92 3.32 2.39-.96c.5.38 1.04.7 1.63.94l.36 2.54h3.84l.36-2.54c.59-.24 1.13-.56 1.63-.94l2.39.96 1.92-3.32-2.03-1.58z"/>
-                </svg>
-            </button>
-        </div>
-
-        <div class="rightBtns">
-            <button class="btn" id="fsBtn">
-                <svg viewBox="0 0 24 24">
-                    <path d="M7 14H5v5h5v-2H7zm0-4h2V7h3V5H7zm10 9h-3v2h5v-5h-2zm0-14V5h-5v2h3v3z"/>
-                </svg>
-            </button>
-        </div>
+    <div>
+      <button class="btn" id="fsBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M7 14H5v5h5v-2H7zm0-4h2V7h3V5H7zm10 9h-3v2h5v-5h-2zm0-14V5h-5v2h3v3z"/>
+        </svg>
+      </button>
     </div>
-</div>
-
-<div class="panel" id="settings">
-    <div>Playback Speed</div>
-    <button onclick="setSpeed(0.5)">0.5x</button>
-    <button onclick="setSpeed(1)">1x</button>
-    <button onclick="setSpeed(1.5)">1.5x</button>
-    <button onclick="setSpeed(2)">2x</button>
+  </div>
 </div>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script>
-const app = document.getElementById("app");
-const video = document.getElementById("video");
-const controls = document.getElementById("controls");
-const center = document.getElementById("center");
+const video=document.getElementById("video");
+const controls=document.getElementById("controls");
+const playBtn=document.getElementById("playBtn");
+const preview=document.getElementById("preview");
+const app=document.getElementById("app");
 
-const qs = new URLSearchParams(location.search);
-const src = qs.get("src") || "https://mrzplayin.fun/roarzon/stream.php?id=08b34060f7de766fc7706d14dc6deef5";
-name.textContent = qs.get("name") || "Live";
-
-/* LOAD STREAM */
+/* load */
+const q=new URLSearchParams(location.search);
+title.textContent=q.get("name")||"Live";
+const src=q.get("src");
 if(Hls.isSupported()){
-    const hls = new Hls();
-    hls.loadSource(src);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-}else{
-    video.src = src;
+ const h=new Hls();
+ h.loadSource(src);
+ h.attachMedia(video);
+ h.on(Hls.Events.MANIFEST_PARSED,()=>video.play());
+}else video.src=src;
+
+/* autoplay muted works */
+video.play();
+
+/* unmute FIX */
+let activated=false;
+function activate(){
+ if(!activated){
+  video.muted=false;
+  video.volume=1;
+  activated=true;
+ }
 }
+app.addEventListener("touchstart",activate,{once:true});
+app.addEventListener("click",activate,{once:true});
 
-/* SOUND FIX */
-let interacted=false;
-function enableSound(){
-    if(!interacted){
-        video.muted=false;
-        video.volume=1;
-        interacted=true;
-    }
-}
-["click","touchstart"].forEach(e=>{
-    app.addEventListener(e, enableSound, { once:true });
-});
+/* play pause */
+playBtn.onclick=()=>video.play();
+video.onplay=()=>playBtn.style.display="none";
+video.onpause=()=>playBtn.style.display="flex";
 
-/* PLAY / PAUSE */
-center.onclick=()=>video.play();
-video.onplay=()=>center.style.display="none";
-video.onpause=()=>center.style.display="flex";
-
-/* SEEK */
+/* seek */
 video.ontimeupdate=()=>{
-    if(video.duration){
-        seek.style.width=(video.currentTime/video.duration*100)+"%";
-    }
-};
-seekWrap.onclick=e=>{
-    video.currentTime = (e.offsetX/seekWrap.offsetWidth)*video.duration;
+ seek.style.width=(video.currentTime/video.duration*100)+"%";
 };
 
-/* DOUBLE TAP SEEK */
-let lastTap=0;
-leftTap.onclick=()=>tap(-10);
-rightTap.onclick=()=>tap(10);
-function tap(sec){
-    let now=Date.now();
-    if(now-lastTap<300) video.currentTime+=sec;
-    lastTap=now;
-}
-
-/* CONTROLS VISIBILITY */
-let hideTimer;
-function show(force){
-    controls.classList.remove("hide");
-    clearTimeout(hideTimer);
-    if(!force){
-        hideTimer=setTimeout(()=>{
-            if(!video.paused) controls.classList.add("hide");
-        },4000);
-    }
-}
-show(true);
-["click","touchstart"].forEach(e=>app.addEventListener(e,()=>show()));
-video.onpause=()=>show(true);
-
-/* FULLSCREEN */
-fsBtn.onclick=async()=>{
-    show(true);
-    if(!document.fullscreenElement){
-        await app.requestFullscreen({navigationUI:"hide"});
-        screen.orientation?.lock("landscape").catch(()=>{});
-    }else{
-        await document.exitFullscreen();
-        screen.orientation?.unlock?.();
-    }
+/* double tap seek */
+let last=0;
+app.onclick=e=>{
+ const now=Date.now();
+ if(now-last<300){
+  const dir=e.clientX>innerWidth/2?10:-10;
+  video.currentTime+=dir;
+  preview.textContent=(dir>0?"+10s":"-10s");
+  preview.style.display="block";
+  setTimeout(()=>preview.style.display="none",600);
+ }
+ last=now;
 };
 
-/* SWIPE FULLSCREEN */
-let startY=0;
-app.addEventListener("touchstart",e=>startY=e.touches[0].clientY,{passive:true});
-app.addEventListener("touchend",e=>{
-    let dy=e.changedTouches[0].clientY-startY;
-    if(dy<-80 && !document.fullscreenElement) app.requestFullscreen();
-    if(dy>80 && document.fullscreenElement) document.exitFullscreen();
-});
-
-/* PINCH ZOOM */
-let startDist=0, zoomed=false;
-function dist(t){
-    let dx=t[0].clientX-t[1].clientX;
-    let dy=t[0].clientY-t[1].clientY;
-    return Math.sqrt(dx*dx+dy*dy);
-}
-video.addEventListener("touchstart",e=>{
-    if(e.touches.length===2) startDist=dist(e.touches);
-},{passive:true});
-video.addEventListener("touchmove",e=>{
-    if(e.touches.length===2){
-        let d=dist(e.touches)-startDist;
-        if(d>40 && !zoomed){video.classList.add("zoomed");zoomed=true;}
-        if(d<-40 && zoomed){video.classList.remove("zoomed");zoomed=false;}
-    }
-},{passive:true});
-
-/* VOLUME */
-volBtn.onclick=()=>{
-    video.muted=!video.muted;
+/* fullscreen */
+fsBtn.onclick=()=>{
+ document.fullscreenElement?
+ document.exitFullscreen():
+ app.requestFullscreen();
 };
 
-/* SETTINGS */
-settingsBtn.onclick=()=>{
-    settings.style.display=settings.style.display?"":"block";
+/* mute */
+muteBtn.onclick=()=>{
+ video.muted=!video.muted;
 };
-function setSpeed(s){
-    video.playbackRate=s;
-    settings.style.display="";
-}
 
-/* LOCK */
+/* lock */
 let locked=false;
 lockBtn.onclick=()=>{
-    locked=!locked;
-    app.classList.toggle("locked",locked);
-    controls.style.display=locked?"none":"";
+ locked=!locked;
+ app.classList.toggle("locked",locked);
+ controls.style.display=locked?"none":"";
 };
+
+/* controls visibility */
+let t;
+function show(){
+ controls.classList.remove("hide");
+ clearTimeout(t);
+ t=setTimeout(()=>{if(!video.paused)controls.classList.add("hide")},3000);
+}
+["touchstart","mousemove","click"].forEach(e=>app.addEventListener(e,show));
+show();
+
+/* pinch SCALE ONLY */
+let start=0,scaled=false;
+function dist(t){
+ let dx=t[0].clientX-t[1].clientX;
+ let dy=t[0].clientY-t[1].clientY;
+ return Math.sqrt(dx*dx+dy*dy);
+}
+video.addEventListener("touchstart",e=>{
+ if(e.touches.length==2) start=dist(e.touches);
+},{passive:true});
+video.addEventListener("touchmove",e=>{
+ if(e.touches.length==2){
+  let d=dist(e.touches)-start;
+  if(d>40&&!scaled){video.classList.add("scale");scaled=true;}
+  if(d<-40&&scaled){video.classList.remove("scale");scaled=false;}
+ }
+},{passive:true});
 </script>
 </body>
 </html>
