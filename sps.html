@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultron Spreadsheets</title>
+    
+    <!-- External SDKs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-icons/0.321.0/umd/lucide.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg: #000000;
+            --surface: #121212;
+            --accent: #ffffff;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            --border: #222222;
+            --radius: 28px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: var(--text-main); overflow-x: hidden; padding-bottom: 120px; }
+
+        /* One UI Header */
+        header { padding: 70px 24px 30px; background: var(--bg); position: sticky; top: 0; z-index: 100; transition: 0.4s; }
+        header.mini { padding: 20px 24px; border-bottom: 1px solid var(--border); backdrop-filter: blur(15px); background: rgba(0,0,0,0.8); }
+        header h1 { font-size: 38px; font-weight: 600; letter-spacing: -1px; }
+        header.mini h1 { font-size: 20px; }
+        header p { color: var(--text-dim); font-size: 16px; }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; scrollbar-width: none; }
+        .tab { background: var(--surface); color: white; border: 1px solid var(--border); padding: 10px 22px; border-radius: 50px; cursor: pointer; white-space: nowrap; font-size: 14px; transition: 0.3s; }
+        .tab.active { background: var(--accent); color: black; font-weight: 600; }
+
+        /* Cards */
+        .card { background: var(--surface); border-radius: var(--radius); padding: 25px; margin-bottom: 20px; border: 1px solid var(--border); transition: 0.3s; }
+        .card:active { transform: scale(0.98); }
+
+        .drop-zone { border: 2px dashed #333; text-align: center; padding: 50px 20px; cursor: pointer; }
+        #imgPrev { width: 100%; border-radius: 20px; margin-top: 15px; display: none; border: 1px solid var(--border); }
+
+        textarea { width: 100%; background: transparent; border: none; color: white; font-size: 17px; outline: none; min-height: 100px; resize: none; }
+        .btn-action { background: var(--accent); color: black; border: none; padding: 15px; border-radius: 50px; font-weight: 600; width: 100%; cursor: pointer; margin-top: 10px; }
+
+        /* Table */
+        .table-container { width: 100%; overflow-x: auto; background: var(--surface); border-radius: 20px; border: 1px solid var(--border); margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: #1a1a1a; padding: 14px; text-align: left; color: var(--text-dim); text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+        td { padding: 12px 14px; border-top: 1px solid var(--border); }
+        td input { background: transparent; border: none; color: white; width: 100%; outline: none; }
+
+        /* Bottom Nav */
+        nav { position: fixed; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px); display: flex; justify-content: space-around; padding: 20px 0 35px; border-top: 1px solid var(--border); z-index: 1000; }
+        .nav-item { color: var(--text-dim); cursor: pointer; }
+        .nav-item.active { color: white; }
+        .fab-save { background: white; color: black; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: -50px; border: 5px solid black; box-shadow: 0 5px 15px rgba(255,255,255,0.1); }
+
+        /* Loader */
+        #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #222; border-top: 3px solid #fff; border-radius: 50%; animation: rot 1s linear infinite; }
+        @keyframes rot { to { transform: rotate(360deg); } }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p id="loaderTxt" style="margin-top: 15px; font-size: 11px; letter-spacing: 2px; color: var(--text-dim);">ULTRON ANALYZING</p>
+    </div>
+
+    <header id="header">
+        <h1>Ultron</h1>
+        <p>Spreadsheets</p>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="setTab('scan', this)">Scan Image</div>
+            <div class="tab" onclick="setTab('gen', this)">AI Generate</div>
+            <div class="tab" onclick="setTab('history', this)">History</div>
+        </div>
+
+        <!-- Scan Section -->
+        <section id="scan-view">
+            <div class="card drop-zone" onclick="document.getElementById('fileIn').click()">
+                <i data-lucide="camera" style="margin-bottom: 10px; color: var(--text-dim);"></i>
+                <p id="statusMsg" style="color: var(--text-dim); font-size: 14px;">Tap to upload spreadsheet image</p>
+                <input type="file" id="fileIn" hidden accept="image/*">
+                <img id="imgPrev">
+            </div>
+        </section>
+
+        <!-- Generate Section -->
+        <section id="gen-view" class="hidden">
+            <div class="card">
+                <textarea id="aiPrompt" placeholder="Describe the spreadsheet you want to generate..."></textarea>
+                <button class="btn-action" onclick="generateSheet()">Generate with Ultron</button>
+            </div>
+        </section>
+
+        <!-- History -->
+        <section id="history-view" class="hidden">
+            <div id="historyList"></div>
+        </section>
+
+        <!-- Results -->
+        <div id="result-view" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; padding: 0 10px;">
+                <h3 style="font-weight: 500;">Extracted Data</h3>
+                <div style="display: flex; gap: 15px;">
+                    <i data-lucide="file-text" onclick="exportPDF()" style="cursor:pointer"></i>
+                    <i data-lucide="download" onclick="exportDoc()" style="cursor:pointer"></i>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="dataTable">
+                    <thead id="tHead"></thead>
+                    <tbody id="tBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <nav>
+        <div class="nav-item active"><i data-lucide="home"></i></div>
+        <div class="nav-item"><i data-lucide="search"></i></div>
+        <div class="fab-save" onclick="saveToFirebase()"><i data-lucide="save"></i></div>
+        <div class="nav-item" onclick="exportPDF()"><i data-lucide="external-link"></i></div>
+        <div class="nav-item"><i data-lucide="settings"></i></div>
+    </nav>
+
+    <script>
+        // --- API KEYS ---
+        const GROQ_KEY = "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";
+        const SUPA_URL = "https://ewrngwgugjfrulgktuwu.supabase.co";
+        const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3cm5nd2d1Z2pmcnVsZ2t0dXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNjk4MTMsImV4cCI6MjA5MDk0NTgxM30.V6NJsiQ9edNqAvele_i-Bo2OFgQlg5FAYPSdd4MOC8A";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+            authDomain: "question-metabase.firebaseapp.com",
+            projectId: "question-metabase",
+            storageBucket: "question-metabase.firebasestorage.app",
+            messagingSenderId: "770698198753",
+            appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+        };
+
+        // Init SDKs
+        const supabase = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        lucide.createIcons();
+
+        let currentData = [];
+
+        // UI Header Effect
+        window.onscroll = () => {
+            const h = document.getElementById('header');
+            window.scrollY > 50 ? h.classList.add('mini') : h.classList.remove('mini');
+        };
+
+        // --- IMAGE PROCESSING ---
+        document.getElementById('fileIn').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // 1. Instant Preview
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const base64 = event.target.result;
+                const img = document.getElementById('imgPrev');
+                img.src = base64;
+                img.style.display = 'block';
+                document.getElementById('statusMsg').innerText = "Analyzing image...";
+                
+                // 2. Start Processing
+                processImage(file, base64);
+            };
+            reader.readAsDataURL(file);
+        };
+
+        async function processImage(file, base64) {
+            setLoader(true, "ULTRON SCANNING...");
+            
+            let imageUrl = null;
+
+            // Try uploading to Supabase first
+            try {
+                const fileName = `sheet_${Date.now()}.png`;
+                const { data, error } = await supabase.storage.from('images').upload(fileName, file);
+                if (!error) {
+                    const { data: publicData } = supabase.storage.from('images').getPublicUrl(fileName);
+                    imageUrl = publicData.publicUrl;
+                }
+            } catch (e) { console.log("Supabase upload skipped/failed, using base64."); }
+
+            // Call Groq Vision
+            try {
+                const visionPayload = {
+                    model: "llama-3.2-11b-vision-preview",
+                    messages: [{
+                        role: "user",
+                        content: [
+                            { type: "text", text: "Convert the spreadsheet data in this image into a JSON object with a key 'rows' containing an array of objects. Return only the raw JSON." },
+                            { type: "image_url", image_url: { url: imageUrl || base64 } }
+                        ]
+                    }],
+                    response_format: { type: "json_object" }
+                };
+
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(visionPayload)
+                });
+
+                const result = await res.json();
+                const content = JSON.parse(result.choices[0].message.content);
+                renderTable(content.rows || content.data || Object.values(content)[0]);
+            } catch (err) {
+                alert("AI failed to read image. Please ensure the image is clear.");
+            } finally {
+                setLoader(false);
+            }
+        }
+
+        // --- AI GENERATION ---
+        async function generateSheet() {
+            const p = document.getElementById('aiPrompt').value;
+            if(!p) return;
+            setLoader(true, "GENERATING...");
+            try {
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "llama-3.1-70b-versatile",
+                        messages: [{ role: "user", content: `Generate a spreadsheet for: ${p}. Return JSON with 'rows' key.` }],
+                        response_format: { type: "json_object" }
+                    })
+                });
+                const data = await res.json();
+                const content = JSON.parse(data.choices[0].message.content);
+                renderTable(content.rows || content.data);
+            } catch (e) { alert("Generation failed."); }
+            finally { setLoader(false); }
+        }
+
+        // --- TABLE RENDER ---
+        function renderTable(data) {
+            if(!data || !data.length) return;
+            currentData = data;
+            const head = document.getElementById('tHead');
+            const body = document.getElementById('tBody');
+            head.innerHTML = ''; body.innerHTML = '';
+
+            const keys = Object.keys(data[0]);
+            const trH = document.createElement('tr');
+            keys.forEach(k => { const th = document.createElement('th'); th.innerText = k; trH.appendChild(th); });
+            head.appendChild(trH);
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                keys.forEach(k => {
+                    const td = document.createElement('td');
+                    td.innerHTML = `<input value="${row[k] || ''}">`;
+                    tr.appendChild(td);
+                });
+                body.appendChild(tr);
+            });
+            document.getElementById('result-view').classList.remove('hidden');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        // --- STORAGE & EXPORT ---
+        async function saveToFirebase() {
+            if(!currentData.length) return;
+            setLoader(true, "SAVING...");
+            await db.collection("ultron_sheets").add({
+                data: currentData,
+                created: Date.now(),
+                title: "Report " + new Date().toLocaleDateString()
+            });
+            setLoader(false);
+            alert("Saved to Firestore");
+        }
+
+        async function loadHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '<p style="text-align:center; color:gray;">Loading...</p>';
+            const snap = await db.collection("ultron_sheets").orderBy('created', 'desc').get();
+            list.innerHTML = '';
+            snap.forEach(doc => {
+                const d = doc.data();
+                const item = document.createElement('div');
+                item.className = 'card';
+                item.style.display = 'flex'; item.style.justifyContent = 'space-between';
+                item.innerHTML = `<span>${d.title}</span> <button class="tab" onclick='renderTable(${JSON.stringify(d.data)})'>View</button>`;
+                list.appendChild(item);
+            });
+        }
+
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Ultron Spreadsheet Report", 10, 10);
+            currentData.forEach((r, i) => doc.text(JSON.stringify(r).substring(0, 80), 10, 25 + (i*10)));
+            doc.save("Ultron_Report.pdf");
+        }
+
+        function exportDoc() {
+            let content = "Ultron Report\n\n" + JSON.stringify(currentData, null, 2);
+            const blob = new Blob([content], { type: "application/msword" });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Ultron.doc'; a.click();
+        }
+
+        function setTab(view, el) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(view + '-view').classList.remove('hidden');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            if(view === 'history') loadHistory();
+        }
+
+        function setLoader(show, text) {
+            document.getElementById('loaderTxt').innerText = text;
+            document.getElementById('loader').style.display = show ? 'flex' : 'none';
+        }
+    </script>
+</body>
+</html>
