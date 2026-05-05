@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced HLS Player</title>
+    <!-- Include HLS.js for .m3u8 support -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --text-grey: #b1b1b1;
+            --overlay-bg: rgba(0, 0, 0, 0.4);
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .player-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: none; /* Hidden when inactive */
+        }
+
+        /* SHOW CURSOR WHEN ACTIVE */
+        .player-container.user-active video {
+            cursor: default;
+        }
+
+        /* UI OVERLAY */
+        .controls-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 30px;
+            background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.6) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        /* WAKE UP / SLEEP Logic */
+        .player-container.user-active .controls-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* TOP METADATA - SMALL FONT */
+        .top-meta {
+            text-align: left;
+        }
+
+        .video-name {
+            font-size: 16px; /* Small font as requested */
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .video-genre {
+            font-size: 12px;
+            color: var(--text-grey);
+            margin-top: 2px;
+        }
+
+        /* CENTER CONTROLS */
+        .center-ui {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .btn-center {
+            background: rgba(0,0,0,0.4);
+            border: none;
+            color: white;
+            font-size: 35px;
+            border-radius: 50%;
+            width: 70px; height: 70px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-center:hover { transform: scale(1.1); }
+
+        /* BOTTOM BAR */
+        .bottom-ui {
+            width: 100%;
+        }
+
+        .progress-area {
+            width: 100%;
+            height: 5px;
+            background: rgba(255,255,255,0.2);
+            cursor: pointer;
+            margin-bottom: 15px;
+            position: relative;
+            border-radius: 5px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            border-radius: 5px;
+        }
+
+        .bottom-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* LOCK BUTTON */
+        #lockBtn {
+            position: absolute;
+            right: 30px;
+            top: 30px;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="player-container" id="playerWrapper">
+    <video id="videoMain" playsinline></video>
+
+    <!-- UI Overlay -->
+    <div class="controls-overlay">
+        
+        <!-- Top Metadata -->
+        <div class="top-meta">
+            <div class="video-name" id="ui-name">Loading...</div>
+            <div class="video-genre" id="ui-genre">Loading Genre...</div>
+        </div>
+
+        <!-- Center Controls -->
+        <div class="center-ui">
+            <button class="btn-center" onclick="seek(-10)"><i class="fas fa-undo"></i></button>
+            <button class="btn-center" id="playPauseBtn"><i class="fas fa-play"></i></button>
+            <button class="btn-center" onclick="seek(10)"><i class="fas fa-redo"></i></button>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="bottom-ui">
+            <div class="progress-area" id="pArea">
+                <div class="progress-bar" id="pBar"></div>
+            </div>
+            <div class="bottom-controls">
+                <span id="timeCurrent">00:00</span>
+                <span style="flex-grow:1"></span>
+                <button class="btn-icon" id="muteBtn"><i class="fas fa-volume-up"></i></button>
+                <button class="btn-icon" id="fullScreenBtn"><i class="fas fa-expand"></i></button>
+                <button class="btn-icon" id="lockToggle"><i class="fas fa-unlock"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const video = document.getElementById('videoMain');
+    const playerWrapper = document.getElementById('playerWrapper');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const pBar = document.getElementById('pBar');
+    const pArea = document.getElementById('pArea');
+    
+    let isLocked = false;
+    let inactivityTimer;
+
+    // 1. GET URL PARAMETERS
+    const params = new URLSearchParams(window.location.search);
+    const m3u8Url = params.get('m3u8') || params.get(''); // handles ?=m3u8
+    const videoName = params.get('name') || "Untitled Video";
+    const videoGenre = params.get('Gerns') || "Unknown Genre";
+
+    document.getElementById('ui-name').innerText = videoName;
+    document.getElementById('ui-genre').innerText = videoGenre;
+
+    // 2. INITIALIZE HLS
+    if (Hls.isSupported() && m3u8Url) {
+        const hls = new Hls();
+        hls.loadSource(m3u8Url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = m3u8Url;
+    }
+
+    // 3. WAKE UP & SLEEP LOGIC
+    function wakeUp() {
+        playerWrapper.classList.add('user-active');
+        clearTimeout(inactivityTimer);
+        
+        // "Sleep" after 3 seconds of inactivity
+        inactivityTimer = setTimeout(() => {
+            if (!video.paused && !isLocked) {
+                playerWrapper.classList.remove('user-active');
+            }
+        }, 3000);
+    }
+
+    playerWrapper.addEventListener('mousemove', wakeUp);
+    playerWrapper.addEventListener('click', wakeUp);
+    playerWrapper.addEventListener('touchstart', wakeUp);
+
+    // 4. PLAYER CONTROLS
+    function togglePlay() {
+        if (isLocked) return;
+        if (video.paused) {
+            video.play();
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        } else {
+            video.pause();
+            playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            wakeUp(); // Keep UI visible when paused
+        }
+    }
+
+    playPauseBtn.addEventListener('click', togglePlay);
+    video.addEventListener('click', togglePlay);
+
+    // 5. PROGRESS & TIME
+    video.addEventListener('timeupdate', () => {
+        const prog = (video.currentTime / video.duration) * 100;
+        pBar.style.width = prog + '%';
+        document.getElementById('timeCurrent').innerText = formatTime(video.currentTime);
+    });
+
+    pArea.addEventListener('click', (e) => {
+        if (isLocked) return;
+        const rect = pArea.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        video.currentTime = pos * video.duration;
+    });
+
+    function formatTime(s) {
+        let m = Math.floor(s / 60);
+        let sec = Math.floor(s % 60);
+        return (m < 10 ? '0'+m : m) + ":" + (sec < 10 ? '0'+sec : sec);
+    }
+
+    window.seek = (val) => { if(!isLocked) video.currentTime += val; }
+
+    // 6. FULL SCREEN
+    document.getElementById('fullScreenBtn').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            playerWrapper.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    });
+
+    // 7. LOCK MODE
+    document.getElementById('lockToggle').addEventListener('click', function() {
+        isLocked = !isLocked;
+        this.innerHTML = isLocked ? '<i class="fas fa-lock" style="color:red"></i>' : '<i class="fas fa-unlock"></i>';
+        if(isLocked) {
+            setTimeout(() => playerWrapper.classList.remove('user-active'), 500);
+        }
+    });
+
+    // 8. MUTE
+    document.getElementById('muteBtn').addEventListener('click', function() {
+        video.muted = !video.muted;
+        this.innerHTML = video.muted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+    });
+</script>
+</body>
+</html>
