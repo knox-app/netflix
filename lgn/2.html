@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter password</title>
+    <style>
+        /* Reusing the same CSS reset and base styles from 1.html */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #fff;
+            color: #000;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 24px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        /* Displays the user's email */
+        .user-email-chip {
+            display: inline-block;
+            font-size: 14px;
+            color: #333;
+            background-color: #f3f4f6;
+            padding: 6px 12px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Input styling with floating label */
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 18px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+            background: transparent;
+        }
+
+        .input-group input:focus {
+            border-color: #000;
+        }
+
+        .input-group label {
+            position: absolute;
+            left: 12px;
+            top: 18px;
+            background: #fff;
+            padding: 0 4px;
+            color: #6b7280;
+            font-size: 16px;
+            transition: 0.2s ease all;
+            pointer-events: none;
+        }
+
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: -10px;
+            font-size: 12px;
+            color: #555;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 30px; 
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #333;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #error-message {
+            color: #dc2626;
+            font-size: 14px;
+            margin-top: -15px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: left;
+            padding-left: 5px;
+        }
+
+        /* Hide content until initialized */
+        #main-content {
+            display: none; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Main Login Content -->
+        <div id="main-content">
+            <h1>Enter password</h1>
+            <div class="user-email-chip" id="displayEmail">Loading...</div>
+
+            <div class="input-group">
+                <input type="password" id="password" placeholder=" " required>
+                <label for="password">Password</label>
+            </div>
+            
+            <div id="error-message">Wrong password. Try again.</div>
+
+            <button id="signInBtn">Sign in</button>
+        </div>
+
+        <h3 id="loading-text">Loading secure session...</h3>
+    </div>
+
+    <!-- Firebase SDK Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        // Note: Imported 'or' to check for both Lotus and lotus safely
+        import { getFirestore, collection, doc, getDoc, query, where, or, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+            authDomain: "question-metabase.firebaseapp.com",
+            databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "question-metabase",
+            storageBucket: "question-metabase.firebasestorage.app",
+            messagingSenderId: "770698198753",
+            appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+            measurementId: "G-6ZP1FPMKSJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Get URL Parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session');
+        const lotusId = urlParams.get('lotus');
+
+        // DOM Elements
+        const mainContent = document.getElementById('main-content');
+        const loadingText = document.getElementById('loading-text');
+        const displayEmail = document.getElementById('displayEmail');
+        const passwordInput = document.getElementById('password');
+        const signInBtn = document.getElementById('signInBtn');
+        const errorMsg = document.getElementById('error-message');
+
+        let dbActualPassword = ""; // Will store the actual password fetched from DB
+
+        // --- Core Function: Get 'continue' URL and Redirect ---
+        async function completeLoginFlow() {
+            try {
+                // Fetch the continue URL from ASPX Keys using the Session ID
+                const sessionDocRef = doc(db, "ASPX Keys", sessionId);
+                const sessionSnap = await getDoc(sessionDocRef);
+
+                let redirectUrl = "/"; // Fallback URL if none is stored
+
+                if (sessionSnap.exists()) {
+                    const sessionData = sessionSnap.data();
+                    if (sessionData.continue && sessionData.continue !== "") {
+                        redirectUrl = sessionData.continue;
+                    }
+                }
+
+                // Redirect the user!
+                window.location.href = redirectUrl;
+
+            } catch (error) {
+                console.error("Error fetching continue URL:", error);
+                alert("Login successful, but failed to find the redirect page.");
+            }
+        }
+
+        // --- Initialize Page: Check Auto-Login & Fetch User Info ---
+        async function initPage() {
+            if (!sessionId || !lotusId) {
+                loadingText.innerText = "Invalid Session Request. Missing parameters.";
+                return;
+            }
+
+            // 1. Check if user is ALREADY logged in (Persistence)
+            const savedLotus = localStorage.getItem('authenticated_lotus_user');
+            if (savedLotus === lotusId) {
+                loadingText.innerText = "Welcome back! Redirecting...";
+                await completeLoginFlow();
+                return; // Stop execution here
+            }
+
+            // 2. Not logged in -> Fetch email/password from UARM using Lotus ID
+            try {
+                const usersRef = collection(db, "UARM");
+                // Uses 'or' to check if the field was saved as 'Lotus' or 'lotus'
+                const q = query(usersRef, or(where("Lotus", "==", lotusId), where("lotus", "==", lotusId)));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const userData = querySnapshot.docs[0].data();
+                    
+                    // Show email on UI
+                    displayEmail.innerText = userData.email || "User";
+                    
+                    // Store correct password in memory for validation later
+                    dbActualPassword = userData.password;
+
+                    // Reveal Main UI
+                    loadingText.style.display = 'none';
+                    mainContent.style.display = 'block';
+                    passwordInput.focus();
+                } else {
+                    loadingText.innerText = "Error: Invalid Lotus ID. User not found.";
+                }
+            } catch (error) {
+                console.error("Database fetch error:", error);
+                loadingText.innerText = "Connection error. Please try again.";
+            }
+        }
+
+        // Run Init
+        initPage();
+
+        // --- Handle Password Submission ---
+        signInBtn.addEventListener('click', async () => {
+            const enteredPassword = passwordInput.value;
+
+            if (!enteredPassword) {
+                passwordInput.focus();
+                return;
+            }
+
+            signInBtn.disabled = true;
+            signInBtn.textContent = 'Verifying...';
+            errorMsg.style.display = 'none';
+
+            // Verify Password
+            if (enteredPassword === dbActualPassword) {
+                
+                // Set LocalStorage so they don't have to login again
+                localStorage.setItem('authenticated_lotus_user', lotusId);
+                
+                signInBtn.textContent = 'Success! Redirecting...';
+                
+                // Fetch the continue URL and finish
+                await completeLoginFlow();
+
+            } else {
+                // Incorrect Password
+                errorMsg.style.display = 'block';
+                signInBtn.disabled = false;
+                signInBtn.textContent = 'Sign in';
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        });
+
+        // Allow pressing "Enter" key to submit password
+        passwordInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                signInBtn.click();
+            }
+        });
+    </script>
+</body>
+  </html>
