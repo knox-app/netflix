@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enter 2 Password</title>
+    <title>securiy increase</title>
     <style>
-        /* CSS reset and base styles (Matching 1.html exactly) */
+        /* CSS reset and base styles */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
@@ -32,7 +32,6 @@
             letter-spacing: -0.5px;
         }
 
-        /* Profile/Email display */
         .user-email-display {
             display: inline-block;
             background-color: #f3f4f6;
@@ -45,7 +44,6 @@
             border: 1px solid #e5e7eb;
         }
 
-        /* Input styling with floating label */
         .input-group {
             position: relative;
             margin-bottom: 24px;
@@ -80,7 +78,6 @@
             pointer-events: none;
         }
 
-        /* Float the label when input is focused or has content */
         .input-group input:focus + label,
         .input-group input:not(:placeholder-shown) + label {
             top: -10px;
@@ -88,7 +85,6 @@
             color: #555;
         }
 
-        /* Button styling */
         button {
             width: 100%;
             padding: 16px;
@@ -122,7 +118,6 @@
             padding-left: 5px;
         }
 
-        /* Loader */
         #loader {
             display: none;
             font-size: 14px;
@@ -130,7 +125,7 @@
             margin-bottom: 20px;
         }
         #main-form {
-            display: none; /* Hidden until data loads */
+            display: none; 
         }
     </style>
 </head>
@@ -144,7 +139,6 @@
             <div class="user-email-display" id="displayEmail">loading@perplexity.com</div>
 
             <div class="input-group">
-                <!-- placeholder=" " allows CSS floating label trick to work -->
                 <input type="password" id="password" placeholder=" " required>
                 <label for="password">Password</label>
             </div>
@@ -155,12 +149,13 @@
         </div>
     </div>
 
-    <!-- Firebase SDK Setup (Modular Version) -->
+    <!-- Firebase SDK Setup -->
     <script type="module">
+        // IMPORT updateDoc directly from SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // Your specific Firebase configuration
+        // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
             authDomain: "question-metabase.firebaseapp.com",
@@ -183,9 +178,23 @@
         const loginBtn = document.getElementById('loginBtn');
         const errorMsg = document.getElementById('error-message');
 
-        // Global variables to hold data
+        // Global variables
         let actualPassword = "";
         let continueUrl = "";
+        
+        // Security Tracking Variables
+        let userDocId = ""; 
+        let lotusFieldName = ""; // Tracks if DB uses "Lotus" or "lotus"
+
+        // Generates a random secure 15-character ID for rotation
+        function generateNewLotusId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < 15; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
 
         // --- CORE LOGIC: Fetch Data on Load ---
         async function loadPageData() {
@@ -193,50 +202,52 @@
 
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('session');
-            const lotusId = urlParams.get('lotus');
+            const urlLotusId = urlParams.get('lotus');
 
-            if (!sessionId || !lotusId) {
+            if (!sessionId || !urlLotusId) {
                 alert("Missing session or lotus ID. Redirecting to start.");
                 window.location.href = "1.html";
                 return;
             }
 
             try {
-                // 1. Check if user is already logged in via LocalStorage
-                if (localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('lotusId') === lotusId) {
+                // 1. Check if user is already logged in (ignores URL lotus since it might have rotated)
+                if (localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('lotusId')) {
                     await handleSuccessfulLogin(sessionId);
-                    return; // Stop execution, user is being redirected
+                    return; 
                 }
 
-                // 2. Fetch User Data using Lotus ID
+                // 2. Fetch User Data using Lotus ID from URL
                 const usersRef = collection(db, "UARM");
                 let userData = null;
 
-                // Checking for both uppercase 'Lotus' and lowercase 'lotus' variations
-                const qUpper = query(usersRef, where("Lotus", "==", lotusId));
+                const qUpper = query(usersRef, where("Lotus", "==", urlLotusId));
                 const snapUpper = await getDocs(qUpper);
                 
                 if (!snapUpper.empty) {
                     userData = snapUpper.docs[0].data();
+                    userDocId = snapUpper.docs[0].id; // Save the unique Firestore Document ID
+                    lotusFieldName = "Lotus"; // Save case sensitivity
                 } else {
-                    const qLower = query(usersRef, where("lotus", "==", lotusId));
+                    const qLower = query(usersRef, where("lotus", "==", urlLotusId));
                     const snapLower = await getDocs(qLower);
                     if (!snapLower.empty) {
                         userData = snapLower.docs[0].data();
+                        userDocId = snapLower.docs[0].id; // Save the unique Firestore Document ID
+                        lotusFieldName = "lotus"; // Save case sensitivity
                     }
                 }
 
                 if (!userData) {
-                    alert("Invalid Lotus ID. Account not found.");
+                    alert("This login link has expired or is invalid. Please sign in again.");
                     window.location.href = "1.html";
                     return;
                 }
 
-                // 3. Populate UI with Data
+                // 3. Populate UI
                 displayEmail.textContent = userData.email;
-                actualPassword = userData.password; // Store the correct password from DB into variable
+                actualPassword = userData.password; 
 
-                // Show form
                 loader.style.display = 'none';
                 mainForm.style.display = 'block';
 
@@ -246,31 +257,25 @@
             }
         }
 
-        // --- SUCCESS HANDLER: Redirects to 'Continue' URL ---
+        // --- SUCCESS HANDLER: Redirects ---
         async function handleSuccessfulLogin(sessionId) {
             loginBtn.textContent = "Redirecting...";
-            loginBtn.disabled = true;
-
+            
             try {
-                // Fetch the 'continue' URL from ASPX Keys using the Session ID
                 const sessionDocRef = doc(db, "ASPX Keys", sessionId);
                 const sessionSnap = await getDoc(sessionDocRef);
-
-                let targetUrl = "https://www.perplexity.ai"; // Default fallback if continue is empty
+                let targetUrl = "https://www.perplexity.ai"; 
 
                 if (sessionSnap.exists()) {
                     const dbContinueUrl = sessionSnap.data().continue;
                     if (dbContinueUrl && dbContinueUrl.trim() !== "") {
-                        targetUrl = dbContinueUrl; // Override default if continue exists
+                        targetUrl = dbContinueUrl;
                     }
                 }
-
-                // Redirect
                 window.location.href = targetUrl;
-
             } catch (error) {
                 console.error("Error fetching continue URL:", error);
-                window.location.href = "https://www.perplexity.ai"; // Fallback redirect
+                window.location.href = "https://www.perplexity.ai"; 
             }
         }
 
@@ -285,37 +290,54 @@
             }
 
             loginBtn.disabled = true;
-            loginBtn.textContent = 'Verifying...';
+            loginBtn.textContent = 'Securing session...';
 
-            // Compare passwords
             if (enteredPassword === actualPassword) {
-                // Passwords match!
-                const urlParams = new URLSearchParams(window.location.search);
+                // PASSWORDS MATCH - INITIATE SECURITY PROTOCOL
                 
-                // SAVE PERSISTENT LOGIN STATE
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('lotusId', urlParams.get('lotus'));
+                const urlParams = new URLSearchParams(window.location.search);
+                const sessionId = urlParams.get('session');
+                const newLotusId = generateNewLotusId(); // 1. Create fresh ID
 
-                // Handle Redirect
-                await handleSuccessfulLogin(urlParams.get('session'));
+                try {
+                    // 2. Update the document in Firestore with the NEW Lotus ID
+                    const userRef = doc(db, "UARM", userDocId);
+                    await updateDoc(userRef, {
+                        [lotusFieldName]: newLotusId
+                    });
+
+                    // 3. Save the NEW ID locally so auto-login still works
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('lotusId', newLotusId);
+
+                    // 4. Send them to their destination
+                    await handleSuccessfulLogin(sessionId);
+
+                } catch (error) {
+                    console.error("Failed to rotate Lotus ID:", error);
+                    alert("A security error occurred. Please try again.");
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Sign in';
+                }
+
             } else {
                 // Wrong password
                 errorMsg.style.display = 'block';
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Sign in';
-                passwordInput.value = ""; // Clear password field
+                passwordInput.value = ""; 
                 passwordInput.focus();
             }
         });
 
-        // Add 'Enter' key support for password field
+        // Add 'Enter' key support
         passwordInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 loginBtn.click();
             }
         });
 
-        // Initialize page
+        // Start
         loadPageData();
 
     </script>
