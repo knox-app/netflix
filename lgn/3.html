@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile</title>
+    <style>
+        /* Base styles matching previous pages */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f9fafb; /* Slightly grey background for profile */
+            color: #111827;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .profile-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 32px 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            text-align: center;
+            display: none; /* Hidden until data loads */
+        }
+
+        /* Avatar Circle */
+        .avatar {
+            width: 80px;
+            height: 80px;
+            background-color: #000;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 auto 16px auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+            letter-spacing: -0.5px;
+        }
+
+        p.email-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 0 0 24px 0;
+        }
+
+        /* Data List Details */
+        .info-list {
+            text-align: left;
+            margin-bottom: 32px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #111827;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        /* Buttons */
+        button.sign-out-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: #fff;
+            color: #dc2626; /* Red for sign out */
+            border: 1px solid #fca5a5;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button.sign-out-btn:hover {
+            background-color: #fef2f2;
+        }
+
+        /* Loader */
+        #loader {
+            text-align: center;
+            font-size: 16px;
+            color: #555;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Loading State -->
+        <div id="loader">Loading profile data...</div>
+
+        <!-- Main Profile Card -->
+        <div class="profile-card" id="profileCard">
+            <!-- Initial placeholder -->
+            <div class="avatar" id="avatarInitial">U</div>
+            
+            <h1 id="fullName">User Name</h1>
+            <p class="email-subtitle" id="userEmail">user@perplexity.com</p>
+
+            <div class="info-list">
+                <div class="info-row">
+                    <span class="info-label">Mobile</span>
+                    <span class="info-value" id="userMobile">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date of Birth</span>
+                    <span class="info-value" id="userDob">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Gender</span>
+                    <span class="info-value" id="userGender">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Account Type</span>
+                    <span class="info-value" style="text-transform: capitalize;" id="userType">--</span>
+                </div>
+            </div>
+
+            <button class="sign-out-btn" id="signOutBtn">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+            authDomain: "question-metabase.firebaseapp.com",
+            databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "question-metabase",
+            storageBucket: "question-metabase.firebasestorage.app",
+            messagingSenderId: "770698198753",
+            appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+            measurementId: "G-6ZP1FPMKSJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Security Check: Ensure user is actually logged in
+        function checkAuth() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const lotusId = localStorage.getItem('lotusId');
+
+            if (isLoggedIn !== 'true' || !lotusId) {
+                // Not logged in, kick them to login page
+                window.location.href = '1.html';
+                return null;
+            }
+            return lotusId;
+        }
+
+        // Fetch and display user data
+        async function loadProfile() {
+            const lotusId = checkAuth();
+            if (!lotusId) return; // Stop if redirecting
+
+            try {
+                // Query database
+                const usersRef = collection(db, "UARM");
+                let userData = null;
+
+                // Check for both Lotus variants like we did before
+                const qUpper = query(usersRef, where("Lotus", "==", lotusId));
+                const snapUpper = await getDocs(qUpper);
+                
+                if (!snapUpper.empty) {
+                    userData = snapUpper.docs[0].data();
+                } else {
+                    const qLower = query(usersRef, where("lotus", "==", lotusId));
+                    const snapLower = await getDocs(qLower);
+                    if (!snapLower.empty) {
+                        userData = snapLower.docs[0].data();
+                    }
+                }
+
+                if (userData) {
+                    // Populate UI
+                    const firstName = userData.firstName || "";
+                    // Handle case-sensitivity of LastName based on your DB screenshot
+                    const lastName = userData.LastName || userData.lastName || ""; 
+                    
+                    document.getElementById('fullName').textContent = `${firstName} ${lastName}`.trim() || "Perplexity User";
+                    document.getElementById('userEmail').textContent = userData.email || "--";
+                    document.getElementById('userMobile').textContent = userData.mobile || "--";
+                    document.getElementById('userDob').textContent = userData.dob || "--";
+                    document.getElementById('userGender').textContent = userData.gender || "--";
+                    document.getElementById('userType').textContent = userData.type || "Personal";
+
+                    // Set Avatar Initial (First letter of first name)
+                    if (firstName) {
+                        document.getElementById('avatarInitial').textContent = firstName.charAt(0).toUpperCase();
+                    } else if (userData.email) {
+                        document.getElementById('avatarInitial').textContent = userData.email.charAt(0).toUpperCase();
+                    }
+
+                    // Hide loader, show profile
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('profileCard').style.display = 'block';
+                } else {
+                    alert("Profile data not found. Please log in again.");
+                    localStorage.clear();
+                    window.location.href = '1.html';
+                }
+
+            } catch (error) {
+                console.error("Error loading profile:", error);
+                document.getElementById('loader').textContent = "Error loading profile data. Check connection.";
+            }
+        }
+
+        // Handle Sign Out
+        document.getElementById('signOutBtn').addEventListener('click', () => {
+            // Clear the saved login state
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('lotusId');
+            
+            // Redirect to login page
+            window.location.href = '1.html';
+        });
+
+        // Initialize
+        loadProfile();
+    </script>
+</body>
+</html>
