@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SD V0</title>
+    <title>Enter Password</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #fff; color: #000; }
         .container { width: 100%; max-width: 400px; padding: 40px 24px; text-align: center; box-sizing: border-box; }
@@ -29,7 +29,6 @@
 
         <div id="main-form">
             <h1>Welcome</h1>
-            <!-- Changed variable to just generic "ID" since it might be a phone number now -->
             <div class="user-email-display" id="displayEmail">loading...</div>
 
             <div class="input-group">
@@ -44,7 +43,6 @@
     </div>
 
     <script type="module">
-        // IMPORT deleteDoc directly from SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, doc, getDoc, query, where, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -72,6 +70,8 @@
         let actualPassword = "";
         let userDocId = ""; 
         let lotusFieldName = ""; 
+        let userDisplayId = "";
+        let userInitial = "U";
 
         function generateNewLotusId() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -90,13 +90,19 @@
             const urlLotusId = urlParams.get('lotus');
 
             if (!sessionId || !urlLotusId) {
-                alert("Missing session or lotus ID. Redirecting to start.");
+                alert("Invalid link.");
                 window.location.href = "1.html";
                 return;
             }
 
             try {
-                if (localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('lotusId')) {
+                // Check if this specific account is already in our saved multi-account list
+                const savedAccounts = JSON.parse(localStorage.getItem('savedAccounts') || '[]');
+                const existingAccount = savedAccounts.find(acc => acc.lotusId === urlLotusId);
+                
+                if (existingAccount) {
+                    // Set as active and skip password
+                    localStorage.setItem('activeLotusId', existingAccount.lotusId);
                     await handleSuccessfulLogin(sessionId);
                     return; 
                 }
@@ -122,13 +128,14 @@
                 }
 
                 if (!userData) {
-                    alert("This login link has expired or is invalid. Please sign in again.");
+                    alert("This login link has expired.");
                     window.location.href = "1.html";
                     return;
                 }
 
-                // Show email OR mobile depending on what exists
-                displayEmail.textContent = userData.email || userData.mobile || "Account Found";
+                userDisplayId = userData.email || userData.mobile || "Account Found";
+                userInitial = (userData.firstName || userDisplayId).charAt(0).toUpperCase();
+                displayEmail.textContent = userDisplayId;
                 actualPassword = userData.password; 
 
                 loader.style.display = 'none';
@@ -140,32 +147,27 @@
             }
         }
 
-        // --- UPDATED SUCCESS HANDLER ---
         async function handleSuccessfulLogin(sessionId) {
             loginBtn.textContent = "Redirecting...";
             
             try {
-                // 1. Get the session document to find where to redirect
                 const sessionDocRef = doc(db, "ASPX Keys", sessionId);
                 const sessionSnap = await getDoc(sessionDocRef);
-                let targetUrl = "https://www.perplexity.ai"; 
+                // DEFAULT REDIRECT TO ACCOUNT CHOOSER (3.html) or Profile
+                let targetUrl = "3.html"; 
 
                 if (sessionSnap.exists()) {
                     const dbContinueUrl = sessionSnap.data().continue;
                     if (dbContinueUrl && dbContinueUrl.trim() !== "") {
                         targetUrl = dbContinueUrl;
                     }
-                    
-                    // 2. DELETE THE SESSION DOCUMENT FROM FIREBASE
-                    await deleteDoc(sessionDocRef);
-                    console.log("Session deleted successfully for security.");
+                    await deleteDoc(sessionDocRef); // Clean up session
                 }
                 
-                // 3. Redirect the user
                 window.location.href = targetUrl;
             } catch (error) {
                 console.error("Error fetching/deleting session:", error);
-                window.location.href = "https://www.perplexity.ai"; 
+                window.location.href = "3.html"; 
             }
         }
 
@@ -173,10 +175,7 @@
             const enteredPassword = passwordInput.value;
             errorMsg.style.display = 'none';
 
-            if (!enteredPassword) {
-                passwordInput.focus();
-                return;
-            }
+            if (!enteredPassword) return;
 
             loginBtn.disabled = true;
             loginBtn.textContent = 'Securing session...';
@@ -187,17 +186,31 @@
                 const newLotusId = generateNewLotusId(); 
 
                 try {
-                    // Update Lotus ID in database
+                    // 1. Update Lotus ID in database
                     const userRef = doc(db, "UARM", userDocId);
-                    await updateDoc(userRef, {
-                        [lotusFieldName]: newLotusId
+                    await updateDoc(userRef, { [lotusFieldName]: newLotusId });
+
+                    // 2. MULTI-ACCOUNT SAVE LOGIC
+                    let savedAccounts = JSON.parse(localStorage.getItem('savedAccounts') || '[]');
+                    
+                    // Remove old version of this exact account if it exists (prevents duplicates)
+                    savedAccounts = savedAccounts.filter(acc => acc.docId !== userDocId);
+                    
+                    // Add new account data to array
+                    savedAccounts.push({
+                        docId: userDocId,
+                        lotusId: newLotusId,
+                        displayId: userDisplayId,
+                        initial: userInitial
                     });
 
-                    // Save local state
-                    localStorage.setItem('isLoggedIn', 'true');
-                    localStorage.setItem('lotusId', newLotusId);
+                    // Save array back to storage
+                    localStorage.setItem('savedAccounts', JSON.stringify(savedAccounts));
+                    
+                    // Mark THIS account as the currently active one
+                    localStorage.setItem('activeLotusId', newLotusId);
 
-                    // Complete login (this now triggers the session deletion)
+                    // 3. Complete login
                     await handleSuccessfulLogin(sessionId);
 
                 } catch (error) {
@@ -216,13 +229,10 @@
         });
 
         passwordInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                loginBtn.click();
-            }
+            if (e.key === 'Enter') loginBtn.click();
         });
 
         loadPageData();
-
     </script>
 </body>
 </html>
