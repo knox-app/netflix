@@ -3,262 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Profile</title>
+    <title>Choose an account</title>
     <style>
-        /* Base styles matching previous pages */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f9fafb; /* Slightly grey background for profile */
-            color: #111827;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0;
+            background-color: #f9fafb; color: #000;
         }
-        
         .container {
-            width: 100%;
-            max-width: 450px;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .profile-card {
-            background: #fff;
-            border-radius: 24px;
-            padding: 32px 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            width: 100%; max-width: 420px; padding: 40px 24px; box-sizing: border-box;
+            background: #fff; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             text-align: center;
-            display: none; /* Hidden until data loads */
         }
+        h1 { font-size: 24px; font-weight: 600; margin-bottom: 24px; letter-spacing: -0.5px; }
 
-        /* Avatar Circle */
+        /* Account List Styles */
+        .account-list {
+            list-style: none; padding: 0; margin: 0 0 24px 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+        }
+        .account-item {
+            display: flex; align-items: center; padding: 16px; border-bottom: 1px solid #e5e7eb;
+            cursor: pointer; transition: background 0.2s; text-align: left;
+        }
+        .account-item:last-child { border-bottom: none; }
+        .account-item:hover { background-color: #f3f4f6; }
+        
         .avatar {
-            width: 80px;
-            height: 80px;
-            background-color: #000;
-            color: #fff;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 32px;
-            font-weight: 600;
-            margin: 0 auto 16px auto;
+            width: 40px; height: 40px; border-radius: 50%; background-color: #000; color: #fff;
+            display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 600; margin-right: 16px;
         }
-
-        h1 {
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0 0 4px 0;
-            letter-spacing: -0.5px;
+        .account-info { flex-grow: 1; }
+        .account-email { font-size: 15px; font-weight: 500; color: #111827; }
+        
+        /* Action Buttons */
+        .action-btn {
+            display: flex; align-items: center; justify-content: center; width: 100%; padding: 16px;
+            background: transparent; border: 1px solid #d1d5db; border-radius: 12px; font-size: 15px; font-weight: 500;
+            cursor: pointer; margin-bottom: 12px; transition: 0.2s; color: #374151; text-decoration: none; box-sizing: border-box;
         }
-
-        p.email-subtitle {
-            font-size: 14px;
-            color: #6b7280;
-            margin: 0 0 24px 0;
+        .action-btn:hover { background-color: #f9fafb; border-color: #9ca3af; }
+        
+        .sign-out-all {
+            color: #dc2626; border: none; background: none; font-size: 14px; font-weight: 500; cursor: pointer; padding: 10px;
         }
-
-        /* Data List Details */
-        .info-list {
-            text-align: left;
-            margin-bottom: 32px;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 16px 0;
-            border-bottom: 1px solid #f3f4f6;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            font-size: 14px;
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .info-value {
-            font-size: 14px;
-            color: #111827;
-            font-weight: 500;
-            text-align: right;
-        }
-
-        /* Buttons */
-        button.sign-out-btn {
-            width: 100%;
-            padding: 16px;
-            background-color: #fff;
-            color: #dc2626; /* Red for sign out */
-            border: 1px solid #fca5a5;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        button.sign-out-btn:hover {
-            background-color: #fef2f2;
-        }
-
-        /* Loader */
-        #loader {
-            text-align: center;
-            font-size: 16px;
-            color: #555;
-            font-weight: 500;
-        }
+        .sign-out-all:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Loading State -->
-        <div id="loader">Loading profile data...</div>
+        <h1>Choose an account</h1>
+        
+        <!-- List of Accounts will be injected here -->
+        <ul class="account-list" id="accountContainer"></ul>
 
-        <!-- Main Profile Card -->
-        <div class="profile-card" id="profileCard">
-            <!-- Initial placeholder -->
-            <div class="avatar" id="avatarInitial">U</div>
-            
-            <h1 id="fullName">User Name</h1>
-            <p class="email-subtitle" id="userEmail">user@perplexity.com</p>
+        <!-- Add New Account Button -->
+        <a href="1.html" class="action-btn">
+            <svg style="margin-right:8px; width:20px; height:20px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            Add another account
+        </a>
 
-            <div class="info-list">
-                <div class="info-row">
-                    <span class="info-label">Mobile</span>
-                    <span class="info-value" id="userMobile">--</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Date of Birth</span>
-                    <span class="info-value" id="userDob">--</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Gender</span>
-                    <span class="info-value" id="userGender">--</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Account Type</span>
-                    <span class="info-value" style="text-transform: capitalize;" id="userType">--</span>
-                </div>
-            </div>
-
-            <button class="sign-out-btn" id="signOutBtn">Sign Out</button>
-        </div>
+        <!-- Sign Out Button -->
+        <button class="sign-out-all" id="signOutBtn">Sign out of all accounts</button>
     </div>
 
-    <!-- Firebase SDK Setup -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    <script>
+        // 1. Load saved accounts from LocalStorage
+        const savedAccounts = JSON.parse(localStorage.getItem('savedAccounts') || '[]');
+        const accountContainer = document.getElementById('accountContainer');
 
-        // Your Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
-            authDomain: "question-metabase.firebaseapp.com",
-            databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "question-metabase",
-            storageBucket: "question-metabase.firebasestorage.app",
-            messagingSenderId: "770698198753",
-            appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
-            measurementId: "G-6ZP1FPMKSJ"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Security Check: Ensure user is actually logged in
-        function checkAuth() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const lotusId = localStorage.getItem('lotusId');
-
-            if (isLoggedIn !== 'true' || !lotusId) {
-                // Not logged in, kick them to login page
-                window.location.href = '1.html';
-                return null;
-            }
-            return lotusId;
-        }
-
-        // Fetch and display user data
-        async function loadProfile() {
-            const lotusId = checkAuth();
-            if (!lotusId) return; // Stop if redirecting
-
-            try {
-                // Query database
-                const usersRef = collection(db, "UARM");
-                let userData = null;
-
-                // Check for both Lotus variants like we did before
-                const qUpper = query(usersRef, where("Lotus", "==", lotusId));
-                const snapUpper = await getDocs(qUpper);
+        // If no accounts exist, redirect directly to login page
+        if (savedAccounts.length === 0) {
+            window.location.href = '1.html';
+        } else {
+            // 2. Render each saved account
+            savedAccounts.forEach(account => {
+                const li = document.createElement('li');
+                li.className = 'account-item';
                 
-                if (!snapUpper.empty) {
-                    userData = snapUpper.docs[0].data();
-                } else {
-                    const qLower = query(usersRef, where("lotus", "==", lotusId));
-                    const snapLower = await getDocs(qLower);
-                    if (!snapLower.empty) {
-                        userData = snapLower.docs[0].data();
-                    }
-                }
+                li.innerHTML = `
+                    <div class="avatar">${account.initial}</div>
+                    <div class="account-info">
+                        <div class="account-email">${account.displayId}</div>
+                    </div>
+                `;
 
-                if (userData) {
-                    // Populate UI
-                    const firstName = userData.firstName || "";
-                    // Handle case-sensitivity of LastName based on your DB screenshot
-                    const lastName = userData.LastName || userData.lastName || ""; 
+                // 3. When an account is clicked
+                li.addEventListener('click', () => {
+                    // Set this account as the active one
+                    localStorage.setItem('activeLotusId', account.lotusId);
                     
-                    document.getElementById('fullName').textContent = `${firstName} ${lastName}`.trim() || "Perplexity User";
-                    document.getElementById('userEmail').textContent = userData.email || "--";
-                    document.getElementById('userMobile').textContent = userData.mobile || "--";
-                    document.getElementById('userDob').textContent = userData.dob || "--";
-                    document.getElementById('userGender').textContent = userData.gender || "--";
-                    document.getElementById('userType').textContent = userData.type || "Personal";
+                    // Send them to their profile/dashboard
+                    window.location.href = 'profile.html'; 
+                });
 
-                    // Set Avatar Initial (First letter of first name)
-                    if (firstName) {
-                        document.getElementById('avatarInitial').textContent = firstName.charAt(0).toUpperCase();
-                    } else if (userData.email) {
-                        document.getElementById('avatarInitial').textContent = userData.email.charAt(0).toUpperCase();
-                    }
-
-                    // Hide loader, show profile
-                    document.getElementById('loader').style.display = 'none';
-                    document.getElementById('profileCard').style.display = 'block';
-                } else {
-                    alert("Profile data not found. Please log in again.");
-                    localStorage.clear();
-                    window.location.href = '1.html';
-                }
-
-            } catch (error) {
-                console.error("Error loading profile:", error);
-                document.getElementById('loader').textContent = "Error loading profile data. Check connection.";
-            }
+                accountContainer.appendChild(li);
+            });
         }
 
-        // Handle Sign Out
+        // 4. Sign out logic
         document.getElementById('signOutBtn').addEventListener('click', () => {
-            // Clear the saved login state
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('lotusId');
+            // Clear ALL saved accounts and active sessions
+            localStorage.removeItem('savedAccounts');
+            localStorage.removeItem('activeLotusId');
             
-            // Redirect to login page
+            // Redirect to login
             window.location.href = '1.html';
         });
-
-        // Initialize
-        loadProfile();
     </script>
 </body>
 </html>
