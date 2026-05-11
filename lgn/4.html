@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+        .card { max-width: 500px; margin: 50px auto; background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; }
+        .avatar-large { width: 80px; height: 80px; background: #111; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; margin: 0 auto 20px; }
+        h1 { margin: 0 0 5px 0; font-size: 24px; }
+        p { color: #666; margin: 0 0 20px 0; }
+        .info-grid { text-align: left; background: #fafafa; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .info-row { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;}
+        .info-row:last-child { border-bottom: none; }
+        .info-label { font-weight: 600; color: #333; }
+        .btn { background: #fff; color: #d32f2f; border: 1px solid #d32f2f; padding: 12px 24px; border-radius: 30px; font-size: 15px; cursor: pointer; font-weight: 600; transition: all 0.2s;}
+        .btn:hover { background: #d32f2f; color: #fff; }
+        .switch-btn { background: #eee; color: #333; border: none; padding: 12px 24px; border-radius: 30px; font-size: 15px; cursor: pointer; font-weight: 600; margin-right: 10px;}
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="avatar-large" id="profAvatar">U</div>
+    <h1 id="profName">Loading...</h1>
+    <p id="profType">Personal Account</p>
+
+    <div class="info-grid">
+        <div class="info-row">
+            <span class="info-label">Email</span>
+            <span id="profEmail">...</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Mobile</span>
+            <span id="profMobile">...</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">DOB</span>
+            <span id="profDob">...</span>
+        </div>
+    </div>
+
+    <button class="switch-btn" onclick="window.location.href='3.html'">Switch Account</button>
+    <button class="btn" id="logoutBtn">Sign out</button>
+</div>
+
+<script>
+    // Load active user from LocalStorage
+    const activeUserStr = localStorage.getItem('active_user');
+    
+    if (!activeUserStr) {
+        window.location.href = '1.html';
+    } else {
+        const user = JSON.parse(activeUserStr);
+        
+        document.getElementById('profName').innerText = `${user.firstName} ${user.lastName || ''}`;
+        document.getElementById('profEmail').innerText = user.email;
+        document.getElementById('profMobile').innerText = user.mobile || 'N/A';
+        document.getElementById('profDob').innerText = user.dob || 'N/A';
+        document.getElementById('profType').innerText = user.type === 'personal' ? 'Personal Account' : 'Business Account';
+        
+        const initial = user.firstName ? user.firstName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase();
+        document.getElementById('profAvatar').innerText = initial;
+    }
+
+    // Handle Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('active_user'); // Remove active session
+        // Note: we leave 'saved_accounts' so they appear in 3.html later
+        window.location.href = '3.html';
+    });
+</script>
+</body>
+</html>
