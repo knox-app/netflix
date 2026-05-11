@@ -5,234 +5,109 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enter Password</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #fff; color: #000; }
-        .container { width: 100%; max-width: 400px; padding: 40px 24px; text-align: center; box-sizing: border-box; }
-        h1 { font-size: 32px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.5px; }
-        .user-email-display { display: inline-block; background-color: #f3f4f6; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 32px; border: 1px solid #e5e7eb; }
-        .input-group { position: relative; margin-bottom: 24px; text-align: left; }
-        .input-group input { width: 100%; padding: 18px 16px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s; background: transparent; }
-        .input-group input:focus { border-color: #000; }
-        .input-group label { position: absolute; left: 12px; top: 18px; background: #fff; padding: 0 4px; color: #6b7280; font-size: 16px; transition: 0.2s ease all; pointer-events: none; }
-        .input-group input:focus + label, .input-group input:not(:placeholder-shown) + label { top: -10px; font-size: 12px; color: #555; }
-        button { width: 100%; padding: 16px; background-color: #000; color: #fff; border: none; border-radius: 30px; font-size: 16px; font-weight: 500; cursor: pointer; margin-top: 10px; transition: background-color 0.2s; }
-        button:hover { background-color: #333; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #error-message { color: #dc2626; font-size: 14px; margin-top: -15px; margin-bottom: 20px; display: none; text-align: left; padding-left: 5px; }
-        #loader { display: none; font-size: 14px; color: #555; margin-bottom: 20px; }
-        #main-form { display: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #fff; }
+        .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
+        h1 { font-size: 28px; font-weight: 600; margin-bottom: 5px; color: #000; }
+        .user-badge { display: inline-block; background: #f0f0f0; padding: 5px 15px; border-radius: 20px; font-size: 14px; color: #333; margin-bottom: 20px; font-weight: 500; }
+        .input-group { position: relative; margin-bottom: 20px; text-align: left; }
+        .input-group label { position: absolute; top: -10px; left: 15px; background: #fff; padding: 0 5px; font-size: 12px; color: #888; }
+        input[type="password"] { width: 100%; padding: 16px; font-size: 16px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; outline: none; }
+        input[type="password"]:focus { border-color: #000; }
+        .btn { background: #111; color: #fff; border: none; padding: 16px; width: 100%; border-radius: 30px; font-size: 16px; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div id="loader">Loading your account...</div>
+<div class="container">
+    <h1>Welcome</h1>
+    <div class="user-badge" id="userEmailDisplay">Loading...</div>
 
-        <div id="main-form">
-            <h1>Welcome</h1>
-            <div class="user-email-display" id="displayEmail">loading...</div>
-
-            <div class="input-group">
-                <input type="password" id="password" placeholder=" " required>
-                <label for="password">Password</label>
-            </div>
-            
-            <div id="error-message">Wrong password. Try again.</div>
-
-            <button id="loginBtn">Sign in</button>
-        </div>
+    <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="">
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, query, where, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    <button class="btn" id="loginBtn">Login</button>
+</div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
-            authDomain: "question-metabase.firebaseapp.com",
-            databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "question-metabase",
-            storageBucket: "question-metabase.firebasestorage.app",
-            messagingSenderId: "770698198753",
-            appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
-            measurementId: "G-6ZP1FPMKSJ"
-        };
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        projectId: "question-metabase"
+    };
 
-        const loader = document.getElementById('loader');
-        const mainForm = document.getElementById('main-form');
-        const displayEmail = document.getElementById('displayEmail');
-        const passwordInput = document.getElementById('password');
-        const loginBtn = document.getElementById('loginBtn');
-        const errorMsg = document.getElementById('error-message');
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-        let actualPassword = "";
-        let userDocId = ""; 
-        let lotusFieldName = ""; 
-        let userDisplayId = "";
-        let userInitial = "U";
+    const urlParams = new URLSearchParams(window.location.search);
+    const session = urlParams.get('session');
+    const lotus = urlParams.get('lotus');
+    const continueUrl = urlParams.get('continue') || '4.html';
+    
+    let currentUserDocId = null;
+    let currentUserData = null;
 
-        function generateNewLotusId() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let result = '';
-            for (let i = 0; i < 15; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
+    // Fetch user details by Lotus
+    async function fetchUser() {
+        if(!lotus) return window.location.href = '1.html';
+        const q = query(collection(db, "UARM"), where("lotus", "==", lotus));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            currentUserDocId = querySnapshot.docs[0].id;
+            currentUserData = querySnapshot.docs[0].data();
+            document.getElementById('userEmailDisplay').innerText = currentUserData.email;
+        } else {
+            alert("Security token invalid.");
+            window.location.href = '1.html';
         }
+    }
+    fetchUser();
 
-        async function loadPageData() {
-            loader.style.display = 'block';
+    // Generate random alphanumeric string for new Lotus
+    function generateNewLotus() {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const sessionId = urlParams.get('session');
-            const urlLotusId = urlParams.get('lotus');
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const pass = document.getElementById('password').value;
+        if (!pass) return;
 
-            if (!sessionId || !urlLotusId) {
-                alert("Invalid link.");
-                window.location.href = "1.html";
-                return;
-            }
+        document.getElementById('loginBtn').innerText = "Verifying...";
 
-            try {
-                // Check if this specific account is already in our saved multi-account list
-                const savedAccounts = JSON.parse(localStorage.getItem('savedAccounts') || '[]');
-                const existingAccount = savedAccounts.find(acc => acc.lotusId === urlLotusId);
-                
-                if (existingAccount) {
-                    // Set as active and skip password
-                    localStorage.setItem('activeLotusId', existingAccount.lotusId);
-                    await handleSuccessfulLogin(sessionId);
-                    return; 
-                }
+        if (currentUserData.password === pass) {
+            // 1. Update Lotus in DB for security
+            const newLotus = generateNewLotus();
+            await updateDoc(doc(db, "UARM", currentUserDocId), { lotus: newLotus });
+            currentUserData.lotus = newLotus; // update local object
 
-                const usersRef = collection(db, "UARM");
-                let userData = null;
+            // 2. Delete Session from ASPX Keys
+            const sessionQ = query(collection(db, "ASPX Keys"), where("sessionId", "==", session));
+            const sessionSnap = await getDocs(sessionQ);
+            sessionSnap.forEach(async (d) => {
+                await deleteDoc(doc(db, "ASPX Keys", d.id));
+            });
 
-                const qUpper = query(usersRef, where("Lotus", "==", urlLotusId));
-                const snapUpper = await getDocs(qUpper);
-                
-                if (!snapUpper.empty) {
-                    userData = snapUpper.docs[0].data();
-                    userDocId = snapUpper.docs[0].id; 
-                    lotusFieldName = "Lotus"; 
-                } else {
-                    const qLower = query(usersRef, where("lotus", "==", urlLotusId));
-                    const snapLower = await getDocs(qLower);
-                    if (!snapLower.empty) {
-                        userData = snapLower.docs[0].data();
-                        userDocId = snapLower.docs[0].id; 
-                        lotusFieldName = "lotus"; 
-                    }
-                }
-
-                if (!userData) {
-                    alert("This login link has expired.");
-                    window.location.href = "1.html";
-                    return;
-                }
-
-                userDisplayId = userData.email || userData.mobile || "Account Found";
-                userInitial = (userData.firstName || userDisplayId).charAt(0).toUpperCase();
-                displayEmail.textContent = userDisplayId;
-                actualPassword = userData.password; 
-
-                loader.style.display = 'none';
-                mainForm.style.display = 'block';
-
-            } catch (error) {
-                console.error("Error loading data:", error);
-                alert("Database connection error.");
-            }
-        }
-
-        async function handleSuccessfulLogin(sessionId) {
-            loginBtn.textContent = "Redirecting...";
+            // 3. Save to Multi-Account System
+            let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            // Remove if already exists to update data
+            accounts = accounts.filter(acc => acc.email !== currentUserData.email);
+            accounts.push({ email: currentUserData.email, firstName: currentUserData.firstName, lotus: newLotus });
             
-            try {
-                const sessionDocRef = doc(db, "ASPX Keys", sessionId);
-                const sessionSnap = await getDoc(sessionDocRef);
-                // DEFAULT REDIRECT TO ACCOUNT CHOOSER (3.html) or Profile
-                let targetUrl = "https://perplexity.ai"; 
+            localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+            localStorage.setItem('active_user', JSON.stringify(currentUserData));
 
-                if (sessionSnap.exists()) {
-                    const dbContinueUrl = sessionSnap.data().continue;
-                    if (dbContinueUrl && dbContinueUrl.trim() !== "") {
-                        targetUrl = dbContinueUrl;
-                    }
-                    await deleteDoc(sessionDocRef); // Clean up session
-                }
-                
-                window.location.href = targetUrl;
-            } catch (error) {
-                console.error("Error fetching/deleting session:", error);
-                window.location.href = "3.html"; 
-            }
+            // 4. Redirect
+            window.location.href = continueUrl;
+        } else {
+            alert("Incorrect password");
+            document.getElementById('loginBtn').innerText = "Login";
         }
-
-        loginBtn.addEventListener('click', async () => {
-            const enteredPassword = passwordInput.value;
-            errorMsg.style.display = 'none';
-
-            if (!enteredPassword) return;
-
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Securing session...';
-
-            if (enteredPassword === actualPassword) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const sessionId = urlParams.get('session');
-                const newLotusId = generateNewLotusId(); 
-
-                try {
-                    // 1. Update Lotus ID in database
-                    const userRef = doc(db, "UARM", userDocId);
-                    await updateDoc(userRef, { [lotusFieldName]: newLotusId });
-
-                    // 2. MULTI-ACCOUNT SAVE LOGIC
-                    let savedAccounts = JSON.parse(localStorage.getItem('savedAccounts') || '[]');
-                    
-                    // Remove old version of this exact account if it exists (prevents duplicates)
-                    savedAccounts = savedAccounts.filter(acc => acc.docId !== userDocId);
-                    
-                    // Add new account data to array
-                    savedAccounts.push({
-                        docId: userDocId,
-                        lotusId: newLotusId,
-                        displayId: userDisplayId,
-                        initial: userInitial
-                    });
-
-                    // Save array back to storage
-                    localStorage.setItem('savedAccounts', JSON.stringify(savedAccounts));
-                    
-                    // Mark THIS account as the currently active one
-                    localStorage.setItem('activeLotusId', newLotusId);
-
-                    // 3. Complete login
-                    await handleSuccessfulLogin(sessionId);
-
-                } catch (error) {
-                    console.error("Failed to rotate Lotus ID:", error);
-                    alert("A security error occurred. Please try again.");
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Sign in';
-                }
-            } else {
-                errorMsg.style.display = 'block';
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Sign in';
-                passwordInput.value = ""; 
-                passwordInput.focus();
-            }
-        });
-
-        passwordInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') loginBtn.click();
-        });
-
-        loadPageData();
-    </script>
+    });
+</script>
 </body>
 </html>
