@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Video Player</title>
+    <!-- Material Icons for UI -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <!-- HLS.js for m3u8 support -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <style>
+        :root {
+            --primary-color: #f9a826;
+            --bg-overlay: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.8) 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #player-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Video Elements */
+        video, iframe, #youtube-player-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border: none;
+            outline: none;
+        }
+
+        /* Pointer events none for iframe so clicks pass through to our UI when needed */
+        #youtube-player-container {
+            pointer-events: none; /* Let API handle controls, not mouse */
+        }
+
+        /* UI Overlay Layer */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-overlay);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        #ui-layer.idle {
+            opacity: 0;
+            cursor: none;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 30px;
+            align-items: center;
+        }
+
+        .top-bar .left, .top-bar .right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .video-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .center-controls {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            gap: 50px;
+        }
+
+        .center-controls .material-icons-outlined {
+            font-size: 4rem;
+            cursor: pointer;
+        }
+        .center-controls .play-btn {
+            font-size: 5rem;
+        }
+
+        .left-bar {
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .brightness-slider {
+            -webkit-appearance: none;
+            width: 100px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(-90deg);
+            border-radius: 2px;
+            outline: none;
+        }
+        .brightness-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .bottom-bar {
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .progress-bar::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .time-display {
+            font-size: 0.9rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+
+        .action-bar .left, .action-bar .right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            color: #ccc;
+            cursor: pointer;
+        }
+
+        .action-bar .left:hover, .action-bar .right > div:hover {
+            color: white;
+        }
+
+        .action-bar .material-icons-outlined {
+            font-size: 1.2rem;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        #settings-menu {
+            position: absolute;
+            top: 70px;
+            right: 30px;
+            background: rgba(20, 20, 20, 0.95);
+            border-radius: 8px;
+            padding: 10px 0;
+            min-width: 200px;
+            display: none;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #settings-menu.active {
+            display: flex;
+        }
+
+        .setting-item {
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .setting-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .setting-value {
+            color: #aaa;
+        }
+
+        /* LOCK SCREEN LOGIC */
+        #ui-layer.locked .top-bar .left,
+        #ui-layer.locked .top-bar .right .icon-btn:not(#lock-btn),
+        #ui-layer.locked .center-controls,
+        #ui-layer.locked .left-bar,
+        #ui-layer.locked .bottom-bar,
+        #ui-layer.locked #settings-menu {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+        }
+        
+        #ui-layer.locked {
+            background: none;
+        }
+        
+        #error-msg {
+            position: absolute;
+            z-index: 100;
+            background: rgba(255,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="player-container">
+    <div id="error-msg"></div>
+
+    <!-- Players (Toggled via JS) -->
+    <video id="html5-video" style="display: none;"></video>
+    
+    <!-- YT needs a div to replace, not an iframe directly for the API to work cleanly -->
+    <div id="youtube-player-container" style="display: none;">
+        <div id="youtube-player"></div>
+    </div>
+    
+    <iframe id="iframe-player" style="display: none;" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        <div class="top-bar">
+            <div class="left">
+                <button class="icon-btn" onclick="history.back()"><span class="material-icons-outlined">arrow_back</span></button>
+                <span class="video-title" id="title-display">Dhurandhar</span>
+            </div>
+            <div class="right">
+                <button class="icon-btn"><span class="material-icons-outlined">cast</span></button>
+                <button class="icon-btn" id="lock-btn"><span class="material-icons-outlined">lock_open</span></button>
+                <button class="icon-btn" id="settings-btn"><span class="material-icons-outlined">settings</span></button>
+                <button class="icon-btn" id="fullscreen-btn"><span class="material-icons-outlined">fullscreen</span></button>
+            </div>
+        </div>
+
+        <div class="left-bar">
+            <span class="material-icons-outlined" style="font-size: 1.2rem;">light_mode</span>
+            <input type="range" class="brightness-slider" min="0" max="100" value="50">
+        </div>
+
+        <div class="center-controls">
+            <span class="material-icons-outlined" id="rewind-btn">fast_rewind</span>
+            <span class="material-icons-outlined play-btn" id="play-pause-btn">play_arrow</span>
+            <span class="material-icons-outlined" id="forward-btn">fast_forward</span>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="progress-container">
+                <input type="range" class="progress-bar" id="seek-bar" value="0" min="0" step="0.1">
+                <span class="time-display" id="time-display">00:00:00</span>
+            </div>
+            
+            <div class="action-bar">
+                <div class="left">
+                    <span class="material-icons-outlined">explore</span> Watch Next
+                </div>
+                <div class="right">
+                    <div id="speed-toggle">
+                        <span class="material-icons-outlined">speed</span> <span id="speed-display">Speed 1x</span>
+                    </div>
+                    <div>
+                        <span class="material-icons-outlined">favorite_border</span> Rate
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-menu">
+            <div class="setting-item">
+                <span>Quality</span>
+                <span class="setting-value">Auto</span>
+            </div>
+            <div class="setting-item">
+                <span>Language</span>
+                <span class="setting-value">Hindi</span>
+            </div>
+            <div class="setting-item" id="menu-speed-btn">
+                <span>Playback Speed</span>
+                <span class="setting-value" id="menu-speed-val">Normal</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- URL PARAMETER PARSING ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoUrl = urlParams.get('url');
+    const syncType = urlParams.get('sync'); 
+
+    // Elements
+    const playerContainer = document.getElementById('player-container');
+    const html5Video = document.getElementById('html5-video');
+    const ytContainer = document.getElementById('youtube-player-container');
+    const iframePlayer = document.getElementById('iframe-player');
+    const errorMsg = document.getElementById('error-msg');
+    
+    const uiLayer = document.getElementById('ui-layer');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const lockBtn = document.getElementById('lock-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsMenu = document.getElementById('settings-menu');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const seekBar = document.getElementById('seek-bar');
+    const timeDisplay = document.getElementById('time-display');
+
+    // State Variables
+    let isLocked = false;
+    let isPlaying = false;
+    let uiTimeout;
+    
+    // YouTube Specific Variables
+    let ytPlayer = null;
+    let ytProgressInterval;
+
+    function showError(msg) {
+        errorMsg.innerText = msg;
+        errorMsg.style.display = 'block';
+    }
+
+    // --- PLAYER INITIALIZATION ---
+    function initPlayer() {
+        if (!videoUrl) {
+            showError("No video URL provided. Add ?url=... to the link.");
+            return;
+        }
+
+        if (syncType === 'm3u8' || !syncType) {
+            html5Video.style.display = 'block';
+            if (syncType === 'm3u8' && Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(videoUrl);
+                hls.attachMedia(html5Video);
+            } else {
+                html5Video.src = videoUrl;
+            }
+        } 
+        else if (syncType === 'jpymtp') {
+            // YOUTUBE LOGIC
+            ytContainer.style.display = 'block';
+            
+            // Extract Video ID from URL or ID string
+            let videoId = videoUrl;
+            if (videoId.includes('v=')) videoId = videoId.split('v=')[1].split('&')[0];
+            else if (videoId.includes('youtu.be/')) videoId = videoId.split('youtu.be/')[1].split('?')[0];
+
+            // Load YouTube Iframe API
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+            // This function is automatically called by YouTube once API loads
+            window.onYouTubeIframeAPIReady = function() {
+                ytPlayer = new YT.Player('youtube-player', {
+                    videoId: videoId,
+                    playerVars: {
+                        'controls': 0,      // Hide YT native controls!
+                        'disablekb': 1,     // Disable YT keyboard shortcuts
+                        'fs': 0,            // Disable YT fullscreen button
+                        'modestbranding': 1,
+                        'rel': 0,
+                        'playsinline': 1
+                    },
+                    events: {
+                        'onReady': onYTReady,
+                        'onStateChange': onYTStateChange,
+                        'onError': onYTError
+                    }
+                });
+            };
+        } 
+        else if (syncType === 'sdcem') {
+            // Custom Embed (No custom controls, native iframe UI only)
+            iframePlayer.style.display = 'block';
+            iframePlayer.src = videoUrl;
+            // Hide custom UI controls so user can interact with iframe directly
+            document.querySelector('.center-controls').style.display = 'none';
+            document.querySelector('.bottom-bar').style.display = 'none';
+        }
+    }
+
+    // --- YOUTUBE API EVENT HANDLERS ---
+    function onYTReady(event) {
+        // YT is ready to play
+    }
+
+    function onYTStateChange(event) {
+        if (event.data === YT.PlayerState.PLAYING) {
+            isPlaying = true;
+            playPauseBtn.innerText = 'pause';
+            resetUiTimeout();
+            // Start updating timeline
+            ytProgressInterval = setInterval(updateYTProgress, 500);
+        } else {
+            isPlaying = false;
+            playPauseBtn.innerText = 'play_arrow';
+            uiLayer.classList.remove('idle');
+            clearInterval(ytProgressInterval);
+        }
+    }
+
+    function onYTError(event) {
+        if(event.data === 150 || event.data === 101) {
+            showError("YouTube blocked playback. This video does not allow embedding, or you are running this from a local file:// path. Use a local server.");
+        }
+    }
+
+    function updateYTProgress() {
+        if(ytPlayer && ytPlayer.getCurrentTime) {
+            const current = ytPlayer.getCurrentTime();
+            const duration = ytPlayer.getDuration();
+            updateTimelineUI(current, duration);
+        }
+    }
+
+
+    // --- UI LOGIC & EVENT LISTENERS ---
+
+    // 1. Hide UI on Inactivity
+    function resetUiTimeout() {
+        if(isLocked) return;
+        uiLayer.classList.remove('idle');
+        clearTimeout(uiTimeout);
+        uiTimeout = setTimeout(() => {
+            if (isPlaying && !settingsMenu.classList.contains('active')) {
+                uiLayer.classList.add('idle');
+            }
+        }, 3500);
+    }
+    
+    playerContainer.addEventListener('mousemove', resetUiTimeout);
+    playerContainer.addEventListener('click', resetUiTimeout);
+
+    // 2. Play/Pause Router
+    function togglePlay() {
+        if (syncType === 'jpymtp' && ytPlayer) {
+            const state = ytPlayer.getPlayerState();
+            if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
+            else ytPlayer.playVideo();
+        } 
+        else if (syncType === 'm3u8' || !syncType) {
+            html5Video.paused ? html5Video.play() : html5Video.pause();
+        }
+    }
+
+    // HTML5 native events
+    html5Video.addEventListener('play', () => {
+        isPlaying = true;
+        playPauseBtn.innerText = 'pause';
+        resetUiTimeout();
+    });
+    html5Video.addEventListener('pause', () => {
+        isPlaying = false;
+        playPauseBtn.innerText = 'play_arrow';
+        uiLayer.classList.remove('idle');
+    });
+
+    playPauseBtn.addEventListener('click', togglePlay);
+
+    // Click on background to play/pause
+    uiLayer.addEventListener('click', (e) => {
+        if(e.target === uiLayer && !isLocked) {
+            togglePlay();
+            settingsMenu.classList.remove('active');
+        }
+    });
+
+    // 3. Forward / Rewind 10s Router
+    document.getElementById('forward-btn').addEventListener('click', () => {
+        if (syncType === 'jpymtp' && ytPlayer) {
+            ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10, true);
+        } else {
+            html5Video.currentTime += 10;
+        }
+    });
+    document.getElementById('rewind-btn').addEventListener('click', () => {
+        if (syncType === 'jpymtp' && ytPlayer) {
+            ytPlayer.seekTo(ytPlayer.getCurrentTime() - 10, true);
+        } else {
+            html5Video.currentTime -= 10;
+        }
+    });
+
+    // 4. Time Update & Seek Bar Logic
+    function formatTime(seconds) {
+        if(isNaN(seconds)) return "00:00:00";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        return `${h > 0 ? (h < 10 ? '0'+h+':' : h+':') : ''}${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+    }
+
+    function updateTimelineUI(current, duration) {
+        seekBar.max = duration || 0;
+        seekBar.value = current;
+        timeDisplay.innerText = formatTime(current) + " / " + formatTime(duration);
+        
+        const percentage = (current / duration) * 100;
+        seekBar.style.background = `linear-gradient(to right, var(--primary-color) ${percentage}%, rgba(255,255,255,0.2) ${percentage}%)`;
+    }
+
+    // HTML5 Timeline Event
+    html5Video.addEventListener('timeupdate', () => {
+        updateTimelineUI(html5Video.currentTime, html5Video.duration);
+    });
+
+    // User sliding the seekbar
+    seekBar.addEventListener('input', () => {
+        if (syncType === 'jpymtp' && ytPlayer) {
+            ytPlayer.seekTo(seekBar.value, true);
+        } else {
+            html5Video.currentTime = seekBar.value;
+        }
+    });
+
+    // 5. Lock/Unlock UI
+    lockBtn.addEventListener('click', () => {
+        isLocked = !isLocked;
+        if (isLocked) {
+            uiLayer.classList.add('locked');
+            lockBtn.innerHTML = '<span class="material-icons-outlined">lock</span>';
+            settingsMenu.classList.remove('active');
+        } else {
+            uiLayer.classList.remove('locked');
+            lockBtn.innerHTML = '<span class="material-icons-outlined">lock_open</span>';
+            resetUiTimeout();
+        }
+    });
+
+    // 6. Settings Menu Toggle
+    settingsBtn.addEventListener('click', () => {
+        settingsMenu.classList.toggle('active');
+    });
+
+    // 7. Fullscreen Toggle
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            playerContainer.requestFullscreen().catch(err => {
+                alert(`Error: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            fullscreenBtn.innerHTML = '<span class="material-icons-outlined">fullscreen_exit</span>';
+        } else {
+            fullscreenBtn.innerHTML = '<span class="material-icons-outlined">fullscreen</span>';
+        }
+    });
+
+    // 8. Playback Speed Router
+    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+    let currentSpeedIndex = 2; // Default 1x
+
+    function changeSpeed() {
+        currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+        const newSpeed = speeds[currentSpeedIndex];
+        
+        if (syncType === 'jpymtp' && ytPlayer) {
+            ytPlayer.setPlaybackRate(newSpeed);
+        } else {
+            html5Video.playbackRate = newSpeed;
+        }
+        
+        const speedText = newSpeed === 1 ? 'Normal' : newSpeed + 'x';
+        document.getElementById('speed-display').innerText = `Speed ${newSpeed}x`;
+        document.getElementById('menu-speed-val').innerText = speedText;
+    }
+
+    document.getElementById('speed-toggle').addEventListener('click', changeSpeed);
+    document.getElementById('menu-speed-btn').addEventListener('click', changeSpeed);
+
+    // Run Initialization
+    initPlayer();
+
+</script>
+</body>
+</html>
