@@ -1,243 +1,460 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Video Player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<!-- HLS.js -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<title>Custom YouTube Player</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-:root {
-  --bg: #000;
-  --fg: #fff;
-  --muted: #aaa;
-  --accent: #1e90ff;
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
 }
 
-* {
-  box-sizing: border-box;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+body{
+    background:#000;
+    font-family:'Inter',sans-serif;
+    width:100%;
+    height:100vh;
+    overflow:hidden;
 }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
+.player-wrapper{
+    width:100%;
+    height:100vh;
+    position:relative;
+    background:#000;
 }
 
-.player {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  background: black;
+#player{
+    width:100%;
+    height:100%;
 }
 
-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: black;
+iframe{
+    width:100%;
+    height:100%;
+    border:none;
+    pointer-events:none;
 }
 
-/* Top Bar */
-.top-bar {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(to bottom, rgba(0,0,0,.7), transparent);
-  z-index: 5;
+.controls{
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:100%;
+    padding:18px;
+    background:linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    z-index:5;
+    transition:0.3s;
 }
 
-.back {
-  font-size: 20px;
-  cursor: pointer;
+.progress{
+    width:100%;
+    height:5px;
+    background:rgba(255,255,255,0.2);
+    border-radius:100px;
+    overflow:hidden;
+    cursor:pointer;
 }
 
-.title {
-  font-size: 16px;
-  font-weight: 500;
-  opacity: .9;
+.progress-bar{
+    width:0%;
+    height:100%;
+    background:#fff;
 }
 
-/* Center Controls */
-.center-controls {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
-  pointer-events: none;
+.controls-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
 }
 
-.ctrl {
-  font-size: 50px;
-  opacity: .7;
+.left,
+.right{
+    display:flex;
+    align-items:center;
+    gap:10px;
 }
 
-/* Bottom Controls */
-.bottom-bar {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  padding: 10px;
-  background: linear-gradient(to top, rgba(0,0,0,.7), transparent);
+button,
+select{
+    border:none;
+    outline:none;
+    background:rgba(255,255,255,0.12);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:14px;
+    backdrop-filter:blur(10px);
 }
 
-.progress {
-  width: 100%;
+button:hover,
+select:hover{
+    background:rgba(255,255,255,0.22);
 }
 
-input[type=range] {
-  width: 100%;
+.time{
+    color:#fff;
+    font-size:14px;
 }
 
-/* Live badge */
-.live {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  margin-top: 6px;
+.title{
+    position:absolute;
+    top:18px;
+    left:18px;
+    background:rgba(0,0,0,0.55);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:12px;
+    z-index:5;
+    backdrop-filter:blur(10px);
+    font-size:15px;
+    max-width:80%;
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  background: red;
-  border-radius: 50%;
+.hide{
+    opacity:0;
+    pointer-events:none;
 }
 
-/* Menu */
-.menu {
-  position: absolute;
-  right: 10px;
-  bottom: 60px;
-  background: #111;
-  border-radius: 8px;
-  padding: 10px;
-  display: none;
-  z-index: 10;
+@media(max-width:768px){
+
+    .controls{
+        padding:12px;
+    }
+
+    button,
+    select{
+        padding:8px 10px;
+        font-size:12px;
+    }
+
 }
 
-.menu div {
-  padding: 8px 10px;
-  font-size: 14px;
-  color: #ddd;
-  cursor: pointer;
-}
-
-.menu div:hover {
-  background: #222;
-}
-
-.settings {
-  position: absolute;
-  right: 14px;
-  top: 14px;
-  font-size: 20px;
-  cursor: pointer;
-  z-index: 6;
-}
 </style>
 </head>
-
 <body>
 
-<div class="player">
-  <video id="video" playsinline></video>
+<div class="player-wrapper" id="wrapper">
 
-  <!-- Top -->
-  <div class="top-bar">
-    <div class="back" onclick="history.back()">←</div>
-    <div class="title" id="title">Live Channel</div>
-  </div>
-
-  <!-- Center -->
-  <div class="center-controls">
-    <div class="ctrl">⏪</div>
-    <div class="ctrl" id="playBtn">⏸</div>
-    <div class="ctrl">⏩</div>
-  </div>
-
-  <!-- Bottom -->
-  <div class="bottom-bar">
-    <input type="range" class="progress" min="0" max="100" value="0">
-    <div class="live">
-      <div class="dot"></div> LIVE
+    <div class="title" id="videoTitle">
+        Loading...
     </div>
-  </div>
 
-  <!-- Settings -->
-  <div class="settings" onclick="toggleMenu()">⚙️</div>
+    <div id="player"></div>
 
-  <div class="menu" id="menu">
-    <div>Auto (Recommended)</div>
-    <div>1080p</div>
-    <div>720p</div>
-    <div>Data Saver</div>
-  </div>
+    <div class="controls" id="controls">
+
+        <div class="progress" id="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="controls-row">
+
+            <div class="left">
+
+                <button id="playBtn">▶</button>
+
+                <div class="time" id="time">
+                    0:00 / 0:00
+                </div>
+
+            </div>
+
+            <div class="right">
+
+                <select id="quality">
+                    <option value="default">
+                        Quality
+                    </option>
+                </select>
+
+                <select id="speed">
+                    <option value="0.25">0.25x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="1.75">1.75x</option>
+                    <option value="2">2x</option>
+                </select>
+
+                <button id="captionBtn">
+                    CC
+                </button>
+
+                <button id="fullscreenBtn">
+                    ⛶
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 
+<script src="https://www.youtube.com/iframe_api"></script>
+
 <script>
-const video = document.getElementById("video");
-const title = document.getElementById("title");
-const playBtn = document.getElementById("playBtn");
-const menu = document.getElementById("menu");
 
-/* URL Params */
 const params = new URLSearchParams(window.location.search);
-const src = params.get("sof");
-const name = params.get("name");
 
-if (name) title.textContent = decodeURIComponent(name);
+const ytUrl = params.get("player");
 
-/* Load video */
-if (src) {
-  if (src.endsWith(".m3u8")) {
-    if (Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(src);
-      hls.attachMedia(video);
-    } else {
-      video.src = src;
-    }
-  } else {
-    video.src = src;
-  }
-  video.play();
+if(!ytUrl){
+
+    document.body.innerHTML =
+    "<h2 style='color:white;font-family:Inter;padding:20px'>No YouTube URL Found</h2>";
+
+    throw new Error("No URL");
+
 }
 
-/* Play / Pause */
-playBtn.onclick = () => {
-  if (video.paused) {
-    video.play();
-    playBtn.textContent = "⏸";
-  } else {
-    video.pause();
-    playBtn.textContent = "▶️";
-  }
-};
+function getYoutubeId(url){
 
-/* Progress */
-video.addEventListener("timeupdate", () => {
-  if (video.duration) {
-    document.querySelector(".progress").value =
-      (video.currentTime / video.duration) * 100;
-  }
+    const regex =
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/;
+
+    const match = url.match(regex);
+
+    return match ? match[1] : null;
+
+}
+
+const videoId = getYoutubeId(ytUrl);
+
+let player;
+let captionsEnabled = true;
+
+function onYouTubeIframeAPIReady(){
+
+    player = new YT.Player("player",{
+
+        videoId:videoId,
+
+        playerVars:{
+            autoplay:1,
+            controls:0,
+            modestbranding:1,
+            rel:0,
+            fs:0,
+            playsinline:1,
+            cc_load_policy:1
+        },
+
+        events:{
+            onReady:onReady,
+            onStateChange:onStateChange
+        }
+
+    });
+
+}
+
+function onReady(){
+
+    updateQuality();
+
+    setInterval(updateProgress,500);
+
+    const data = player.getVideoData();
+
+    document.getElementById("videoTitle")
+    .innerText = data.title;
+
+}
+
+function onStateChange(){
+
+    const state = player.getPlayerState();
+
+    document.getElementById("playBtn")
+    .innerText = state === 1 ? "❚❚" : "▶";
+
+}
+
+document.getElementById("playBtn")
+.addEventListener("click",()=>{
+
+    const state = player.getPlayerState();
+
+    if(state === 1){
+
+        player.pauseVideo();
+
+    }else{
+
+        player.playVideo();
+
+    }
+
 });
 
-/* Menu */
-function toggleMenu() {
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
+function updateProgress(){
+
+    if(!player || !player.getDuration) return;
+
+    const current =
+    player.getCurrentTime();
+
+    const duration =
+    player.getDuration();
+
+    const percent =
+    (current / duration) * 100;
+
+    document.getElementById("progressBar")
+    .style.width = percent + "%";
+
+    document.getElementById("time")
+    .innerText =
+    format(current) + " / " + format(duration);
+
 }
+
+function format(sec){
+
+    sec = Math.floor(sec);
+
+    const m = Math.floor(sec/60);
+    const s = sec % 60;
+
+    return m + ":" + (s < 10 ? "0"+s : s);
+
+}
+
+document.getElementById("progress")
+.addEventListener("click",(e)=>{
+
+    const rect =
+    e.currentTarget.getBoundingClientRect();
+
+    const percent =
+    (e.clientX - rect.left) / rect.width;
+
+    const duration =
+    player.getDuration();
+
+    player.seekTo(duration * percent,true);
+
+});
+
+document.getElementById("speed")
+.addEventListener("change",(e)=>{
+
+    player.setPlaybackRate(
+        parseFloat(e.target.value)
+    );
+
+});
+
+function updateQuality(){
+
+    const quality =
+    document.getElementById("quality");
+
+    const levels =
+    player.getAvailableQualityLevels();
+
+    levels.forEach(level=>{
+
+        const option =
+        document.createElement("option");
+
+        option.value = level;
+        option.innerText = level;
+
+        quality.appendChild(option);
+
+    });
+
+}
+
+document.getElementById("quality")
+.addEventListener("change",(e)=>{
+
+    player.setPlaybackQuality(
+        e.target.value
+    );
+
+});
+
+document.getElementById("captionBtn")
+.addEventListener("click",()=>{
+
+    captionsEnabled = !captionsEnabled;
+
+    if(captionsEnabled){
+
+        player.loadModule("captions");
+
+    }else{
+
+        player.unloadModule("captions");
+
+    }
+
+});
+
+document.getElementById("fullscreenBtn")
+.addEventListener("click",()=>{
+
+    const wrapper =
+    document.getElementById("wrapper");
+
+    if(!document.fullscreenElement){
+
+        wrapper.requestFullscreen();
+
+    }else{
+
+        document.exitFullscreen();
+
+    }
+
+});
+
+const controls =
+document.getElementById("controls");
+
+let timeout;
+
+function showControls(){
+
+    controls.classList.remove("hide");
+
+    clearTimeout(timeout);
+
+    timeout = setTimeout(()=>{
+
+        controls.classList.add("hide");
+
+    },3000);
+
+}
+
+document.getElementById("wrapper")
+.addEventListener("mousemove",showControls);
+
+showControls();
+
 </script>
 
 </body>
 </html>
+```
