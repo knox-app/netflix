@@ -2,12 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
 <title>Custom YouTube Player</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 
@@ -20,16 +20,14 @@
 body{
     background:#000;
     font-family:'Inter',sans-serif;
-    width:100%;
-    height:100vh;
     overflow:hidden;
 }
 
-.player-wrapper{
+.player-container{
     width:100%;
     height:100vh;
-    position:relative;
     background:#000;
+    position:relative;
 }
 
 #player{
@@ -44,17 +42,112 @@ iframe{
     pointer-events:none;
 }
 
-.controls{
+/* TOP BAR */
+
+.top-bar{
     position:absolute;
-    bottom:0;
+    top:0;
     left:0;
     width:100%;
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:linear-gradient(to bottom,rgba(0,0,0,0.8),transparent);
+    z-index:20;
+}
+
+.video-title{
+    color:#fff;
+    font-size:20px;
+    font-weight:700;
+    max-width:70%;
+}
+
+/* SUBTITLE */
+
+.subtitle{
+    position:absolute;
+    bottom:110px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,0.7);
+    color:#fff;
+    padding:12px 18px;
+    border-radius:12px;
+    font-size:18px;
+    z-index:20;
+    max-width:80%;
+    text-align:center;
+}
+
+/* QUESTION BOX */
+
+.question-box{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:90%;
+    max-width:450px;
+    background:#111;
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:24px;
+    padding:24px;
+    z-index:50;
+    display:none;
+}
+
+.question-title{
+    color:#fff;
+    font-size:22px;
+    font-weight:700;
+    margin-bottom:18px;
+}
+
+.question-input{
+    width:100%;
+    background:#1e1e1e;
+    border:none;
+    outline:none;
+    color:#fff;
+    padding:14px;
+    border-radius:14px;
+    font-size:16px;
+    margin-bottom:15px;
+}
+
+.submit-btn{
+    width:100%;
+    background:#fff;
+    color:#000;
+    border:none;
+    padding:14px;
+    border-radius:14px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.answer-status{
+    color:#fff;
+    margin-top:12px;
+    font-size:14px;
+}
+
+/* CONTROLS */
+
+.controls{
+    position:absolute;
+    left:0;
+    bottom:0;
+    width:100%;
     padding:18px;
-    background:linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+    background:linear-gradient(to top,rgba(0,0,0,0.95),transparent);
     display:flex;
     flex-direction:column;
-    gap:14px;
-    z-index:5;
+    gap:12px;
+    z-index:20;
     transition:0.3s;
 }
 
@@ -62,14 +155,14 @@ iframe{
     width:100%;
     height:5px;
     background:rgba(255,255,255,0.2);
-    border-radius:100px;
+    border-radius:999px;
     overflow:hidden;
     cursor:pointer;
 }
 
-.progress-bar{
-    width:0%;
+.progress-filled{
     height:100%;
+    width:0%;
     background:#fff;
 }
 
@@ -80,8 +173,8 @@ iframe{
     gap:10px;
 }
 
-.left,
-.right{
+.left-controls,
+.right-controls{
     display:flex;
     align-items:center;
     gap:10px;
@@ -89,39 +182,23 @@ iframe{
 
 button,
 select{
-    border:none;
-    outline:none;
     background:rgba(255,255,255,0.12);
     color:#fff;
+    border:none;
     padding:10px 14px;
     border-radius:12px;
     cursor:pointer;
     font-size:14px;
-    backdrop-filter:blur(10px);
 }
 
 button:hover,
 select:hover{
-    background:rgba(255,255,255,0.22);
+    background:rgba(255,255,255,0.2);
 }
 
 .time{
     color:#fff;
     font-size:14px;
-}
-
-.title{
-    position:absolute;
-    top:18px;
-    left:18px;
-    background:rgba(0,0,0,0.55);
-    color:#fff;
-    padding:10px 14px;
-    border-radius:12px;
-    z-index:5;
-    backdrop-filter:blur(10px);
-    font-size:15px;
-    max-width:80%;
 }
 
 .hide{
@@ -131,8 +208,13 @@ select:hover{
 
 @media(max-width:768px){
 
-    .controls{
-        padding:12px;
+    .video-title{
+        font-size:16px;
+    }
+
+    .subtitle{
+        font-size:15px;
+        bottom:95px;
     }
 
     button,
@@ -147,33 +229,72 @@ select:hover{
 </head>
 <body>
 
-<div class="player-wrapper" id="wrapper">
+<div class="player-container" id="container">
 
-    <div class="title" id="videoTitle">
-        Loading...
+    <!-- TOP BAR -->
+
+    <div class="top-bar">
+
+        <div class="video-title" id="videoTitle">
+            Loading...
+        </div>
+
     </div>
+
+    <!-- PLAYER -->
 
     <div id="player"></div>
 
+    <!-- SUBTITLE -->
+
+    <div class="subtitle" id="subtitleBox"></div>
+
+    <!-- QUESTION -->
+
+    <div class="question-box" id="questionBox">
+
+        <div class="question-title" id="questionText">
+            Question
+        </div>
+
+        <input
+            type="text"
+            id="answerInput"
+            class="question-input"
+            placeholder="Type your answer"
+        >
+
+        <button class="submit-btn" id="submitAnswer">
+            Submit Answer
+        </button>
+
+        <div class="answer-status" id="answerStatus"></div>
+
+    </div>
+
+    <!-- CONTROLS -->
+
     <div class="controls" id="controls">
 
-        <div class="progress" id="progress">
-            <div class="progress-bar" id="progressBar"></div>
+        <div class="progress" id="progressBar">
+            <div class="progress-filled" id="progressFilled"></div>
         </div>
 
         <div class="controls-row">
 
-            <div class="left">
+            <div class="left-controls">
 
-                <button id="playBtn">▶</button>
+                <button id="playPause">
+                    ▶
+                </button>
 
-                <div class="time" id="time">
+                <div class="time" id="timeText">
                     0:00 / 0:00
                 </div>
 
             </div>
 
-            <div class="right">
+            <div class="right-controls">
 
                 <select id="quality">
                     <option value="default">
@@ -182,6 +303,7 @@ select:hover{
                 </select>
 
                 <select id="speed">
+
                     <option value="0.25">0.25x</option>
                     <option value="0.5">0.5x</option>
                     <option value="0.75">0.75x</option>
@@ -190,6 +312,7 @@ select:hover{
                     <option value="1.5">1.5x</option>
                     <option value="1.75">1.75x</option>
                     <option value="2">2x</option>
+
                 </select>
 
                 <button id="captionBtn">
@@ -212,20 +335,40 @@ select:hover{
 
 <script>
 
+/*
+
+URL FORMAT
+
+player.html
+?v=https://youtu.be/dQw4w9WgXcQ
+&t=My Video Title
+&st=Hello Subtitle
+&que=What is 2+2
+&and=4
+&time=10
+
+*/
+
 const params = new URLSearchParams(window.location.search);
 
-const ytUrl = params.get("player");
+const videoUrl = params.get("v");
+const customTitle = params.get("t");
+const subtitle = params.get("st");
 
-if(!ytUrl){
+const question = params.get("que");
+const answer = params.get("and");
+const questionTime = parseInt(params.get("time") || 0);
+
+if(!videoUrl){
 
     document.body.innerHTML =
-    "<h2 style='color:white;font-family:Inter;padding:20px'>No YouTube URL Found</h2>";
+    "<h2 style='color:white;padding:20px'>No Video URL</h2>";
 
-    throw new Error("No URL");
+    throw new Error("Missing Video URL");
 
 }
 
-function getYoutubeId(url){
+function extractVideoId(url){
 
     const regex =
     /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/;
@@ -236,10 +379,13 @@ function getYoutubeId(url){
 
 }
 
-const videoId = getYoutubeId(ytUrl);
+const videoId = extractVideoId(videoUrl);
 
 let player;
+let questionAsked = false;
 let captionsEnabled = true;
+
+/* PLAYER */
 
 function onYouTubeIframeAPIReady(){
 
@@ -250,9 +396,11 @@ function onYouTubeIframeAPIReady(){
         playerVars:{
             autoplay:1,
             controls:0,
+            disablekb:1,
+            fs:0,
             modestbranding:1,
             rel:0,
-            fs:0,
+            iv_load_policy:3,
             playsinline:1,
             cc_load_policy:1
         },
@@ -268,14 +416,18 @@ function onYouTubeIframeAPIReady(){
 
 function onReady(){
 
-    updateQuality();
+    setInterval(updatePlayer,500);
 
-    setInterval(updateProgress,500);
+    updateQuality();
 
     const data = player.getVideoData();
 
     document.getElementById("videoTitle")
-    .innerText = data.title;
+    .innerText =
+    customTitle || data.title || "Video Player";
+
+    document.getElementById("subtitleBox")
+    .innerText = subtitle || "";
 
 }
 
@@ -283,12 +435,15 @@ function onStateChange(){
 
     const state = player.getPlayerState();
 
-    document.getElementById("playBtn")
-    .innerText = state === 1 ? "❚❚" : "▶";
+    document.getElementById("playPause")
+    .innerText =
+    state === 1 ? "❚❚" : "▶";
 
 }
 
-document.getElementById("playBtn")
+/* PLAY */
+
+document.getElementById("playPause")
 .addEventListener("click",()=>{
 
     const state = player.getPlayerState();
@@ -305,7 +460,9 @@ document.getElementById("playBtn")
 
 });
 
-function updateProgress(){
+/* PROGRESS */
+
+function updatePlayer(){
 
     if(!player || !player.getDuration) return;
 
@@ -318,12 +475,34 @@ function updateProgress(){
     const percent =
     (current / duration) * 100;
 
-    document.getElementById("progressBar")
+    document.getElementById("progressFilled")
     .style.width = percent + "%";
 
-    document.getElementById("time")
+    document.getElementById("timeText")
     .innerText =
-    format(current) + " / " + format(duration);
+    format(current)
+    + " / " +
+    format(duration);
+
+    /* QUESTION */
+
+    if(
+        question &&
+        !questionAsked &&
+        current >= questionTime
+    ){
+
+        questionAsked = true;
+
+        player.pauseVideo();
+
+        document.getElementById("questionBox")
+        .style.display = "block";
+
+        document.getElementById("questionText")
+        .innerText = question;
+
+    }
 
 }
 
@@ -331,14 +510,16 @@ function format(sec){
 
     sec = Math.floor(sec);
 
-    const m = Math.floor(sec/60);
+    const m = Math.floor(sec / 60);
+
     const s = sec % 60;
 
-    return m + ":" + (s < 10 ? "0"+s : s);
+    return m + ":" +
+    (s < 10 ? "0"+s : s);
 
 }
 
-document.getElementById("progress")
+document.getElementById("progressBar")
 .addEventListener("click",(e)=>{
 
     const rect =
@@ -347,12 +528,14 @@ document.getElementById("progress")
     const percent =
     (e.clientX - rect.left) / rect.width;
 
-    const duration =
-    player.getDuration();
-
-    player.seekTo(duration * percent,true);
+    player.seekTo(
+        player.getDuration() * percent,
+        true
+    );
 
 });
+
+/* SPEED */
 
 document.getElementById("speed")
 .addEventListener("change",(e)=>{
@@ -362,6 +545,8 @@ document.getElementById("speed")
     );
 
 });
+
+/* QUALITY */
 
 function updateQuality(){
 
@@ -394,6 +579,8 @@ document.getElementById("quality")
 
 });
 
+/* CAPTION */
+
 document.getElementById("captionBtn")
 .addEventListener("click",()=>{
 
@@ -411,15 +598,17 @@ document.getElementById("captionBtn")
 
 });
 
+/* FULLSCREEN */
+
 document.getElementById("fullscreenBtn")
 .addEventListener("click",()=>{
 
-    const wrapper =
-    document.getElementById("wrapper");
+    const container =
+    document.getElementById("container");
 
     if(!document.fullscreenElement){
 
-        wrapper.requestFullscreen();
+        container.requestFullscreen();
 
     }else{
 
@@ -428,6 +617,42 @@ document.getElementById("fullscreenBtn")
     }
 
 });
+
+/* QUESTION ANSWER */
+
+document.getElementById("submitAnswer")
+.addEventListener("click",()=>{
+
+    const userAnswer =
+    document.getElementById("answerInput")
+    .value
+    .trim()
+    .toLowerCase();
+
+    if(userAnswer === answer.toLowerCase()){
+
+        document.getElementById("answerStatus")
+        .innerText = "Correct Answer";
+
+        setTimeout(()=>{
+
+            document.getElementById("questionBox")
+            .style.display = "none";
+
+            player.playVideo();
+
+        },1000);
+
+    }else{
+
+        document.getElementById("answerStatus")
+        .innerText = "Wrong Answer";
+
+    }
+
+});
+
+/* AUTO HIDE */
 
 const controls =
 document.getElementById("controls");
@@ -448,7 +673,7 @@ function showControls(){
 
 }
 
-document.getElementById("wrapper")
+document.getElementById("container")
 .addEventListener("mousemove",showControls);
 
 showControls();
