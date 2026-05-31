@@ -3,140 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Blue Player</title>
+    <title>Blue Player - Student</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --main-blue: #0056b3; --accent-blue: #007bff; }
-        body { margin: 0; background: #000; font-family: sans-serif; overflow: hidden; }
+        :root { --blue: #007bff; --dark-blue: #003366; --bg: #050a10; }
+        body { margin: 0; font-family: sans-serif; background: var(--bg); color: white; overflow-x: hidden; }
         
-        .video-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
-        #player { width: 100%; height: 100%; pointer-events: none; } /* Pointer events none prevents clicking YT logo */
-
-        /* Custom UI Overlay */
+        /* Video Player */
+        .player-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+        #yt-player { width: 100%; height: 100%; pointer-events: none; transform: scale(1.05); } /* Hide YT logo by scaling slightly */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; }
+        
         .controls {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            padding: 20px; display: flex; align-items: center; gap: 15px;
-            color: white; z-index: 10; transition: opacity 0.3s;
+            position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,51,102,0.9));
+            display: flex; flex-wrap: wrap; align-items: center; padding: 10px; gap: 15px; z-index: 10; box-sizing: border-box;
         }
+        .progress-container { width: 100%; height: 5px; background: rgba(255,255,255,0.2); cursor: pointer; border-radius: 5px; }
+        .progress-bar { height: 100%; background: var(--blue); width: 0%; transition: width 0.2s; }
+        
+        .title-bar { position: absolute; top: 15px; left: 15px; font-size: 1.1rem; text-shadow: 2px 2px 4px #000; z-index: 11; font-weight: bold; }
+        .btn { background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem; }
+        .btn:hover { color: var(--blue); }
+        select { background: var(--dark-blue); color: white; border: 1px solid var(--blue); border-radius: 4px; padding: 3px; font-size: 12px; }
 
-        .title-overlay {
-            position: absolute; top: 20px; left: 20px; color: white;
-            font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); z-index: 10;
-        }
-
-        .btn { background: none; border: none; color: white; cursor: pointer; font-size: 20px; }
-        .btn:hover { color: var(--accent-blue); }
-
-        .progress-container { flex-grow: 1; height: 5px; background: rgba(255,255,255,0.3); cursor: pointer; position: relative; }
-        .progress-bar { height: 100%; background: var(--accent-blue); width: 0%; }
-
-        select { background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--main-blue); padding: 5px; border-radius: 4px; }
+        /* Question Panel */
+        .question-card { margin: 20px; padding: 20px; background: #111b27; border-left: 5px solid var(--blue); border-radius: 8px; display: none; }
+        .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .opt-btn { padding: 15px; background: var(--dark-blue); border: 1px solid var(--blue); color: white; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        .opt-btn:active { background: var(--blue); }
+        input#stuName { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid var(--blue); background: #000; color: white; }
     </style>
 </head>
 <body>
 
-<div class="video-container" id="videoContainer">
-    <div id="titleDisplay" class="title-overlay">Loading...</div>
-    <div id="player"></div>
+<div class="player-wrapper" id="fullArea">
+    <div class="title-bar" id="vTitle">Loading...</div>
+    <div class="overlay"></div>
+    <div id="yt-player"></div>
 
     <div class="controls">
-        <button class="btn" onclick="playPause()"><i id="playIcon" class="fas fa-play"></i></button>
-        
         <div class="progress-container" onclick="seek(event)">
-            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-bar" id="pBar"></div>
         </div>
-
-        <select id="speed" onchange="changeSpeed(this.value)">
+        <button class="btn" onclick="togglePlay()"><i id="pIcon" class="fas fa-play"></i></button>
+        <select onchange="setSpeed(this.value)">
             <option value="0.5">0.5x</option>
             <option value="1" selected>Normal</option>
             <option value="1.5">1.5x</option>
             <option value="2">2x</option>
         </select>
-
-        <select id="quality" onchange="changeQuality(this.value)">
-            <option value="default">Auto Quality</option>
-            <option value="hd1080">1080p</option>
-            <option value="hd720">720p</option>
+        <select id="quality">
+            <option>Auto</option>
+            <option>1080p</option>
+            <option>720p</option>
         </select>
-
-        <button class="btn" onclick="toggleFull()"><i class="fas fa-expand"></i></button>
+        <button class="btn" onclick="toggleCaptions()"><i class="fas fa-closed-captioning"></i></button>
+        <button class="btn" style="margin-left:auto" onclick="toggleFull()"><i class="fas fa-expand"></i></button>
     </div>
 </div>
 
+<div class="question-card" id="qCard">
+    <input type="text" id="stuName" placeholder="Enter Your Name to Answer">
+    <h3 id="qText">Question appears here?</h3>
+    <div id="qOptions" class="opt-grid"></div>
+</div>
+
 <script src="https://www.youtube.com/iframe_api"></script>
-<script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        projectId: "question-metabase",
+        storageBucket: "question-metabase.firebasestorage.app",
+        messagingSenderId: "770698198753",
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // --- URL PARAMETERS ---
+    const params = new URLSearchParams(window.location.search);
+    const videoUrl = params.get('p');
+    const sessionId = params.get('id') || "default";
+    const videoTitle = params.get('title') || "Live Class";
+    document.getElementById('vTitle').innerText = videoTitle;
+
+    function getID(url) {
+        if (!url) return 'cAzn5-nZs9g';
+        const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+        const liveMatch = url.match(/\/live\/([a-zA-Z0-9_-]+)/);
+        if (liveMatch) return liveMatch[1];
+        const match = url.match(regExp);
+        return (match && match[7].length == 11) ? match[7] : 'cAzn5-nZs9g';
+    }
+
+    // --- PLAYER LOGIC ---
     let player;
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoId = urlParams.get('v') || 'dQw4w9WgXcQ'; // Default ID if empty
-    const videoTitle = urlParams.get('title') || 'Custom Video Player';
-
-    document.getElementById('titleDisplay').innerText = videoTitle;
-
-    function onYouTubeIframeAPIReady() {
-        player = new YT.Player('player', {
-            videoId: videoId,
-            playerVars: {
-                'autoplay': 1,
-                'controls': 0, // Hides original YT controls
-                'modestbranding': 1,
-                'rel': 0,
-                'showinfo': 0,
-                'iv_load_policy': 3
-            },
-            events: {
-                'onReady': onPlayerReady,
-                'onStateChange': onPlayerStateChange
+    window.onYouTubeIframeAPIReady = () => {
+        player = new YT.Player('yt-player', {
+            videoId: getID(videoUrl),
+            playerVars: { 'autoplay': 1, 'controls': 0, 'modestbranding': 1, 'rel': 0 },
+            events: { 
+                'onReady': (e) => { e.target.playVideo(); setInterval(updateProg, 1000); },
+                'onStateChange': (e) => { document.getElementById('pIcon').className = e.data == 1 ? 'fas fa-pause' : 'fas fa-play'; }
             }
         });
-    }
+    };
 
-    function onPlayerReady(event) {
-        event.target.playVideo();
-        setInterval(updateProgress, 1000);
-    }
+    window.togglePlay = () => player.getPlayerState() == 1 ? player.pauseVideo() : player.playVideo();
+    window.setSpeed = (v) => player.setPlaybackRate(parseFloat(v));
+    window.toggleFull = () => { const el = document.getElementById('fullArea'); if (!document.fullscreenElement) el.requestFullscreen(); else document.exitFullscreen(); };
+    function updateProg() { if(player.getDuration) document.getElementById('pBar').style.width = (player.getCurrentTime()/player.getDuration()*100) + '%'; }
 
-    function playPause() {
-        const state = player.getPlayerState();
-        if (state == 1) {
-            player.pauseVideo();
-            document.getElementById('playIcon').className = 'fas fa-play';
-        } else {
-            player.playVideo();
-            document.getElementById('playIcon').className = 'fas fa-pause';
-        }
-    }
+    // --- REALTIME QUESTIONS ---
+    const qCol = query(collection(db, `sessions/${sessionId}/questions`), orderBy("time", "desc"), limit(1));
+    onSnapshot(qCol, (snap) => {
+        snap.forEach(doc => {
+            const data = doc.data();
+            document.getElementById('qCard').style.display = "block";
+            document.getElementById('qText').innerText = data.text;
+            let html = "";
+            if(data.type === "MCQ") {
+                data.opts.forEach(o => { html += `<button class="opt-btn" onclick="sendAns('${o}', '${doc.id}')">${o}</button>`; });
+            } else {
+                html = `<button class="opt-btn" onclick="sendAns('True', '${doc.id}')">True</button>
+                        <button class="opt-btn" onclick="sendAns('False', '${doc.id}')">False</button>`;
+            }
+            document.getElementById('qOptions').innerHTML = html;
+        });
+    });
 
-    function updateProgress() {
-        if (player && player.getDuration) {
-            let perc = (player.getCurrentTime() / player.getDuration()) * 100;
-            document.getElementById('progressBar').style.width = perc + '%';
-        }
-    }
-
-    function seek(event) {
-        const rect = event.target.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const width = rect.width;
-        const newTime = (x / width) * player.getDuration();
-        player.seekTo(newTime, true);
-    }
-
-    function changeSpeed(val) { player.setPlaybackRate(parseFloat(val)); }
-    
-    function changeQuality(val) { player.setPlaybackQuality(val); }
-
-    function toggleFull() {
-        let elem = document.getElementById('videoContainer');
-        if (!document.fullscreenElement) { elem.requestFullscreen(); } 
-        else { document.exitFullscreen(); }
-    }
-
-    function onPlayerStateChange(event) {
-        if (event.data == YT.PlayerState.PLAYING) {
-            document.getElementById('playIcon').className = 'fas fa-pause';
-        }
-    }
+    window.sendAns = async (val, qId) => {
+        const name = document.getElementById('stuName').value || "Guest";
+        const device = /Mobi|Android/i.test(navigator.userAgent) ? "Mobile" : "PC/Tablet";
+        await addDoc(collection(db, `sessions/${sessionId}/answers`), {
+            student: name, answer: val, qId: qId, device: device, time: Date.now()
+        });
+        alert("Answer Sent!");
+        document.getElementById('qCard').style.display = "none";
+    };
 </script>
 </body>
 </html>
