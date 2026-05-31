@@ -1,685 +1,142 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Blue Player</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --main-blue: #0056b3; --accent-blue: #007bff; }
+        body { margin: 0; background: #000; font-family: sans-serif; overflow: hidden; }
+        
+        .video-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        #player { width: 100%; height: 100%; pointer-events: none; } /* Pointer events none prevents clicking YT logo */
 
-<title>Custom YouTube Player</title>
+        /* Custom UI Overlay */
+        .controls {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 20px; display: flex; align-items: center; gap: 15px;
+            color: white; z-index: 10; transition: opacity 0.3s;
+        }
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        .title-overlay {
+            position: absolute; top: 20px; left: 20px; color: white;
+            font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); z-index: 10;
+        }
 
-<style>
+        .btn { background: none; border: none; color: white; cursor: pointer; font-size: 20px; }
+        .btn:hover { color: var(--accent-blue); }
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+        .progress-container { flex-grow: 1; height: 5px; background: rgba(255,255,255,0.3); cursor: pointer; position: relative; }
+        .progress-bar { height: 100%; background: var(--accent-blue); width: 0%; }
 
-body{
-    background:#000;
-    font-family:'Inter',sans-serif;
-    overflow:hidden;
-}
-
-.player-container{
-    width:100%;
-    height:100vh;
-    background:#000;
-    position:relative;
-}
-
-#player{
-    width:100%;
-    height:100%;
-}
-
-iframe{
-    width:100%;
-    height:100%;
-    border:none;
-    pointer-events:none;
-}
-
-/* TOP BAR */
-
-.top-bar{
-    position:absolute;
-    top:0;
-    left:0;
-    width:100%;
-    padding:20px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    background:linear-gradient(to bottom,rgba(0,0,0,0.8),transparent);
-    z-index:20;
-}
-
-.video-title{
-    color:#fff;
-    font-size:20px;
-    font-weight:700;
-    max-width:70%;
-}
-
-/* SUBTITLE */
-
-.subtitle{
-    position:absolute;
-    bottom:110px;
-    left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,0.7);
-    color:#fff;
-    padding:12px 18px;
-    border-radius:12px;
-    font-size:18px;
-    z-index:20;
-    max-width:80%;
-    text-align:center;
-}
-
-/* QUESTION BOX */
-
-.question-box{
-    position:absolute;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    width:90%;
-    max-width:450px;
-    background:#111;
-    border:1px solid rgba(255,255,255,0.1);
-    border-radius:24px;
-    padding:24px;
-    z-index:50;
-    display:none;
-}
-
-.question-title{
-    color:#fff;
-    font-size:22px;
-    font-weight:700;
-    margin-bottom:18px;
-}
-
-.question-input{
-    width:100%;
-    background:#1e1e1e;
-    border:none;
-    outline:none;
-    color:#fff;
-    padding:14px;
-    border-radius:14px;
-    font-size:16px;
-    margin-bottom:15px;
-}
-
-.submit-btn{
-    width:100%;
-    background:#fff;
-    color:#000;
-    border:none;
-    padding:14px;
-    border-radius:14px;
-    font-size:16px;
-    font-weight:700;
-    cursor:pointer;
-}
-
-.answer-status{
-    color:#fff;
-    margin-top:12px;
-    font-size:14px;
-}
-
-/* CONTROLS */
-
-.controls{
-    position:absolute;
-    left:0;
-    bottom:0;
-    width:100%;
-    padding:18px;
-    background:linear-gradient(to top,rgba(0,0,0,0.95),transparent);
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-    z-index:20;
-    transition:0.3s;
-}
-
-.progress{
-    width:100%;
-    height:5px;
-    background:rgba(255,255,255,0.2);
-    border-radius:999px;
-    overflow:hidden;
-    cursor:pointer;
-}
-
-.progress-filled{
-    height:100%;
-    width:0%;
-    background:#fff;
-}
-
-.controls-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-}
-
-.left-controls,
-.right-controls{
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-
-button,
-select{
-    background:rgba(255,255,255,0.12);
-    color:#fff;
-    border:none;
-    padding:10px 14px;
-    border-radius:12px;
-    cursor:pointer;
-    font-size:14px;
-}
-
-button:hover,
-select:hover{
-    background:rgba(255,255,255,0.2);
-}
-
-.time{
-    color:#fff;
-    font-size:14px;
-}
-
-.hide{
-    opacity:0;
-    pointer-events:none;
-}
-
-@media(max-width:768px){
-
-    .video-title{
-        font-size:16px;
-    }
-
-    .subtitle{
-        font-size:15px;
-        bottom:95px;
-    }
-
-    button,
-    select{
-        padding:8px 10px;
-        font-size:12px;
-    }
-
-}
-
-</style>
+        select { background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--main-blue); padding: 5px; border-radius: 4px; }
+    </style>
 </head>
 <body>
 
-<div class="player-container" id="container">
-
-    <!-- TOP BAR -->
-
-    <div class="top-bar">
-
-        <div class="video-title" id="videoTitle">
-            Loading...
-        </div>
-
-    </div>
-
-    <!-- PLAYER -->
-
+<div class="video-container" id="videoContainer">
+    <div id="titleDisplay" class="title-overlay">Loading...</div>
     <div id="player"></div>
 
-    <!-- SUBTITLE -->
-
-    <div class="subtitle" id="subtitleBox"></div>
-
-    <!-- QUESTION -->
-
-    <div class="question-box" id="questionBox">
-
-        <div class="question-title" id="questionText">
-            Question
+    <div class="controls">
+        <button class="btn" onclick="playPause()"><i id="playIcon" class="fas fa-play"></i></button>
+        
+        <div class="progress-container" onclick="seek(event)">
+            <div class="progress-bar" id="progressBar"></div>
         </div>
 
-        <input
-            type="text"
-            id="answerInput"
-            class="question-input"
-            placeholder="Type your answer"
-        >
+        <select id="speed" onchange="changeSpeed(this.value)">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>Normal</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
 
-        <button class="submit-btn" id="submitAnswer">
-            Submit Answer
-        </button>
+        <select id="quality" onchange="changeQuality(this.value)">
+            <option value="default">Auto Quality</option>
+            <option value="hd1080">1080p</option>
+            <option value="hd720">720p</option>
+        </select>
 
-        <div class="answer-status" id="answerStatus"></div>
-
+        <button class="btn" onclick="toggleFull()"><i class="fas fa-expand"></i></button>
     </div>
-
-    <!-- CONTROLS -->
-
-    <div class="controls" id="controls">
-
-        <div class="progress" id="progressBar">
-            <div class="progress-filled" id="progressFilled"></div>
-        </div>
-
-        <div class="controls-row">
-
-            <div class="left-controls">
-
-                <button id="playPause">
-                    ▶
-                </button>
-
-                <div class="time" id="timeText">
-                    0:00 / 0:00
-                </div>
-
-            </div>
-
-            <div class="right-controls">
-
-                <select id="quality">
-                    <option value="default">
-                        Quality
-                    </option>
-                </select>
-
-                <select id="speed">
-
-                    <option value="0.25">0.25x</option>
-                    <option value="0.5">0.5x</option>
-                    <option value="0.75">0.75x</option>
-                    <option value="1" selected>1x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="1.75">1.75x</option>
-                    <option value="2">2x</option>
-
-                </select>
-
-                <button id="captionBtn">
-                    CC
-                </button>
-
-                <button id="fullscreenBtn">
-                    ⛶
-                </button>
-
-            </div>
-
-        </div>
-
-    </div>
-
 </div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
-
 <script>
+    let player;
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoId = urlParams.get('v') || 'dQw4w9WgXcQ'; // Default ID if empty
+    const videoTitle = urlParams.get('title') || 'Custom Video Player';
 
-/*
+    document.getElementById('titleDisplay').innerText = videoTitle;
 
-URL FORMAT
-
-player.html
-?v=https://youtu.be/dQw4w9WgXcQ
-&t=My Video Title
-&st=Hello Subtitle
-&que=What is 2+2
-&and=4
-&time=10
-
-*/
-
-const params = new URLSearchParams(window.location.search);
-
-const videoUrl = params.get("v");
-const customTitle = params.get("t");
-const subtitle = params.get("st");
-
-const question = params.get("que");
-const answer = params.get("and");
-const questionTime = parseInt(params.get("time") || 0);
-
-if(!videoUrl){
-
-    document.body.innerHTML =
-    "<h2 style='color:white;padding:20px'>No Video URL</h2>";
-
-    throw new Error("Missing Video URL");
-
-}
-
-function extractVideoId(url){
-
-    const regex =
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/;
-
-    const match = url.match(regex);
-
-    return match ? match[1] : null;
-
-}
-
-const videoId = extractVideoId(videoUrl);
-
-let player;
-let questionAsked = false;
-let captionsEnabled = true;
-
-/* PLAYER */
-
-function onYouTubeIframeAPIReady(){
-
-    player = new YT.Player("player",{
-
-        videoId:videoId,
-
-        playerVars:{
-            autoplay:1,
-            controls:0,
-            disablekb:1,
-            fs:0,
-            modestbranding:1,
-            rel:0,
-            iv_load_policy:3,
-            playsinline:1,
-            cc_load_policy:1
-        },
-
-        events:{
-            onReady:onReady,
-            onStateChange:onStateChange
-        }
-
-    });
-
-}
-
-function onReady(){
-
-    setInterval(updatePlayer,500);
-
-    updateQuality();
-
-    const data = player.getVideoData();
-
-    document.getElementById("videoTitle")
-    .innerText =
-    customTitle || data.title || "Video Player";
-
-    document.getElementById("subtitleBox")
-    .innerText = subtitle || "";
-
-}
-
-function onStateChange(){
-
-    const state = player.getPlayerState();
-
-    document.getElementById("playPause")
-    .innerText =
-    state === 1 ? "❚❚" : "▶";
-
-}
-
-/* PLAY */
-
-document.getElementById("playPause")
-.addEventListener("click",()=>{
-
-    const state = player.getPlayerState();
-
-    if(state === 1){
-
-        player.pauseVideo();
-
-    }else{
-
-        player.playVideo();
-
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+            videoId: videoId,
+            playerVars: {
+                'autoplay': 1,
+                'controls': 0, // Hides original YT controls
+                'modestbranding': 1,
+                'rel': 0,
+                'showinfo': 0,
+                'iv_load_policy': 3
+            },
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+            }
+        });
     }
 
-});
-
-/* PROGRESS */
-
-function updatePlayer(){
-
-    if(!player || !player.getDuration) return;
-
-    const current =
-    player.getCurrentTime();
-
-    const duration =
-    player.getDuration();
-
-    const percent =
-    (current / duration) * 100;
-
-    document.getElementById("progressFilled")
-    .style.width = percent + "%";
-
-    document.getElementById("timeText")
-    .innerText =
-    format(current)
-    + " / " +
-    format(duration);
-
-    /* QUESTION */
-
-    if(
-        question &&
-        !questionAsked &&
-        current >= questionTime
-    ){
-
-        questionAsked = true;
-
-        player.pauseVideo();
-
-        document.getElementById("questionBox")
-        .style.display = "block";
-
-        document.getElementById("questionText")
-        .innerText = question;
-
+    function onPlayerReady(event) {
+        event.target.playVideo();
+        setInterval(updateProgress, 1000);
     }
 
-}
-
-function format(sec){
-
-    sec = Math.floor(sec);
-
-    const m = Math.floor(sec / 60);
-
-    const s = sec % 60;
-
-    return m + ":" +
-    (s < 10 ? "0"+s : s);
-
-}
-
-document.getElementById("progressBar")
-.addEventListener("click",(e)=>{
-
-    const rect =
-    e.currentTarget.getBoundingClientRect();
-
-    const percent =
-    (e.clientX - rect.left) / rect.width;
-
-    player.seekTo(
-        player.getDuration() * percent,
-        true
-    );
-
-});
-
-/* SPEED */
-
-document.getElementById("speed")
-.addEventListener("change",(e)=>{
-
-    player.setPlaybackRate(
-        parseFloat(e.target.value)
-    );
-
-});
-
-/* QUALITY */
-
-function updateQuality(){
-
-    const quality =
-    document.getElementById("quality");
-
-    const levels =
-    player.getAvailableQualityLevels();
-
-    levels.forEach(level=>{
-
-        const option =
-        document.createElement("option");
-
-        option.value = level;
-        option.innerText = level;
-
-        quality.appendChild(option);
-
-    });
-
-}
-
-document.getElementById("quality")
-.addEventListener("change",(e)=>{
-
-    player.setPlaybackQuality(
-        e.target.value
-    );
-
-});
-
-/* CAPTION */
-
-document.getElementById("captionBtn")
-.addEventListener("click",()=>{
-
-    captionsEnabled = !captionsEnabled;
-
-    if(captionsEnabled){
-
-        player.loadModule("captions");
-
-    }else{
-
-        player.unloadModule("captions");
-
-    }
-
-});
-
-/* FULLSCREEN */
-
-document.getElementById("fullscreenBtn")
-.addEventListener("click",()=>{
-
-    const container =
-    document.getElementById("container");
-
-    if(!document.fullscreenElement){
-
-        container.requestFullscreen();
-
-    }else{
-
-        document.exitFullscreen();
-
-    }
-
-});
-
-/* QUESTION ANSWER */
-
-document.getElementById("submitAnswer")
-.addEventListener("click",()=>{
-
-    const userAnswer =
-    document.getElementById("answerInput")
-    .value
-    .trim()
-    .toLowerCase();
-
-    if(userAnswer === answer.toLowerCase()){
-
-        document.getElementById("answerStatus")
-        .innerText = "Correct Answer";
-
-        setTimeout(()=>{
-
-            document.getElementById("questionBox")
-            .style.display = "none";
-
+    function playPause() {
+        const state = player.getPlayerState();
+        if (state == 1) {
+            player.pauseVideo();
+            document.getElementById('playIcon').className = 'fas fa-play';
+        } else {
             player.playVideo();
-
-        },1000);
-
-    }else{
-
-        document.getElementById("answerStatus")
-        .innerText = "Wrong Answer";
-
+            document.getElementById('playIcon').className = 'fas fa-pause';
+        }
     }
 
-});
+    function updateProgress() {
+        if (player && player.getDuration) {
+            let perc = (player.getCurrentTime() / player.getDuration()) * 100;
+            document.getElementById('progressBar').style.width = perc + '%';
+        }
+    }
 
-/* AUTO HIDE */
+    function seek(event) {
+        const rect = event.target.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const width = rect.width;
+        const newTime = (x / width) * player.getDuration();
+        player.seekTo(newTime, true);
+    }
 
-const controls =
-document.getElementById("controls");
+    function changeSpeed(val) { player.setPlaybackRate(parseFloat(val)); }
+    
+    function changeQuality(val) { player.setPlaybackQuality(val); }
 
-let timeout;
+    function toggleFull() {
+        let elem = document.getElementById('videoContainer');
+        if (!document.fullscreenElement) { elem.requestFullscreen(); } 
+        else { document.exitFullscreen(); }
+    }
 
-function showControls(){
-
-    controls.classList.remove("hide");
-
-    clearTimeout(timeout);
-
-    timeout = setTimeout(()=>{
-
-        controls.classList.add("hide");
-
-    },3000);
-
-}
-
-document.getElementById("container")
-.addEventListener("mousemove",showControls);
-
-showControls();
-
+    function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.PLAYING) {
+            document.getElementById('playIcon').className = 'fas fa-pause';
+        }
+    }
 </script>
-
 </body>
 </html>
-```
