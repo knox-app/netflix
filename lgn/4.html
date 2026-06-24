@@ -46,10 +46,35 @@
 </div>
 
 <script>
-    // Load active user from LocalStorage
+    // 1. Handle Google-style Multi-Account URL parameters (e.g., ?u=0 or ?user=1)
+    const urlParams = new URLSearchParams(window.location.search);
+    const uParam = urlParams.has('u') ? urlParams.get('u') : urlParams.get('user');
+
+    if (uParam !== null) {
+        const index = parseInt(uParam, 10);
+        const savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+        
+        // Ensure the index actually exists in the user's saved accounts list
+        if (!isNaN(index) && index >= 0 && index < savedAccounts.length) {
+            const targetLotus = savedAccounts[index].lotus;
+            const activeUser = JSON.parse(localStorage.getItem('active_user') || '{}');
+            
+            // Only redirect to fetch new data if the requested user isn't already the active one
+            if (activeUser.lotus !== targetLotus) {
+                // Push them to the auto-login logic in 1.html, then bounce right back here
+                window.location.href = `1.html?lotus=${targetLotus}&continue=4.html`;
+            }
+        } else {
+            // Invalid user index (e.g. u=9 but they only have 2 accounts), redirect to chooser
+            window.location.href = '3.html';
+        }
+    }
+
+    // 2. Load active user from LocalStorage for UI Rendering
     const activeUserStr = localStorage.getItem('active_user');
     
     if (!activeUserStr) {
+        // Stop execution and go to login if absolutely no active user is found
         window.location.href = '1.html';
     } else {
         const user = JSON.parse(activeUserStr);
@@ -64,7 +89,7 @@
         document.getElementById('profAvatar').innerText = initial;
     }
 
-    // Handle Logout
+    // 3. Handle Logout
     document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.removeItem('active_user'); // Remove active session
         // Note: we leave 'saved_accounts' so they appear in 3.html later
