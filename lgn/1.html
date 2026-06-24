@@ -78,8 +78,9 @@
         }
     }
 
-    // 2. Passwordless Login Check
-    async function checkPasswordless() {
+    // 2. Auto Login Checks (Passwordless & Lotus Link)
+    async function checkAutoLogins() {
+        // A. Existing SafeOpt Passwordless Check
         if (urlParams.get('env') === 'safeopt' && urlParams.get('e') && urlParams.get('p')) {
             const email = urlParams.get('e');
             const pass = urlParams.get('p');
@@ -95,6 +96,24 @@
                 alert("Invalid passwordless login link.");
             }
         }
+
+        // B. NEW: Automatic Lotus ID Login Check
+        const lotusId = urlParams.get('lotus');
+        if (lotusId) {
+            document.getElementById('continueBtn').innerText = "Logging in..."; // UI feedback
+            const q = query(collection(db, "UARM"), where("lotus", "==", lotusId));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const userData = querySnapshot.docs[0].data();
+                // Automatically save user to local storage and login completely
+                saveAccountAndLogin(userData);
+                window.location.href = continueUrl;
+            } else {
+                alert("Invalid automatic login token.");
+                document.getElementById('continueBtn').innerText = "Continue";
+            }
+        }
     }
 
     function saveAccountAndLogin(userData) {
@@ -107,9 +126,9 @@
     }
 
     // Initialize
-    initSession().then(checkPasswordless);
+    initSession().then(checkAutoLogins);
 
-    // 3. Handle Form Submit
+    // 3. Handle Manual Form Submit
     document.getElementById('continueBtn').addEventListener('click', async () => {
         let identifier = document.getElementById('identifier').value.trim();
         if(!identifier) return alert("Please enter email or mobile");
