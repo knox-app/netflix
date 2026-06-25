@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --font-size: 15px;
+            --border-color: rgba(128, 128, 128, 0.15);
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: transparent; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .edit-card { 
+            width: 100%; 
+            max-width: 500px; 
+            background: var(--bg-color); 
+            color: var(--text-color);
+            font-size: var(--font-size);
+            padding: 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            box-sizing: border-box; 
+        }
+
+        /* Dismiss edit header matching image */
+        .dismiss-bar { 
+            display: flex; 
+            justify-content: flex-start; 
+            margin-bottom: 25px; 
+        }
+        .dismiss-btn { 
+            background: #111111; 
+            color: #ffffff; 
+            border: none; 
+            padding: 10px 18px; 
+            border-radius: 20px; 
+            font-size: 13px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px;
+            transition: background 0.2s; 
+        }
+        .dismiss-btn:hover { background: #333333; }
+
+        h2 { font-size: 1.8em; font-weight: 600; margin: 0 0 20px 0; }
+
+        /* Form styling */
+        .input-group { position: relative; margin-bottom: 22px; text-align: left; }
+        .input-group label { 
+            position: absolute; top: -10px; left: 15px; 
+            background: var(--bg-color); padding: 0 5px; font-size: 12px; opacity: 0.8;
+        }
+        input { 
+            width: 100%; padding: 16px; font-size: 15px; 
+            border: 1px solid var(--border-color); border-radius: 12px; 
+            box-sizing: border-box; outline: none; 
+            background: transparent; color: var(--text-color);
+            transition: border-color 0.2s; 
+        }
+        input:focus { border-color: var(--text-color); }
+
+        .btn { 
+            background: #111; color: #fff; border: none; padding: 16px; 
+            width: 100%; border-radius: 30px; font-size: 16px; font-weight: 600;
+            cursor: pointer; margin-top: 10px; transition: background 0.2s; 
+        }
+        .btn:hover { background: #333; }
+        .btn:disabled { background: #888; cursor: not-allowed; }
+
+        .loader { text-align: center; padding: 50px 0; opacity: 0.7; font-weight: 600; }
+        .error-state { text-align: center; padding: 40px 0; color: #d32f2f; display: none; font-weight: 500;}
+        #form-fields { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="edit-card" id="card">
+    <!-- Header Dismiss Bar -->
+    <div class="dismiss-bar">
+        <button class="dismiss-btn" id="dismissBtn">✕ Dismiss edit</button>
+    </div>
+
+    <div class="loader" id="loader">Loading Profile Details...</div>
+    <div class="error-state" id="errorState">Account not found or not logged in.</div>
+
+    <!-- Edit Form Elements -->
+    <div id="form-fields">
+        <h2>Edit Profile</h2>
+        
+        <div class="input-group" id="group-picture">
+            <label>Profile Image URL</label>
+            <input type="text" id="editPicture" placeholder="https://example.com/photo.jpg" autocomplete="off">
+        </div>
+
+        <div class="input-group" id="group-firstName">
+            <label>First Name</label>
+            <input type="text" id="editFirstName" autocomplete="off">
+        </div>
+
+        <div class="input-group" id="group-lastName">
+            <label>Last Name</label>
+            <input type="text" id="editLastName" autocomplete="off">
+        </div>
+
+        <div class="input-group" id="group-dob">
+            <label>Date of Birth</label>
+            <input type="text" id="editDob" placeholder="MM/DD/YYYY" autocomplete="off">
+        </div>
+
+        <div class="input-group" id="group-mobile">
+            <label>Mobile Number</label>
+            <input type="text" id="editMobile" placeholder="Mobile Number" autocomplete="off">
+        </div>
+
+        <button class="btn" id="saveBtn">Save Changes</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, query, where, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "question-metabase"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const formatColor = (val) => val && /^([0-9A-Fa-f]{3}){1,2}$/.test(val) ? `#${val}` : val;
+
+    // Apply Framer Styling Variables
+    const bg = formatColor(urlParams.get('bg'));
+    const text = formatColor(urlParams.get('text'));
+    const font = urlParams.get('font');
+
+    if (bg) document.documentElement.style.setProperty('--bg-color', bg);
+    if (text) document.documentElement.style.setProperty('--text-color', text);
+    if (font) document.documentElement.style.setProperty('--font-size', font);
+
+    let targetUser = null;
+
+    // Firebase Fetch Helper
+    async function fetchFromFirebase(userId) {
+        let q = query(collection(db, "UARM"), where("Lotus", "==", userId));
+        let snap = await getDocs(q);
+        if (snap.empty) {
+            q = query(collection(db, "UARM"), where("lotus", "==", userId));
+            snap = await getDocs(q);
+        }
+        if (snap.empty) {
+            q = query(collection(db, "UARM"), where("uarmId", "==", userId));
+            snap = await getDocs(q);
+        }
+        return snap.empty ? null : snap.docs[0].data();
+    }
+
+    // Load and render editable elements
+    async function loadEditor() {
+        let uParam = urlParams.get('u');
+
+        // Sniff parent URL for uParam inside Framer embeds
+        if (uParam === null) {
+            try {
+                if (window.parent && window.parent.location) {
+                    const parentParams = new URLSearchParams(window.parent.location.search);
+                    uParam = parentParams.get('u');
+                }
+            } catch (e) {}
+        }
+
+        try {
+            const isIndex = uParam !== null && uParam.trim() !== "" && !isNaN(uParam) && Number.isInteger(parseFloat(uParam));
+
+            if (isIndex) {
+                const index = parseInt(uParam, 10);
+                const savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+                if (savedAccounts[index]) {
+                    const targetId = savedAccounts[index].Lotus || savedAccounts[index].lotus || savedAccounts[index].uarmId;
+                    if (targetId) targetUser = await fetchFromFirebase(targetId);
+                    if (!targetUser) targetUser = savedAccounts[index];
+                }
+            } else if (uParam !== null && uParam.trim() !== "") {
+                targetUser = await fetchFromFirebase(uParam);
+            } else {
+                const activeSession = localStorage.getItem('active_user');
+                if (activeSession) targetUser = JSON.parse(activeSession);
+            }
+        } catch (error) {
+            console.error("Error reading profile:", error);
+        }
+
+        renderForm();
+    }
+
+    function renderForm() {
+        document.getElementById('loader').style.display = 'none';
+        if (!targetUser) {
+            document.getElementById('errorState').style.display = 'block';
+            return;
+        }
+
+        // Configure dynamic editable fields via '?edit=' parameter
+        const editParam = urlParams.get('edit');
+        if (editParam) {
+            const fields = editParam.toLowerCase().split(',');
+            
+            document.getElementById('group-picture').style.display = fields.includes('picture') ? 'block' : 'none';
+            document.getElementById('group-firstName').style.display = fields.includes('name') ? 'block' : 'none';
+            document.getElementById('group-lastName').style.display = fields.includes('name') ? 'block' : 'none';
+            document.getElementById('group-dob').style.display = fields.includes('dob') ? 'block' : 'none';
+            document.getElementById('group-mobile').style.display = fields.includes('mobile') ? 'block' : 'none';
+        }
+
+        // Populate fields with current database details
+        document.getElementById('editPicture').value = targetUser.Picture || '';
+        document.getElementById('editFirstName').value = targetUser.firstName || '';
+        document.getElementById('editLastName').value = targetUser.lastName || '';
+        document.getElementById('editDob').value = targetUser.dob || '';
+        document.getElementById('editMobile').value = targetUser.mobile || '';
+
+        document.getElementById('form-fields').style.display = 'block';
+    }
+
+    // Save modifications to Firebase & LocalStorage
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('saveBtn');
+        btn.innerText = "Saving Changes...";
+        btn.disabled = true;
+
+        const editParam = urlParams.get('edit');
+        const allowed = editParam ? editParam.toLowerCase().split(',') : ['picture', 'name', 'dob', 'mobile'];
+        
+        const updatedData = {};
+        if (allowed.includes('picture')) updatedData.Picture = document.getElementById('editPicture').value.trim();
+        if (allowed.includes('name')) {
+            updatedData.firstName = document.getElementById('editFirstName').value.trim();
+            updatedData.lastName = document.getElementById('editLastName').value.trim();
+        }
+        if (allowed.includes('dob')) updatedData.dob = document.getElementById('editDob').value.trim();
+        if (allowed.includes('mobile')) updatedData.mobile = document.getElementById('editMobile').value.trim();
+
+        try {
+            // Find Firebase auto-generated doc ID
+            let q = query(collection(db, "UARM"), where("uarmId", "==", targetUser.uarmId));
+            let snap = await getDocs(q);
+
+            if (snap.empty && targetUser.Lotus) {
+                q = query(collection(db, "UARM"), where("Lotus", "==", targetUser.Lotus));
+                snap = await getDocs(q);
+            }
+
+            if (!snap.empty) {
+                const docId = snap.docs[0].id;
+                const docRef = doc(db, "UARM", docId);
+                
+                // 1. Save to Firestore
+                await updateDoc(docRef, updatedData);
+
+                // 2. Sync Local Storage
+                const mergedProfile = { ...targetUser, ...updatedData };
+                
+                const active = JSON.parse(localStorage.getItem('active_user') || '{}');
+                if (active.uarmId === targetUser.uarmId || active.Lotus === targetUser.Lotus) {
+                    localStorage.setItem('active_user', JSON.stringify(mergedProfile));
+                }
+
+                let list = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+                const idx = list.findIndex(acc => acc.uarmId === targetUser.uarmId || acc.Lotus === targetUser.Lotus);
+                if (idx !== -1) {
+                    list[idx] = mergedProfile;
+                    localStorage.setItem('saved_accounts', JSON.stringify(list));
+                }
+
+                // Force other frames to instantly sync
+                localStorage.setItem('active_user_updated', Date.now());
+
+                // Redirect out
+                handleDismiss();
+            } else {
+                alert("Could not locate account on server database.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error updating profile. Try again.");
+        } finally {
+            btn.innerText = "Save Changes";
+            btn.disabled = false;
+        }
+    });
+
+    // Handle Closing/Dismissing Page
+    function handleDismiss() {
+        const u = urlParams.get('u') || 0;
+        const continueUrl = urlParams.get('continue') || `profile.html?u=${u}`;
+        window.location.href = continueUrl;
+    }
+
+    document.getElementById('dismissBtn').addEventListener('click', handleDismiss);
+
+    loadEditor();
+</script>
+</body>
+</html>
