@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profile</title>
+    
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
     <style>
         :root {
             --bg-color: #ffffff;
@@ -35,7 +39,6 @@
             box-sizing: border-box; 
         }
 
-        /* Dismiss edit header matching image */
         .dismiss-bar { 
             display: flex; 
             justify-content: flex-start; 
@@ -57,9 +60,9 @@
         }
         .dismiss-btn:hover { background: #333333; }
 
-        h2 { font-size: 1.8em; font-weight: 600; margin: 0 0 20px 0; }
+        h2 { font-size: 1.8em; font-weight: 600; margin: 0 0 10px 0; }
+        p.subtitle { color: #666; font-size: 14px; margin: 0 0 25px 0; line-height: 1.5; }
 
-        /* Form styling */
         .input-group { position: relative; margin-bottom: 22px; text-align: left; }
         .input-group label { 
             position: absolute; top: -10px; left: 15px; 
@@ -82,15 +85,19 @@
         .btn:hover { background: #333; }
         .btn:disabled { background: #888; cursor: not-allowed; }
 
+        .btn-secondary {
+            background: transparent; color: var(--text-color); border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover { background: rgba(0, 0, 0, 0.02); }
+
         .loader { text-align: center; padding: 50px 0; opacity: 0.7; font-weight: 600; }
         .error-state { text-align: center; padding: 40px 0; color: #d32f2f; display: none; font-weight: 500;}
-        #form-fields { display: none; }
+        #form-fields, #otp-section { display: none; }
     </style>
 </head>
 <body>
 
 <div class="edit-card" id="card">
-    <!-- Header Dismiss Bar -->
     <div class="dismiss-bar">
         <button class="dismiss-btn" id="dismissBtn">✕ Dismiss edit</button>
     </div>
@@ -98,9 +105,10 @@
     <div class="loader" id="loader">Loading Profile Details...</div>
     <div class="error-state" id="errorState">Account not found or not logged in.</div>
 
-    <!-- Edit Form Elements -->
+    <!-- MAIN FORM FIELDS -->
     <div id="form-fields">
         <h2>Edit Profile</h2>
+        <p class="subtitle">Update your details below.</p>
         
         <div class="input-group" id="group-picture">
             <label>Profile Image URL</label>
@@ -119,21 +127,53 @@
 
         <div class="input-group" id="group-dob">
             <label>Date of Birth</label>
-            <input type="text" id="editDob" placeholder="MM/DD/YYYY" autocomplete="off">
+            <input type="text" id="editDob" placeholder="DD/MM/YYYY" autocomplete="off">
+        </div>
+
+        <div class="input-group" id="group-email">
+            <label>Email Address</label>
+            <input type="text" id="editEmail" autocomplete="off">
         </div>
 
         <div class="input-group" id="group-mobile">
-            <label>Mobile Number</label>
+            <label>Mobile</label>
             <input type="text" id="editMobile" placeholder="Mobile Number" autocomplete="off">
         </div>
 
+        <div class="input-group" id="group-mobileNumber">
+            <label>Phone Number</label>
+            <input type="text" id="editMobileNumber" placeholder="Phone Number" autocomplete="off">
+        </div>
+
+        <div class="input-group" id="group-password">
+            <label>Password</label>
+            <input type="text" id="editPassword" placeholder="Password" autocomplete="off">
+        </div>
+
         <button class="btn" id="saveBtn">Save Changes</button>
+    </div>
+
+    <!-- OTP VERIFICATION VIEW -->
+    <div id="otp-section">
+        <h2>Verify Action</h2>
+        <p class="subtitle" id="otp-message">Enter the 6-digit OTP code sent to your guardian's email.</p>
+        
+        <div class="input-group">
+            <label>OTP Code</label>
+            <input type="text" id="otpInput" maxlength="6" style="text-align: center; letter-spacing: 6px; font-size: 20px; font-weight: bold;" placeholder="000000" autocomplete="off">
+        </div>
+
+        <button class="btn" id="verifyBtn">Verify & Update</button>
+        <button class="btn btn-secondary" id="cancelOtpBtn">Cancel</button>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, getDocs, doc, query, where, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // Initialize EmailJS
+    emailjs.init("Yr9MutUoHOEONnFgn");
 
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
@@ -148,7 +188,6 @@
     const urlParams = new URLSearchParams(window.location.search);
     const formatColor = (val) => val && /^([0-9A-Fa-f]{3}){1,2}$/.test(val) ? `#${val}` : val;
 
-    // Apply Framer Styling Variables
     const bg = formatColor(urlParams.get('bg'));
     const text = formatColor(urlParams.get('text'));
     const font = urlParams.get('font');
@@ -158,8 +197,8 @@
     if (font) document.documentElement.style.setProperty('--font-size', font);
 
     let targetUser = null;
+    let systemOtp = null;
 
-    // Firebase Fetch Helper
     async function fetchFromFirebase(userId) {
         let q = query(collection(db, "UARM"), where("Lotus", "==", userId));
         let snap = await getDocs(q);
@@ -174,11 +213,9 @@
         return snap.empty ? null : snap.docs[0].data();
     }
 
-    // Load and render editable elements
     async function loadEditor() {
         let uParam = urlParams.get('u');
 
-        // Sniff parent URL for uParam inside Framer embeds
         if (uParam === null) {
             try {
                 if (window.parent && window.parent.location) {
@@ -206,7 +243,7 @@
                 if (activeSession) targetUser = JSON.parse(activeSession);
             }
         } catch (error) {
-            console.error("Error reading profile:", error);
+            console.error(error);
         }
 
         renderForm();
@@ -219,7 +256,6 @@
             return;
         }
 
-        // Configure dynamic editable fields via '?edit=' parameter
         const editParam = urlParams.get('edit');
         if (editParam) {
             const fields = editParam.toLowerCase().split(',');
@@ -228,39 +264,59 @@
             document.getElementById('group-firstName').style.display = fields.includes('name') ? 'block' : 'none';
             document.getElementById('group-lastName').style.display = fields.includes('name') ? 'block' : 'none';
             document.getElementById('group-dob').style.display = fields.includes('dob') ? 'block' : 'none';
-            document.getElementById('group-mobile').style.display = fields.includes('mobile') ? 'block' : 'none';
+            document.getElementById('group-email').style.display = fields.includes('email') ? 'block' : 'none';
+            document.getElementById('group-mobile').style.display = fields.includes('number') ? 'block' : 'none';
+            document.getElementById('group-mobileNumber').style.display = fields.includes('number') ? 'block' : 'none';
+            document.getElementById('group-password').style.display = fields.includes('passkey') ? 'block' : 'none';
         }
 
-        // Populate fields with current database details
         document.getElementById('editPicture').value = targetUser.Picture || '';
         document.getElementById('editFirstName').value = targetUser.firstName || '';
         document.getElementById('editLastName').value = targetUser.lastName || '';
         document.getElementById('editDob').value = targetUser.dob || '';
+        document.getElementById('editEmail').value = targetUser.email || '';
         document.getElementById('editMobile').value = targetUser.mobile || '';
+        document.getElementById('editMobileNumber').value = targetUser.mobileNumber || '';
+        document.getElementById('editPassword').value = targetUser.password || '';
 
         document.getElementById('form-fields').style.display = 'block';
     }
 
-    // Save modifications to Firebase & LocalStorage
-    document.getElementById('saveBtn').addEventListener('click', async () => {
-        const btn = document.getElementById('saveBtn');
-        btn.innerText = "Saving Changes...";
-        btn.disabled = true;
-
+    // Capture user changes
+    function getUpdatedFields() {
         const editParam = urlParams.get('edit');
-        const allowed = editParam ? editParam.toLowerCase().split(',') : ['picture', 'name', 'dob', 'mobile'];
+        const allowed = editParam ? editParam.toLowerCase().split(',') : ['picture', 'name', 'dob', 'email', 'number', 'passkey'];
         
-        const updatedData = {};
-        if (allowed.includes('picture')) updatedData.Picture = document.getElementById('editPicture').value.trim();
+        const data = {};
+        if (allowed.includes('picture')) data.Picture = document.getElementById('editPicture').value.trim();
         if (allowed.includes('name')) {
-            updatedData.firstName = document.getElementById('editFirstName').value.trim();
-            updatedData.lastName = document.getElementById('editLastName').value.trim();
+            data.firstName = document.getElementById('editFirstName').value.trim();
+            data.lastName = document.getElementById('editLastName').value.trim();
         }
-        if (allowed.includes('dob')) updatedData.dob = document.getElementById('editDob').value.trim();
-        if (allowed.includes('mobile')) updatedData.mobile = document.getElementById('editMobile').value.trim();
+        if (allowed.includes('dob')) data.dob = document.getElementById('editDob').value.trim();
+        if (allowed.includes('email')) data.email = document.getElementById('editEmail').value.trim();
+        if (allowed.includes('number')) {
+            data.mobile = document.getElementById('editMobile').value.trim();
+            data.mobileNumber = document.getElementById('editMobileNumber').value.trim();
+        }
+        if (allowed.includes('passkey')) data.password = document.getElementById('editPassword').value.trim();
 
+        return data;
+    }
+
+    // Determine if sensitive fields require an OTP check
+    function requiresVerification(updates) {
+        const emailChanged = updates.email !== undefined && updates.email !== targetUser.email;
+        const mobileChanged = updates.mobile !== undefined && updates.mobile !== targetUser.mobile;
+        const phoneChanged = updates.mobileNumber !== undefined && updates.mobileNumber !== targetUser.mobileNumber;
+        const passwordChanged = updates.password !== undefined && updates.password !== targetUser.password;
+
+        return emailChanged || mobileChanged || phoneChanged || passwordChanged;
+    }
+
+    // Save changes securely to Database & browser cache
+    async function commitDatabaseUpdate(updates) {
         try {
-            // Find Firebase auto-generated doc ID
             let q = query(collection(db, "UARM"), where("uarmId", "==", targetUser.uarmId));
             let snap = await getDocs(q);
 
@@ -273,11 +329,9 @@
                 const docId = snap.docs[0].id;
                 const docRef = doc(db, "UARM", docId);
                 
-                // 1. Save to Firestore
-                await updateDoc(docRef, updatedData);
+                await updateDoc(docRef, updates);
 
-                // 2. Sync Local Storage
-                const mergedProfile = { ...targetUser, ...updatedData };
+                const mergedProfile = { ...targetUser, ...updates };
                 
                 const active = JSON.parse(localStorage.getItem('active_user') || '{}');
                 if (active.uarmId === targetUser.uarmId || active.Lotus === targetUser.Lotus) {
@@ -291,24 +345,89 @@
                     localStorage.setItem('saved_accounts', JSON.stringify(list));
                 }
 
-                // Force other frames to instantly sync
                 localStorage.setItem('active_user_updated', Date.now());
-
-                // Redirect out
                 handleDismiss();
             } else {
-                alert("Could not locate account on server database.");
+                alert("Could not locate document ID.");
             }
         } catch (error) {
             console.error(error);
-            alert("Error updating profile. Try again.");
-        } finally {
+            alert("Database write failed.");
+        }
+    }
+
+    // Submit Action Listener
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+        const updates = getUpdatedFields();
+
+        if (requiresVerification(updates)) {
+            // Trigger OTP logic
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "Sending Verification...";
+            btn.disabled = true;
+
+            systemOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            const recipientEmail = targetUser.Guardian || targetUser.email;
+
+            // Partially mask the email for visual security feedback
+            const maskedEmail = recipientEmail.replace(/(.{2})(.*)(@.*)/, "$1***$3");
+            document.getElementById('otp-message').innerText = `To complete your update, enter the verification OTP sent to: ${maskedEmail}`;
+
+            // Send via EmailJS
+            emailjs.send("service_63mnm5a", "template_qxz1wka", {
+                to_email: recipientEmail,
+                otp: systemOtp,
+                user_name: targetUser.firstName || "User",
+                message: `Your verification code is ${systemOtp}`
+            }).then(() => {
+                document.getElementById('form-fields').style.display = 'none';
+                document.getElementById('otp-section').style.display = 'block';
+            }).catch(error => {
+                console.error("EmailJS error:", error);
+                alert("Failed to send code. Please try again.");
+            }).finally(() => {
+                btn.innerText = "Save Changes";
+                btn.disabled = false;
+            });
+
+        } else {
+            // Non-sensitive fields (name, dob, picture) update immediately
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "Saving Changes...";
+            btn.disabled = true;
+            await commitDatabaseUpdate(updates);
             btn.innerText = "Save Changes";
             btn.disabled = false;
         }
     });
 
-    // Handle Closing/Dismissing Page
+    // Verify OTP & Save Action
+    document.getElementById('verifyBtn').addEventListener('click', async () => {
+        const userInput = document.getElementById('otpInput').value.trim();
+        const verifyBtn = document.getElementById('verifyBtn');
+
+        if (userInput === systemOtp) {
+            verifyBtn.innerText = "Verifying & Saving...";
+            verifyBtn.disabled = true;
+            
+            const updates = getUpdatedFields();
+            await commitDatabaseUpdate(updates);
+            
+            verifyBtn.innerText = "Verify & Update";
+            verifyBtn.disabled = false;
+        } else {
+            alert("Invalid OTP code. Please check your spelling and try again.");
+        }
+    });
+
+    // Cancel Verification back to Form View
+    document.getElementById('cancelOtpBtn').addEventListener('click', () => {
+        document.getElementById('otp-section').style.display = 'none';
+        document.getElementById('form-fields').style.display = 'block';
+        document.getElementById('otpInput').value = '';
+        systemOtp = null;
+    });
+
     function handleDismiss() {
         const u = urlParams.get('u') || 0;
         const continueUrl = urlParams.get('continue') || `profile.html?u=${u}`;
