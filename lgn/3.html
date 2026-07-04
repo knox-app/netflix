@@ -5,17 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Choose Account</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #fff; }
+        /* CSS Variables for Dynamic Light/Dark Mode */
+        :root {
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #777777;
+            --border-color: #eeeeee;
+            --hover-bg: #f9f9f9;
+            --avatar-bg: #000000;
+            --avatar-text: #ffffff;
+            --link-color: #0066cc;
+        }
+
+        body.dark {
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --border-color: #222222;
+            --hover-bg: #111111;
+            --avatar-bg: #ffffff;
+            --avatar-text: #000000;
+            --link-color: #3399ff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
         .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
-        h1 { font-size: 28px; font-weight: 600; margin-bottom: 20px; color: #000; }
+        
+        h1 { font-size: 28px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary); }
+        
         .account-list { text-align: left; margin-bottom: 20px; }
-        .account-item { display: flex; align-items: center; padding: 15px; border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: background 0.2s; }
-        .account-item:hover { background: #f9f9f9; }
-        .avatar { width: 40px; height: 40px; background: #000; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: bold; margin-right: 15px; }
+        
+        .account-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .account-item:hover { background: var(--hover-bg); }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--avatar-bg);
+            color: var(--avatar-text);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-right: 15px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
         .acc-info { flex-grow: 1; }
-        .acc-name { font-weight: 600; font-size: 16px; margin: 0; color: #222; }
-        .acc-email { font-size: 13px; color: #777; margin: 0; }
-        .add-account { color: #0066cc; text-decoration: none; font-weight: 500; display: inline-block; margin-top: 10px; }
+        
+        .acc-name { font-weight: 600; font-size: 16px; margin: 0; color: var(--text-primary); }
+        
+        .acc-email { font-size: 13px; color: var(--text-secondary); margin: 0; }
+        
+        .add-account {
+            color: var(--link-color);
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 10px;
+            transition: color 0.3s;
+        }
     </style>
 </head>
 <body>
@@ -36,11 +108,54 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+    const urlParams = new URLSearchParams(window.location.search);
+    const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
+
+    /* ================= LIVE THEME ================= */
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    function applyTheme() {
+        if (theme === "dark" || theme === "d") {
+            document.body.classList.add("dark");
+            return;
+        }
+        if (theme === "light" || theme === "l") {
+            document.body.classList.remove("dark");
+            return;
+        }
+        if (mediaQuery.matches) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    }
+
+    applyTheme();
+
+    mediaQuery.addEventListener("change", () => {
+        if (!theme) {
+            applyTheme();
+        }
+    });
+
+    let accounts = [];
+    try {
+        accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+    } catch (e) {
+        accounts = [];
+    }
+
     const listDiv = document.getElementById('accountList');
 
     if (accounts.length === 0) {
-        window.location.href = '1.html';
+        const dest = theme ? `1.html?theme=${theme}` : '1.html';
+        window.location.href = dest;
+    }
+
+    // Preserve theme param on the add another account link
+    const addAccountLink = document.querySelector('.add-account');
+    if (addAccountLink) {
+        addAccountLink.href = theme ? `1.html?theme=${theme}` : '1.html';
     }
 
     accounts.forEach(acc => {
@@ -57,15 +172,26 @@
         `;
 
         item.addEventListener('click', async () => {
-            // Auto-login using saved lotus ID
-            const q = query(collection(db, "UARM"), where("lotus", "==", acc.lotus));
-            const snap = await getDocs(q);
-            if(!snap.empty) {
-                localStorage.setItem('active_user', JSON.stringify(snap.docs[0].data()));
-                window.location.href = '4.html';
-            } else {
-                alert("Session expired for this account. Please sign in again.");
-                window.location.href = '1.html';
+            try {
+                // Auto-login using saved capitalized Lotus ID query
+                const q = query(collection(db, "UARM"), where("Lotus", "==", acc.lotus));
+                const snap = await getDocs(q);
+                if(!snap.empty) {
+                    localStorage.setItem('active_user', JSON.stringify(snap.docs[0].data()));
+                    
+                    let targetRedirect = '4.html';
+                    if (theme) {
+                        targetRedirect += `?theme=${theme}`;
+                    }
+                    window.location.href = targetRedirect;
+                } else {
+                    alert("Session expired for this account. Please sign in again.");
+                    const dest = theme ? `1.html?theme=${theme}` : '1.html';
+                    window.location.href = dest;
+                }
+            } catch (err) {
+                console.error("Auto login process failed:", err);
+                alert("Database connection failed. Please try again.");
             }
         });
 
