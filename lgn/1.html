@@ -129,10 +129,16 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Show saved accounts link if any exist
-    if (localStorage.getItem('saved_accounts')) {
-        let accounts = JSON.parse(localStorage.getItem('saved_accounts'));
-        if(accounts.length > 0) document.getElementById('accountChooserLink').style.display = 'block';
+    // Safeguard localStorage JSON parsing to prevent script crashes
+    try {
+        if (localStorage.getItem('saved_accounts')) {
+            let accounts = JSON.parse(localStorage.getItem('saved_accounts'));
+            if (accounts && accounts.length > 0) {
+                document.getElementById('accountChooserLink').style.display = 'block';
+            }
+        }
+    } catch (e) {
+        console.error("Local storage read error:", e);
     }
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -171,65 +177,77 @@
     async function initSession() {
         if (!session) {
             session = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-            // Store session in ASPX Keys using setDoc to explicitly name the document
-            await setDoc(doc(db, "ASPX Keys", session), {
-                sessionId: session,
-                createdAt: new Date()
-            });
-            // Update URL visibly
+            try {
+                // Store session in ASPX Keys using setDoc to explicitly name the document
+                await setDoc(doc(db, "ASPX Keys", session), {
+                    sessionId: session,
+                    createdAt: new Date()
+                });
+            } catch (err) {
+                console.error("Session database write failed:", err);
+            }
+            // Update URL visibly (even if Firestore write fails, the UI keeps working)
             window.history.replaceState({}, '', `1.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`);
         }
     }
 
     // 2. Auto Login Checks (Passwordless & Lotus Link)
     async function checkAutoLogins() {
-        // A. Existing SafeOpt Passwordless Check
-        if (urlParams.get('env') === 'safeopt' && urlParams.get('e') && urlParams.get('p')) {
-            const email = urlParams.get('e');
-            const pass = urlParams.get('p');
-            
-            const q = query(collection(db, "UARM"), where("Email", "==", email), where("Password", "==", pass));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                const userData = querySnapshot.docs[0].data();
-                saveAccountAndLogin(userData);
-                window.location.href = continueUrl;
-            } else {
-                alert("Invalid passwordless login link.");
+        try {
+            // A. Existing SafeOpt Passwordless Check
+            if (urlParams.get('env') === 'safeopt' && urlParams.get('e') && urlParams.get('p')) {
+                const email = urlParams.get('e');
+                const pass = urlParams.get('p');
+                
+                const q = query(collection(db, "UARM"), where("Email", "==", email), where("Password", "==", pass));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const userData = querySnapshot.docs[0].data();
+                    saveAccountAndLogin(userData);
+                    window.location.href = continueUrl;
+                } else {
+                    alert("Invalid passwordless login link.");
+                }
             }
-        }
 
-        // B. Automatic Lotus ID Login Check
-        const lotusId = urlParams.get('lotus');
-        if (lotusId) {
-            document.getElementById('continueBtn').innerText = "Logging in..."; // UI feedback
-            const q = query(collection(db, "UARM"), where("Lotus", "==", lotusId));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                const userData = querySnapshot.docs[0].data();
-                // Automatically save user to local storage and login completely
-                saveAccountAndLogin(userData);
-                window.location.href = continueUrl;
-            } else {
-                alert("Invalid automatic login token.");
-                document.getElementById('continueBtn').innerText = "Continue";
+            // B. Automatic Lotus ID Login Check
+            const lotusId = urlParams.get('lotus') || urlParams.get('Lotus');
+            if (lotusId) {
+                document.getElementById('continueBtn').innerText = "Logging in..."; // UI feedback
+                const q = query(collection(db, "UARM"), where("Lotus", "==", lotusId));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const userData = querySnapshot.docs[0].data();
+                    // Automatically save user to local storage and login completely
+                    saveAccountAndLogin(userData);
+                    window.location.href = continueUrl;
+                } else {
+                    alert("Invalid automatic login token.");
+                    document.getElementById('continueBtn').innerText = "Continue";
+                }
             }
+        } catch (err) {
+            console.error("Auto-login error:", err);
         }
     }
 
     function saveAccountAndLogin(userData) {
-        let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-        const email = userData["Email"];
-        const firstName = userData["First Name"];
-        const lotus = userData["Lotus"];
+        try {
+            let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            const email = userData["Email"];
+            const firstName = userData["First Name"];
+            const lotus = userData["Lotus"];
 
-        if (!accounts.some(acc => acc.email === email)) {
-            accounts.push({ email: email, firstName: firstName, lotus: lotus });
-            localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+            if (email && !accounts.some(acc => acc.email === email)) {
+                accounts.push({ email: email, firstName: firstName || "", lotus: lotus || "" });
+                localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+            }
+            localStorage.setItem('active_user', JSON.stringify(userData));
+        } catch (e) {
+            console.error("Local storage save error:", e);
         }
-        localStorage.setItem('active_user', JSON.stringify(userData));
     }
 
     // Initialize
@@ -248,21 +266,31 @@
 
         document.getElementById('continueBtn').innerText = "Checking...";
         
-        // Check UARM Database using Capitalized fields
-        let q;
-        if (isMobile) {
-            q = query(collection(db, "UARM"), where("mobile", "==", identifier));
-        } else {
-            q = query(collection(db, "UARM"), where("email", "==", identifier));
-        }
+        try {
+            // Check UARM Database using Capitalized fields
+            let q;
+            if (isMobile) {
+                q = query(collection(db, "UARM"), where("Phone Number", "==", identifier));
+            } else {
+                q = query(collection(db, "UARM"), where("Email", "==", identifier));
+            }
 
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-            const userData = querySnapshot.docs[0].data();
-            window.location.href = `2.html?session=${session}&Lotus=${userData["Lotus"]}&continue=${encodeURIComponent(continueUrl)}`;
-        } else {
-            alert("Account not found in our database.");
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const userData = querySnapshot.docs[0].data();
+                let redirectUrl = `2.html?session=${session}&Lotus=${userData["Lotus"]}&continue=${encodeURIComponent(continueUrl)}`;
+                if (theme) {
+                    redirectUrl += `&theme=${theme}`;
+                }
+                window.location.href = redirectUrl;
+            } else {
+                alert("Account not found in our database.");
+                document.getElementById('continueBtn').innerText = "Continue";
+            }
+        } catch (error) {
+            console.error("Form submission error:", error);
+            alert("Database connection error. Please try again.");
             document.getElementById('continueBtn').innerText = "Continue";
         }
     });
