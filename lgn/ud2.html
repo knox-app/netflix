@@ -94,21 +94,28 @@
         .links a { color: #0066cc; text-decoration: none; cursor: pointer; }
 
         .already-logged-in {
-            display: none;
-            position: fixed;
-            top: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg-color);
-            border: 1px solid rgba(0, 128, 0, 0.4);
+            box-sizing: border-box;
+            min-height: 40px;
+            background: rgba(0, 128, 0, 0.08);
+            border: 1px solid transparent;
             color: var(--text-primary);
             border-radius: 10px;
-            padding: 10px 16px;
+            padding: 10px 14px;
             font-size: 13px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-            z-index: 900;
-            max-width: 90%;
+            margin-bottom: 16px;
             text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .already-logged-in.visible {
+            opacity: 1;
+            visibility: visible;
+            border-color: rgba(0, 128, 0, 0.3);
         }
 
         .profile-picker-overlay {
@@ -253,11 +260,35 @@
 
     // Check (after the user enters their email/mobile) whether that same
     // account is already logged in on this device, and show an inline message.
-    function checkAlreadyLoggedIn() {
+    // Uses the reserved-space "visible" class (not display) so toggling it
+    // never shifts the layout or the Continue button's position.
+    function setAlreadyLoggedInMessage(matchedText, isKids) {
         const msgEl = document.getElementById('alreadyLoggedInMsg');
+        msgEl.innerHTML = '';
+
+        if (!matchedText) {
+            msgEl.classList.remove('visible');
+            return;
+        }
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = `${matchedText} already logged in the device`;
+        msgEl.appendChild(textSpan);
+
+        if (isKids) {
+            const kidsBadge = document.createElement('span');
+            kidsBadge.className = 'badge badge-kids';
+            kidsBadge.textContent = 'Kids';
+            msgEl.appendChild(kidsBadge);
+        }
+
+        msgEl.classList.add('visible');
+    }
+
+    function checkAlreadyLoggedIn() {
         let typedIdentifier = document.getElementById('identifier').value.trim();
         if (!typedIdentifier) {
-            msgEl.style.display = 'none';
+            setAlreadyLoggedInMessage(null);
             return;
         }
 
@@ -272,15 +303,14 @@
                 const activeUser = JSON.parse(activeUserRaw);
                 const activeEmail = activeUser && activeUser["Email"];
                 const activePhone = activeUser && activeUser["Phone Number"];
+                const activeIsKids = (activeUser && activeUser["Type"] || '').toLowerCase() === 'kids';
 
                 if (isMobile && activePhone && activePhone === typedIdentifier) {
-                    msgEl.textContent = `${activePhone} already logged in the device`;
-                    msgEl.style.display = 'block';
+                    setAlreadyLoggedInMessage(activePhone, activeIsKids);
                     return;
                 }
                 if (!isMobile && activeEmail && activeEmail.toLowerCase() === typedIdentifier.toLowerCase()) {
-                    msgEl.textContent = `${activeEmail} already logged in the device`;
-                    msgEl.style.display = 'block';
+                    setAlreadyLoggedInMessage(activeEmail, activeIsKids);
                     return;
                 }
             }
@@ -288,13 +318,13 @@
             console.error("Active user read error:", e);
         }
 
-        msgEl.style.display = 'none';
+        setAlreadyLoggedInMessage(null);
     }
 
     document.getElementById('identifier').addEventListener('blur', checkAlreadyLoggedIn);
     document.getElementById('identifier').addEventListener('input', () => {
         // Hide the message as soon as they start editing again
-        document.getElementById('alreadyLoggedInMsg').style.display = 'none';
+        setAlreadyLoggedInMessage(null);
     });
 
     const urlParams = new URLSearchParams(window.location.search);
