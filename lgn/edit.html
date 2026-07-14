@@ -104,6 +104,75 @@
             margin-bottom: 16px;
             text-align: left;
         }
+
+        .profile-picker-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .profile-picker-card {
+            background: var(--bg-color);
+            color: var(--text-primary);
+            border-radius: 16px;
+            padding: 28px 24px;
+            max-width: 380px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .profile-picker-card h2 { font-size: 20px; margin: 0 0 6px 0; }
+        .profile-picker-card p { color: var(--text-secondary); font-size: 13px; margin: 0 0 20px 0; }
+
+        .profile-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .profile-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid var(--input-border);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: left;
+            background: none;
+            width: 100%;
+            box-sizing: border-box;
+            transition: background 0.15s;
+        }
+
+        .profile-option:hover { background: rgba(128, 128, 128, 0.1); }
+
+        .profile-option img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #ccc;
+            flex-shrink: 0;
+        }
+
+        .profile-option .profile-name { font-size: 14px; font-weight: 600; }
+        .profile-option .profile-sub { font-size: 12px; color: var(--text-secondary); }
+
+        .profile-picker-cancel {
+            margin-top: 18px;
+            font-size: 13px;
+            color: #0066cc;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -123,6 +192,15 @@
     
     <div class="links" id="accountChooserLink" style="display: none;">
         <a href="3.html">Choose an existing account</a>
+    </div>
+</div>
+
+<div class="profile-picker-overlay" id="profilePickerOverlay">
+    <div class="profile-picker-card">
+        <h2>Who's Trying to Log In?</h2>
+        <p>This phone number is linked to more than one account.</p>
+        <div class="profile-list" id="profileList"></div>
+        <button class="profile-picker-cancel" id="profilePickerCancel">Cancel</button>
     </div>
 </div>
 
@@ -175,7 +253,14 @@
             if (activeUserRaw) {
                 const activeUser = JSON.parse(activeUserRaw);
                 const activeEmail = activeUser && activeUser["Email"];
-                if (activeEmail && activeEmail.toLowerCase() === typedIdentifier.toLowerCase()) {
+                const activePhone = activeUser && activeUser["Phone Number"];
+
+                if (isMobile && activePhone && activePhone === typedIdentifier) {
+                    msgEl.textContent = `${activePhone} already logged in the device`;
+                    msgEl.style.display = 'block';
+                    return;
+                }
+                if (!isMobile && activeEmail && activeEmail.toLowerCase() === typedIdentifier.toLowerCase()) {
                     msgEl.textContent = `${activeEmail} already logged in the device`;
                     msgEl.style.display = 'block';
                     return;
@@ -306,6 +391,63 @@
     // Initialize
     initSession().then(checkAutoLogins);
 
+    // Build the redirect URL for a chosen account and navigate to it
+    function goToNextStep(userData) {
+        let redirectUrl = `2.html?session=${session}&Lotus=${userData["Lotus"]}&continue=${encodeURIComponent(continueUrl)}`;
+        if (theme) {
+            redirectUrl += `&theme=${theme}`;
+        }
+        window.location.href = redirectUrl;
+    }
+
+    // Show the "Who's Trying to Log In?" picker when a phone number is
+    // shared across multiple accounts (e.g. a parent account and kids' accounts).
+    function showProfilePicker(accountDocs) {
+        const listEl = document.getElementById('profileList');
+        listEl.innerHTML = '';
+
+        accountDocs.forEach((docSnap) => {
+            const userData = docSnap.data();
+            const name = userData["First Name"] || "Account";
+            const pictureUrl = userData["Profile Picture"] || '';
+
+            const optionBtn = document.createElement('button');
+            optionBtn.type = 'button';
+            optionBtn.className = 'profile-option';
+
+            const img = document.createElement('img');
+            img.src = pictureUrl || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"></svg>';
+            img.alt = name;
+
+            const textWrap = document.createElement('div');
+            const nameEl = document.createElement('div');
+            nameEl.className = 'profile-name';
+            nameEl.textContent = name;
+            const subEl = document.createElement('div');
+            subEl.className = 'profile-sub';
+            subEl.textContent = userData["Email"] || '';
+            textWrap.appendChild(nameEl);
+            textWrap.appendChild(subEl);
+
+            optionBtn.appendChild(img);
+            optionBtn.appendChild(textWrap);
+
+            optionBtn.addEventListener('click', () => {
+                document.getElementById('profilePickerOverlay').style.display = 'none';
+                goToNextStep(userData);
+            });
+
+            listEl.appendChild(optionBtn);
+        });
+
+        document.getElementById('profilePickerOverlay').style.display = 'flex';
+    }
+
+    document.getElementById('profilePickerCancel').addEventListener('click', () => {
+        document.getElementById('profilePickerOverlay').style.display = 'none';
+        document.getElementById('continueBtn').innerText = "Continue";
+    });
+
     // 3. Handle Manual Form Submit
     document.getElementById('continueBtn').addEventListener('click', async () => {
         let identifier = document.getElementById('identifier').value.trim();
@@ -331,12 +473,14 @@
             const querySnapshot = await getDocs(q);
             
             if (!querySnapshot.empty) {
-                const userData = querySnapshot.docs[0].data();
-                let redirectUrl = `2.html?session=${session}&Lotus=${userData["Lotus"]}&continue=${encodeURIComponent(continueUrl)}`;
-                if (theme) {
-                    redirectUrl += `&theme=${theme}`;
+                if (isMobile && querySnapshot.size > 1) {
+                    // Same phone number shared across multiple accounts (e.g. parental setup)
+                    showProfilePicker(querySnapshot.docs);
+                    document.getElementById('continueBtn').innerText = "Continue";
+                } else {
+                    const userData = querySnapshot.docs[0].data();
+                    goToNextStep(userData);
                 }
-                window.location.href = redirectUrl;
             } else {
                 alert("Account not found in our database.");
                 document.getElementById('continueBtn').innerText = "Continue";
