@@ -95,13 +95,19 @@
 
         .already-logged-in {
             display: none;
-            background: rgba(0, 128, 0, 0.08);
-            border: 1px solid rgba(0, 128, 0, 0.3);
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-color);
+            border: 1px solid rgba(0, 128, 0, 0.4);
             color: var(--text-primary);
             border-radius: 10px;
-            padding: 10px 14px;
+            padding: 10px 16px;
             font-size: 13px;
-            margin-bottom: 16px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+            z-index: 900;
+            max-width: 90%;
             text-align: left;
         }
 
@@ -162,8 +168,20 @@
             flex-shrink: 0;
         }
 
-        .profile-option .profile-name { font-size: 14px; font-weight: 600; }
+        .profile-option .profile-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
         .profile-option .profile-sub { font-size: 12px; color: var(--text-secondary); }
+
+        .badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .badge-loggedin { background: rgba(0, 128, 0, 0.12); color: #128a12; border: 1px solid rgba(0, 128, 0, 0.35); }
+        .badge-kids { background: rgba(0, 102, 204, 0.12); color: #0066cc; border: 1px solid rgba(0, 102, 204, 0.35); }
 
         .profile-picker-cancel {
             margin-top: 18px;
@@ -422,10 +440,24 @@
         const listEl = document.getElementById('profileList');
         listEl.innerHTML = '';
 
+        // Figure out which account (if any) is already logged in on this device
+        let activeLotus = null;
+        try {
+            const activeUserRaw = localStorage.getItem('active_user');
+            if (activeUserRaw) {
+                const activeUser = JSON.parse(activeUserRaw);
+                activeLotus = activeUser && activeUser["Lotus"] ? activeUser["Lotus"] : null;
+            }
+        } catch (e) {
+            console.error("Active user read error:", e);
+        }
+
         accountDocs.forEach((docSnap) => {
             const userData = docSnap.data();
             const name = userData["First Name"] || "Account";
             const pictureUrl = userData["Profile Picture"] || '';
+            const isKids = (userData["Type"] || '').toLowerCase() === 'kids';
+            const isLoggedIn = activeLotus && userData["Lotus"] && userData["Lotus"] === activeLotus;
 
             const optionBtn = document.createElement('button');
             optionBtn.type = 'button';
@@ -439,6 +471,20 @@
             const nameEl = document.createElement('div');
             nameEl.className = 'profile-name';
             nameEl.textContent = name;
+
+            if (isLoggedIn) {
+                const loggedInBadge = document.createElement('span');
+                loggedInBadge.className = 'badge badge-loggedin';
+                loggedInBadge.textContent = 'Logged in';
+                nameEl.appendChild(loggedInBadge);
+            }
+            if (isKids) {
+                const kidsBadge = document.createElement('span');
+                kidsBadge.className = 'badge badge-kids';
+                kidsBadge.textContent = 'Kids';
+                nameEl.appendChild(kidsBadge);
+            }
+
             const subEl = document.createElement('div');
             subEl.className = 'profile-sub';
             subEl.textContent = userData["Email"] || '';
