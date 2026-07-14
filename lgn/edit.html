@@ -155,21 +155,44 @@
         console.error("Local storage read error:", e);
     }
 
-    // Show an inline (non-popup) message if this device already has an active logged-in user
-    try {
-        const activeUserRaw = localStorage.getItem('active_user');
-        if (activeUserRaw) {
-            const activeUser = JSON.parse(activeUserRaw);
-            const activeEmail = activeUser && activeUser["Email"];
-            if (activeEmail) {
-                const msgEl = document.getElementById('alreadyLoggedInMsg');
-                msgEl.textContent = `${activeEmail} already logged in the device`;
-                msgEl.style.display = 'block';
-            }
+    // Check (after the user enters their email/mobile) whether that same
+    // account is already logged in on this device, and show an inline message.
+    function checkAlreadyLoggedIn() {
+        const msgEl = document.getElementById('alreadyLoggedInMsg');
+        let typedIdentifier = document.getElementById('identifier').value.trim();
+        if (!typedIdentifier) {
+            msgEl.style.display = 'none';
+            return;
         }
-    } catch (e) {
-        console.error("Active user read error:", e);
+
+        const isMobile = /^\+?\d+$/.test(typedIdentifier);
+        if (!isMobile && !typedIdentifier.includes('@')) {
+            typedIdentifier += '@AAAAAA.com';
+        }
+
+        try {
+            const activeUserRaw = localStorage.getItem('active_user');
+            if (activeUserRaw) {
+                const activeUser = JSON.parse(activeUserRaw);
+                const activeEmail = activeUser && activeUser["Email"];
+                if (activeEmail && activeEmail.toLowerCase() === typedIdentifier.toLowerCase()) {
+                    msgEl.textContent = `${activeEmail} already logged in the device`;
+                    msgEl.style.display = 'block';
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error("Active user read error:", e);
+        }
+
+        msgEl.style.display = 'none';
     }
+
+    document.getElementById('identifier').addEventListener('blur', checkAlreadyLoggedIn);
+    document.getElementById('identifier').addEventListener('input', () => {
+        // Hide the message as soon as they start editing again
+        document.getElementById('alreadyLoggedInMsg').style.display = 'none';
+    });
 
     const urlParams = new URLSearchParams(window.location.search);
     let session = urlParams.get('session');
