@@ -206,7 +206,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where, doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
@@ -391,9 +391,25 @@
     // Initialize
     initSession().then(checkAutoLogins);
 
-    // Build the redirect URL for a chosen account and navigate to it
-    function goToNextStep(userData) {
-        let redirectUrl = `2.html?session=${session}&Lotus=${userData["Lotus"]}&continue=${encodeURIComponent(continueUrl)}`;
+    // Build the redirect URL for a chosen account and navigate to it.
+    // The Lotus id is a private internal key, so it is NEVER put in the URL —
+    // instead it's saved on the existing session document in Firestore, and
+    // 2.html should look it up server/client-side using only the session id.
+    async function goToNextStep(userData) {
+        try {
+            await updateDoc(doc(db, "ASPX Keys", session), {
+                Lotus: userData["Lotus"],
+                loggedInAt: new Date()
+            });
+        } catch (err) {
+            console.error("Failed to attach Lotus to session:", err);
+            alert("Could not complete login. Please try again.");
+            document.getElementById('continueBtn').innerText = "Continue";
+            document.getElementById('continueBtn').disabled = false;
+            return;
+        }
+
+        let redirectUrl = `2.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`;
         if (theme) {
             redirectUrl += `&theme=${theme}`;
         }
@@ -446,10 +462,14 @@
     document.getElementById('profilePickerCancel').addEventListener('click', () => {
         document.getElementById('profilePickerOverlay').style.display = 'none';
         document.getElementById('continueBtn').innerText = "Continue";
+        document.getElementById('continueBtn').disabled = false;
     });
 
-    // 3. Handle Manual Form Submit
+    // 3. Handle Manual Form Submit (single-click: guarded against double-submit)
+    let isSubmitting = false;
     document.getElementById('continueBtn').addEventListener('click', async () => {
+        if (isSubmitting) return;
+
         let identifier = document.getElementById('identifier').value.trim();
         if(!identifier) return alert("Please enter email or mobile");
 
@@ -459,8 +479,11 @@
             identifier += '@AAAAAA.com';
         }
 
-        document.getElementById('continueBtn').innerText = "Checking...";
-        
+        isSubmitting = true;
+        const continueBtn = document.getElementById('continueBtn');
+        continueBtn.disabled = true;
+        continueBtn.innerText = "Checking...";
+
         try {
             // Check UARM Database using Capitalized fields
             let q;
@@ -471,24 +494,30 @@
             }
 
             const querySnapshot = await getDocs(q);
-            
+
             if (!querySnapshot.empty) {
                 if (isMobile && querySnapshot.size > 1) {
                     // Same phone number shared across multiple accounts (e.g. parental setup)
                     showProfilePicker(querySnapshot.docs);
-                    document.getElementById('continueBtn').innerText = "Continue";
+                    continueBtn.innerText = "Continue";
+                    continueBtn.disabled = false;
+                    isSubmitting = false;
                 } else {
                     const userData = querySnapshot.docs[0].data();
-                    goToNextStep(userData);
+                    await goToNextStep(userData);
                 }
             } else {
                 alert("Account not found in our database.");
-                document.getElementById('continueBtn').innerText = "Continue";
+                continueBtn.innerText = "Continue";
+                continueBtn.disabled = false;
+                isSubmitting = false;
             }
         } catch (error) {
             console.error("Form submission error:", error);
             alert("Database connection error. Please try again.");
-            document.getElementById('continueBtn').innerText = "Continue";
+            continueBtn.innerText = "Continue";
+            continueBtn.disabled = false;
+            isSubmitting = false;
         }
     });
 </script>
