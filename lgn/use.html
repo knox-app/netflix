@@ -187,9 +187,8 @@
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
-        .badge-loggedin { background: rgba(128, 128, 128, 0.15); color: #666666; border: 1px solid rgba(128, 128, 128, 0.4); }
-        .badge-kids { background: rgba(0, 102, 204, 0.12); color: #0066cc; border: 1px solid rgba(0, 102, 204, 0.35); display: inline-flex; align-items: center; gap: 3px; }
-        .badge-kids svg { width: 10px; height: 10px; flex-shrink: 0; }
+         .badge-loggedin { background: rgba(0, 128, 0, 0.12); color: #128a12; border: 1px solid rgba(0, 128, 0, 0.35); }
+        .badge-kids { background: rgba(0, 102, 204, 0.12); color: #0066cc; border: 1px solid rgba(0, 102, 204, 0.35); }
 
         .profile-picker-cancel {
             margin-top: 18px;
@@ -263,7 +262,7 @@
     // account is already logged in on this device, and show an inline message.
     // Uses the reserved-space "visible" class (not display) so toggling it
     // never shifts the layout or the Continue button's position.
-    function setAlreadyLoggedInMessage(matchedText) {
+        function setAlreadyLoggedInMessage(matchedText, isKids) {
         const msgEl = document.getElementById('alreadyLoggedInMsg');
         msgEl.innerHTML = '';
 
@@ -272,7 +271,16 @@
             return;
         }
 
-        msgEl.textContent = `${matchedText} already logged in the device`;
+ const textSpan = document.createElement('span');
+        textSpan.textContent = `${matchedText} already logged in the device`;
+        msgEl.appendChild(textSpan);
+
+        if (isKids) {
+            const kidsBadge = document.createElement('span');
+            kidsBadge.className = 'badge badge-kids';
+            kidsBadge.textContent = 'Kids';
+            msgEl.appendChild(kidsBadge);
+    }
         msgEl.classList.add('visible');
     }
 
@@ -294,13 +302,14 @@
                 const activeUser = JSON.parse(activeUserRaw);
                 const activeEmail = activeUser && activeUser["Email"];
                 const activePhone = activeUser && activeUser["Phone Number"];
+                const activeIsKids = (activeUser && activeUser["Type"] || '').toLowerCase() === 'kids';
 
                 if (isMobile && activePhone && activePhone === typedIdentifier) {
-                    setAlreadyLoggedInMessage(activePhone);
+                    setAlreadyLoggedInMessage(activePhone, activeIsKids);
                     return;
                 }
                 if (!isMobile && activeEmail && activeEmail.toLowerCase() === typedIdentifier.toLowerCase()) {
-                    setAlreadyLoggedInMessage(activeEmail);
+                    setAlreadyLoggedInMessage(activeEmail, activeIsKids);
                     return;
                 }
             }
@@ -501,7 +510,7 @@
             if (isKids) {
                 const kidsBadge = document.createElement('span');
                 kidsBadge.className = 'badge badge-kids';
-                kidsBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Kids</span>';
+                                    kidsBadge.textContent = 'Kids';(activeEmail, activeIsKids);
                 nameEl.appendChild(kidsBadge);
             }
 
