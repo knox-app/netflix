@@ -200,7 +200,7 @@
 
 <div class="container">
     <h1>Sign in</h1>
-    <p class="subtitle">Use your Symfi Account. The account will be added to this device and available to other our Apps & Services.</p>
+    <p class="subtitle">Use your Code with Daksh Account. The account will be added to this device and available to other our Apps & Services.</p>
 
     <div class="already-logged-in" id="alreadyLoggedInMsg"></div>
 
@@ -242,7 +242,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Safeguard localStorage JSON parsing to prevent script crashes
     try {
         if (localStorage.getItem('saved_accounts')) {
             let accounts = JSON.parse(localStorage.getItem('saved_accounts'));
@@ -254,8 +253,6 @@
         console.error("Local storage read error:", e);
     }
 
-    // Check (after the user enters their email/mobile) whether that same
-    // account is already logged in on this device, and show an inline message.
     function setAlreadyLoggedInMessage(matchedText) {
         const msgEl = document.getElementById('alreadyLoggedInMsg');
         msgEl.innerHTML = '';
@@ -312,7 +309,6 @@
     let continueUrl = urlParams.get('continue') || '4.html';
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
 
-    /* ================= LIVE THEME ================= */
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     function applyTheme() {
@@ -339,12 +335,10 @@
         }
     });
 
-    // 1. Session Generation
     async function initSession() {
         if (!session) {
             session = Math.floor(1000000000 + Math.random() * 9000000000).toString();
             try {
-                // Store session in ASPX Keys using setDoc to explicitly name the document
                 await setDoc(doc(db, "ASPX Keys", session), {
                     sessionId: session,
                     createdAt: new Date()
@@ -352,15 +346,12 @@
             } catch (err) {
                 console.error("Session database write failed:", err);
             }
-            // Update URL visibly (even if Firestore write fails, the UI keeps working)
             window.history.replaceState({}, '', `1.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`);
         }
     }
 
-    // 2. Auto Login Checks (Passwordless & Lotus Link)
     async function checkAutoLogins() {
         try {
-            // A. Existing SafeOpt Passwordless Check
             if (urlParams.get('env') === 'safeopt' && urlParams.get('e') && urlParams.get('p')) {
                 const email = urlParams.get('e');
                 const pass = urlParams.get('p');
@@ -377,16 +368,14 @@
                 }
             }
 
-            // B. Automatic Lotus ID Login Check
             const lotusId = urlParams.get('lotus') || urlParams.get('Lotus');
             if (lotusId) {
-                document.getElementById('continueBtn').innerText = "Logging in..."; // UI feedback
+                document.getElementById('continueBtn').innerText = "Logging in...";
                 const q = query(collection(db, "UARM"), where("Lotus", "==", lotusId));
                 const querySnapshot = await getDocs(q);
                 
                 if (!querySnapshot.empty) {
                     const userData = querySnapshot.docs[0].data();
-                    // Automatically save user to local storage and login completely
                     saveAccountAndLogin(userData);
                     window.location.href = continueUrl;
                 } else {
@@ -416,10 +405,8 @@
         }
     }
 
-    // Initialize
     initSession().then(checkAutoLogins);
 
-    // Build the redirect URL for a chosen account and navigate to it.
     async function goToNextStep(userData) {
         try {
             await updateDoc(doc(db, "ASPX Keys", session), {
@@ -441,13 +428,10 @@
         window.location.href = redirectUrl;
     }
 
-    // Show the "Who's Trying to Log In?" picker when a phone number is
-    // shared across multiple accounts (e.g. standard/kids/business).
     function showProfilePicker(accountDocs) {
         const listEl = document.getElementById('profileList');
         listEl.innerHTML = '';
 
-        // Figure out which account (if any) is already logged in on this device
         let activeLotus = null;
         try {
             const activeUserRaw = localStorage.getItem('active_user');
@@ -526,7 +510,6 @@
         isSubmitting = false;
     });
 
-    // 3. Handle Manual Form Submit (single-click: guarded against double-submit)
     let isSubmitting = false;
     document.getElementById('continueBtn').addEventListener('click', async () => {
         if (isSubmitting) return;
@@ -534,7 +517,6 @@
         let identifier = document.getElementById('identifier').value.trim();
         if(!identifier) return alert("Please enter email or mobile");
 
-        // Format identifier
         const isMobile = /^\+?\d+$/.test(identifier);
         if (!isMobile && !identifier.includes('@')) {
             identifier += '@AAAAAA.com';
@@ -545,29 +527,28 @@
         continueBtn.disabled = true;
         continueBtn.innerText = "Checking...";
 
-        // If this identifier is already logged in on this device, skip the
-        // lookup/redirect flow entirely and go straight to the final destination.
-        try {
-            const activeUserRaw = localStorage.getItem('active_user');
-            if (activeUserRaw) {
-                const activeUser = JSON.parse(activeUserRaw);
-                const activeEmail = activeUser && activeUser["Email"];
-                const activePhone = activeUser && activeUser["Phone Number"];
-                const alreadyThisUser =
-                    (isMobile && activePhone && activePhone === identifier) ||
-                    (!isMobile && activeEmail && activeEmail.toLowerCase() === identifier.toLowerCase());
+        // Only perform an instant auto-login bypass for unique emails.
+        // For mobile numbers, we always query the database first to confirm 
+        // if there are multiple accounts associated with it.
+        if (!isMobile) {
+            try {
+                const activeUserRaw = localStorage.getItem('active_user');
+                if (activeUserRaw) {
+                    const activeUser = JSON.parse(activeUserRaw);
+                    const activeEmail = activeUser && activeUser["Email"];
+                    const alreadyThisUser = activeEmail && activeEmail.toLowerCase() === identifier.toLowerCase();
 
-                if (alreadyThisUser) {
-                    window.location.href = continueUrl;
-                    return;
+                    if (alreadyThisUser) {
+                        window.location.href = continueUrl;
+                        return;
+                    }
                 }
+            } catch (e) {
+                console.error("Active user read error:", e);
             }
-        } catch (e) {
-            console.error("Active user read error:", e);
         }
 
         try {
-            // Check UARM Database using Capitalized fields
             let q;
             if (isMobile) {
                 q = query(collection(db, "UARM"), where("Phone Number", "==", identifier));
@@ -579,14 +560,35 @@
 
             if (!querySnapshot.empty) {
                 if (isMobile && querySnapshot.size > 1) {
-                    // Filter or check if sharing phone numbers is allowed (Type: Kids or Business)
+                    // Always trigger the account selection modal if multiple accounts exist for this number,
+                    // regardless of whether one is already logged in on this device.
                     showProfilePicker(querySnapshot.docs);
                     continueBtn.innerText = "Continue";
                     continueBtn.disabled = false;
                     isSubmitting = false;
                 } else {
+                    // Directly handle the single account logic
                     const userData = querySnapshot.docs[0].data();
-                    await goToNextStep(userData);
+                    
+                    // Verify if this single matched account matches the active user session
+                    let isAlreadyActive = false;
+                    try {
+                        const activeUserRaw = localStorage.getItem('active_user');
+                        if (activeUserRaw) {
+                            const activeUser = JSON.parse(activeUserRaw);
+                            if (activeUser && activeUser["Lotus"] === userData["Lotus"]) {
+                                isAlreadyActive = true;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Active user read error:", e);
+                    }
+
+                    if (isAlreadyActive) {
+                        window.location.href = continueUrl;
+                    } else {
+                        await goToNextStep(userData);
+                    }
                 }
             } else {
                 alert("Account not found in our database.");
