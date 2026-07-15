@@ -95,10 +95,6 @@
 
         .already-logged-in {
             display: none;
-            position: absolute;
-            bottom: calc(100% + 8px);
-            left: 0;
-            right: 0;
             box-sizing: border-box;
             background: rgba(0, 128, 0, 0.08);
             border: 1px solid rgba(0, 128, 0, 0.3);
@@ -107,6 +103,11 @@
             padding: 10px 14px;
             font-size: 13px;
             text-align: left;
+            margin-bottom: 15px;
+        }
+
+        .already-logged-in.visible {
+            display: block;
         }
 
         .profile-picker-overlay {
@@ -166,11 +167,13 @@
             flex-shrink: 0;
         }
 
-        .profile-option .profile-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .profile-option .profile-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .profile-option .profile-sub { font-size: 12px; color: var(--text-secondary); }
 
         .badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
             font-size: 10px;
             font-weight: 600;
             padding: 2px 7px;
@@ -179,8 +182,9 @@
             letter-spacing: 0.3px;
         }
         .badge-loggedin { background: rgba(128, 128, 128, 0.15); color: #666666; border: 1px solid rgba(128, 128, 128, 0.4); }
-        .badge-kids { background: rgba(0, 102, 204, 0.12); color: #0066cc; border: 1px solid rgba(0, 102, 204, 0.35); display: inline-flex; align-items: center; gap: 3px; }
-        .badge-kids svg { width: 10px; height: 10px; flex-shrink: 0; }
+        .badge-kids { background: rgba(0, 102, 204, 0.12); color: #0066cc; border: 1px solid rgba(0, 102, 204, 0.35); }
+        .badge-business { background: rgba(224, 176, 255, 0.15); color: #8a2be2; border: 1px solid rgba(138, 43, 226, 0.35); }
+        .badge svg { width: 10px; height: 10px; flex-shrink: 0; }
 
         .profile-picker-cancel {
             margin-top: 18px;
@@ -196,7 +200,7 @@
 
 <div class="container">
     <h1>Sign in</h1>
-    <p class="subtitle">Use your AAAAAA Account. The account will be added to this device and available to other our Apps & Services.</p>
+    <p class="subtitle">Use your Symfi Account. The account will be added to this device and available to other our Apps & Services.</p>
 
     <div class="already-logged-in" id="alreadyLoggedInMsg"></div>
 
@@ -252,8 +256,6 @@
 
     // Check (after the user enters their email/mobile) whether that same
     // account is already logged in on this device, and show an inline message.
-    // Uses the reserved-space "visible" class (not display) so toggling it
-    // never shifts the layout or the Continue button's position.
     function setAlreadyLoggedInMessage(matchedText) {
         const msgEl = document.getElementById('alreadyLoggedInMsg');
         msgEl.innerHTML = '';
@@ -302,11 +304,8 @@
         setAlreadyLoggedInMessage(null);
     }
 
+    document.getElementById('identifier').addEventListener('input', checkAlreadyLoggedIn);
     document.getElementById('identifier').addEventListener('blur', checkAlreadyLoggedIn);
-    document.getElementById('identifier').addEventListener('input', () => {
-        // Hide the message as soon as they start editing again
-        setAlreadyLoggedInMessage(null);
-    });
 
     const urlParams = new URLSearchParams(window.location.search);
     let session = urlParams.get('session');
@@ -421,9 +420,6 @@
     initSession().then(checkAutoLogins);
 
     // Build the redirect URL for a chosen account and navigate to it.
-    // The Lotus id is a private internal key, so it is NEVER put in the URL —
-    // instead it's saved on the existing session document in Firestore, and
-    // 2.html should look it up server/client-side using only the session id.
     async function goToNextStep(userData) {
         try {
             await updateDoc(doc(db, "ASPX Keys", session), {
@@ -446,7 +442,7 @@
     }
 
     // Show the "Who's Trying to Log In?" picker when a phone number is
-    // shared across multiple accounts (e.g. a parent account and kids' accounts).
+    // shared across multiple accounts (e.g. standard/kids/business).
     function showProfilePicker(accountDocs) {
         const listEl = document.getElementById('profileList');
         listEl.innerHTML = '';
@@ -468,6 +464,7 @@
             const name = userData["First Name"] || "Account";
             const pictureUrl = userData["Profile Picture"] || '';
             const isKids = (userData["Type"] || '').toLowerCase() === 'kids';
+            const isBusiness = (userData["Type"] || '').toLowerCase() === 'business';
             const isLoggedIn = activeLotus && userData["Lotus"] && userData["Lotus"] === activeLotus;
 
             const optionBtn = document.createElement('button');
@@ -495,6 +492,12 @@
                 kidsBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Kids</span>';
                 nameEl.appendChild(kidsBadge);
             }
+            if (isBusiness) {
+                const businessBadge = document.createElement('span');
+                businessBadge.className = 'badge badge-business';
+                businessBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" stroke="currentColor" stroke-width="2"/></svg><span>Business</span>';
+                nameEl.appendChild(businessBadge);
+            }
 
             const subEl = document.createElement('div');
             subEl.className = 'profile-sub';
@@ -519,8 +522,10 @@
     document.getElementById('profilePickerCancel').addEventListener('click', () => {
         document.getElementById('profilePickerOverlay').style.display = 'none';
         document.getElementById('continueBtn').innerText = "Continue";
-        document.getElementById('continueBtn')
-        });
+        document.getElementById('continueBtn').disabled = false;
+        isSubmitting = false;
+    });
+
     // 3. Handle Manual Form Submit (single-click: guarded against double-submit)
     let isSubmitting = false;
     document.getElementById('continueBtn').addEventListener('click', async () => {
@@ -574,7 +579,7 @@
 
             if (!querySnapshot.empty) {
                 if (isMobile && querySnapshot.size > 1) {
-                    // Same phone number shared across multiple accounts (e.g. parental setup)
+                    // Filter or check if sharing phone numbers is allowed (Type: Kids or Business)
                     showProfilePicker(querySnapshot.docs);
                     continueBtn.innerText = "Continue";
                     continueBtn.disabled = false;
