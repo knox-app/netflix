@@ -202,7 +202,7 @@
 
 <div class="container">
     <h1>Sign in</h1>
-    <p class="subtitle">Use your dopls Account. The account will be added to this device and available to other our Apps & Services.</p>
+    <p class="subtitle">Use your 021 Account. The account will be added to this device and available to other our Apps & Services.</p>
 
     <div class="already-logged-in" id="alreadyLoggedInMsg"></div>
 
@@ -299,7 +299,14 @@
             } catch (err) {
                 console.error("Session database write failed:", err);
             }
-            window.history.replaceState({}, '', `1.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`);
+            
+            // Dynamically build the search query relative to your current file name
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('session', session);
+            currentUrl.searchParams.set('continue', continueUrl);
+            
+            // Updates address bar without altering your specific file name (e.g. preserves 1 (27).html)
+            window.history.replaceState({}, '', currentUrl.pathname + currentUrl.search);
         }
     }
 
