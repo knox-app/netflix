@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter Password</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #555555;
+            --input-border: #dddddd;
+            --input-focus: #000000;
+            --input-bg: #ffffff;
+            --btn-bg: #111111;
+            --btn-text: #ffffff;
+            --btn-hover: #333333;
+            --badge-bg: #f0f0f0;
+            --badge-text: #333333;
+        }
+
+        body.dark {
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --input-border: #3a3a3a;
+            --input-focus: #ffffff;
+            --input-bg: #000000;
+            --btn-bg: #ffffff;
+            --btn-text: #000000;
+            --btn-hover: #e0e0e0;
+            --badge-bg: #222222;
+            --badge-text: #dddddd;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
+        h1 { font-size: 28px; font-weight: 600; margin-bottom: 5px; }
+        
+        .user-badge {
+            display: inline-block;
+            background: var(--badge-bg);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--badge-text);
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .input-group { position: relative; margin-bottom: 20px; text-align: left; }
+        
+        .input-group label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-color);
+            padding: 0 5px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            box-sizing: border-box;
+            outline: none;
+            background-color: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        .btn {
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            padding: 16px;
+            width: 100%;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Welcome</h1>
+    <div class="user-badge" id="userEmailDisplay">Loading...</div>
+
+    <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="">
+    </div>
+
+    <button class="btn" id="loginBtn">Login</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        projectId: "question-metabase"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const session = urlParams.get('session');
+    const lotus = urlParams.get('lotus') || urlParams.get('Lotus');
+    const continueUrl = urlParams.get('continue') || '4.html';
+    const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
+
+    if (theme === "dark" || theme === "d" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.body.classList.add("dark");
+    }
+
+    let currentUserDocId = null;
+    let currentUserData = null;
+
+    async function fetchUser() {
+        try {
+            if(!lotus) return window.location.href = '1.html';
+            const q = query(collection(db, "UARM"), where("Lotus", "==", lotus));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                currentUserDocId = querySnapshot.docs[0].id;
+                currentUserData = querySnapshot.docs[0].data();
+                document.getElementById('userEmailDisplay').innerText = currentUserData["Email"];
+            } else {
+                alert("Security token invalid.");
+                window.location.href = '1.html';
+            }
+        } catch (error) {
+            window.location.href = '1.html';
+        }
+    }
+    fetchUser();
+
+    function generateNewLotus() {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    document.getElementById('password').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            document.getElementById('loginBtn').click();
+        }
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const pass = document.getElementById('password').value;
+        if (!pass) return;
+
+        document.getElementById('loginBtn').innerText = "Verifying...";
+
+        try {
+            if (currentUserData["Password"] === pass) {
+                const newLotus = generateNewLotus();
+                await updateDoc(doc(db, "UARM", currentUserDocId), { "Lotus": newLotus });
+                currentUserData["Lotus"] = newLotus;
+
+                if (session) {
+                    try { await deleteDoc(doc(db, "ASPX Keys", session)); } catch (err) {}
+                }
+
+                let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+                accounts = accounts.filter(acc => acc.email !== currentUserData["Email"]);
+                accounts.push({
+                    email: currentUserData["Email"],
+                    firstName: currentUserData["First Name"] || "",
+                    lotus: newLotus
+                });
+                
+                localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+                localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+                window.location.href = continueUrl;
+            } else {
+                alert("Incorrect password");
+                document.getElementById('loginBtn').innerText = "Login";
+            }
+        } catch (error) {
+            alert("Error verifying password.");
+            document.getElementById('loginBtn').innerText = "Login";
+        }
+    });
+</script>
+</body>
+</html>
