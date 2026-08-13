@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hotstar OTT Player</title>
+  <title>Disney+ Hotstar OTT Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     :root {
-      --bg-dark: #0f1014;
-      --card-bg: #181a20;
+      --bg-dark: #000000;
+      --card-bg: #12151d;
       --accent-blue: #00d2ff;
       --live-red: #e50914;
       --text-main: #ffffff;
@@ -19,189 +19,179 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden; user-select: none; }
 
-    /* Top Global Nav */
+    /* Top Nav */
     .top-nav {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 16px; background: #0c0d12; border-bottom: 1px solid var(--border-color);
+      padding: 10px 16px; background: #090a0f; border-bottom: 1px solid var(--border-color);
     }
     .top-nav .brand { font-size: 17px; font-weight: 800; color: #fff; }
     .top-nav .brand span { color: var(--accent-blue); }
     .user-pill { font-size: 11px; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; }
 
-    /* Main Container */
-    .main-wrapper { max-width: 1000px; margin: 0 auto; padding-bottom: 30px; }
+    .main-wrapper { max-width: 1100px; margin: 0 auto; padding-bottom: 30px; }
 
-    /* Video Player Outer Box */
+    /* Video Player Box */
     .player-container {
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
+      touch-action: none;
     }
-    video, iframe { width: 100%; height: 100%; border: none; object-fit: contain; }
+    video, iframe {
+      width: 100%; height: 100%; border: none; object-fit: contain; transition: object-fit 0.2s ease;
+    }
 
-    /* Edge-to-Edge Mobile Landscape Fix */
-    body.landscape-mode .top-nav { display: none !important; }
-    body.landscape-mode .details-wrapper { display: none !important; }
+    /* Mobile Landscape Mode */
+    body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
     body.landscape-mode .player-container {
       position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
     }
 
-    /* Watermark Branding (Top Right inside Video) */
-    .watermark-overlay {
-      position: absolute; top: 12px; right: 12px; z-index: 15;
-      background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px;
-      font-size: 11px; font-weight: 700; color: #fff; border: 1px solid rgba(255,255,255,0.15);
-      pointer-events: none; display: flex; align-items: center; gap: 5px;
-    }
-    .watermark-overlay span { color: var(--accent-blue); }
-
     /* Controls Overlay */
     .controls-overlay {
       position: absolute; inset: 0; z-index: 20;
-      background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.9) 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.95) 100%);
       display: flex; flex-direction: column; justify-content: space-between;
-      padding: 12px 16px; opacity: 0; transition: opacity 0.25s ease;
+      padding: 14px 20px; opacity: 0; transition: opacity 0.25s ease;
       pointer-events: none;
     }
     .controls-overlay.show { opacity: 1; pointer-events: auto; }
 
-    /* Overlay Top Header */
+    /* Top Bar (Photo 2) */
     .ctrl-top { display: flex; align-items: center; justify-content: space-between; }
-    .ctrl-top-left { display: flex; align-items: center; gap: 12px; }
-    .ctrl-top-title { font-size: 15px; font-weight: 700; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ctrl-top-right { display: flex; align-items: center; gap: 16px; }
+    .ctrl-top-left { display: flex; align-items: center; gap: 14px; }
+    .ctrl-top-title { font-size: 16px; font-weight: 700; color: #fff; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctrl-top-right { display: flex; align-items: center; gap: 18px; }
 
-    /* Icon Buttons */
     .icon-btn {
       background: none; border: none; color: #fff; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; padding: 6px;
-      transition: transform 0.1s, color 0.1s;
+      display: flex; align-items: center; justify-content: center; padding: 4px;
+      font-size: 14px; font-weight: 600; gap: 6px;
     }
-    .icon-btn:active { transform: scale(0.85); color: var(--accent-blue); }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Overlay Center Play Controls */
+    /* Left Brightness Slider (Photo 2) */
+    .brightness-slider-wrap {
+      position: absolute; left: 20px; top: 32%; transform: translateY(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 22;
+      pointer-events: none; opacity: 0; transition: opacity 0.3s;
+    }
+    .brightness-slider-wrap.active { opacity: 1; }
+    .brightness-track {
+      width: 3px; height: 100px; background: rgba(255,255,255,0.3); border-radius: 3px; position: relative; overflow: hidden;
+    }
+    .brightness-fill { width: 100%; height: 100%; background: #fff; position: absolute; bottom: 0; }
+    .brightness-icon { font-size: 14px; }
+
+    /* Center Controls (Photo 2) */
     .ctrl-center {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      display: flex; align-items: center; gap: 35px;
+      display: flex; align-items: center; gap: 45px;
     }
     .btn-center-play {
-      width: 54px; height: 54px; border-radius: 50%; background: rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.3); color: #fff;
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      background: none; border: none; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
     }
-    .btn-center-play svg { width: 28px; height: 28px; fill: #fff; }
+    .btn-center-play svg { width: 42px; height: 42px; fill: #fff; }
+    .btn-chevron svg { width: 32px; height: 32px; fill: #fff; }
 
-    /* Overlay Bottom Bar */
-    .ctrl-bottom { display: flex; flex-direction: column; gap: 6px; }
-    .progress-bar-wrap { width: 100%; display: flex; align-items: center; }
+    /* Bottom Timeline & Actions (Photo 2) */
+    .ctrl-bottom { display: flex; flex-direction: column; gap: 8px; margin-bottom: 5px; }
+    .timeline-row { display: flex; align-items: center; gap: 12px; }
     .progress-bar {
-      width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
-      background: rgba(255,255,255,0.3); border-radius: 4px; outline: none; cursor: pointer;
+      flex: 1; height: 3px; -webkit-appearance: none; appearance: none;
+      background: rgba(255,255,255,0.25); border-radius: 3px; outline: none; cursor: pointer;
     }
     .progress-bar::-webkit-slider-thumb {
       -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
-      background: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); cursor: pointer;
+      background: #fff; cursor: pointer;
     }
+    .time-display { font-size: 12px; color: #d0d0d0; font-variant-numeric: tabular-nums; }
 
-    .bottom-meta { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
-    .live-indicator {
-      display: flex; align-items: center; gap: 6px; color: var(--live-red); font-weight: 800;
-      font-size: 11px; letter-spacing: 0.5px;
-    }
-    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--live-red); animation: pulse 1.2s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    .action-row { display: flex; align-items: center; justify-content: space-between; padding-top: 4px; }
+    .action-left, .action-right { display: flex; align-items: center; gap: 20px; }
 
-    /* Locked Screen State */
-    .lock-overlay-btn {
-      position: absolute; top: 15px; left: 15px; z-index: 25;
-      background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3);
-      padding: 8px 12px; border-radius: 20px; color: #fff; font-size: 12px;
-      display: flex; align-items: center; gap: 6px; cursor: pointer;
+    /* Bottom Watch Next Peek Preview Row (Photo 2 Bottom) */
+    .peek-row {
+      display: flex; gap: 10px; overflow-x: hidden; padding-top: 6px; opacity: 0.85;
     }
+    .peek-card { min-width: 110px; width: 110px; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: #151515; position: relative; }
+    .peek-card img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Hotstar Settings Sheet Modal (Photos 1 & 2) */
-    .settings-modal {
-      position: fixed; inset: 0; z-index: 100000; background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(8px); display: none; align-items: flex-end; justify-content: center;
+    /* Hotstar Watch Next Drawer Overlay (Photo 1) */
+    .watch-next-drawer {
+      position: absolute; inset: 0; z-index: 40; background: rgba(0, 0, 0, 0.95);
+      display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;
+      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
     }
-    .settings-modal.active { display: flex; }
-    .settings-sheet {
-      width: 100%; max-width: 650px; background: #161822; border-top-left-radius: 16px;
-      border-top-right-radius: 16px; padding: 20px; border-top: 1px solid var(--border-color);
-    }
-    .sheet-header {
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px;
-    }
-    .sheet-tabs { display: flex; gap: 20px; }
-    .tab-btn {
-      background: none; border: none; color: var(--text-muted); font-size: 14px;
-      font-weight: 700; cursor: pointer; padding-bottom: 6px; position: relative;
-    }
-    .tab-btn.active { color: #fff; }
-    .tab-btn.active::after {
-      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--accent-blue);
-    }
-    .sheet-actions { display: flex; align-items: center; gap: 15px; font-size: 13px; }
-    .sheet-actions a { color: var(--text-muted); text-decoration: none; }
-    .sheet-actions .close-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+    .watch-next-drawer.open { transform: translateY(0); }
 
-    .option-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
-    .option-item {
-      display: flex; align-items: center; gap: 12px; padding: 12px;
-      border-radius: 8px; background: rgba(255,255,255,0.03); cursor: pointer; transition: 0.15s;
-    }
-    .option-item.selected { background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.3); }
-    .option-check { color: var(--accent-blue); font-weight: bold; width: 18px; }
-    .option-title { font-size: 14px; font-weight: 600; color: #fff; }
-    .option-sub { font-size: 12px; color: var(--text-muted); }
+    .drawer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .drawer-title { font-size: 18px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; }
+    .drawer-close { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
 
-    /* Access Denied Card Overlay */
+    .drawer-grid { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+    .drawer-grid::-webkit-scrollbar { display: none; }
+
+    .drawer-card {
+      min-width: 170px; width: 170px; text-decoration: none; color: #fff; display: flex; flex-direction: column; gap: 6px;
+    }
+    .drawer-thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; background: #1a1a1a; }
+    .drawer-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .drawer-play-icon {
+      position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6);
+      width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .drawer-play-icon svg { width: 12px; height: 12px; fill: #fff; }
+    .drawer-card-title { font-size: 13px; font-weight: 600; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .drawer-card-sub { font-size: 11px; color: var(--text-muted); }
+
+    /* Zoom Toast Notification */
+    .toast-msg {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); color: #fff; padding: 6px 16px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .toast-msg.show { opacity: 1; }
+
+    /* Access Blocked Overlay */
     .access-denied-box {
-      position: absolute; inset: 0; z-index: 30; background: rgba(9, 11, 16, 0.95);
+      position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-align: center; padding: 20px;
     }
-    .denied-icon { font-size: 40px; margin-bottom: 10px; }
-    .denied-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .denied-desc { font-size: 13px; color: var(--text-muted); max-width: 400px; margin-bottom: 18px; line-height: 1.4; }
     .btn-login {
       background: var(--accent-blue); color: #000; font-weight: 700; padding: 10px 22px;
-      border-radius: 20px; text-decoration: none; border: none; cursor: pointer;
+      border-radius: 20px; text-decoration: none; margin-top: 15px;
     }
 
-    /* Portrait Page Layout (Photo 4) */
+    /* Portrait Page Details */
     .details-wrapper { padding: 16px; }
     .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; }
     .ch-lang-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-
     .section-head { font-size: 16px; font-weight: 700; margin: 22px 0 12px; color: #fff; }
 
-    .channel-scroll-row {
-      display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px;
-      scrollbar-width: none;
-    }
+    .channel-scroll-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
     .channel-scroll-row::-webkit-scrollbar { display: none; }
 
     .card-item {
-      min-width: 150px; width: 150px; background: var(--card-bg); border: 1px solid var(--border-color);
+      min-width: 145px; width: 145px; background: var(--card-bg); border: 1px solid var(--border-color);
       border-radius: 10px; padding: 10px; text-decoration: none; color: #fff; display: flex;
       flex-direction: column; align-items: center; text-align: center;
     }
     .card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #000; border-radius: 6px; margin-bottom: 8px; }
-    .card-name { font-size: 12px; font-weight: 700; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-name { font-size: 12px; font-weight: 700; }
 
     .loader-box { text-align: center; padding: 50px; color: var(--accent-blue); font-weight: 600; }
   </style>
 </head>
 <body>
 
-<!-- Top Navigation -->
 <div class="top-nav">
   <div class="brand">⚡ Hotstar<span>TV</span></div>
-  <div class="user-pill" id="userPill">Checking User...</div>
+  <div class="user-pill" id="userPill">Checking...</div>
 </div>
 
-<div id="loader" class="loader-box">Connecting to Stream...</div>
+<div id="loader" class="loader-box">Connecting Stream...</div>
 
 <div id="appContent" style="display: none;">
   <div class="main-wrapper">
@@ -209,159 +199,101 @@
     <!-- Player Container -->
     <div class="player-container" id="playerContainer">
       
-      <!-- Top Right Watermark -->
-      <div class="watermark-overlay">
-        <span id="wmPartner">TV Today Network</span> | Hotstar Logo
-      </div>
+      <!-- Toast Message -->
+      <div class="toast-msg" id="toastMsg">Zoomed to Fill Screen</div>
 
       <!-- Access Denied Overlay -->
       <div class="access-denied-box" id="accessDeniedBox" style="display: none;">
-        <div class="denied-icon">🔒</div>
-        <div class="denied-title" id="deniedTitle">Access Restricted</div>
-        <div class="denied-desc" id="deniedDesc">Please log in to watch this channel.</div>
+        <div style="font-size:40px; margin-bottom:10px;">🔒</div>
+        <div style="font-size:18px; font-weight:700;" id="deniedTitle">Access Restricted</div>
+        <div style="font-size:13px; color:var(--text-muted); margin-top:6px;" id="deniedDesc">Please log in to watch.</div>
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
+      </div>
+
+      <!-- Brightness Slider Track -->
+      <div class="brightness-slider-wrap" id="brightnessWrap">
+        <div class="brightness-icon">☀️</div>
+        <div class="brightness-track">
+          <div class="brightness-fill" id="brightnessFill"></div>
+        </div>
       </div>
 
       <!-- Video Element -->
       <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
-
-      <!-- Fallback Embed Frame -->
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
 
-      <!-- Unlock Button when Locked -->
-      <div class="lock-overlay-btn" id="unlockBtn" style="display: none;">
-        🔓 Tap to Unlock Controls
-      </div>
-
-      <!-- Hotstar Player Overlay Controls (Photo 3) -->
+      <!-- Player Controls Overlay (Photo 2) -->
       <div class="controls-overlay" id="controlsOverlay">
         
         <!-- Top Bar -->
         <div class="ctrl-top">
           <div class="ctrl-top-left">
-            <button class="icon-btn" id="backBtn" title="Back">
-              <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-            </button>
+            <button class="icon-btn" id="backBtn"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
             <div class="ctrl-top-title" id="overlayChTitle">Channel Name</div>
           </div>
           <div class="ctrl-top-right">
-            <!-- Lock Button -->
-            <button class="icon-btn" id="lockBtn" title="Lock Screen">
-              <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-            </button>
-            <!-- Settings Gear Button -->
-            <button class="icon-btn" id="settingsBtn" title="Settings">
-              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-            </button>
-            <!-- Fullscreen Toggle Button -->
-            <button class="icon-btn" id="fullscreenBtn" title="Fullscreen">
-              <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-            </button>
+            <button class="icon-btn" id="lockBtn" title="Lock Screen"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></button>
+            <button class="icon-btn" id="settingsBtn" title="Settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+            <button class="icon-btn" id="aspectBtn" title="Fit/Fill Screen"><svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>
           </div>
         </div>
 
         <!-- Center Controls -->
         <div class="ctrl-center">
-          <button class="icon-btn" id="rewindBtn">
-            <svg viewBox="0 0 24 24"><path d="M12.5 3C17.15 3 21 6.85 21 11.5c0 4.65-3.85 8.5-8.5 8.5-3.32 0-6.2-1.92-7.55-4.71l1.82-.78c1.02 2.11 3.2 3.49 5.73 3.49 3.59 0 6.5-2.91 6.5-6.5S16.09 5 12.5 5c-2.02 0-3.82.93-5.02 2.39L10 10H3V3l2.81 2.81C7.32 4.19 9.77 3 12.5 3z"/></svg>
-          </button>
-          
+          <button class="icon-btn btn-chevron" id="rewindBtn"><svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg></button>
           <button class="btn-center-play" id="playBtn">
             <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
-
-          <button class="icon-btn" id="forwardBtn">
-            <svg viewBox="0 0 24 24"><path d="M11.5 3C6.85 3 3 6.85 3 11.5 3 16.15 6.85 20 11.5 20c3.32 0 6.2-1.92 7.55-4.71l-1.82-.78c-1.02 2.11-3.2 3.49-5.73 3.49-3.59 0-6.5-2.91-6.5-6.5S7.91 5 11.5 5c2.02 0 3.82.93 5.02 2.39L14 10h7V3l-2.81 2.81C16.68 4.19 14.23 3 11.5 3z"/></svg>
-          </button>
+          <button class="icon-btn btn-chevron" id="forwardBtn"><svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg></button>
         </div>
 
-        <!-- Bottom Controls -->
+        <!-- Bottom Timeline & Action Row (Photo 2) -->
         <div class="ctrl-bottom">
-          <div class="progress-bar-wrap">
+          <div class="timeline-row">
             <input type="range" id="progressBar" class="progress-bar" value="0" min="0" max="100">
+            <span class="time-display" id="timeDisplay">00:00:00</span>
           </div>
-          <div class="bottom-meta">
-            <span id="bottomCategory">Live News</span>
-            <div class="live-indicator"><div class="live-dot"></div> LIVE</div>
+
+          <div class="action-row">
+            <div class="action-left">
+              <button class="icon-btn" id="openWatchNextBtn">🧭 Watch Next</button>
+            </div>
+            <div class="action-right">
+              <button class="icon-btn" id="speedBtn">⏱ Speed 1x</button>
+              <button class="icon-btn" id="rateBtn">♡ Rate</button>
+            </div>
           </div>
+
+          <!-- Bottom Peek Cards Row -->
+          <div class="peek-row" id="peekRow"></div>
         </div>
 
       </div>
+
+      <!-- Hotstar "Watch Next" Drawer Overlay (Photo 1) -->
+      <div class="watch-next-drawer" id="watchNextDrawer">
+        <div class="drawer-header">
+          <div class="drawer-title">Watch Next <span>∨</span></div>
+          <button class="drawer-close" id="closeDrawerBtn">✕</button>
+        </div>
+        <div class="drawer-grid" id="drawerGrid"></div>
+      </div>
+
     </div>
 
-    <!-- Portrait Details (Photo 4) -->
+    <!-- Portrait Details Page -->
     <div class="details-wrapper">
-      <div class="ch-title-head" id="chTitle">News18 India</div>
-      <div class="ch-lang-sub" id="chLangSub">हिंदी • Live Stream</div>
+      <div class="ch-title-head" id="chTitle">Channel Name</div>
+      <div class="ch-lang-sub" id="chLangSub">Language • Category</div>
 
-      <!-- Live News Category Row -->
       <div class="section-head">Live News</div>
       <div class="channel-scroll-row" id="newsGrid"></div>
 
-      <!-- Live Business News Category Row -->
-      <div class="section-head">Live Business News</div>
-      <div class="channel-scroll-row" id="businessGrid"></div>
+      <div class="section-head">Recommended For You</div>
+      <div class="channel-scroll-row" id="recomGrid"></div>
     </div>
 
-  </div>
-</div>
-
-<!-- Settings Modal Sheet (Photos 1 & 2) -->
-<div class="settings-modal" id="settingsModal">
-  <div class="settings-sheet">
-    <div class="sheet-header">
-      <div class="sheet-tabs">
-        <button class="tab-btn active" id="tabQuality">Quality</button>
-        <button class="tab-btn" id="tabAudio">Audio Language</button>
-      </div>
-      <div class="sheet-actions">
-        <a href="#">Report an Issue</a>
-        <button class="close-btn" id="closeSettings">✕</button>
-      </div>
-    </div>
-
-    <!-- Quality Tab Options -->
-    <div id="qualityOptions" class="option-list">
-      <div class="option-item selected" data-quality="-1">
-        <div class="option-check">✓</div>
-        <div>
-          <div class="option-title">Auto</div>
-          <div class="option-sub">Recommended for best experience</div>
-        </div>
-      </div>
-      <div class="option-item" data-quality="1080">
-        <div class="option-check"></div>
-        <div>
-          <div class="option-title">Full HD</div>
-          <div class="option-sub">Up to 1080p</div>
-        </div>
-      </div>
-      <div class="option-item" data-quality="720">
-        <div class="option-check"></div>
-        <div>
-          <div class="option-title">HD</div>
-          <div class="option-sub">Up to 720p</div>
-        </div>
-      </div>
-      <div class="option-item" data-quality="360">
-        <div class="option-check"></div>
-        <div>
-          <div class="option-title">Data Saver</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Audio Language Tab Options -->
-    <div id="audioOptions" class="option-list" style="display: none;">
-      <div class="option-item selected">
-        <div class="option-check">✓</div>
-        <div>
-          <div class="option-title">Hindi</div>
-          <div class="option-sub">Original</div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -369,7 +301,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // 1. Channel DB
+  // Channel DB
   const channelConfig = {
     apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
     authDomain: "internal-systems-46728.firebaseapp.com",
@@ -382,7 +314,7 @@
   const channelApp = initializeApp(channelConfig, "channelApp");
   const channelDb = getFirestore(channelApp);
 
-  // 2. Auth DB
+  // Auth DB
   const authConfig = {
     apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
     authDomain: "question-metabase.firebaseapp.com",
@@ -401,7 +333,8 @@
 
   let hlsInstance = null;
   let hideControlsTimer = null;
-  let isScreenLocked = false;
+  let isCoverMode = false;
+  let currentSpeed = 1;
 
   if (!currentDocId) {
     document.getElementById('loader').innerText = "URL Parameter Missing (?watch=DOCUMENT_ID)";
@@ -416,7 +349,6 @@
     let activeUser = null;
     try { activeUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
 
-    // Fetch Channel Data
     let channel = null;
     try {
       const channelRef = doc(channelDb, "Live TV", docId);
@@ -431,21 +363,18 @@
       return;
     }
 
-    // Set UI Metadata
     document.getElementById('chTitle').innerText = channel.Name || "Live Channel";
     document.getElementById('overlayChTitle').innerText = channel.Name || "Live Channel";
-    document.getElementById('wmPartner').innerText = channel.Partner || "Partner Logo";
-    document.getElementById('chLangSub').innerText = `${channel.Language || 'Hindi'} • ${channel.Genres || 'Live News'}`;
-    document.getElementById('bottomCategory').innerText = channel.Genres || 'Live News';
+    document.getElementById('chLangSub').innerText = `${channel.Language || 'Hindi'} • ${channel.Genres || 'Live'}`;
 
     loader.style.display = 'none';
     document.getElementById('appContent').style.display = 'block';
 
-    // Verify User Authorization
+    // Verify Login & Subscription
     if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
       userPill.innerText = "Not Logged In";
       showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
-      loadCategoryRows(docId);
+      loadChannelsList(docId);
       return;
     }
 
@@ -460,7 +389,7 @@
 
     if (!Array.isArray(userPlans) || userPlans.length === 0) {
       showDenied("No Subscription Plan", "Your account has no active plan. Please subscribe.", "View Plans", "1 (3).html");
-      loadCategoryRows(docId);
+      loadChannelsList(docId);
       return;
     }
 
@@ -486,7 +415,7 @@
       showDenied("Access Restricted", `Your subscription plan does not include content from '${channel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
     }
 
-    loadCategoryRows(docId);
+    loadChannelsList(docId);
   }
 
   function showDenied(title, desc, btnTxt, btnUrl) {
@@ -506,7 +435,6 @@
   function initStreamPlayer(streamUrl) {
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
-    const overlay = document.getElementById('controlsOverlay');
 
     if (!streamUrl) return;
 
@@ -516,7 +444,6 @@
       else if (streamUrl.includes('youtu.be/')) embedUrl = `https://www.youtube.com/embed/${streamUrl.split('youtu.be/')[1].split('?')[0]}?autoplay=1`;
       
       video.style.display = 'none';
-      overlay.style.display = 'none';
       iframe.style.display = 'block';
       iframe.src = embedUrl;
     } else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
@@ -535,7 +462,6 @@
       setupInteraction(video);
     } else {
       video.style.display = 'none';
-      overlay.style.display = 'none';
       iframe.style.display = 'block';
       iframe.src = streamUrl;
     }
@@ -549,20 +475,27 @@
     const pauseIcon = document.getElementById('pauseIcon');
     const rewindBtn = document.getElementById('rewindBtn');
     const forwardBtn = document.getElementById('forwardBtn');
-    const lockBtn = document.getElementById('lockBtn');
-    const unlockBtn = document.getElementById('unlockBtn');
     const backBtn = document.getElementById('backBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const aspectBtn = document.getElementById('aspectBtn');
+    const speedBtn = document.getElementById('speedBtn');
+    const rateBtn = document.getElementById('rateBtn');
+    const openWatchNextBtn = document.getElementById('openWatchNextBtn');
+    const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+    const watchNextDrawer = document.getElementById('watchNextDrawer');
     const progressBar = document.getElementById('progressBar');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const toastMsg = document.getElementById('toastMsg');
 
-    // Show/Hide Controls on Tap
+    const showToast = (msg) => {
+      toastMsg.innerText = msg;
+      toastMsg.classList.add('show');
+      setTimeout(() => toastMsg.classList.remove('show'), 2000);
+    };
+
     const showControls = () => {
-      if (isScreenLocked) return;
       overlay.classList.add('show');
       clearTimeout(hideControlsTimer);
-      hideControlsTimer = setTimeout(() => {
-        overlay.classList.remove('show');
-      }, 3500);
+      hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
     };
 
     playerContainer.onclick = (e) => {
@@ -571,58 +504,107 @@
     };
 
     // Play/Pause
-    const togglePlay = (e) => {
-      e?.stopPropagation();
+    playBtn.onclick = (e) => {
+      e.stopPropagation();
       if (video.paused) video.play(); else video.pause();
       showControls();
     };
 
-    playBtn.onclick = togglePlay;
     video.onplay = () => { playIcon.style.display = 'none'; pauseIcon.style.display = 'block'; };
     video.onpause = () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; };
 
-    // Rewind / Forward
     rewindBtn.onclick = (e) => { e.stopPropagation(); video.currentTime -= 10; showControls(); };
     forwardBtn.onclick = (e) => { e.stopPropagation(); video.currentTime += 10; showControls(); };
 
-    // Progress Bar
-    video.ontimeupdate = () => {
-      if (video.duration) progressBar.value = (video.currentTime / video.duration) * 100;
+    // Format Time
+    const formatTime = (secs) => {
+      if (isNaN(secs)) return "00:00:00";
+      const h = Math.floor(secs / 3600).toString().padStart(2, '0');
+      const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
+      const s = Math.floor(secs % 60).toString().padStart(2, '0');
+      return `${h}:${m}:${s}`;
     };
+
+    video.ontimeupdate = () => {
+      if (video.duration) {
+        progressBar.value = (video.currentTime / video.duration) * 100;
+        timeDisplay.innerText = formatTime(video.currentTime);
+      }
+    };
+
     progressBar.oninput = (e) => {
       e.stopPropagation();
       if (video.duration) video.currentTime = (progressBar.value / 100) * video.duration;
     };
 
-    // Lock Screen
-    lockBtn.onclick = (e) => {
+    // Toggle Aspect Ratio (Fill / Fit Screen)
+    const toggleAspect = (e) => {
+      e?.stopPropagation();
+      isCoverMode = !isCoverMode;
+      video.style.objectFit = isCoverMode ? 'cover' : 'contain';
+      showToast(isCoverMode ? "Zoomed to Fill Screen" : "Original Aspect Ratio");
+    };
+    aspectBtn.onclick = toggleAspect;
+
+    // Hotstar Pinch to Fill Screen Gesture
+    let initialPinchDistance = 0;
+    playerContainer.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialPinchDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    });
+
+    playerContainer.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && initialPinchDistance > 0) {
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const diff = currentDist - initialPinchDistance;
+
+        if (diff > 35 && !isCoverMode) {
+          isCoverMode = true;
+          video.style.objectFit = 'cover';
+          showToast("Zoomed to Fill Screen");
+        } else if (diff < -35 && isCoverMode) {
+          isCoverMode = false;
+          video.style.objectFit = 'contain';
+          showToast("Original Aspect Ratio");
+        }
+      }
+    });
+
+    // Speed Selector
+    const speeds = [1, 1.25, 1.5, 2];
+    speedBtn.onclick = (e) => {
       e.stopPropagation();
-      isScreenLocked = true;
-      overlay.classList.remove('show');
-      unlockBtn.style.display = 'flex';
+      const nextIdx = (speeds.indexOf(currentSpeed) + 1) % speeds.length;
+      currentSpeed = speeds[nextIdx];
+      video.playbackRate = currentSpeed;
+      speedBtn.innerText = `⏱ Speed ${currentSpeed}x`;
     };
 
-    unlockBtn.onclick = (e) => {
+    rateBtn.onclick = (e) => {
       e.stopPropagation();
-      isScreenLocked = false;
-      unlockBtn.style.display = 'none';
-      showControls();
+      rateBtn.innerText = rateBtn.innerText.includes('♥') ? '♡ Rate' : '♥ Liked';
+    };
+
+    // Watch Next Drawer
+    openWatchNextBtn.onclick = (e) => {
+      e.stopPropagation();
+      watchNextDrawer.classList.add('open');
+    };
+    closeDrawerBtn.onclick = (e) => {
+      e.stopPropagation();
+      watchNextDrawer.classList.remove('open');
     };
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    // Fullscreen Toggle
-    const toggleFullscreen = (e) => {
-      e?.stopPropagation();
-      if (!document.fullscreenElement) {
-        playerContainer.requestFullscreen?.() || playerContainer.webkitRequestFullscreen?.();
-      } else {
-        document.exitFullscreen?.();
-      }
-    };
-    fullscreenBtn.onclick = toggleFullscreen;
-
-    // Orientation Logic for Mobile Edge-to-Edge Fullscreen
+    // Orientation Check
     const checkOrientation = () => {
       if (window.innerWidth > window.innerHeight) {
         document.body.classList.add('landscape-mode');
@@ -635,91 +617,48 @@
     window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
     checkOrientation();
 
-    // Initial show of controls
     showControls();
   }
 
-  // Settings Modal Sheet Logic (Photos 1 & 2)
-  const settingsModal = document.getElementById('settingsModal');
-  const settingsBtn = document.getElementById('settingsBtn');
-  const closeSettings = document.getElementById('closeSettings');
-  const tabQuality = document.getElementById('tabQuality');
-  const tabAudio = document.getElementById('tabAudio');
-  const qualityOptions = document.getElementById('qualityOptions');
-  const audioOptions = document.getElementById('audioOptions');
-
-  settingsBtn.onclick = (e) => {
-    e.stopPropagation();
-    settingsModal.classList.add('active');
-  };
-
-  closeSettings.onclick = () => settingsModal.classList.remove('active');
-  settingsModal.onclick = (e) => {
-    if (e.target === settingsModal) settingsModal.classList.remove('active');
-  };
-
-  tabQuality.onclick = () => {
-    tabQuality.classList.add('active');
-    tabAudio.classList.remove('active');
-    qualityOptions.style.display = 'flex';
-    audioOptions.style.display = 'none';
-  };
-
-  tabAudio.onclick = () => {
-    tabAudio.classList.add('active');
-    tabQuality.classList.remove('active');
-    audioOptions.style.display = 'flex';
-    qualityOptions.style.display = 'none';
-  };
-
-  // Quality Switching
-  document.querySelectorAll('#qualityOptions .option-item').forEach(item => {
-    item.onclick = () => {
-      document.querySelectorAll('#qualityOptions .option-item').forEach(i => {
-        i.classList.remove('selected');
-        i.querySelector('.option-check').innerText = '';
-      });
-      item.classList.add('selected');
-      item.querySelector('.option-check').innerText = '✓';
-
-      const targetQuality = parseInt(item.dataset.quality);
-      if (hlsInstance) {
-        if (targetQuality === -1) {
-          hlsInstance.currentLevel = -1; // Auto
-        } else {
-          const levelIndex = hlsInstance.levels.findIndex(l => l.height <= targetQuality);
-          if (levelIndex !== -1) hlsInstance.currentLevel = levelIndex;
-        }
-      }
-      setTimeout(() => settingsModal.classList.remove('active'), 200);
-    };
-  });
-
-  // Load Categorized Rows (Photo 4)
-  async function loadCategoryRows(excludeId) {
-    const newsGrid = document.getElementById('newsGrid');
-    const businessGrid = document.getElementById('businessGrid');
-
+  // Fetch Channels for Drawer & Lists
+  async function loadChannelsList(excludeId) {
     try {
       const snap = await getDocs(collection(channelDb, "Live TV"));
       let channels = [];
       snap.forEach(d => { if(d.id !== excludeId) channels.push({ id: d.id, ...d.data() }); });
 
-      const newsList = channels.filter(c => (c.Genres || '').toLowerCase().includes('news'));
-      const businessList = channels.filter(c => (c.Genres || '').toLowerCase().includes('business') || (c.Name || '').toLowerCase().includes('cnbc'));
+      // Render Peek Cards inside Player Overlay (Photo 2 Bottom)
+      document.getElementById('peekRow').innerHTML = channels.slice(0, 4).map(c => `
+        <a href="1.html?watch=${c.id}" class="peek-card">
+          <img src="${c["Logo.png"] || c.Logo || ''}" alt="${c.Name}">
+        </a>
+      `).join('');
 
+      // Render "Watch Next" Full Drawer Grid (Photo 1)
+      document.getElementById('drawerGrid').innerHTML = channels.map(c => `
+        <a href="1.html?watch=${c.id}" class="drawer-card">
+          <div class="drawer-thumb-wrap">
+            <img src="${c["Logo.png"] || c.Logo || ''}" alt="${c.Name}">
+            <div class="drawer-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="drawer-card-title">${c.Name || 'TV Channel'}</div>
+          <div class="drawer-card-sub">${c.Genres || 'Live'} • ${c.Language || 'Hindi'}</div>
+        </a>
+      `).join('');
+
+      // Render Portrait Page Lists
       const renderCard = (c) => `
         <a href="1.html?watch=${c.id}" class="card-item">
           <img src="${c["Logo.png"] || c.Logo || ''}" class="card-thumb" alt="${c.Name}">
-          <div class="card-name">${c.Name || 'Live TV'}</div>
+          <div class="card-name">${c.Name || 'TV Channel'}</div>
         </a>
       `;
 
-      newsGrid.innerHTML = (newsList.length ? newsList : channels).map(renderCard).join('');
-      businessGrid.innerHTML = (businessList.length ? businessList : channels).map(renderCard).join('');
+      document.getElementById('newsGrid').innerHTML = channels.map(renderCard).join('');
+      document.getElementById('recomGrid').innerHTML = channels.slice().reverse().map(renderCard).join('');
 
     } catch (e) {
-      newsGrid.innerHTML = `<p style="font-size:12px; color:var(--text-muted);">Failed to load recommendations.</p>`;
+      console.error(e);
     }
   }
 </script>
