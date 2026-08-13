@@ -1,744 +1,496 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Video Player - Blue Theme</title>
-    <!-- Material Icons for UI -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-    <!-- HLS.js for m3u8 support -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Watch Live TV - Premium Player</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    :root {
+      --bg-color: #090b10;
+      --card-bg: #131722;
+      --accent-color: #00d2ff;
+      --accent-hover: #00b8e6;
+      --text-main: #ffffff;
+      --text-muted: #9aa0a6;
+      --border-color: #232838;
+      --hotstar-blue: #0f172a;
+    }
 
-    <style>
-        :root {
-            /* Changed to Blue */
-            --primary-color: #037ffc; 
-            --bg-overlay: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.85) 100%);
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+    /* Top Navbar */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+    .brand span { color: var(--accent-color); }
 
-        body {
-            background-color: #000;
-            color: #fff;
-            overflow: hidden;
-        }
+    /* Main Container */
+    .main-wrapper { max-width: 1100px; margin: 0 auto; padding-bottom: 40px; }
 
-        #player-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+    /* Player Area */
+    .player-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9);
+    }
 
-        /* Video Elements */
-        video, #youtube-player-container, iframe {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            border: none;
-            outline: none;
-        }
+    video, iframe { width: 100%; height: 100%; border: none; object-fit: contain; }
 
-        /* Force YouTube pointer events to none so our UI catches all clicks */
-        #youtube-player-container {
-            pointer-events: none;
-        }
+    /* Watermark Top Right: Partner Logo | Channel Name */
+    .watermark {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    .watermark .partner-tag { color: var(--accent-color); text-transform: uppercase; letter-spacing: 0.5px; }
+    .watermark .divider { color: rgba(255,255,255,0.4); }
+    .watermark .channel-tag { color: #fff; }
 
-        /* UI Overlay Layer */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--bg-overlay);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            z-index: 10;
-            transition: opacity 0.3s ease;
-        }
+    /* Custom Player Overlay Controls */
+    .player-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.85) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 15px;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+    }
+    .player-container:hover .player-overlay,
+    .player-overlay.active { opacity: 1; }
 
-        #ui-layer.idle {
-            opacity: 0;
-            cursor: none;
-        }
+    .controls-bottom { display: flex; flex-direction: column; gap: 10px; }
 
-        .icon-btn {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s, color 0.2s;
-        }
+    /* Progress Bar */
+    .progress-wrap { width: 100%; display: flex; align-items: center; }
+    .progress-bar {
+      width: 100%; height: 5px;
+      -webkit-appearance: none; appearance: none;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 5px; outline: none; cursor: pointer;
+      transition: height 0.1s;
+    }
+    .progress-bar:hover { height: 8px; }
+    .progress-bar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%; background: var(--accent-color);
+      box-shadow: 0 0 10px var(--accent-color);
+      cursor: pointer;
+    }
 
-        .icon-btn:hover {
-            transform: scale(1.1);
-            color: var(--primary-color);
-        }
+    /* Control Buttons */
+    .btn-row { display: flex; justify-content: space-between; align-items: center; }
+    .btn-left { display: flex; align-items: center; gap: 18px; }
+    .ctrl-btn {
+      background: none; border: none; color: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: transform 0.15s, color 0.15s;
+    }
+    .ctrl-btn:hover { color: var(--accent-color); transform: scale(1.1); }
+    .ctrl-btn:active { transform: scale(0.95); }
+    .ctrl-btn svg { width: 24px; height: 24px; fill: currentColor; }
 
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            padding: 20px 30px;
-            align-items: center;
-        }
+    /* Metadata Area */
+    .channel-meta { padding: 20px 15px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+    .meta-top { display: flex; align-items: center; gap: 15px; }
+    .channel-logo {
+      width: 65px; height: 65px; border-radius: 12px;
+      object-fit: contain; background: #0f1014;
+      padding: 6px; border: 1px solid var(--border-color);
+    }
+    .ch-name { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 6px; }
 
-        .top-bar .left, .top-bar .right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+    .badges-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .badge {
+      background: rgba(0, 210, 255, 0.1);
+      color: var(--accent-color);
+      font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 6px;
+      border: 1px solid rgba(0, 210, 255, 0.25);
+    }
+    .badge-age { background: rgba(229, 9, 20, 0.2); color: #ff4d4d; border-color: rgba(229, 9, 20, 0.4); }
+    .ch-desc { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-top: 14px; }
 
-        .video-title {
-            font-size: 1.2rem;
-            font-weight: 500;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-        }
+    /* Similar Channels Section */
+    .section-title { font-size: 18px; font-weight: 700; margin: 25px 15px 15px; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .section-title::before { content: ''; width: 4px; height: 18px; background: var(--accent-color); border-radius: 2px; }
 
-        .center-controls {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
-            align-items: center;
-            gap: 50px;
-        }
+    .channels-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+      padding: 0 15px;
+    }
 
-        .center-controls .material-icons-outlined {
-            font-size: 3.5rem;
-            cursor: pointer;
-            transition: color 0.2s, transform 0.1s;
-            text-shadow: 0px 0px 10px rgba(0,0,0,0.5);
-        }
-        .center-controls .material-icons-outlined:active {
-            transform: scale(0.9);
-        }
-        .center-controls .play-btn {
-            font-size: 5rem;
-        }
-        .center-controls .material-icons-outlined:hover {
-            color: var(--primary-color);
-        }
+    .channel-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      text-decoration: none;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .channel-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent-color);
+      box-shadow: 0 8px 20px rgba(0, 210, 255, 0.15);
+    }
+    .card-img { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; margin-bottom: 10px; background: #000; padding: 4px; }
+    .card-title { font-size: 13px; font-weight: 600; line-clamp: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-lang { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
-        /* Hide brightness bar for cleaner UI, or keep if needed */
-        .left-bar {
-            position: absolute;
-            left: 30px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .brightness-slider {
-            -webkit-appearance: none;
-            width: 100px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.3);
-            transform: rotate(-90deg);
-            border-radius: 2px;
-            outline: none;
-        }
-        .brightness-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px;
-            height: 12px;
-            background: white;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .bottom-bar {
-            padding: 20px 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .progress-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .progress-bar {
-            flex: 1;
-            -webkit-appearance: none;
-            height: 5px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-            outline: none;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .progress-bar::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: var(--primary-color);
-            border-radius: 50%;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
-        }
-        .progress-bar::-webkit-slider-thumb:hover {
-            transform: scale(1.3);
-        }
-
-        .time-display {
-            font-size: 0.9rem;
-            font-variant-numeric: tabular-nums;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-        }
-
-        .action-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.95rem;
-        }
-
-        .action-bar .left, .action-bar .right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            color: #eee;
-            cursor: pointer;
-        }
-
-        .action-bar .left:hover, .action-bar .right > div:hover {
-            color: var(--primary-color);
-        }
-
-        .action-bar .material-icons-outlined {
-            font-size: 1.2rem;
-            margin-right: 5px;
-            vertical-align: middle;
-        }
-
-        #settings-menu {
-            position: absolute;
-            top: 70px;
-            right: 30px;
-            background: rgba(15, 15, 15, 0.95);
-            border-radius: 8px;
-            padding: 10px 0;
-            min-width: 220px;
-            display: none;
-            flex-direction: column;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        }
-
-        #settings-menu.active {
-            display: flex;
-        }
-
-        .setting-item {
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: background 0.2s;
-        }
-
-        .setting-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--primary-color);
-        }
-
-        .setting-value {
-            color: #aaa;
-            font-size: 0.85rem;
-        }
-
-        /* LOCK SCREEN LOGIC */
-        #ui-layer.locked .top-bar .left,
-        #ui-layer.locked .top-bar .right .icon-btn:not(#lock-btn),
-        #ui-layer.locked .center-controls,
-        #ui-layer.locked .left-bar,
-        #ui-layer.locked .bottom-bar,
-        #ui-layer.locked #settings-menu {
-            opacity: 0;
-            pointer-events: none;
-            visibility: hidden;
-        }
-        
-        #ui-layer.locked {
-            background: none;
-        }
-        
-        #error-msg {
-            position: absolute;
-            z-index: 100;
-            background: rgba(220, 53, 69, 0.9);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 5px;
-            display: none;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-
-        /* Loading Spinner */
-        #loading-spinner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            display: none;
-            pointer-events: none;
-        }
-        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-
-    </style>
+    .loader { text-align: center; padding: 60px 20px; color: var(--accent-color); font-size: 16px; font-weight: 600; }
+  </style>
 </head>
 <body>
 
-<div id="player-container">
-    <div id="error-msg"></div>
-    <div id="loading-spinner"></div>
-
-    <!-- Players -->
-    <video id="html5-video" style="display: none;" playsinline></video>
-    
-    <div id="youtube-player-container" style="display: none;">
-        <div id="youtube-player"></div>
-    </div>
-    
-    <iframe id="iframe-player" style="display: none;" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-
-    <!-- UI Layer -->
-    <div id="ui-layer">
-        <div class="top-bar">
-            <div class="left">
-                <button class="icon-btn" onclick="history.back()"><span class="material-icons-outlined">arrow_back</span></button>
-                <span class="video-title" id="title-display">Player</span>
-            </div>
-            <div class="right">
-                <button class="icon-btn" id="lock-btn"><span class="material-icons-outlined">lock_open</span></button>
-                <button class="icon-btn" id="settings-btn"><span class="material-icons-outlined">settings</span></button>
-                <button class="icon-btn" id="fullscreen-btn"><span class="material-icons-outlined">fullscreen</span></button>
-            </div>
-        </div>
-
-        <div class="center-controls">
-            <span class="material-icons-outlined" id="rewind-btn">replay_10</span>
-            <span class="material-icons-outlined play-btn" id="play-pause-btn">play_arrow</span>
-            <span class="material-icons-outlined" id="forward-btn">forward_10</span>
-        </div>
-
-        <div class="bottom-bar">
-            <div class="progress-container">
-                <input type="range" class="progress-bar" id="seek-bar" value="0" min="0" step="0.1">
-                <span class="time-display" id="time-display">00:00 / 00:00</span>
-            </div>
-            
-            <div class="action-bar">
-                <div class="left">
-                    <span class="material-icons-outlined">explore</span> Watch Next
-                </div>
-                <div class="right">
-                    <div id="speed-toggle">
-                        <span class="material-icons-outlined">speed</span> <span id="speed-display">1x</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Settings Menu -->
-        <div id="settings-menu">
-            <div class="setting-item" id="menu-quality-btn">
-                <span>Quality</span>
-                <span class="setting-value" id="menu-quality-val">Auto</span>
-            </div>
-            <div class="setting-item" id="menu-speed-btn">
-                <span>Speed</span>
-                <span class="setting-value" id="menu-speed-val">Normal</span>
-            </div>
-        </div>
-    </div>
+<div class="navbar">
+  <div class="brand">⚡ LiveTV <span>Stream</span></div>
 </div>
 
-<script>
-    // --- URL PARAMETER PARSING ---
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoUrl = urlParams.get('url');
-    const syncType = urlParams.get('sync'); 
+<div id="loader" class="loader">Loading Channel Stream...</div>
 
-    // Elements
-    const playerContainer = document.getElementById('player-container');
-    const html5Video = document.getElementById('html5-video');
-    const ytContainer = document.getElementById('youtube-player-container');
-    const iframePlayer = document.getElementById('iframe-player');
-    const errorMsg = document.getElementById('error-msg');
-    const spinner = document.getElementById('loading-spinner');
+<div id="app" style="display: none;">
+  <div class="main-wrapper">
     
-    const uiLayer = document.getElementById('ui-layer');
-    const playPauseBtn = document.getElementById('play-pause-btn');
-    const lockBtn = document.getElementById('lock-btn');
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsMenu = document.getElementById('settings-menu');
-    const fullscreenBtn = document.getElementById('fullscreen-btn');
-    const seekBar = document.getElementById('seek-bar');
-    const timeDisplay = document.getElementById('time-display');
+    <!-- Player Container -->
+    <div class="player-container" id="playerContainer">
+      
+      <!-- Top Right Watermark -->
+      <div class="watermark">
+        <span class="partner-tag" id="wmPartner">Partner Logo</span>
+        <span class="divider">|</span>
+        <span class="channel-tag" id="wmChannel">Channel Name</span>
+      </div>
 
-    // State Variables
-    let isLocked = false;
-    let isPlaying = false;
-    let uiTimeout;
-    let hlsInstance = null;
-    
-    // Quality Variables
-    let availableQualities = [{ label: 'Auto', value: -1 }];
-    let currentQualityIndex = 0;
+      <!-- Video Element -->
+      <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
 
-    // YouTube Specific Variables
-    let ytPlayer = null;
-    let ytProgressInterval;
+      <!-- Embed Fallback -->
+      <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
 
-    function showError(msg) {
-        errorMsg.innerText = msg;
-        errorMsg.style.display = 'block';
-        setTimeout(() => errorMsg.style.display = 'none', 5000);
+      <!-- Player Custom Controls Overlay -->
+      <div class="player-overlay" id="playerOverlay">
+        <div></div> <!-- Spacer -->
+        <div class="controls-bottom">
+          <div class="progress-wrap">
+            <input type="range" id="progressBar" class="progress-bar" value="0" min="0" max="100">
+          </div>
+          <div class="btn-row">
+            <div class="btn-left">
+              <!-- Play/Pause SVG -->
+              <button class="ctrl-btn" id="playBtn" title="Play/Pause">
+                <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              </button>
+              
+              <!-- Rewind 10s SVG -->
+              <button class="ctrl-btn" id="rewindBtn" title="Rewind 10s">
+                <svg viewBox="0 0 24 24"><path d="M12.5 3C17.15 3 21 6.85 21 11.5c0 4.65-3.85 8.5-8.5 8.5-3.32 0-6.2-1.92-7.55-4.71l1.82-.78c1.02 2.11 3.2 3.49 5.73 3.49 3.59 0 6.5-2.91 6.5-6.5S16.09 5 12.5 5c-2.02 0-3.82.93-5.02 2.39L10 10H3V3l2.81 2.81C7.32 4.19 9.77 3 12.5 3z"/></svg>
+              </button>
+
+              <!-- Forward 10s SVG -->
+              <button class="ctrl-btn" id="forwardBtn" title="Forward 10s">
+                <svg viewBox="0 0 24 24"><path d="M11.5 3C6.85 3 3 6.85 3 11.5 3 16.15 6.85 20 11.5 20c3.32 0 6.2-1.92 7.55-4.71l-1.82-.78c-1.02 2.11-3.2 3.49-5.73 3.49-3.59 0-6.5-2.91-6.5-6.5S7.91 5 11.5 5c2.02 0 3.82.93 5.02 2.39L14 10h7V3l-2.81 2.81C16.68 4.19 14.23 3 11.5 3z"/></svg>
+              </button>
+            </div>
+
+            <div>
+              <!-- Fullscreen SVG -->
+              <button class="ctrl-btn" id="fullscreenBtn" title="Full Screen">
+                <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metadata Section -->
+    <div class="channel-meta">
+      <div class="meta-top">
+        <img id="chLogo" class="channel-logo" src="" alt="Logo">
+        <div>
+          <div class="ch-name" id="chTitle">Channel Title</div>
+          <div class="badges-row" id="badgesContainer"></div>
+        </div>
+      </div>
+      <p class="ch-desc" id="chDesc"></p>
+    </div>
+
+    <!-- Similar Channels Section -->
+    <div class="section-title">Similar Channels</div>
+    <div class="channels-grid" id="similarGrid"></div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+    authDomain: "internal-systems-46728.firebaseapp.com",
+    projectId: "internal-systems-46728",
+    storageBucket: "internal-systems-46728.firebasestorage.app",
+    messagingSenderId: "172177452674",
+    appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+    measurementId: "G-Y87B8VRQ1N"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentDocId = urlParams.get('watch');
+
+  if (!currentDocId) {
+    document.getElementById('loader').innerText = "Parameter missing! Use URL format: 1.html?watch=DOCUMENT_ID";
+  } else {
+    loadCurrentChannel(currentDocId);
+  }
+
+  async function loadCurrentChannel(id) {
+    try {
+      const docRef = doc(db, "Live TV", id);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        document.getElementById('loader').innerText = `Channel '${id}' not found in "Live TV" collection.`;
+        return;
+      }
+
+      const channel = docSnap.data();
+
+      // Set Metadata UI
+      document.getElementById('chTitle').innerText = channel.Name || "Live Channel";
+      document.getElementById('chLogo').src = channel["Logo.png"] || channel.Logo || "";
+      document.getElementById('chDesc').innerText = channel.Description || "No description available.";
+
+      // Watermark Top-Right
+      document.getElementById('wmPartner').innerText = channel.Partner || "Hotstar Logo";
+      document.getElementById('wmChannel').innerText = channel.Name || "Live TV";
+
+      // Render Badges
+      const badgesContainer = document.getElementById('badgesContainer');
+      badgesContainer.innerHTML = '';
+      if (channel.AgeRating) badgesContainer.innerHTML += `<span class="badge badge-age">${channel.AgeRating}</span>`;
+      if (channel.Language) badgesContainer.innerHTML += `<span class="badge">${channel.Language}</span>`;
+      if (channel.Genres) badgesContainer.innerHTML += `<span class="badge">${channel.Genres}</span>`;
+
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+
+      // Initialize Stream
+      initPlayer(channel.Stream);
+
+      // Fetch Similar Channels
+      fetchSimilarChannels(channel.Genres, channel.Language, id);
+
+    } catch (e) {
+      document.getElementById('loader').innerText = "Error: " + e.message;
     }
+  }
 
-    function showLoading(show) {
-        spinner.style.display = show ? 'block' : 'none';
+  function initPlayer(streamUrl) {
+    const video = document.getElementById('videoPlayer');
+    const iframe = document.getElementById('iframePlayer');
+    const overlay = document.getElementById('playerOverlay');
+
+    if (!streamUrl) return;
+
+    // YouTube Stream
+    if (streamUrl.includes('youtube.com') || streamUrl.includes('youtu.be')) {
+      let embedUrl = streamUrl;
+      if (streamUrl.includes('watch?v=')) {
+        embedUrl = `https://www.youtube.com/embed/${streamUrl.split('v=')[1].split('&')[0]}?autoplay=1`;
+      } else if (streamUrl.includes('youtu.be/')) {
+        embedUrl = `https://www.youtube.com/embed/${streamUrl.split('youtu.be/')[1].split('?')[0]}?autoplay=1`;
+      }
+      video.style.display = 'none';
+      overlay.style.display = 'none';
+      iframe.style.display = 'block';
+      iframe.src = embedUrl;
+    } 
+    // HLS / M3U8 Stream
+    else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
+      iframe.style.display = 'none';
+      video.style.display = 'block';
+      overlay.style.display = 'flex';
+
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = streamUrl;
+        video.play().catch(() => {});
+      }
+      bindControls(video);
+    } 
+    // Generic Embed Iframe
+    else {
+      video.style.display = 'none';
+      overlay.style.display = 'none';
+      iframe.style.display = 'block';
+      iframe.src = streamUrl;
     }
+  }
 
-    // --- PLAYER INITIALIZATION ---
-    function initPlayer() {
-        if (!videoUrl) {
-            showError("No video URL provided. Add ?url=... to the link.");
-            return;
-        }
+  function bindControls(video) {
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const rewindBtn = document.getElementById('rewindBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const progressBar = document.getElementById('progressBar');
+    const playerContainer = document.getElementById('playerContainer');
 
-        showLoading(true);
+    const togglePlay = () => {
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+    };
 
-        if (syncType === 'm3u8' || !syncType) {
-            html5Video.style.display = 'block';
-            if (syncType === 'm3u8' && Hls.isSupported()) {
-                hlsInstance = new Hls();
-                hlsInstance.loadSource(videoUrl);
-                hlsInstance.attachMedia(html5Video);
-                
-                // Parse Qualities for HLS
-                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-                    showLoading(false);
-                    const levels = hlsInstance.levels;
-                    availableQualities = [{ label: 'Auto', value: -1 }];
-                    levels.forEach((level, index) => {
-                        availableQualities.push({ label: level.height + 'p', value: index });
-                    });
-                });
-            } else {
-                html5Video.src = videoUrl;
-                html5Video.addEventListener('loadeddata', () => showLoading(false));
-            }
-        } 
-        else if (syncType === 'jpymtp') {
-            ytContainer.style.display = 'block';
-            
-            let videoId = videoUrl;
-            if (videoId.includes('v=')) videoId = videoId.split('v=')[1].split('&')[0];
-            else if (videoId.includes('youtu.be/')) videoId = videoId.split('youtu.be/')[1].split('?')[0];
+    playBtn.onclick = togglePlay;
+    video.onclick = togglePlay;
 
-            const tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    video.onplay = () => {
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = 'block';
+    };
 
-            window.onYouTubeIframeAPIReady = function() {
-                ytPlayer = new YT.Player('youtube-player', {
-                    videoId: videoId,
-                    playerVars: {
-                        'controls': 0, // HIDE NATIVE CONTROLS
-                        'disablekb': 1, 
-                        'fs': 0,
-                        'modestbranding': 1,
-                        'rel': 0,
-                        'playsinline': 1,
-                        'iv_load_policy': 3 // Hide annotations
-                    },
-                    events: {
-                        'onReady': onYTReady,
-                        'onStateChange': onYTStateChange,
-                        'onError': onYTError
-                    }
-                });
-            };
-        } 
-        else if (syncType === 'sdcem') {
-            // Custom Iframe
-            iframePlayer.style.display = 'block';
-            iframePlayer.src = videoUrl;
-            document.querySelector('.center-controls').style.display = 'none';
-            document.querySelector('.bottom-bar').style.display = 'none';
-            showLoading(false);
-        }
-    }
+    video.onpause = () => {
+      playIcon.style.display = 'block';
+      pauseIcon.style.display = 'none';
+    };
 
-    // --- YOUTUBE API HANDLERS ---
-    function onYTReady(event) {
-        showLoading(false);
-        // Get YT Qualities (Note: Modern YT forces auto a lot, but we read what's available)
-        const levels = ytPlayer.getAvailableQualityLevels();
-        if(levels && levels.length > 0) {
-            availableQualities = [{ label: 'Auto', value: 'default' }];
-            levels.forEach(level => {
-                if(level !== 'auto') availableQualities.push({ label: level, value: level });
-            });
-        }
-    }
+    rewindBtn.onclick = (e) => { e.stopPropagation(); video.currentTime -= 10; };
+    forwardBtn.onclick = (e) => { e.stopPropagation(); video.currentTime += 10; };
 
-    function onYTStateChange(event) {
-        if (event.data === YT.PlayerState.PLAYING) {
-            isPlaying = true;
-            playPauseBtn.innerText = 'pause';
-            showLoading(false);
-            resetUiTimeout();
-            clearInterval(ytProgressInterval);
-            ytProgressInterval = setInterval(updateYTProgress, 500);
-        } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-            isPlaying = false;
-            playPauseBtn.innerText = 'play_arrow';
-            uiLayer.classList.remove('idle');
-            clearInterval(ytProgressInterval);
-        } else if (event.data === YT.PlayerState.BUFFERING) {
-            showLoading(true);
-        }
-    }
+    video.ontimeupdate = () => {
+      if (video.duration) {
+        progressBar.value = (video.currentTime / video.duration) * 100;
+      }
+    };
 
-    function onYTError(event) {
-        showLoading(false);
-        if(event.data === 150 || event.data === 101) {
-            showError("YouTube blocked playback (Embed not allowed or local file path). Run on a local server.");
-        }
-    }
+    progressBar.oninput = (e) => {
+      e.stopPropagation();
+      if (video.duration) {
+        video.currentTime = (progressBar.value / 100) * video.duration;
+      }
+    };
 
-    function updateYTProgress() {
-        if(ytPlayer && ytPlayer.getCurrentTime) {
-            updateTimelineUI(ytPlayer.getCurrentTime(), ytPlayer.getDuration());
-        }
-    }
+    const toggleFullscreen = (e) => {
+      e?.stopPropagation();
+      if (!document.fullscreenElement) {
+        playerContainer.requestFullscreen?.() || playerContainer.webkitRequestFullscreen?.();
+      } else {
+        document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+      }
+    };
 
+    fullscreenBtn.onclick = toggleFullscreen;
 
-    // --- UI LOGIC & CONTROLS ---
-
-    function resetUiTimeout() {
-        if(isLocked) return;
-        uiLayer.classList.remove('idle');
-        clearTimeout(uiTimeout);
-        uiTimeout = setTimeout(() => {
-            if (isPlaying && !settingsMenu.classList.contains('active')) {
-                uiLayer.classList.add('idle');
-            }
-        }, 3000);
-    }
-    
-    playerContainer.addEventListener('mousemove', resetUiTimeout);
-    playerContainer.addEventListener('touchstart', resetUiTimeout);
-
-    function togglePlay() {
-        if (syncType === 'jpymtp' && ytPlayer) {
-            const state = ytPlayer.getPlayerState();
-            if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
-            else ytPlayer.playVideo();
-        } 
-        else if (syncType === 'm3u8' || !syncType) {
-            html5Video.paused ? html5Video.play() : html5Video.pause();
-        }
-    }
-
-    html5Video.addEventListener('play', () => { isPlaying = true; playPauseBtn.innerText = 'pause'; resetUiTimeout(); });
-    html5Video.addEventListener('pause', () => { isPlaying = false; playPauseBtn.innerText = 'play_arrow'; uiLayer.classList.remove('idle'); });
-    html5Video.addEventListener('waiting', () => showLoading(true));
-    html5Video.addEventListener('playing', () => showLoading(false));
-
-    playPauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
-
-    // Background click to play/pause
-    uiLayer.addEventListener('click', (e) => {
-        if(e.target === uiLayer && !isLocked) {
-            togglePlay();
-            settingsMenu.classList.remove('active');
-        } else {
-            settingsMenu.classList.remove('active');
-        }
-    });
-
-    document.getElementById('forward-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (syncType === 'jpymtp' && ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10, true);
-        else html5Video.currentTime += 10;
-        resetUiTimeout();
-    });
-    document.getElementById('rewind-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (syncType === 'jpymtp' && ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() - 10, true);
-        else html5Video.currentTime -= 10;
-        resetUiTimeout();
-    });
-
-    // Timeline Logic
-    function formatTime(seconds) {
-        if(isNaN(seconds)) return "00:00";
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60);
-        return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
-    }
-
-    function updateTimelineUI(current, duration) {
-        seekBar.max = duration || 0;
-        seekBar.value = current;
-        timeDisplay.innerText = formatTime(current) + " / " + formatTime(duration);
-        const percentage = (current / duration) * 100;
-        seekBar.style.background = `linear-gradient(to right, var(--primary-color) ${percentage}%, rgba(255,255,255,0.2) ${percentage}%)`;
-    }
-
-    html5Video.addEventListener('timeupdate', () => updateTimelineUI(html5Video.currentTime, html5Video.duration));
-
-    seekBar.addEventListener('input', (e) => {
-        e.stopPropagation();
-        if (syncType === 'jpymtp' && ytPlayer) ytPlayer.seekTo(seekBar.value, true);
-        else html5Video.currentTime = seekBar.value;
-    });
-
-    // --- LOCK UI ---
-    lockBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        isLocked = !isLocked;
-        if (isLocked) {
-            uiLayer.classList.add('locked');
-            lockBtn.innerHTML = '<span class="material-icons-outlined">lock</span>';
-            settingsMenu.classList.remove('active');
-        } else {
-            uiLayer.classList.remove('locked');
-            lockBtn.innerHTML = '<span class="material-icons-outlined">lock_open</span>';
-            resetUiTimeout();
-        }
-    });
-
-    // --- SETTINGS MENU ---
-    settingsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        settingsMenu.classList.toggle('active');
-        resetUiTimeout();
-    });
-
-    // Quality Cycler
-    document.getElementById('menu-quality-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        if(availableQualities.length <= 1) {
-            showError("Quality adjustment not available for this source.");
-            return;
-        }
-
-        currentQualityIndex = (currentQualityIndex + 1) % availableQualities.length;
-        const selected = availableQualities[currentQualityIndex];
-        
-        document.getElementById('menu-quality-val').innerText = selected.label;
-
-        if (syncType === 'm3u8' && hlsInstance) {
-            hlsInstance.currentLevel = selected.value; // -1 is auto, 0, 1, 2 are indexes
-        } else if (syncType === 'jpymtp' && ytPlayer) {
-            ytPlayer.setPlaybackQuality(selected.value);
-        }
-        resetUiTimeout();
-    });
-
-    // Speed Cycler
-    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
-    let currentSpeedIndex = 2; // Index of '1'
-
-    function changeSpeed(e) {
-        e.stopPropagation();
-        currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
-        const newSpeed = speeds[currentSpeedIndex];
-        
-        if (syncType === 'jpymtp' && ytPlayer) ytPlayer.setPlaybackRate(newSpeed);
-        else html5Video.playbackRate = newSpeed;
-        
-        const speedText = newSpeed === 1 ? 'Normal' : newSpeed + 'x';
-        document.getElementById('speed-display').innerText = `${newSpeed}x`;
-        document.getElementById('menu-speed-val').innerText = speedText;
-        resetUiTimeout();
-    }
-    document.getElementById('speed-toggle').addEventListener('click', changeSpeed);
-    document.getElementById('menu-speed-btn').addEventListener('click', changeSpeed);
-
-
-    // --- FULLSCREEN & ORIENTATION AUTO-FULLSCREEN ---
-    function toggleFullscreen() {
+    // Mobile Automatic Fullscreen on Horizontal Rotation (Landscape)
+    const handleAutoFullscreen = () => {
+      if (window.matchMedia("(orientation: landscape)").matches && window.innerWidth < 1024) {
         if (!document.fullscreenElement) {
-            playerContainer.requestFullscreen().catch(err => console.log(err));
-        } else {
-            document.exitFullscreen().catch(err => console.log(err));
+          playerContainer.requestFullscreen?.().catch(() => {});
         }
-    }
-
-    fullscreenBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleFullscreen();
-    });
-
-    document.addEventListener('fullscreenchange', () => {
+      } else {
         if (document.fullscreenElement) {
-            fullscreenBtn.innerHTML = '<span class="material-icons-outlined">fullscreen_exit</span>';
-        } else {
-            fullscreenBtn.innerHTML = '<span class="material-icons-outlined">fullscreen</span>';
+          document.exitFullscreen?.().catch(() => {});
         }
-    });
+      }
+    };
 
-    // Detect device rotation (Landscape = Fullscreen, Portrait = Exit)
-    window.addEventListener("orientationchange", function() {
-        // orientation 90 or -90 means landscape
-        if (window.orientation === 90 || window.orientation === -90) {
-            if (!document.fullscreenElement) {
-                try { playerContainer.requestFullscreen(); } catch(e){}
-            }
-        } else {
-            if (document.fullscreenElement) {
-                try { document.exitFullscreen(); } catch(e){}
-            }
+    window.addEventListener('orientationchange', () => setTimeout(handleAutoFullscreen, 200));
+    window.matchMedia("(orientation: landscape)").addEventListener('change', handleAutoFullscreen);
+  }
+
+  // Fetch Similar Channels from "Live TV" Database
+  async function fetchSimilarChannels(currentGenre, currentLang, excludeId) {
+    const similarGrid = document.getElementById('similarGrid');
+    try {
+      const querySnapshot = await getDocs(collection(db, "Live TV"));
+      let channels = [];
+
+      querySnapshot.forEach((docSnap) => {
+        if (docSnap.id !== excludeId) {
+          channels.push({ id: docSnap.id, ...docSnap.data() });
         }
-    });
+      });
 
-    // Init
-    initPlayer();
+      // Filter by matching genre or language if available
+      let filtered = channels.filter(ch => {
+        return (currentGenre && ch.Genres && ch.Genres.toLowerCase().includes(currentGenre.toLowerCase())) ||
+               (currentLang && ch.Language && ch.Language.toLowerCase() === currentLang.toLowerCase());
+      });
 
+      // Fallback to general channels if no exact genre match
+      if (filtered.length === 0) filtered = channels;
+
+      if (filtered.length === 0) {
+        similarGrid.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">No other channels found.</p>`;
+        return;
+      }
+
+      similarGrid.innerHTML = filtered.map(ch => `
+        <a href="1.html?watch=${ch.id}" class="channel-card">
+          <img src="${ch["Logo.png"] || ch.Logo || ''}" class="card-img" alt="${ch.Name}">
+          <div class="card-title">${ch.Name || 'TV Channel'}</div>
+          <div class="card-lang">${ch.Language || 'Live'}</div>
+        </a>
+      `).join('');
+
+    } catch (e) {
+      similarGrid.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">Unable to load recommendations.</p>`;
+    }
+  }
 </script>
 </body>
 </html>
