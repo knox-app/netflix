@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Disney+ Hotstar OTT Player</title>
+  <title>Hotstar OTT Player - Refined</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     :root {
       --bg-dark: #000000;
+      --card-bg: #121620;
       --accent-blue: #00d2ff;
+      --live-red: #e50914;
       --text-main: #ffffff;
       --text-muted: #9aa0a6;
-      --border-color: #262933;
+      --border-color: #232838;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden; user-select: none; }
 
-    /* Top Nav (Portrait Only) */
+    /* Top Global Nav */
     .top-nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 16px; background: #0c0d12; border-bottom: 1px solid var(--border-color);
@@ -28,40 +30,48 @@
 
     .main-wrapper { max-width: 1100px; margin: 0 auto; padding-bottom: 30px; }
 
-    /* Video Player Box */
+    /* Player Outer Container */
     .player-container {
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
 
-    /* Video Aspect Modes (Hotstar Fill vs Fit) */
+    /* Native Fullscreen CSS overrides */
+    .player-container:fullscreen,
+    .player-container:-webkit-full-screen {
+      width: 100vw !important; height: 100vh !important; max-width: none !important; aspect-ratio: auto !important;
+    }
+
+    /* Video Aspect Modes (Fill Screen vs Fit Screen) */
     video {
       width: 100%; height: 100%; border: none; object-fit: contain;
-      transition: object-fit 0.3s ease, filter 0.2s ease;
+      transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s ease;
     }
     video.fill-screen { object-fit: cover; }
     iframe { width: 100%; height: 100%; border: none; }
 
-    /* Edge-to-Edge Mobile Landscape Fix */
+    /* Landscape Mode Mobile Fullscreen Override */
     body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
     body.landscape-mode .player-container {
       position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
     }
 
-    /* Toast Alert for Zoom / Actions */
+    /* Toast Notification */
     .toast-alert {
-      position: absolute; top: 20%; left: 50%; transform: translateX(-50%);
+      position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.85); border: 1px solid rgba(255,255,255,0.2);
       color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;
-      z-index: 40; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+      z-index: 45; pointer-events: none; opacity: 0; transition: opacity 0.25s ease;
+      backdrop-filter: blur(6px);
     }
     .toast-alert.show { opacity: 1; }
 
-    /* Controls Overlay (Screenshot 2) */
+    /* Controls Overlay */
     .controls-overlay {
       position: absolute; inset: 0; z-index: 20;
-      background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.85) 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.9) 100%);
       display: flex; flex-direction: column; justify-content: space-between;
-      padding: 14px 18px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none;
+      padding: 14px 18px; opacity: 0; transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none;
     }
     .controls-overlay.show { opacity: 1; pointer-events: auto; }
 
@@ -69,38 +79,41 @@
     .ctrl-top { display: flex; align-items: center; justify-content: space-between; }
     .ctrl-top-left { display: flex; align-items: center; gap: 12px; }
     .ctrl-title { font-size: 15px; font-weight: 600; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ctrl-top-right { display: flex; align-items: center; gap: 16px; }
+    .ctrl-top-right { display: flex; align-items: center; gap: 14px; }
 
-    .icon-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; }
+    .icon-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; transition: transform 0.15s, color 0.15s; }
+    .icon-btn:active { transform: scale(0.85); color: var(--accent-blue); }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Left Side Brightness Control (Screenshot 2 Left Bar) */
+    /* Left Vertical Brightness Slider */
     .brightness-slider-wrap {
-      position: absolute; left: 20px; top: 32%; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 22;
+      position: absolute; left: 18px; top: 30%; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 22;
     }
-    .brightness-icon { font-size: 14px; opacity: 0.8; }
+    .brightness-icon { font-size: 13px; opacity: 0.8; }
     .brightness-slider {
-      -webkit-appearance: none; appearance: none; width: 3px; height: 100px;
+      -webkit-appearance: none; appearance: none; width: 4px; height: 90px;
       background: rgba(255, 255, 255, 0.3); outline: none; border-radius: 2px;
-      writing-mode: bt-lr; -webkit-appearance: slider-vertical;
+      writing-mode: bt-lr; -webkit-appearance: slider-vertical; cursor: pointer;
     }
 
     /* Center Controls */
     .ctrl-center {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      display: flex; align-items: center; gap: 45px;
+      display: flex; align-items: center; gap: 40px;
     }
-    .ctrl-center .icon-btn svg { width: 32px; height: 32px; }
-    .btn-main-play svg { width: 42px; height: 42px; }
+    .ctrl-center .icon-btn svg { width: 34px; height: 34px; }
+    .btn-main-play svg { width: 46px; height: 46px; }
 
-    /* Bottom Timeline & Controls Bar */
+    /* Bottom Timeline & Controls */
     .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 
     .timeline-row { display: flex; align-items: center; gap: 12px; }
     .progress-bar {
       width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
       background: rgba(255, 255, 255, 0.3); outline: none; cursor: pointer; border-radius: 3px;
+      transition: height 0.15s;
     }
+    .progress-bar:hover { height: 6px; }
     .progress-bar::-webkit-slider-thumb {
       -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
       background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.8); cursor: pointer;
@@ -114,13 +127,14 @@
     }
     .action-btn:hover { opacity: 1; color: var(--accent-blue); }
 
-    /* Watch Next Overlay Tray (Screenshot 1) */
+    /* Watch Next Overlay Tray */
     .watch-next-overlay {
-      position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
-      display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+      position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease;
+      transform: translateY(20px);
     }
-    .watch-next-overlay.show { opacity: 1; pointer-events: auto; }
+    .watch-next-overlay.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 
     .watch-next-header { display: flex; align-items: center; justify-content: space-between; }
     .watch-next-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
@@ -131,11 +145,13 @@
     .watch-next-cards-row::-webkit-scrollbar { display: none; }
 
     .watch-card {
-      min-width: 180px; width: 180px; text-decoration: none; color: #fff; cursor: pointer;
+      min-width: 170px; width: 170px; text-decoration: none; color: #fff; cursor: pointer;
+      transition: transform 0.2s;
     }
+    .watch-card:hover { transform: translateY(-4px); }
     .watch-card-thumb-wrap {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden;
-      background: #111; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.1);
+      background: #111; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.15);
     }
     .watch-card-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
     .play-badge {
@@ -148,7 +164,7 @@
     .watch-card-name { font-size: 13px; font-weight: 600; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
     .watch-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
-    /* Access Denied Card Overlay */
+    /* Access Denied Overlay */
     .access-denied-box {
       position: absolute; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -158,14 +174,15 @@
     .denied-desc { font-size: 13px; color: var(--text-muted); max-width: 400px; margin-bottom: 18px; }
     .btn-login { background: var(--accent-blue); color: #000; font-weight: 700; padding: 10px 22px; border-radius: 20px; text-decoration: none; }
 
-    /* Lock Screen Button */
+    /* Lock Screen Unlock Floating Button */
     .lock-overlay-btn {
-      position: absolute; top: 15px; left: 15px; z-index: 25; background: rgba(0,0,0,0.7);
+      position: absolute; top: 15px; left: 15px; z-index: 25; background: rgba(0,0,0,0.75);
       border: 1px solid rgba(255,255,255,0.3); padding: 8px 14px; border-radius: 20px;
       color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+      backdrop-filter: blur(4px);
     }
 
-    /* Portrait Details (Photo 4) */
+    /* Portrait Details Area */
     .details-wrapper { padding: 16px; }
     .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; }
     .ch-lang-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
@@ -175,10 +192,11 @@
     .channel-scroll-row::-webkit-scrollbar { display: none; }
 
     .card-item {
-      min-width: 140px; width: 140px; background: #131722; border: 1px solid var(--border-color);
+      min-width: 140px; width: 140px; background: var(--card-bg); border: 1px solid var(--border-color);
       border-radius: 10px; padding: 10px; text-decoration: none; color: #fff; display: flex;
-      flex-direction: column; align-items: center; text-align: center;
+      flex-direction: column; align-items: center; text-align: center; transition: border-color 0.2s, transform 0.2s;
     }
+    .card-item:hover { border-color: var(--accent-blue); transform: translateY(-3px); }
     .card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #000; border-radius: 6px; margin-bottom: 8px; }
     .card-name { font-size: 12px; font-weight: 700; }
 
@@ -220,7 +238,7 @@
         🔓 Tap to Unlock Controls
       </div>
 
-      <!-- Disney+ Hotstar Overlay Controls (Screenshot 2) -->
+      <!-- Player Controls Overlay -->
       <div class="controls-overlay" id="controlsOverlay">
         
         <!-- Top Bar -->
@@ -232,15 +250,18 @@
             <div class="ctrl-title" id="overlayChTitle">Channel Name</div>
           </div>
           <div class="ctrl-top-right">
+            <!-- Lock Button -->
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
-            <button class="icon-btn" id="settingsBtn" title="Settings">
-              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-            </button>
-            <!-- Hotstar Scale / Fill Screen Toggle Button -->
+            <!-- Fill/Fit Screen Mode Toggle -->
             <button class="icon-btn" id="aspectBtn" title="Fill Screen Mode">
               <svg viewBox="0 0 24 24"><path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"/></svg>
+            </button>
+            <!-- Native Browser Fullscreen Button (Triggers Esc Key Fullscreen) -->
+            <button class="icon-btn" id="fullscreenBtn" title="Full Screen (Esc)">
+              <svg id="fsExpandIcon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              <svg id="fsCollapseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
             </button>
           </div>
         </div>
@@ -253,16 +274,16 @@
 
         <!-- Center Controls -->
         <div class="ctrl-center">
-          <button class="icon-btn" id="rewindBtn">
+          <button class="icon-btn" id="rewindBtn" title="Rewind 10s">
             <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
           </button>
           
-          <button class="icon-btn btn-main-play" id="playBtn">
+          <button class="icon-btn btn-main-play" id="playBtn" title="Play/Pause">
             <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
 
-          <button class="icon-btn" id="forwardBtn">
+          <button class="icon-btn" id="forwardBtn" title="Forward 10s">
             <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
           </button>
         </div>
@@ -287,18 +308,18 @@
 
       </div>
 
-      <!-- Watch Next Tray Overlay (Screenshot 1) -->
+      <!-- Watch Next Tray Overlay -->
       <div class="watch-next-overlay" id="watchNextOverlay">
         <div class="watch-next-header">
           <div class="watch-next-title">Watch Next ˅</div>
-          <button class="icon-btn" id="closeWatchNextBtn" style="font-size:22px;">✕</button>
+          <button class="icon-btn" id="closeWatchNextBtn" style="font-size:20px;">✕</button>
         </div>
         <div class="watch-next-cards-row" id="watchNextCards"></div>
       </div>
 
     </div>
 
-    <!-- Portrait Details (Screenshot 4) -->
+    <!-- Portrait Details Area -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Live Channel</div>
       <div class="ch-lang-sub" id="chLangSub">हिंदी • Live News</div>
@@ -503,6 +524,9 @@
     const unlockBtn = document.getElementById('unlockBtn');
     const backBtn = document.getElementById('backBtn');
     const aspectBtn = document.getElementById('aspectBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const fsExpandIcon = document.getElementById('fsExpandIcon');
+    const fsCollapseIcon = document.getElementById('fsCollapseIcon');
     const progressBar = document.getElementById('progressBar');
     const timeDisplay = document.getElementById('timeDisplay');
     const brightnessSlider = document.getElementById('brightnessSlider');
@@ -567,6 +591,43 @@
       showToast(`Playback Speed: ${speed}x`);
     };
 
+    // Native Browser Fullscreen Toggle (Works with Esc Key)
+    const toggleNativeFullscreen = (e) => {
+      e?.stopPropagation();
+      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+
+      if (!isFullscreen) {
+        if (playerContainer.requestFullscreen) {
+          playerContainer.requestFullscreen();
+        } else if (playerContainer.webkitRequestFullscreen) {
+          playerContainer.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    };
+
+    fullscreenBtn.onclick = toggleNativeFullscreen;
+
+    // Listen for Fullscreen State Change (Esc key / gesture)
+    const onFullscreenChange = () => {
+      const isFS = document.fullscreenElement || document.webkitFullscreenElement;
+      if (isFS) {
+        fsExpandIcon.style.display = 'none';
+        fsCollapseIcon.style.display = 'block';
+      } else {
+        fsExpandIcon.style.display = 'block';
+        fsCollapseIcon.style.display = 'none';
+      }
+    };
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
     // Lock Screen
     lockBtn.onclick = (e) => {
       e.stopPropagation();
@@ -584,7 +645,7 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    // Aspect Scale Toggle (Fit vs Fill)
+    // Fill Screen vs Fit Screen Toggle
     const toggleAspect = (e) => {
       e?.stopPropagation();
       if (video.classList.contains('fill-screen')) {
@@ -597,7 +658,7 @@
     };
     aspectBtn.onclick = toggleAspect;
 
-    // Disney+ Hotstar Touch Pinch-to-Zoom Gesture Detection
+    // Hotstar Touch Pinch Gesture (Fill vs Fit Screen)
     let initialPinchDist = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -628,19 +689,28 @@
       }
     });
 
-    // Orientation Logic for Mobile Auto-Landscape Fullscreen
-    const checkOrientation = () => {
-      if (window.innerWidth > window.innerHeight) {
+    // Mobile Landscape Auto Fullscreen Handler
+    const handleOrientation = () => {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      if (isLandscape) {
         document.body.classList.add('landscape-mode');
+        // Attempt native fullscreen if not already active
+        if (!document.fullscreenElement) {
+          playerContainer.requestFullscreen?.().catch(() => {});
+        }
       } else {
         document.body.classList.remove('landscape-mode');
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {});
+        }
       }
     };
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
-    checkOrientation();
 
-    // Watch Next Overlay Actions
+    window.addEventListener('resize', handleOrientation);
+    window.addEventListener('orientationchange', () => setTimeout(handleOrientation, 200));
+    handleOrientation();
+
+    // Watch Next Tray Handlers
     document.getElementById('openWatchNextBtn').onclick = (e) => {
       e.stopPropagation();
       watchNextOverlay.classList.add('show');
@@ -671,7 +741,6 @@
       newsGrid.innerHTML = channels.map(renderCard).join('');
       businessGrid.innerHTML = channels.map(renderCard).join('');
 
-      // Populate Watch Next Tray Cards (Screenshot 1)
       watchNextCards.innerHTML = channels.map(c => `
         <a href="1.html?watch=${c.id}" class="watch-card">
           <div class="watch-card-thumb-wrap">
