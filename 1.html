@@ -19,7 +19,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden; user-select: none; }
 
-    /* Top Navigation (Portrait) */
+    /* Top Navigation */
     .top-nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 16px; background: #0c0d12; border-bottom: 1px solid var(--border-color);
@@ -30,19 +30,27 @@
 
     .main-wrapper { max-width: 1100px; margin: 0 auto; padding-bottom: 30px; }
 
-    /* Player Container */
+    /* Player Outer Container */
     .player-container {
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
       box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
 
-    /* Native Fullscreen CSS overrides */
+    /* Native & CSS Fullscreen Enforcement */
+    body.is-fullscreen .top-nav,
+    body.is-fullscreen .details-wrapper,
+    body.landscape-mode .top-nav,
+    body.landscape-mode .details-wrapper { display: none !important; }
+
+    body.is-fullscreen .player-container,
+    body.landscape-mode .player-container,
     .player-container:fullscreen,
     .player-container:-webkit-full-screen {
-      width: 100vw !important; height: 100vh !important; max-width: none !important; aspect-ratio: auto !important;
+      position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important;
+      z-index: 999999 !important; max-width: none !important; aspect-ratio: auto !important;
     }
 
-    /* Video Aspect Modes (Fill Screen vs Fit Screen) */
+    /* Video Aspect Modes */
     video {
       width: 100%; height: 100%; border: none; object-fit: contain;
       transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s ease;
@@ -50,13 +58,7 @@
     video.fill-screen { object-fit: cover; }
     iframe { width: 100%; height: 100%; border: none; }
 
-    /* Landscape Mode Mobile Fullscreen Override */
-    body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
-    body.landscape-mode .player-container {
-      position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
-    }
-
-    /* Toast Alert Notification */
+    /* Toast Notification */
     .toast-alert {
       position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.85); border: 1px solid rgba(255,255,255,0.2);
@@ -71,7 +73,7 @@
       position: absolute; inset: 0; z-index: 20;
       background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.9) 100%);
       display: flex; flex-direction: column; justify-content: space-between;
-      padding: 14px 18px; opacity: 0; transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none;
+      padding: 14px 18px; opacity: 0; transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none;
     }
     .controls-overlay.show { opacity: 1; pointer-events: auto; }
 
@@ -127,10 +129,10 @@
     }
     .action-btn:hover { opacity: 1; color: var(--accent-blue); }
 
-    /* Watch Next Overlay Tray (Screenshot 1 Exact Design) */
+    /* Watch Next Overlay Tray */
     .watch-next-overlay {
-      position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.94);
-      backdrop-filter: blur(12px); display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
+      position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
       opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease;
       transform: translateY(20px);
     }
@@ -139,15 +141,10 @@
     .watch-next-header { display: flex; align-items: center; justify-content: space-between; }
     .watch-next-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 
-    .watch-next-cards-row {
-      display: flex; gap: 14px; overflow-x: auto; padding: 10px 0; scrollbar-width: none;
-    }
+    .watch-next-cards-row { display: flex; gap: 14px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
     .watch-next-cards-row::-webkit-scrollbar { display: none; }
 
-    .watch-card {
-      min-width: 175px; width: 175px; color: #fff; cursor: pointer;
-      transition: transform 0.2s;
-    }
+    .watch-card { min-width: 170px; width: 170px; color: #fff; cursor: pointer; transition: transform 0.2s; }
     .watch-card:hover { transform: translateY(-4px); }
     .watch-card-thumb-wrap {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden;
@@ -156,7 +153,7 @@
     .watch-card-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
     .play-badge {
       position: absolute; bottom: 8px; left: 8px; width: 22px; height: 22px;
-      background: rgba(0,0,0,0.65); border-radius: 50%; display: flex; align-items: center;
+      background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center;
       justify-content: center; border: 1px solid rgba(255,255,255,0.4);
     }
     .play-badge svg { width: 10px; height: 10px; fill: #fff; margin-left: 2px; }
@@ -193,8 +190,9 @@
 
     .card-item {
       min-width: 140px; width: 140px; background: var(--card-bg); border: 1px solid var(--border-color);
-      border-radius: 10px; padding: 10px; color: #fff; display: flex; cursor: pointer;
+      border-radius: 10px; padding: 10px; text-decoration: none; color: #fff; display: flex;
       flex-direction: column; align-items: center; text-align: center; transition: border-color 0.2s, transform 0.2s;
+      cursor: pointer;
     }
     .card-item:hover { border-color: var(--accent-blue); transform: translateY(-3px); }
     .card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #000; border-radius: 6px; margin-bottom: 8px; }
@@ -254,11 +252,7 @@
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
-            <!-- Fill/Fit Screen Mode Toggle -->
-            <button class="icon-btn" id="aspectBtn" title="Fill Screen Mode">
-              <svg viewBox="0 0 24 24"><path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"/></svg>
-            </button>
-            <!-- Native Browser Fullscreen Button -->
+            <!-- Native Browser Fullscreen Button (Works Vertically & Horizontally) -->
             <button class="icon-btn" id="fullscreenBtn" title="Full Screen (Esc)">
               <svg id="fsExpandIcon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
               <svg id="fsCollapseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
@@ -308,7 +302,7 @@
 
       </div>
 
-      <!-- Watch Next Tray Overlay (Screenshot 1 Exact Layout) -->
+      <!-- Watch Next Tray Overlay -->
       <div class="watch-next-overlay" id="watchNextOverlay">
         <div class="watch-next-header">
           <div class="watch-next-title">Watch Next ˅</div>
@@ -322,13 +316,15 @@
     <!-- Portrait Details Area -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Live Channel</div>
-      <div class="ch-lang-sub" id="chLangSub">हिंदी • Live News</div>
+      <div class="ch-lang-sub" id="chLangSub">हिंदी • Live Channel</div>
 
-      <div class="section-head">Live News</div>
-      <div class="channel-scroll-row" id="newsGrid"></div>
+      <!-- Section 1: Recommended -->
+      <div class="section-head">Recommended</div>
+      <div class="channel-scroll-row" id="recommendedGrid"></div>
 
-      <div class="section-head">Live Business News</div>
-      <div class="channel-scroll-row" id="businessGrid"></div>
+      <!-- Section 2: More from Partner -->
+      <div class="section-head" id="partnerSectionTitle">More from Network</div>
+      <div class="channel-scroll-row" id="partnerGrid"></div>
     </div>
 
   </div>
@@ -389,7 +385,6 @@
     let activeUser = null;
     try { activeUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
 
-    // Fetch Target Channel
     let channel = null;
     try {
       const snap = await getDoc(doc(channelDb, "Live TV", docId));
@@ -403,52 +398,49 @@
       return;
     }
 
-    // Set UI Title
+    // Set UI Details
+    const partnerName = channel.Partner || "Broadcaster";
     document.getElementById('chTitle').innerText = channel.Name || "Live Channel";
     document.getElementById('overlayChTitle').innerText = channel.Name || "Live Channel";
-    document.getElementById('chLangSub').innerText = `${channel.Language || 'Hindi'} • ${channel.Genres || 'Live News'}`;
+    document.getElementById('chLangSub').innerText = `${channel.Language || 'Hindi'} • ${channel.Genres || 'Live Channel'}`;
+    document.getElementById('partnerSectionTitle').innerText = `More from ${partnerName}`;
 
     loader.style.display = 'none';
     document.getElementById('appContent').style.display = 'block';
 
-    // 1. Verify User Login State
+    // Verify User State
     if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
       userPill.innerText = "Not Logged In";
       showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
-      loadCategoryRows(docId);
+      loadCategoryRows(docId, partnerName);
       return;
     }
 
     userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
 
-    // 2. Multi-Level Persistent Plan Verification (Prevents loss of plan after 1-2 hours)
+    // Persistent Plan Verification
     let userPlans = activeUser.Plans || [];
-
     try {
-      // Refresh user record from Firestore background query
       const q = activeUser.Lotus ? query(collection(authDb, "UARM"), where("Lotus", "==", activeUser.Lotus)) : query(collection(authDb, "UARM"), where("Email", "==", activeUser.Email));
       const uarmSnap = await getDocs(q);
-
       if (!uarmSnap.empty) {
         const freshData = uarmSnap.docs[0].data();
         if (Array.isArray(freshData.Plans) && freshData.Plans.length > 0) {
           userPlans = freshData.Plans;
-          // Re-sync local storage cache to keep session alive indefinitely
           activeUser.Plans = freshData.Plans;
           localStorage.setItem('active_user', JSON.stringify(activeUser));
         }
       }
     } catch (e) {
-      console.warn("Background Plan Sync Warning (Using Persistent Cache):", e.message);
+      console.warn("Using persistent plan cache:", e.message);
     }
 
     if (!Array.isArray(userPlans) || userPlans.length === 0) {
       showDenied("No Subscription Plan", "Your account has no active plan. Please subscribe.", "View Plans", "1 (3).html");
-      loadCategoryRows(docId);
+      loadCategoryRows(docId, partnerName);
       return;
     }
 
-    // 3. Normalized Studio Authorization Check
     const channelPartner = (channel.Partner || "").trim().toLowerCase();
     let isAuthorized = false;
 
@@ -472,7 +464,7 @@
       showDenied("Access Restricted", `Your subscription plan does not include content from '${channel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
     }
 
-    loadCategoryRows(docId);
+    loadCategoryRows(docId, partnerName);
   }
 
   function showDenied(title, desc, btnTxt, btnUrl) {
@@ -488,19 +480,16 @@
     document.getElementById('videoPlayer').style.display = 'none';
   }
 
-  // --- Stream Switching Engine (Preserves Fullscreen) ---
+  // --- Single Page Application Channel Stream Switcher ---
   window.switchChannelStream = function(newDocId) {
     if (newDocId === currentDocId) return;
 
-    // Update URL query in background without refreshing or exiting fullscreen
     const newUrl = `${window.location.pathname}?watch=${newDocId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    // Hide Watch Next Tray
     document.getElementById('watchNextOverlay').classList.remove('show');
     showToast("Switching Channel...");
 
-    // Load new stream in-place
     initApp(newDocId);
   };
 
@@ -524,7 +513,6 @@
       iframe.style.display = 'none';
       video.style.display = 'block';
 
-      // Clean old HLS instance when switching channels
       if (hlsInstance) {
         hlsInstance.destroy();
         hlsInstance = null;
@@ -566,7 +554,6 @@
     const lockBtn = document.getElementById('lockBtn');
     const unlockBtn = document.getElementById('unlockBtn');
     const backBtn = document.getElementById('backBtn');
-    const aspectBtn = document.getElementById('aspectBtn');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const fsExpandIcon = document.getElementById('fsExpandIcon');
     const fsCollapseIcon = document.getElementById('fsCollapseIcon');
@@ -576,9 +563,8 @@
     const speedBtn = document.getElementById('speedBtn');
     const watchNextOverlay = document.getElementById('watchNextOverlay');
 
-    const showControls = () => {
-      if (isScreenLocked) return;
-      overlay.classList.add('show');
+    // Requirement 3: Wakeup and Sleep Control Toggling
+    const resetHideTimer = () => {
       clearTimeout(hideControlsTimer);
       hideControlsTimer = setTimeout(() => {
         overlay.classList.remove('show');
@@ -587,21 +573,31 @@
 
     playerContainer.onclick = (e) => {
       e.stopPropagation();
-      showControls();
+      if (isScreenLocked) return;
+
+      // If controls are visible, tap puts them to sleep immediately
+      if (overlay.classList.contains('show')) {
+        overlay.classList.remove('show');
+        clearTimeout(hideControlsTimer);
+      } else {
+        // If controls are sleeping, tap wakes them up
+        overlay.classList.add('show');
+        resetHideTimer();
+      }
     };
 
     const togglePlay = (e) => {
       e?.stopPropagation();
       if (video.paused) video.play(); else video.pause();
-      showControls();
+      resetHideTimer();
     };
 
     playBtn.onclick = togglePlay;
     video.onplay = () => { playIcon.style.display = 'none'; pauseIcon.style.display = 'block'; };
     video.onpause = () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; };
 
-    rewindBtn.onclick = (e) => { e.stopPropagation(); video.currentTime -= 10; showControls(); };
-    forwardBtn.onclick = (e) => { e.stopPropagation(); video.currentTime += 10; showControls(); };
+    rewindBtn.onclick = (e) => { e.stopPropagation(); video.currentTime -= 10; resetHideTimer(); };
+    forwardBtn.onclick = (e) => { e.stopPropagation(); video.currentTime += 10; resetHideTimer(); };
 
     video.ontimeupdate = () => {
       if (video.duration) {
@@ -629,30 +625,46 @@
       showToast(`Playback Speed: ${speed}x`);
     };
 
-    // Native Browser Fullscreen Toggle
-    const toggleNativeFullscreen = (e) => {
+    // Requirement 2: Fixed Fullscreen Toggle for Portrait/Vertical & Landscape Modes
+    const toggleFullscreen = async (e) => {
       e?.stopPropagation();
-      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+      const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.body.classList.contains('is-fullscreen');
 
-      if (!isFullscreen) {
-        if (playerContainer.requestFullscreen) {
-          playerContainer.requestFullscreen();
-        } else if (playerContainer.webkitRequestFullscreen) {
-          playerContainer.webkitRequestFullscreen();
+      if (!isFS) {
+        // Enter Fullscreen Mode
+        try {
+          if (playerContainer.requestFullscreen) {
+            await playerContainer.requestFullscreen();
+          } else if (playerContainer.webkitRequestFullscreen) {
+            await playerContainer.webkitRequestFullscreen();
+          }
+        } catch (err) {}
+
+        document.body.classList.add('is-fullscreen');
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
         }
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
+        // Exit Fullscreen Mode
+        try {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          }
+        } catch (err) {}
+
+        document.body.classList.remove('is-fullscreen');
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
         }
       }
     };
 
-    fullscreenBtn.onclick = toggleNativeFullscreen;
+    fullscreenBtn.onclick = toggleFullscreen;
 
     const onFullscreenChange = () => {
-      const isFS = document.fullscreenElement || document.webkitFullscreenElement;
+      const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.body.classList.contains('is-fullscreen');
       if (isFS) {
         fsExpandIcon.style.display = 'none';
         fsCollapseIcon.style.display = 'block';
@@ -676,24 +688,13 @@
       e.stopPropagation();
       isScreenLocked = false;
       unlockBtn.style.display = 'none';
-      showControls();
+      overlay.classList.add('show');
+      resetHideTimer();
     };
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    const toggleAspect = (e) => {
-      e?.stopPropagation();
-      if (video.classList.contains('fill-screen')) {
-        video.classList.remove('fill-screen');
-        showToast("Fit to Screen");
-      } else {
-        video.classList.add('fill-screen');
-        showToast("Zoomed to Fill Screen");
-      }
-    };
-    aspectBtn.onclick = toggleAspect;
-
-    // Pinch Gesture
+    // Requirement 2: Pinch Gesture for Video Cover/Contain Scaling
     let initialPinchDist = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -724,7 +725,7 @@
       }
     });
 
-    // Landscape Auto Fullscreen
+    // Auto Orientation Detection
     const handleOrientation = () => {
       const isLandscape = window.innerWidth > window.innerHeight;
       if (isLandscape) {
@@ -734,9 +735,6 @@
         }
       } else {
         document.body.classList.remove('landscape-mode');
-        if (document.fullscreenElement) {
-          document.exitFullscreen?.().catch(() => {});
-        }
       }
     };
 
@@ -744,20 +742,21 @@
     window.addEventListener('orientationchange', () => setTimeout(handleOrientation, 200));
     handleOrientation();
 
-    // Watch Next Tray Actions
+    // Watch Next Drawer Triggers
     document.getElementById('openWatchNextBtn').onclick = (e) => {
       e.stopPropagation();
       watchNextOverlay.classList.add('show');
     };
     document.getElementById('closeWatchNextBtn').onclick = () => watchNextOverlay.classList.remove('show');
 
-    showControls();
+    overlay.classList.add('show');
+    resetHideTimer();
   }
 
-  // Load Categories & Watch Next Tray Cards (Screenshot 1 Layout)
-  async function loadCategoryRows(excludeId) {
-    const newsGrid = document.getElementById('newsGrid');
-    const businessGrid = document.getElementById('businessGrid');
+  // Requirement 1: Populate "Recommended" and "More from <Partner>"
+  async function loadCategoryRows(excludeId, partnerName) {
+    const recommendedGrid = document.getElementById('recommendedGrid');
+    const partnerGrid = document.getElementById('partnerGrid');
     const watchNextCards = document.getElementById('watchNextCards');
 
     try {
@@ -765,17 +764,25 @@
       let channels = [];
       snap.forEach(d => { if(d.id !== excludeId) channels.push({ id: d.id, ...d.data() }); });
 
-      const renderPortraitCard = (c) => `
+      // Recommended Channels
+      const renderCard = (c) => `
         <div class="card-item" onclick="switchChannelStream('${c.id}')">
           <img src="${c["Logo.png"] || c.Logo || ''}" class="card-thumb" alt="${c.Name}">
           <div class="card-name">${c.Name || 'Live TV'}</div>
         </div>
       `;
 
-      newsGrid.innerHTML = channels.map(renderPortraitCard).join('');
-      businessGrid.innerHTML = channels.map(renderPortraitCard).join('');
+      recommendedGrid.innerHTML = channels.map(renderCard).join('');
 
-      // Exact Screenshot 1 Watch Next Layout
+      // Filter More Channels from same Partner
+      const partnerChannels = channels.filter(c => 
+        (c.Partner || '').trim().toLowerCase() === String(partnerName).trim().toLowerCase()
+      );
+
+      // Render Partner Grid (Fallback to all channels if partner array is empty)
+      partnerGrid.innerHTML = (partnerChannels.length > 0 ? partnerChannels : channels).map(renderCard).join('');
+
+      // Watch Next Overlay Cards
       watchNextCards.innerHTML = channels.map(c => `
         <div class="watch-card" onclick="switchChannelStream('${c.id}')">
           <div class="watch-card-thumb-wrap">
@@ -783,12 +790,12 @@
             <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="watch-card-name">${c.Name || 'TV Channel'}</div>
-          <div class="watch-card-sub">${c.Genres || 'Kids · Animation'}</div>
+          <div class="watch-card-sub">${c.Genres || 'Live Channel'}</div>
         </div>
       `).join('');
 
     } catch (e) {
-      newsGrid.innerHTML = `<p style="font-size:12px; color:var(--text-muted);">Failed to load.</p>`;
+      recommendedGrid.innerHTML = `<p style="font-size:12px; color:var(--text-muted);">Failed to load.</p>`;
     }
   }
 </script>
