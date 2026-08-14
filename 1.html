@@ -19,7 +19,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden; user-select: none; }
 
-    /* Top Global Nav */
+    /* Top Global Nav (Portrait Only) */
     .top-nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 16px; background: #0c0d12; border-bottom: 1px solid var(--border-color);
@@ -30,19 +30,17 @@
 
     .main-wrapper { max-width: 1100px; margin: 0 auto; padding-bottom: 30px; }
 
-    /* Player Outer Container */
+    /* Player Container */
     .player-container {
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
       box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
 
-    /* Native Fullscreen CSS overrides */
     .player-container:fullscreen,
     .player-container:-webkit-full-screen {
       width: 100vw !important; height: 100vh !important; max-width: none !important; aspect-ratio: auto !important;
     }
 
-    /* Video Aspect Modes (Pinch to Zoom) */
     video {
       width: 100%; height: 100%; border: none; object-fit: contain;
       transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s ease;
@@ -50,24 +48,13 @@
     video.fill-screen { object-fit: cover; }
     iframe { width: 100%; height: 100%; border: none; }
 
-    /* Landscape Mobile Fullscreen Mode */
+    /* Landscape Mode Mobile Override */
     body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
     body.landscape-mode .player-container {
       position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
     }
 
-    /* Top Right Channel Logo & Watermark Overlay */
-    .watermark-overlay {
-      position: absolute; top: 12px; right: 12px; z-index: 15;
-      background: rgba(0,0,0,0.65); padding: 5px 12px; border-radius: 6px;
-      font-size: 11px; font-weight: 700; color: #fff; border: 1px solid rgba(255,255,255,0.15);
-      pointer-events: none; display: flex; align-items: center; gap: 8px;
-      backdrop-filter: blur(6px);
-    }
-    .wm-logo-img { height: 22px; width: auto; object-fit: contain; border-radius: 2px; }
-    .watermark-overlay .partner-tag { color: var(--accent-blue); text-transform: uppercase; font-size: 11px; }
-
-    /* Toast Notification */
+    /* Toast Alert */
     .toast-alert {
       position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.85); border: 1px solid rgba(255,255,255,0.2);
@@ -115,7 +102,7 @@
     .ctrl-center .icon-btn svg { width: 34px; height: 34px; }
     .btn-main-play svg { width: 46px; height: 46px; }
 
-    /* Bottom Timeline & Controls */
+    /* Bottom Progress Bar & Actions */
     .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 
     .timeline-row { display: flex; align-items: center; gap: 12px; }
@@ -127,7 +114,7 @@
     .progress-bar:hover { height: 6px; }
     .progress-bar::-webkit-slider-thumb {
       -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
-      background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.8); cursor: pointer;
+      background: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); cursor: pointer;
     }
     .time-val { font-size: 12px; font-weight: 600; color: #d0d0d0; white-space: nowrap; }
 
@@ -163,7 +150,11 @@
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden;
       background: #111; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.15);
     }
-    .watch-card-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .watch-card-thumb-wrap img.card-carousel-img { width: 100%; height: 100%; object-fit: cover; }
+    .card-logo-badge {
+      position: absolute; top: 6px; right: 6px; height: 20px; width: auto; max-width: 50px;
+      object-fit: contain; background: rgba(0,0,0,0.6); padding: 2px 4px; border-radius: 4px;
+    }
     .play-badge {
       position: absolute; bottom: 8px; left: 8px; width: 22px; height: 22px;
       background: rgba(0,0,0,0.65); border-radius: 50%; display: flex; align-items: center;
@@ -173,6 +164,50 @@
 
     .watch-card-name { font-size: 13px; font-weight: 600; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
     .watch-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Hotstar 3-Tab Settings Modal Sheet (Photos 1, 2 & 3) */
+    .settings-modal {
+      position: fixed; inset: 0; z-index: 100000; background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(10px); display: none; align-items: flex-end; justify-content: center;
+    }
+    .settings-modal.active { display: flex; }
+    .settings-sheet {
+      width: 100%; max-width: 680px; background: #12141d; border-top-left-radius: 16px;
+      border-top-right-radius: 16px; padding: 22px; border-top: 1px solid var(--border-color);
+    }
+    .sheet-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 18px;
+    }
+    .sheet-tabs { display: flex; gap: 20px; }
+    .tab-btn {
+      background: none; border: none; color: var(--text-muted); font-size: 14px;
+      font-weight: 700; cursor: pointer; padding-bottom: 8px; position: relative;
+    }
+    .tab-btn.active { color: #fff; }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--accent-blue);
+    }
+    .sheet-actions { display: flex; align-items: center; gap: 16px; font-size: 13px; }
+    .sheet-actions a { color: var(--text-muted); text-decoration: none; }
+    .sheet-actions .close-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+
+    .tab-panel { display: none; flex-direction: column; gap: 10px; }
+    .tab-panel.active { display: flex; }
+
+    /* Audio & Subtitles Dual-Column Split (Photo 1) */
+    .audio-sub-split { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 20px; }
+    .col-heading { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 12px; }
+    .col-divider { background: var(--border-color); height: 100%; }
+
+    .option-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px;
+      border-radius: 8px; background: rgba(255,255,255,0.03); cursor: pointer; transition: 0.15s;
+    }
+    .option-item.selected { background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.3); }
+    .option-check { color: var(--accent-blue); font-weight: bold; width: 18px; }
+    .option-title { font-size: 14px; font-weight: 600; color: #fff; }
+    .option-sub { font-size: 12px; color: var(--text-muted); }
 
     /* Access Denied Overlay */
     .access-denied-box {
@@ -202,13 +237,13 @@
     .channel-scroll-row::-webkit-scrollbar { display: none; }
 
     .card-item {
-      min-width: 155px; width: 155px; background: var(--card-bg); border: 1px solid var(--border-color);
+      min-width: 160px; width: 160px; background: var(--card-bg); border: 1px solid var(--border-color);
       border-radius: 10px; padding: 8px; text-decoration: none; color: #fff; display: flex; cursor: pointer;
       flex-direction: column; transition: border-color 0.2s, transform 0.2s;
     }
     .card-item:hover { border-color: var(--accent-blue); transform: translateY(-3px); }
-    .card-thumb-box { width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: #000; margin-bottom: 8px; }
-    .card-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
+    .card-thumb-box { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: #000; margin-bottom: 8px; }
+    .card-thumb-box img.card-carousel-img { width: 100%; height: 100%; object-fit: cover; }
     .card-name { font-size: 12px; font-weight: 700; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
 
     .loader-box { text-align: center; padding: 50px; color: var(--accent-blue); font-weight: 600; }
@@ -226,14 +261,8 @@
 <div id="appContent" style="display: none;">
   <div class="main-wrapper">
     
-    <!-- Player Container -->
+    <!-- Player Container (Streaming Video without floating logo watermark) -->
     <div class="player-container" id="playerContainer">
-      
-      <!-- Top Right Watermark & Channel Logo Overlay -->
-      <div class="watermark-overlay" id="wmOverlay">
-        <img id="wmLogoImg" class="wm-logo-img" src="" alt="Logo" style="display:none;">
-        <span class="partner-tag" id="wmPartnerText">Partner</span>
-      </div>
 
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Zoomed to Fill Screen</div>
@@ -271,6 +300,10 @@
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
+            <!-- 3-Tab Settings Modal Gear Button -->
+            <button class="icon-btn" id="settingsBtn" title="Settings">
+              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            </button>
             <!-- Native Browser Fullscreen Button -->
             <button class="icon-btn" id="fullscreenBtn" title="Full Screen (Esc)">
               <svg id="fsExpandIcon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
@@ -304,8 +337,8 @@
         <!-- Bottom Timeline & Action Bar -->
         <div class="ctrl-bottom">
           <div class="timeline-row">
-            <input type="range" id="progressBar" class="progress-bar" value="0" min="0" max="100">
-            <span class="time-val" id="timeDisplay">00:00:00</span>
+            <input type="range" id="progressBar" class="progress-bar" value="100" min="0" max="100">
+            <span class="time-val" id="timeDisplay">● LIVE</span>
           </div>
           
           <div class="action-bar-row">
@@ -349,6 +382,119 @@
   </div>
 </div>
 
+<!-- 3-Tab Settings Modal Sheet (Exact Match to Photos 1, 2 & 3) -->
+<div class="settings-modal" id="settingsModal">
+  <div class="settings-sheet">
+    <div class="sheet-header">
+      <div class="sheet-tabs">
+        <button class="tab-btn active" id="tabQuality">Quality</button>
+        <button class="tab-btn" id="tabAudioSub">Audio & Subtitles</button>
+        <button class="tab-btn" id="tabSpeed">Playback Speed</button>
+      </div>
+      <div class="sheet-actions">
+        <a href="#">Report an Issue</a>
+        <button class="close-btn" id="closeSettings">✕</button>
+      </div>
+    </div>
+
+    <!-- Tab 1 Panel: Quality (Photo 2) -->
+    <div id="panelQuality" class="tab-panel active">
+      <div class="option-item selected" data-quality="-1">
+        <div class="option-check">✓</div>
+        <div>
+          <div class="option-title">Auto</div>
+          <div class="option-sub">Recommended for best experience</div>
+        </div>
+      </div>
+      <div class="option-item" data-quality="1080">
+        <div class="option-check"></div>
+        <div>
+          <div class="option-title">Full HD</div>
+          <div class="option-sub">Up to 1080p</div>
+        </div>
+      </div>
+      <div class="option-item" data-quality="720">
+        <div class="option-check"></div>
+        <div>
+          <div class="option-title">HD</div>
+          <div class="option-sub">Up to 720p</div>
+        </div>
+      </div>
+      <div class="option-item" data-quality="360">
+        <div class="option-check"></div>
+        <div>
+          <div class="option-title">Data Saver</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2 Panel: Audio & Subtitles (Photo 1) -->
+    <div id="panelAudioSub" class="tab-panel">
+      <div class="audio-sub-split">
+        <!-- Audio Column -->
+        <div>
+          <div class="col-heading">AUDIO</div>
+          <div class="option-item selected" data-audio="hindi">
+            <div class="option-check">✓</div>
+            <div>
+              <div class="option-title">Hindi</div>
+              <div class="option-sub">Original</div>
+            </div>
+          </div>
+          <div class="option-item" data-audio="english">
+            <div class="option-check"></div>
+            <div>
+              <div class="option-title">English</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-divider"></div>
+        <!-- Subtitles Column -->
+        <div>
+          <div class="col-heading">SUBTITLES</div>
+          <div class="option-item selected" data-sub="off">
+            <div class="option-check">✓</div>
+            <div class="option-title">Off</div>
+          </div>
+          <div class="option-item" data-sub="english">
+            <div class="option-check"></div>
+            <div class="option-title">English</div>
+          </div>
+          <div class="option-item" data-sub="hindi">
+            <div class="option-check"></div>
+            <div class="option-title">Hindi</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3 Panel: Playback Speed (Photo 3) -->
+    <div id="panelSpeed" class="tab-panel">
+      <div class="option-item" data-speed="0.5">
+        <div class="option-check"></div>
+        <div class="option-title">0.5x</div>
+      </div>
+      <div class="option-item" data-speed="0.75">
+        <div class="option-check"></div>
+        <div class="option-title">0.75x</div>
+      </div>
+      <div class="option-item selected" data-speed="1">
+        <div class="option-check">✓</div>
+        <div class="option-title">1x <span class="option-sub">Normal</span></div>
+      </div>
+      <div class="option-item" data-speed="1.25">
+        <div class="option-check"></div>
+        <div class="option-title">1.25x</div>
+      </div>
+      <div class="option-item" data-speed="1.5">
+        <div class="option-check"></div>
+        <div class="option-title">1.5x</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -383,8 +529,6 @@
   let hlsInstance = null;
   let hideControlsTimer = null;
   let isScreenLocked = false;
-  let currentSpeedIndex = 0;
-  const speeds = [1, 1.25, 1.5, 2, 0.5];
 
   const urlParams = new URLSearchParams(window.location.search);
   let currentDocId = urlParams.get('watch');
@@ -395,7 +539,7 @@
     initApp(currentDocId);
   }
 
-  // --- Double-Layer Persistent Authorization & App Init ---
+  // --- Persistent Multi-Layer Authorization ---
   async function initApp(docId) {
     currentDocId = docId;
     const loader = document.getElementById('loader');
@@ -404,7 +548,6 @@
     let activeUser = null;
     try { activeUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
 
-    // Fetch Target Channel
     let channel = null;
     try {
       const snap = await getDoc(doc(channelDb, "Live TV", docId));
@@ -418,28 +561,14 @@
       return;
     }
 
-    // Set UI Metadata
     document.getElementById('chTitle').innerText = channel.Name || "Live Channel";
     document.getElementById('overlayChTitle').innerText = channel.Name || "Live Channel";
     document.getElementById('chLangSub').innerText = `${channel.Language || 'Hindi'} • ${channel.Genres || 'Live Stream'}`;
     document.getElementById('moreFromPartnerTitle').innerText = `More from ${channel.Partner || 'Network'}`;
 
-    // Top Right Watermark & Logo Setup
-    const logoImg = document.getElementById('wmLogoImg');
-    const partnerTxt = document.getElementById('wmPartnerText');
-    const channelLogoUrl = channel["Logo.png"] || channel.Logo || '';
-    if (channelLogoUrl) {
-      logoImg.src = channelLogoUrl;
-      logoImg.style.display = 'block';
-    } else {
-      logoImg.style.display = 'none';
-    }
-    partnerTxt.innerText = channel.Partner || "Network";
-
     loader.style.display = 'none';
     document.getElementById('appContent').style.display = 'block';
 
-    // 1. Verify Login State
     if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
       userPill.innerText = "Not Logged In";
       showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
@@ -449,7 +578,6 @@
 
     userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
 
-    // 2. Persistent Multi-Layer Plan Check
     let userPlans = activeUser.Plans || [];
 
     try {
@@ -474,7 +602,6 @@
       return;
     }
 
-    // 3. Normalized Studio Matching
     const channelPartner = (channel.Partner || "").trim().toLowerCase();
     let isAuthorized = false;
 
@@ -606,18 +733,13 @@
       }, 3500);
     };
 
-    // --- Task 3: Sleep / Wake Controls Toggle on Click ---
+    // Sleep / Wake Controls Toggle on Screen Click
     playerContainer.onclick = (e) => {
-      // Ignore if clicking internal buttons/sliders
-      if (e.target.closest('.icon-btn') || e.target.closest('input') || e.target.closest('.action-btn')) {
-        return;
-      }
+      if (e.target.closest('.icon-btn') || e.target.closest('input') || e.target.closest('.action-btn')) return;
       if (overlay.classList.contains('show')) {
-        // SLEEP
         overlay.classList.remove('show');
         clearTimeout(hideControlsTimer);
       } else {
-        // WAKE
         showControls();
       }
     };
@@ -635,16 +757,24 @@
     rewindBtn.onclick = (e) => { e.stopPropagation(); video.currentTime -= 10; showControls(); };
     forwardBtn.onclick = (e) => { e.stopPropagation(); video.currentTime += 10; showControls(); };
 
+    // --- Fixed Progress Bar Stability for Live Stream Packet Arrivals ---
     video.ontimeupdate = () => {
-      if (video.duration) {
+      if (isFinite(video.duration) && video.duration > 0) {
+        // Fixed VOD Stream
         progressBar.value = (video.currentTime / video.duration) * 100;
-        const current = new Date(video.currentTime * 1000).toISOString().substr(11, 8);
-        timeDisplay.innerText = current;
+        timeDisplay.innerText = new Date(video.currentTime * 1000).toISOString().substr(11, 8);
+      } else {
+        // Live Stream: Lock progress bar at 100% position
+        progressBar.value = 100;
+        timeDisplay.innerText = "● LIVE";
       }
     };
+
     progressBar.oninput = (e) => {
       e.stopPropagation();
-      if (video.duration) video.currentTime = (progressBar.value / 100) * video.duration;
+      if (isFinite(video.duration) && video.duration > 0) {
+        video.currentTime = (progressBar.value / 100) * video.duration;
+      }
     };
 
     brightnessSlider.oninput = (e) => {
@@ -654,41 +784,27 @@
 
     speedBtn.onclick = (e) => {
       e.stopPropagation();
-      currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
-      const speed = speeds[currentSpeedIndex];
-      video.playbackRate = speed;
-      speedBtn.innerText = `⏱ Speed ${speed}x`;
-      showToast(`Playback Speed: ${speed}x`);
+      // Open Tab 3 (Playback Speed) in Settings Modal
+      settingsModal.classList.add('active');
+      switchTab('panelSpeed', tabSpeed);
     };
 
-    // --- Task 2: Vertical Mobile Fullscreen Handler ---
+    // Fullscreen Handler
     const triggerFullscreen = async (e) => {
       e?.stopPropagation();
       const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
 
       if (!isFullscreen) {
         try {
-          if (playerContainer.requestFullscreen) {
-            await playerContainer.requestFullscreen();
-          } else if (playerContainer.webkitRequestFullscreen) {
-            await playerContainer.webkitRequestFullscreen();
-          }
-          if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(() => {});
-          }
-        } catch (err) {
-          console.log("Fullscreen request err:", err);
-        }
+          if (playerContainer.requestFullscreen) await playerContainer.requestFullscreen();
+          else if (playerContainer.webkitRequestFullscreen) await playerContainer.webkitRequestFullscreen();
+          if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+        } catch (err) {}
         document.body.classList.add('landscape-mode');
       } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          await document.webkitExitFullscreen();
-        }
-        if (screen.orientation && screen.orientation.unlock) {
-          screen.orientation.unlock();
-        }
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
         document.body.classList.remove('landscape-mode');
       }
     };
@@ -756,19 +872,14 @@
       }
     });
 
-    // Auto Orientation Detection
     const handleOrientation = () => {
       const isLandscape = window.innerWidth > window.innerHeight;
       if (isLandscape) {
         document.body.classList.add('landscape-mode');
-        if (!document.fullscreenElement) {
-          playerContainer.requestFullscreen?.().catch(() => {});
-        }
+        if (!document.fullscreenElement) playerContainer.requestFullscreen?.().catch(() => {});
       } else {
         document.body.classList.remove('landscape-mode');
-        if (document.fullscreenElement) {
-          document.exitFullscreen?.().catch(() => {});
-        }
+        if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
       }
     };
 
@@ -776,7 +887,6 @@
     window.addEventListener('orientationchange', () => setTimeout(handleOrientation, 200));
     handleOrientation();
 
-    // Watch Next Tray Actions
     document.getElementById('openWatchNextBtn').onclick = (e) => {
       e.stopPropagation();
       watchNextOverlay.classList.add('show');
@@ -786,7 +896,80 @@
     showControls();
   }
 
-  // --- Task 1 & 4: Load Categorized Rows with Carousel Banner Images ---
+  // --- 3-Tab Settings Modal Sheet Controls (Photos 1, 2 & 3) ---
+  const settingsModal = document.getElementById('settingsModal');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const closeSettings = document.getElementById('closeSettings');
+  const tabQuality = document.getElementById('tabQuality');
+  const tabAudioSub = document.getElementById('tabAudioSub');
+  const tabSpeed = document.getElementById('tabSpeed');
+
+  const panelQuality = document.getElementById('panelQuality');
+  const panelAudioSub = document.getElementById('panelAudioSub');
+  const panelSpeed = document.getElementById('panelSpeed');
+
+  settingsBtn.onclick = (e) => {
+    e.stopPropagation();
+    settingsModal.classList.add('active');
+  };
+
+  closeSettings.onclick = () => settingsModal.classList.remove('active');
+  settingsModal.onclick = (e) => { if (e.target === settingsModal) settingsModal.classList.remove('active'); };
+
+  function switchTab(panelId, activeTabBtn) {
+    [panelQuality, panelAudioSub, panelSpeed].forEach(p => p.classList.remove('active'));
+    [tabQuality, tabAudioSub, tabSpeed].forEach(t => t.classList.remove('active'));
+    
+    document.getElementById(panelId).classList.add('active');
+    activeTabBtn.classList.add('active');
+  }
+
+  tabQuality.onclick = () => switchTab('panelQuality', tabQuality);
+  tabAudioSub.onclick = () => switchTab('panelAudioSub', tabAudioSub);
+  tabSpeed.onclick = () => switchTab('panelSpeed', tabSpeed);
+
+  // Quality Selection
+  document.querySelectorAll('#panelQuality .option-item').forEach(item => {
+    item.onclick = () => {
+      document.querySelectorAll('#panelQuality .option-item').forEach(i => {
+        i.classList.remove('selected');
+        i.querySelector('.option-check').innerText = '';
+      });
+      item.classList.add('selected');
+      item.querySelector('.option-check').innerText = '✓';
+
+      const quality = parseInt(item.dataset.quality);
+      if (hlsInstance) {
+        if (quality === -1) hlsInstance.currentLevel = -1;
+        else {
+          const idx = hlsInstance.levels.findIndex(l => l.height <= quality);
+          if (idx !== -1) hlsInstance.currentLevel = idx;
+        }
+      }
+      setTimeout(() => settingsModal.classList.remove('active'), 200);
+    };
+  });
+
+  // Playback Speed Selection
+  document.querySelectorAll('#panelSpeed .option-item').forEach(item => {
+    item.onclick = () => {
+      document.querySelectorAll('#panelSpeed .option-item').forEach(i => {
+        i.classList.remove('selected');
+        i.querySelector('.option-check').innerText = '';
+      });
+      item.classList.add('selected');
+      item.querySelector('.option-check').innerText = '✓';
+
+      const speed = parseFloat(item.dataset.speed);
+      const video = document.getElementById('videoPlayer');
+      video.playbackRate = speed;
+      document.getElementById('speedBtn').innerText = `⏱ Speed ${speed}x`;
+      showToast(`Playback Speed: ${speed}x`);
+      setTimeout(() => settingsModal.classList.remove('active'), 200);
+    };
+  });
+
+  // --- Load Categorized Cards with Carousel & Channel Logo Badges ---
   async function loadCategoryRows(excludeId, currentPartner) {
     const recommendedGrid = document.getElementById('recommendedGrid');
     const moreFromPartnerGrid = document.getElementById('moreFromPartnerGrid');
@@ -797,21 +980,20 @@
       let channels = [];
       snap.forEach(d => { if(d.id !== excludeId) channels.push({ id: d.id, ...d.data() }); });
 
-      // Recommended List
       const recommendedList = channels;
-
-      // Filter "More from <Partner>"
       const partnerName = (currentPartner || "").toLowerCase();
       let partnerList = channels.filter(c => (c.Partner || "").toLowerCase() === partnerName);
       if (partnerList.length === 0) partnerList = channels;
 
-      // Card Render Function using `carousel` field (from Screenshot 2)
+      // Card Item displaying Carousel Banner + Channel Logo Badge
       const renderCard = (c) => {
-        const thumbImg = c.carousel || c.Banner || c["Logo.png"] || c.Logo || '';
+        const carouselImg = c.carousel || c.Banner || c["Logo.png"] || c.Logo || '';
+        const logoImg = c["Logo.png"] || c.Logo || '';
         return `
           <div class="card-item" onclick="switchChannelStream('${c.id}')">
             <div class="card-thumb-box">
-              <img src="${thumbImg}" alt="${c.Name}">
+              <img src="${carouselImg}" class="card-carousel-img" alt="${c.Name}">
+              ${logoImg ? `<img src="${logoImg}" class="card-logo-badge" alt="logo">` : ''}
             </div>
             <div class="card-name">${c.Name || 'Live TV'}</div>
           </div>
@@ -821,13 +1003,15 @@
       recommendedGrid.innerHTML = recommendedList.map(renderCard).join('');
       moreFromPartnerGrid.innerHTML = partnerList.map(renderCard).join('');
 
-      // Watch Next Overlay Cards using `carousel` Field
+      // Watch Next Overlay Cards
       watchNextCards.innerHTML = recommendedList.map(c => {
-        const thumbImg = c.carousel || c.Banner || c["Logo.png"] || c.Logo || '';
+        const carouselImg = c.carousel || c.Banner || c["Logo.png"] || c.Logo || '';
+        const logoImg = c["Logo.png"] || c.Logo || '';
         return `
           <div class="watch-card" onclick="switchChannelStream('${c.id}')">
             <div class="watch-card-thumb-wrap">
-              <img src="${thumbImg}" alt="${c.Name}">
+              <img src="${carouselImg}" class="card-carousel-img" alt="${c.Name}">
+              ${logoImg ? `<img src="${logoImg}" class="card-logo-badge" alt="logo">` : ''}
               <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
             </div>
             <div class="watch-card-name">${c.Name || 'TV Channel'}</div>
