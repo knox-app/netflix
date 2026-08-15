@@ -45,22 +45,33 @@
       object-fit: cover !important;
     }
 
-    /* Clean YouTube Frame Host Wrapper (Single-Staged Scale) */
+    /* ZERO-FLASH PRIVACY YOUTUBE HOST MASK */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
+      background: #000;
+      opacity: 0; /* Kept invisible during 1-2s initial YouTube load */
+      transition: opacity 0.4s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    /* YouTube Default Fit Screen: Scale 1.18x crops YouTube title bar while keeping 16:9 ratio */
+    #ytFrameHost.ready {
+      opacity: 1 !important; /* Smooth fade-in ONLY after initial title auto-dismisses */
+    }
+
+    /* Deeper Top Crop (-110px) Buries Title & Logo Completely Off-Screen */
     #ytFrameHost iframe {
-      width: 100% !important; height: 100% !important;
-      position: absolute !important; top: 0 !important; left: 0 !important;
+      width: calc(100% + 160px) !important;
+      height: calc(100% + 220px) !important;
+      position: absolute !important;
+      top: -110px !important;
+      left: -80px !important;
       pointer-events: none;
-      transform: scale(1.18);
+      transform: scale(1.05);
       transform-origin: center center;
       transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    /* YouTube Zoomed Fill Screen: Scale 1.48x fills ultrawide curved phone displays */
+
+    /* Zoomed Fill Screen for YouTube */
     #ytFrameHost.fill-screen iframe {
-      transform: scale(1.48) !important;
+      transform: scale(1.35) !important;
     }
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; }
@@ -252,7 +263,7 @@
       <!-- Video Element -->
       <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
 
-      <!-- Clean YouTube Frame Host Wrapper -->
+      <!-- Clean Zero-Flash YouTube Frame Host Wrapper -->
       <div id="ytFrameHost"></div>
 
       <!-- Fallback IFrame -->
@@ -427,7 +438,7 @@
     return null;
   }
 
-  // SOUND BUG FIX: Destroy active players completely on channel switch
+  // STOP AUDIO LEAK ON CHANNEL SWITCH
   function destroyActivePlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
@@ -453,12 +464,12 @@
     if (ytHost) {
       ytHost.innerHTML = '';
       ytHost.style.display = 'none';
-      ytHost.classList.remove('fill-screen');
+      ytHost.classList.remove('ready', 'fill-screen');
     }
     isFillScreen = false;
   }
 
-  // Unified Pinch Zoom Toggle Handler
+  // Unified Pinch Zoom Handler
   function applyZoomState(fill) {
     isFillScreen = fill;
     const video = document.getElementById('videoPlayer');
@@ -583,7 +594,7 @@
 
     const ytId = extractYouTubeId(streamUrl);
 
-    // CLEAN YOUTUBE MASKING: Embed via YT.Player API
+    // ZERO-FLASH PRIVACY YOUTUBE EMBED
     if (ytId) {
       activePlayerType = 'youtube';
       video.style.display = 'none';
@@ -613,9 +624,16 @@
           onStateChange: (e) => {
             const playIcon = document.getElementById('playIcon');
             const pauseIcon = document.getElementById('pauseIcon');
+
+            // FADE-IN ONLY WHEN PLAYING (Hides 1-2s initial title/logo completely)
             if (e.data === YT.PlayerState.PLAYING) {
               playIcon.style.display = 'none';
               pauseIcon.style.display = 'block';
+              
+              // 400ms delay ensures YouTube's initial title banner auto-dismisses behind curtain
+              setTimeout(() => {
+                ytHost.classList.add('ready');
+              }, 400);
             } else {
               playIcon.style.display = 'block';
               pauseIcon.style.display = 'none';
