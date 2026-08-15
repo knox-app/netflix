@@ -8,18 +8,16 @@
   <style>
     :root {
       --bg-dark: #000000;
-      --card-bg: #121620;
-      --accent-blue: #00d2ff;
-      --live-red: #e50914;
+      --accent-blue: #0072ef;
       --text-main: #ffffff;
       --text-muted: #9aa0a6;
-      --border-color: #232838;
+      --border-color: #262933;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden; user-select: none; }
 
-    /* Top Navigation (Portrait) */
+    /* Top Nav (Portrait Only) */
     .top-nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 16px; background: #0c0d12; border-bottom: 1px solid var(--border-color);
@@ -30,111 +28,89 @@
 
     .main-wrapper { max-width: 1100px; margin: 0 auto; padding-bottom: 30px; }
 
-    /* Player Container */
+    /* Video Player Container */
     .player-container {
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
 
-    /* Native Fullscreen CSS overrides */
-    .player-container:fullscreen,
-    .player-container:-webkit-full-screen {
-      width: 100vw !important; height: 100vh !important; max-width: none !important; aspect-ratio: auto !important;
-    }
-
-    /* Video Aspect Modes (Fill Screen vs Fit Screen) */
-    video {
-      width: 100%; height: 100%; border: none; object-fit: contain;
-      transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s ease;
-    }
-    video.fill-screen { object-fit: cover; }
+    video { width: 100%; height: 100%; border: none; object-fit: contain; }
     iframe { width: 100%; height: 100%; border: none; }
 
-    /* Landscape Mode Mobile Fullscreen Override */
+    /* Mobile Landscape Fullscreen Fix */
     body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
     body.landscape-mode .player-container {
       position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
     }
 
-    /* Toast Alert Notification */
-    .toast-alert {
-      position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.85); border: 1px solid rgba(255,255,255,0.2);
-      color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;
-      z-index: 45; pointer-events: none; opacity: 0; transition: opacity 0.25s ease;
-      backdrop-filter: blur(6px);
-    }
-    .toast-alert.show { opacity: 1; }
-
-    /* Controls Overlay */
+    /* Player Controls Overlay */
     .controls-overlay {
       position: absolute; inset: 0; z-index: 20;
-      background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.9) 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.85) 100%);
       display: flex; flex-direction: column; justify-content: space-between;
-      padding: 14px 18px; opacity: 0; transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none;
+      padding: 14px 18px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none;
     }
     .controls-overlay.show { opacity: 1; pointer-events: auto; }
 
-    /* Top Bar Controls */
+    /* Top Controls Bar */
     .ctrl-top { display: flex; align-items: center; justify-content: space-between; }
     .ctrl-top-left { display: flex; align-items: center; gap: 12px; }
     .ctrl-title { font-size: 15px; font-weight: 600; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ctrl-top-right { display: flex; align-items: center; gap: 14px; }
+    .ctrl-top-right { display: flex; align-items: center; gap: 16px; }
 
-    .icon-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; transition: transform 0.15s, color 0.15s; }
-    .icon-btn:active { transform: scale(0.85); color: var(--accent-blue); }
+    .icon-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Left Vertical Brightness Slider */
+    /* Left Brightness Control Slider */
     .brightness-slider-wrap {
-      position: absolute; left: 18px; top: 30%; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 22;
+      position: absolute; left: 20px; top: 32%; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 22;
     }
-    .brightness-icon { font-size: 13px; opacity: 0.8; }
+    .brightness-icon { font-size: 14px; opacity: 0.8; }
     .brightness-slider {
-      -webkit-appearance: none; appearance: none; width: 4px; height: 90px;
+      -webkit-appearance: none; appearance: none; width: 3px; height: 100px;
       background: rgba(255, 255, 255, 0.3); outline: none; border-radius: 2px;
-      writing-mode: bt-lr; -webkit-appearance: slider-vertical; cursor: pointer;
+      writing-mode: bt-lr; -webkit-appearance: slider-vertical;
     }
 
-    /* Center Controls */
+    /* Center Playback Icons */
     .ctrl-center {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      display: flex; align-items: center; gap: 40px;
+      display: flex; align-items: center; gap: 45px;
     }
-    .ctrl-center .icon-btn svg { width: 34px; height: 34px; }
-    .btn-main-play svg { width: 46px; height: 46px; }
+    .ctrl-center .icon-btn svg { width: 32px; height: 32px; }
+    .btn-main-play svg { width: 38px; height: 38px; fill: #fff; }
 
-    /* Bottom Timeline & Controls */
+    /* Bottom Timeline & Controls Bar */
     .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-
     .timeline-row { display: flex; align-items: center; gap: 12px; }
+
+    /* Blue Progress Bar Styling */
     .progress-bar {
-      width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
-      background: rgba(255, 255, 255, 0.3); outline: none; cursor: pointer; border-radius: 3px;
-      transition: height 0.15s;
+      width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+      background: rgba(255, 255, 255, 0.25); outline: none; cursor: pointer; border-radius: 4px;
     }
-    .progress-bar:hover { height: 6px; }
     .progress-bar::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
-      background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.8); cursor: pointer;
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+      background: #ffffff; box-shadow: 0 0 10px rgba(0, 114, 239, 0.8); cursor: pointer;
     }
-    .time-val { font-size: 12px; font-weight: 600; color: #d0d0d0; white-space: nowrap; }
+
+    .time-val { font-size: 12px; font-weight: 600; color: #ffffff; white-space: nowrap; }
 
     .action-bar-row { display: flex; align-items: center; justify-content: space-between; }
     .action-btn {
       background: none; border: none; color: #fff; font-size: 13px; font-weight: 600;
       display: flex; align-items: center; gap: 6px; cursor: pointer; opacity: 0.9;
     }
+    .action-btn-watch-next { display: none; }
+    body.landscape-mode .action-btn-watch-next { display: flex; }
     .action-btn:hover { opacity: 1; color: var(--accent-blue); }
 
-    /* Watch Next Overlay Tray (Screenshot 1 Exact Design) */
+    /* Watch Next Overlay Tray (Fullscreen/Landscape Mode Only) */
     .watch-next-overlay {
-      position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.94);
-      backdrop-filter: blur(12px); display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease;
-      transform: translateY(20px);
+      position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
+      display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
     }
-    .watch-next-overlay.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .watch-next-overlay.show { opacity: 1; pointer-events: auto; }
 
     .watch-next-header { display: flex; align-items: center; justify-content: space-between; }
     .watch-next-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
@@ -144,27 +120,30 @@
     }
     .watch-next-cards-row::-webkit-scrollbar { display: none; }
 
-    .watch-card {
-      min-width: 175px; width: 175px; color: #fff; cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .watch-card:hover { transform: translateY(-4px); }
+    .watch-card { min-width: 190px; width: 190px; text-decoration: none; color: #fff; cursor: pointer; }
     .watch-card-thumb-wrap {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden;
       background: #111; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.15);
     }
-    .watch-card-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
-    .play-badge {
-      position: absolute; bottom: 8px; left: 8px; width: 22px; height: 22px;
-      background: rgba(0,0,0,0.65); border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; border: 1px solid rgba(255,255,255,0.4);
+    .watch-card-thumb-wrap .banner-img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .watch-card-logo-top-right {
+      position: absolute; top: 6px; right: 6px; width: 28px; height: 28px;
+      object-fit: contain; background: rgba(0,0,0,0.6); border-radius: 4px; padding: 2px;
+      border: 1px solid rgba(255,255,255,0.2);
     }
-    .play-badge svg { width: 10px; height: 10px; fill: #fff; margin-left: 2px; }
+
+    .play-badge {
+      position: absolute; bottom: 8px; left: 8px; width: 20px; height: 20px;
+      background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; border: 1px solid rgba(255,255,255,0.5);
+    }
+    .play-badge svg { width: 9px; height: 9px; fill: #fff; margin-left: 1px; }
 
     .watch-card-name { font-size: 13px; font-weight: 600; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
     .watch-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
-    /* Access Denied Overlay */
+    /* Access Denied Card Overlay */
     .access-denied-box {
       position: absolute; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -172,17 +151,15 @@
     }
     .denied-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
     .denied-desc { font-size: 13px; color: var(--text-muted); max-width: 400px; margin-bottom: 18px; }
-    .btn-login { background: var(--accent-blue); color: #000; font-weight: 700; padding: 10px 22px; border-radius: 20px; text-decoration: none; }
+    .btn-login { background: var(--accent-blue); color: #fff; font-weight: 700; padding: 10px 22px; border-radius: 20px; text-decoration: none; }
 
-    /* Lock Screen Unlock Floating Button */
     .lock-overlay-btn {
-      position: absolute; top: 15px; left: 15px; z-index: 25; background: rgba(0,0,0,0.75);
+      position: absolute; top: 15px; left: 15px; z-index: 25; background: rgba(0,0,0,0.7);
       border: 1px solid rgba(255,255,255,0.3); padding: 8px 14px; border-radius: 20px;
       color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
-      backdrop-filter: blur(4px);
     }
 
-    /* Portrait Details Area */
+    /* Portrait Details Section */
     .details-wrapper { padding: 16px; }
     .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; }
     .ch-lang-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
@@ -192,11 +169,10 @@
     .channel-scroll-row::-webkit-scrollbar { display: none; }
 
     .card-item {
-      min-width: 140px; width: 140px; background: var(--card-bg); border: 1px solid var(--border-color);
-      border-radius: 10px; padding: 10px; color: #fff; display: flex; cursor: pointer;
-      flex-direction: column; align-items: center; text-align: center; transition: border-color 0.2s, transform 0.2s;
+      min-width: 140px; width: 140px; background: #131722; border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 10px; text-decoration: none; color: #fff; display: flex;
+      flex-direction: column; align-items: center; text-align: center; cursor: pointer;
     }
-    .card-item:hover { border-color: var(--accent-blue); transform: translateY(-3px); }
     .card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #000; border-radius: 6px; margin-bottom: 8px; }
     .card-name { font-size: 12px; font-weight: 700; }
 
@@ -217,9 +193,6 @@
     
     <!-- Player Container -->
     <div class="player-container" id="playerContainer">
-      
-      <!-- Toast Alert -->
-      <div class="toast-alert" id="toastAlert">Zoomed to Fill Screen</div>
 
       <!-- Access Denied Overlay -->
       <div class="access-denied-box" id="accessDeniedBox" style="display: none;">
@@ -241,7 +214,7 @@
       <!-- Player Controls Overlay -->
       <div class="controls-overlay" id="controlsOverlay">
         
-        <!-- Top Bar -->
+        <!-- Top Control Bar -->
         <div class="ctrl-top">
           <div class="ctrl-top-left">
             <button class="icon-btn" id="backBtn" title="Back">
@@ -250,23 +223,26 @@
             <div class="ctrl-title" id="overlayChTitle">Channel Name</div>
           </div>
           <div class="ctrl-top-right">
+            <!-- Cast Icon -->
+            <button class="icon-btn" title="Cast">
+              <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.92-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+            </button>
             <!-- Lock Button -->
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
-            <!-- Fill/Fit Screen Mode Toggle -->
-            <button class="icon-btn" id="aspectBtn" title="Fill Screen Mode">
-              <svg viewBox="0 0 24 24"><path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"/></svg>
+            <!-- Settings Gear Button -->
+            <button class="icon-btn" id="settingsBtn" title="Settings">
+              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
-            <!-- Native Browser Fullscreen Button -->
-            <button class="icon-btn" id="fullscreenBtn" title="Full Screen (Esc)">
-              <svg id="fsExpandIcon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-              <svg id="fsCollapseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+            <!-- REPLACED: Fullscreen Toggle Button -->
+            <button class="icon-btn" id="fullscreenToggleBtn" title="Toggle Fullscreen">
+              <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
           </div>
         </div>
 
-        <!-- Left Vertical Brightness Slider -->
+        <!-- Left Brightness Slider -->
         <div class="brightness-slider-wrap">
           <span class="brightness-icon">☀️</span>
           <input type="range" id="brightnessSlider" class="brightness-slider" min="0.2" max="1.5" step="0.05" value="1">
@@ -288,7 +264,7 @@
           </button>
         </div>
 
-        <!-- Bottom Timeline & Action Bar -->
+        <!-- Bottom Controls -->
         <div class="ctrl-bottom">
           <div class="timeline-row">
             <input type="range" id="progressBar" class="progress-bar" value="0" min="0" max="100">
@@ -296,11 +272,10 @@
           </div>
           
           <div class="action-bar-row">
-            <button class="action-btn" id="openWatchNextBtn">
+            <button class="action-btn action-btn-watch-next" id="openWatchNextBtn">
               🧭 Watch Next
             </button>
-            <div style="display:flex; gap:16px;">
-              <button class="action-btn" id="speedBtn">⏱ Speed 1x</button>
+            <div style="display:flex; gap:16px; margin-left:auto;">
               <button class="action-btn" id="rateBtn">♡ Rate</button>
             </div>
           </div>
@@ -308,27 +283,29 @@
 
       </div>
 
-      <!-- Watch Next Tray Overlay (Screenshot 1 Exact Layout) -->
+      <!-- Watch Next Tray Overlay -->
       <div class="watch-next-overlay" id="watchNextOverlay">
         <div class="watch-next-header">
           <div class="watch-next-title">Watch Next ˅</div>
-          <button class="icon-btn" id="closeWatchNextBtn" style="font-size:20px;">✕</button>
+          <button class="icon-btn" id="closeWatchNextBtn" style="font-size:22px;">✕</button>
         </div>
         <div class="watch-next-cards-row" id="watchNextCards"></div>
       </div>
 
     </div>
 
-    <!-- Portrait Details Area -->
+    <!-- Portrait Details Sections -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Live Channel</div>
-      <div class="ch-lang-sub" id="chLangSub">हिंदी • Live News</div>
+      <div class="ch-lang-sub" id="chLangSub">हिंदी • Live Stream</div>
 
-      <div class="section-head">Live News</div>
-      <div class="channel-scroll-row" id="newsGrid"></div>
+      <!-- Section 1: Recommendations -->
+      <div class="section-head" id="sec1Heading">Recommendations</div>
+      <div class="channel-scroll-row" id="recommendationsGrid"></div>
 
-      <div class="section-head">Live Business News</div>
-      <div class="channel-scroll-row" id="businessGrid"></div>
+      <!-- Section 2: More by <Partner> -->
+      <div class="section-head" id="sec2Heading">More Channels</div>
+      <div class="channel-scroll-row" id="partnerGrid"></div>
     </div>
 
   </div>
@@ -368,11 +345,10 @@
   let hlsInstance = null;
   let hideControlsTimer = null;
   let isScreenLocked = false;
-  let currentSpeedIndex = 0;
-  const speeds = [1, 1.25, 1.5, 2, 0.5];
+  let currentChannel = null;
 
   const urlParams = new URLSearchParams(window.location.search);
-  let currentDocId = urlParams.get('watch');
+  const currentDocId = urlParams.get('watch');
 
   if (!currentDocId) {
     document.getElementById('loader').innerText = "URL Parameter Missing (?watch=DOCUMENT_ID)";
@@ -380,76 +356,65 @@
     initApp(currentDocId);
   }
 
-  // --- Double-Layer Authorization & App Init ---
   async function initApp(docId) {
-    currentDocId = docId;
     const loader = document.getElementById('loader');
     const userPill = document.getElementById('userPill');
 
     let activeUser = null;
     try { activeUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
 
-    // Fetch Target Channel
-    let channel = null;
     try {
       const snap = await getDoc(doc(channelDb, "Live TV", docId));
       if (!snap.exists()) {
         loader.innerText = `Channel '${docId}' not found.`;
         return;
       }
-      channel = snap.data();
+      currentChannel = { id: snap.id, ...snap.data() };
     } catch (e) {
       loader.innerText = "Error loading channel: " + e.message;
       return;
     }
 
-    // Set UI Title
-    document.getElementById('chTitle').innerText = channel.Name || "Live Channel";
-    document.getElementById('overlayChTitle').innerText = channel.Name || "Live Channel";
-    document.getElementById('chLangSub').innerText = `${channel.Language || 'Hindi'} • ${channel.Genres || 'Live News'}`;
+    document.getElementById('chTitle').innerText = currentChannel.Name || "Live Channel";
+    document.getElementById('overlayChTitle').innerText = currentChannel.Name || "Live Channel";
+    document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • ${currentChannel.Genres || 'Live Stream'}`;
 
     loader.style.display = 'none';
     document.getElementById('appContent').style.display = 'block';
 
-    // 1. Verify User Login State
     if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
       userPill.innerText = "Not Logged In";
       showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
-      loadCategoryRows(docId);
+      loadCategoryRows(currentChannel);
       return;
     }
 
     userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
 
-    // 2. Multi-Level Persistent Plan Verification (Prevents loss of plan after 1-2 hours)
-    let userPlans = activeUser.Plans || [];
-
+    // Live Fetch UARM Plans
+    let userPlans = [];
     try {
-      // Refresh user record from Firestore background query
-      const q = activeUser.Lotus ? query(collection(authDb, "UARM"), where("Lotus", "==", activeUser.Lotus)) : query(collection(authDb, "UARM"), where("Email", "==", activeUser.Email));
+      const q = activeUser.Lotus 
+        ? query(collection(authDb, "UARM"), where("Lotus", "==", activeUser.Lotus)) 
+        : query(collection(authDb, "UARM"), where("Email", "==", activeUser.Email));
+      
       const uarmSnap = await getDocs(q);
-
       if (!uarmSnap.empty) {
         const freshData = uarmSnap.docs[0].data();
-        if (Array.isArray(freshData.Plans) && freshData.Plans.length > 0) {
-          userPlans = freshData.Plans;
-          // Re-sync local storage cache to keep session alive indefinitely
-          activeUser.Plans = freshData.Plans;
-          localStorage.setItem('active_user', JSON.stringify(activeUser));
-        }
+        userPlans = freshData.Plans || [];
+        localStorage.setItem('active_user', JSON.stringify(freshData));
+      } else {
+        userPlans = activeUser.Plans || [];
       }
-    } catch (e) {
-      console.warn("Background Plan Sync Warning (Using Persistent Cache):", e.message);
-    }
+    } catch (e) { userPlans = activeUser.Plans || []; }
 
     if (!Array.isArray(userPlans) || userPlans.length === 0) {
-      showDenied("No Subscription Plan", "Your account has no active plan. Please subscribe.", "View Plans", "1 (3).html");
-      loadCategoryRows(docId);
+      showDenied("No Active Plan", "Your account has no active subscription plan. Please subscribe.", "View Plans", "1 (3).html");
+      loadCategoryRows(currentChannel);
       return;
     }
 
-    // 3. Normalized Studio Authorization Check
-    const channelPartner = (channel.Partner || "").trim().toLowerCase();
+    const channelPartner = (currentChannel.Partner || "").trim().toLowerCase();
     let isAuthorized = false;
 
     for (const planId of userPlans) {
@@ -457,7 +422,7 @@
         const planSnap = await getDoc(doc(authDb, "Plans & Subscriptions", planId));
         if (planSnap.exists()) {
           const studios = planSnap.data().Studio || [];
-          if (studios.some(s => String(s).trim().toLowerCase() === channelPartner)) {
+          if (studios.some(s => s.toLowerCase() === channelPartner)) {
             isAuthorized = true;
             break;
           }
@@ -467,12 +432,12 @@
 
     if (isAuthorized) {
       document.getElementById('accessDeniedBox').style.display = 'none';
-      initStreamPlayer(channel.Stream);
+      initStreamPlayer(currentChannel.Stream);
     } else {
-      showDenied("Access Restricted", `Your subscription plan does not include content from '${channel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
+      showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
     }
 
-    loadCategoryRows(docId);
+    loadCategoryRows(currentChannel);
   }
 
   function showDenied(title, desc, btnTxt, btnUrl) {
@@ -488,28 +453,17 @@
     document.getElementById('videoPlayer').style.display = 'none';
   }
 
-  // --- Stream Switching Engine (Preserves Fullscreen) ---
-  window.switchChannelStream = function(newDocId) {
-    if (newDocId === currentDocId) return;
-
-    // Update URL query in background without refreshing or exiting fullscreen
-    const newUrl = `${window.location.pathname}?watch=${newDocId}`;
-    window.history.pushState({ path: newUrl }, '', newUrl);
-
-    // Hide Watch Next Tray
-    document.getElementById('watchNextOverlay').classList.remove('show');
-    showToast("Switching Channel...");
-
-    // Load new stream in-place
-    initApp(newDocId);
-  };
-
   function initStreamPlayer(streamUrl) {
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
 
     if (!streamUrl) return;
+
+    if (hlsInstance) {
+      hlsInstance.destroy();
+      hlsInstance = null;
+    }
 
     if (streamUrl.includes('youtube.com') || streamUrl.includes('youtu.be')) {
       let embedUrl = streamUrl;
@@ -523,12 +477,6 @@
     } else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
       iframe.style.display = 'none';
       video.style.display = 'block';
-
-      // Clean old HLS instance when switching channels
-      if (hlsInstance) {
-        hlsInstance.destroy();
-        hlsInstance = null;
-      }
 
       if (Hls.isSupported()) {
         hlsInstance = new Hls();
@@ -548,13 +496,6 @@
     }
   }
 
-  function showToast(msg) {
-    const toast = document.getElementById('toastAlert');
-    toast.innerText = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
-  }
-
   function setupInteraction(video) {
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
@@ -566,14 +507,10 @@
     const lockBtn = document.getElementById('lockBtn');
     const unlockBtn = document.getElementById('unlockBtn');
     const backBtn = document.getElementById('backBtn');
-    const aspectBtn = document.getElementById('aspectBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const fsExpandIcon = document.getElementById('fsExpandIcon');
-    const fsCollapseIcon = document.getElementById('fsCollapseIcon');
+    const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
     const progressBar = document.getElementById('progressBar');
     const timeDisplay = document.getElementById('timeDisplay');
     const brightnessSlider = document.getElementById('brightnessSlider');
-    const speedBtn = document.getElementById('speedBtn');
     const watchNextOverlay = document.getElementById('watchNextOverlay');
 
     const showControls = () => {
@@ -603,67 +540,31 @@
     rewindBtn.onclick = (e) => { e.stopPropagation(); video.currentTime -= 10; showControls(); };
     forwardBtn.onclick = (e) => { e.stopPropagation(); video.currentTime += 10; showControls(); };
 
+    // Update Progress Bar Fill Color dynamically to Blue
     video.ontimeupdate = () => {
       if (video.duration) {
-        progressBar.value = (video.currentTime / video.duration) * 100;
+        const percentage = (video.currentTime / video.duration) * 100;
+        progressBar.value = percentage;
+        progressBar.style.background = `linear-gradient(to right, #0072ef 0%, #0072ef ${percentage}%, rgba(255,255,255,0.25) ${percentage}%, rgba(255,255,255,0.25) 100%)`;
+        
         const current = new Date(video.currentTime * 1000).toISOString().substr(11, 8);
         timeDisplay.innerText = current;
       }
     };
+
     progressBar.oninput = (e) => {
       e.stopPropagation();
-      if (video.duration) video.currentTime = (progressBar.value / 100) * video.duration;
+      if (video.duration) {
+        video.currentTime = (progressBar.value / 100) * video.duration;
+        const percentage = progressBar.value;
+        progressBar.style.background = `linear-gradient(to right, #0072ef 0%, #0072ef ${percentage}%, rgba(255,255,255,0.25) ${percentage}%, rgba(255,255,255,0.25) 100%)`;
+      }
     };
 
     brightnessSlider.oninput = (e) => {
       e.stopPropagation();
       video.style.filter = `brightness(${brightnessSlider.value})`;
     };
-
-    speedBtn.onclick = (e) => {
-      e.stopPropagation();
-      currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
-      const speed = speeds[currentSpeedIndex];
-      video.playbackRate = speed;
-      speedBtn.innerText = `⏱ Speed ${speed}x`;
-      showToast(`Playback Speed: ${speed}x`);
-    };
-
-    // Native Browser Fullscreen Toggle
-    const toggleNativeFullscreen = (e) => {
-      e?.stopPropagation();
-      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
-
-      if (!isFullscreen) {
-        if (playerContainer.requestFullscreen) {
-          playerContainer.requestFullscreen();
-        } else if (playerContainer.webkitRequestFullscreen) {
-          playerContainer.webkitRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
-      }
-    };
-
-    fullscreenBtn.onclick = toggleNativeFullscreen;
-
-    const onFullscreenChange = () => {
-      const isFS = document.fullscreenElement || document.webkitFullscreenElement;
-      if (isFS) {
-        fsExpandIcon.style.display = 'none';
-        fsCollapseIcon.style.display = 'block';
-      } else {
-        fsExpandIcon.style.display = 'block';
-        fsCollapseIcon.style.display = 'none';
-      }
-    };
-
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
     lockBtn.onclick = (e) => {
       e.stopPropagation();
@@ -681,70 +582,28 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    const toggleAspect = (e) => {
-      e?.stopPropagation();
-      if (video.classList.contains('fill-screen')) {
-        video.classList.remove('fill-screen');
-        showToast("Fit to Screen");
+    // Fullscreen Toggle
+    fullscreenToggleBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (!document.fullscreenElement) {
+        playerContainer.requestFullscreen?.() || playerContainer.webkitRequestFullscreen?.();
       } else {
-        video.classList.add('fill-screen');
-        showToast("Zoomed to Fill Screen");
+        document.exitFullscreen?.();
       }
     };
-    aspectBtn.onclick = toggleAspect;
 
-    // Pinch Gesture
-    let initialPinchDist = 0;
-    playerContainer.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        initialPinchDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-      }
-    });
-
-    playerContainer.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2 && initialPinchDist > 0) {
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        if (dist - initialPinchDist > 35) {
-          if (!video.classList.contains('fill-screen')) {
-            video.classList.add('fill-screen');
-            showToast("Zoomed to Fill Screen");
-          }
-        } else if (initialPinchDist - dist > 35) {
-          if (video.classList.contains('fill-screen')) {
-            video.classList.remove('fill-screen');
-            showToast("Fit to Screen");
-          }
-        }
-      }
-    });
-
-    // Landscape Auto Fullscreen
-    const handleOrientation = () => {
-      const isLandscape = window.innerWidth > window.innerHeight;
-      if (isLandscape) {
+    const checkOrientation = () => {
+      if (window.innerWidth > window.innerHeight) {
         document.body.classList.add('landscape-mode');
-        if (!document.fullscreenElement) {
-          playerContainer.requestFullscreen?.().catch(() => {});
-        }
       } else {
         document.body.classList.remove('landscape-mode');
-        if (document.fullscreenElement) {
-          document.exitFullscreen?.().catch(() => {});
-        }
+        watchNextOverlay.classList.remove('show');
       }
     };
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
+    checkOrientation();
 
-    window.addEventListener('resize', handleOrientation);
-    window.addEventListener('orientationchange', () => setTimeout(handleOrientation, 200));
-    handleOrientation();
-
-    // Watch Next Tray Actions
     document.getElementById('openWatchNextBtn').onclick = (e) => {
       e.stopPropagation();
       watchNextOverlay.classList.add('show');
@@ -754,41 +613,73 @@
     showControls();
   }
 
-  // Load Categories & Watch Next Tray Cards (Screenshot 1 Layout)
-  async function loadCategoryRows(excludeId) {
-    const newsGrid = document.getElementById('newsGrid');
-    const businessGrid = document.getElementById('businessGrid');
+  // Seamless In-Place Channel Switching
+  window.switchChannelInPlace = function(newId) {
+    document.getElementById('watchNextOverlay').classList.remove('show');
+    window.history.pushState({}, '', `1.html?watch=${newId}`);
+    initApp(newId);
+  };
+
+  // Helper for Broadcaster Title Mapping
+  function getPartnerSectionTitle(partnerRaw) {
+    if (!partnerRaw) return "More Channels";
+    const lower = partnerRaw.toLowerCase();
+    if (lower.includes("sony")) return "More by Sony";
+    if (lower.includes("disney")) return "More from Disney";
+    if (lower.includes("star")) return "More by Star";
+    return `More by ${partnerRaw}`;
+  }
+
+  // Load Categories & Recommendations
+  async function loadCategoryRows(currentCh) {
+    const recGrid = document.getElementById('recommendationsGrid');
+    const partnerGrid = document.getElementById('partnerGrid');
     const watchNextCards = document.getElementById('watchNextCards');
+    const sec2Heading = document.getElementById('sec2Heading');
 
     try {
       const snap = await getDocs(collection(channelDb, "Live TV"));
-      let channels = [];
-      snap.forEach(d => { if(d.id !== excludeId) channels.push({ id: d.id, ...d.data() }); });
+      let allChannels = [];
+      snap.forEach(d => { if(d.id !== currentCh.id) allChannels.push({ id: d.id, ...d.data() }); });
+
+      // 1. Recommendations: Filter Same Genre -> Fallback to all channels
+      const targetGenre = (currentCh.Genres || '').toLowerCase();
+      let recommended = allChannels.filter(c => targetGenre && (c.Genres || '').toLowerCase().includes(targetGenre));
+      if (recommended.length === 0) recommended = allChannels;
+
+      // 2. Partner Channels: Filter Same Broadcaster Network
+      const targetPartner = (currentCh.Partner || '').toLowerCase();
+      let partnerChannels = allChannels.filter(c => targetPartner && (c.Partner || '').toLowerCase().includes(targetPartner));
+      if (partnerChannels.length === 0) partnerChannels = allChannels;
+
+      // Update Section 2 Heading dynamically
+      sec2Heading.innerText = getPartnerSectionTitle(currentCh.Partner);
 
       const renderPortraitCard = (c) => `
-        <div class="card-item" onclick="switchChannelStream('${c.id}')">
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="card-item">
           <img src="${c["Logo.png"] || c.Logo || ''}" class="card-thumb" alt="${c.Name}">
           <div class="card-name">${c.Name || 'Live TV'}</div>
         </div>
       `;
 
-      newsGrid.innerHTML = channels.map(renderPortraitCard).join('');
-      businessGrid.innerHTML = channels.map(renderPortraitCard).join('');
+      recGrid.innerHTML = recommended.map(renderPortraitCard).join('');
+      partnerGrid.innerHTML = partnerChannels.map(renderPortraitCard).join('');
 
-      // Exact Screenshot 1 Watch Next Layout
-      watchNextCards.innerHTML = channels.map(c => `
-        <div class="watch-card" onclick="switchChannelStream('${c.id}')">
+      // Watch Next Overlay Cards
+      watchNextCards.innerHTML = allChannels.map(c => `
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
           <div class="watch-card-thumb-wrap">
-            <img src="${c["Logo.png"] || c.Logo || ''}" alt="${c.Name}">
+            <img class="banner-img" src="${c.imageUrl || c.Banner || c["Logo.png"] || c.Logo || ''}" alt="${c.Name}">
+            <img class="watch-card-logo-top-right" src="${c["Logo.png"] || c.Logo || ''}" alt="Logo">
             <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="watch-card-name">${c.Name || 'TV Channel'}</div>
-          <div class="watch-card-sub">${c.Genres || 'Kids · Animation'}</div>
+          <div class="watch-card-sub">${c.Genres || c.Language || 'Live Stream'}</div>
         </div>
       `).join('');
 
     } catch (e) {
-      newsGrid.innerHTML = `<p style="font-size:12px; color:var(--text-muted);">Failed to load.</p>`;
+      recGrid.innerHTML = `<p style="font-size:12px; color:var(--text-muted);">Failed to load recommendations.</p>`;
     }
   }
 </script>
