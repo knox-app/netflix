@@ -36,24 +36,32 @@
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
     }
 
-    /* Video Element & Fill Screen */
+    /* Video Aspect Ratio Modes (DEFAULT IS ORIGINAL / FIT SCREEN) */
     video {
-      width: 100%; height: 100%; border: none; object-fit: cover;
+      width: 100%; height: 100%; border: none; object-fit: contain;
       transition: object-fit 0.3s ease;
     }
-    video.fit-screen { object-fit: contain; }
+    video.fill-screen {
+      object-fit: cover !important;
+    }
 
-    /* Clean YouTube Frame Host (Hides YouTube Overlays) */
+    /* YouTube Host & Scaling */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
+      transition: all 0.3s ease;
     }
+    /* YouTube Default: Fit Screen */
     #ytFrameHost iframe {
+      width: 100% !important; height: 100% !important;
+      position: absolute !important; top: 0 !important; left: 0 !important;
+      pointer-events: none; transition: all 0.3s ease;
+    }
+    /* YouTube Zoomed: Fill Screen */
+    #ytFrameHost.fill-screen iframe {
       width: calc(100% + 120px) !important;
       height: calc(100% + 180px) !important;
-      position: absolute !important;
       top: -90px !important;
       left: -60px !important;
-      pointer-events: none;
     }
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; }
@@ -419,7 +427,7 @@
     return null;
   }
 
-  // SOUND BUG FIX: Destroy previous players and stop sound immediately on channel switch
+  // STOP AUDIO LEAK ON CHANNEL SWITCH
   function destroyActivePlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
@@ -430,6 +438,7 @@
       video.pause();
       video.removeAttribute('src');
       video.load();
+      video.classList.remove('fill-screen');
     }
     if (ytPlayerInstance) {
       try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
@@ -444,6 +453,7 @@
     if (ytHost) {
       ytHost.innerHTML = '';
       ytHost.style.display = 'none';
+      ytHost.classList.remove('fill-screen');
     }
   }
 
@@ -555,7 +565,7 @@
 
     const ytId = extractYouTubeId(streamUrl);
 
-    // CLEAN YOUTUBE MASKING: Embed via YT.Player API without YouTube overlays
+    // CLEAN YOUTUBE MASKING: Embed via YT.Player API
     if (ytId) {
       activePlayerType = 'youtube';
       video.style.display = 'none';
@@ -651,6 +661,7 @@
     const timeDisplay = document.getElementById('timeDisplay');
     const goLiveBtn = document.getElementById('goLiveBtn');
     const watchNextOverlay = document.getElementById('watchNextOverlay');
+    const ytHost = document.getElementById('ytFrameHost');
 
     const showControls = () => {
       if (isScreenLocked) return;
@@ -673,7 +684,6 @@
       }
     };
 
-    // Play/Pause Router
     const togglePlay = (e) => {
       e?.stopPropagation();
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
@@ -691,7 +701,6 @@
     video.onplay = () => { playIcon.style.display = 'none'; pauseIcon.style.display = 'block'; };
     video.onpause = () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; };
 
-    // Rewind / Forward Router
     rewindBtn.onclick = (e) => {
       e.stopPropagation();
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
@@ -716,7 +725,7 @@
       showControls();
     };
 
-    // Steady Live Progress Bar (No Packet Jitter)
+    // Steady Progress Bar for HLS Live
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube') return;
       if (!isUserSeeking) {
@@ -741,7 +750,6 @@
       }
     };
 
-    // Manual Progress Seek
     progressBar.oninput = (e) => {
       e.stopPropagation();
       isUserSeeking = true;
@@ -754,7 +762,6 @@
       goLiveBtn.style.display = 'flex';
     };
 
-    // Go Live Action
     goLiveBtn.onclick = (e) => {
       e.stopPropagation();
       isUserSeeking = false;
@@ -793,7 +800,6 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    // Fullscreen Toggle in Mobile Landscape
     fullscreenToggleBtn.onclick = async (e) => {
       e.stopPropagation();
       if (!document.fullscreenElement) {
@@ -825,34 +831,52 @@
       }
     });
 
-    // Pinch Gesture to Fit/Fill Screen
+    // ROCK-SOLID PINCH GESTURE: DEFAULT IS FIT SCREEN, PINCH OUT TO ZOOM/FILL
     let initialPinchDist = 0;
+    let isPinching = false;
+
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
+        isPinching = true;
         initialPinchDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
       }
-    });
+    }, { passive: true });
 
     playerContainer.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2 && initialPinchDist > 0) {
-        const dist = Math.hypot(
+      if (isPinching && e.touches.length === 2) {
+        const currentDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
-        if (dist - initialPinchDist > 35) {
+        const diff = currentDist - initialPinchDist;
+
+        // PINCH OUT -> FILL / ZOOM SCREEN
+        if (diff > 30) {
           if (!video.classList.contains('fill-screen')) {
             video.classList.add('fill-screen');
+            ytHost.classList.add('fill-screen');
             showToast("Zoomed to Fill Screen");
+            initialPinchDist = currentDist;
           }
-        } else if (initialPinchDist - dist > 35) {
+        } 
+        // PINCH IN -> ORIGINAL / FIT SCREEN
+        else if (diff < -30) {
           if (video.classList.contains('fill-screen')) {
             video.classList.remove('fill-screen');
-            showToast("Fit to Screen");
+            ytHost.classList.remove('fill-screen');
+            showToast("Fit to Screen (Original)");
+            initialPinchDist = currentDist;
           }
         }
+      }
+    }, { passive: true });
+
+    playerContainer.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        isPinching = false;
       }
     });
 
@@ -924,7 +948,6 @@
     return `More by ${partnerRaw}`;
   }
 
-  // Real-time All Channels Listener
   function listenToAllChannels(excludeId) {
     if (collectionUnsub) collectionUnsub();
 
