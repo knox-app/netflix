@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Disney+ Hotstar Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     :root {
       --bg-dark: #000000;
@@ -34,26 +36,27 @@
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
     }
 
+    /* Video Element & Fill Screen */
     video {
-      width: 100%; height: 100%; border: none; object-fit: contain;
+      width: 100%; height: 100%; border: none; object-fit: cover;
       transition: object-fit 0.3s ease;
     }
-    video.fill-screen { object-fit: cover; }
+    video.fit-screen { object-fit: contain; }
 
-    /* YouTube Host Sizing (Proper Aspect Ratio, Matches M3U8) */
-    .yt-host {
-      position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1;
+    /* Clean YouTube Frame Host (Hides YouTube Overlays) */
+    #ytFrameHost {
+      position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
     }
-    .yt-host iframe {
-      width: 100% !important;
-      height: 100% !important;
+    #ytFrameHost iframe {
+      width: calc(100% + 120px) !important;
+      height: calc(100% + 180px) !important;
       position: absolute !important;
-      inset: 0 !important;
-      border: none !important;
+      top: -90px !important;
+      left: -60px !important;
       pointer-events: none;
     }
 
-    iframe.generic-embed { width: 100%; height: 100%; border: none; }
+    iframe#iframePlayer { width: 100%; height: 100%; border: none; }
 
     /* Mobile Landscape Fullscreen Layout */
     body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
@@ -106,7 +109,6 @@
     .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .timeline-row { display: flex; align-items: center; gap: 12px; }
 
-    /* Fixed Blue Progress Bar */
     .progress-bar {
       width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
       background: var(--accent-blue); outline: none; cursor: pointer; border-radius: 4px;
@@ -240,14 +242,14 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- HTML5 Video Element -->
+      <!-- Video Element -->
       <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
 
-      <!-- YouTube Host Wrapper -->
-      <div id="ytHost" class="yt-host" style="display: none;"></div>
+      <!-- Clean YouTube Frame Host Wrapper -->
+      <div id="ytFrameHost"></div>
 
-      <!-- Generic IFrame Fallback -->
-      <iframe id="iframePlayer" class="generic-embed" style="display: none;" allowfullscreen allow="autoplay"></iframe>
+      <!-- Fallback IFrame -->
+      <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
 
       <!-- Unlock Button when Locked -->
       <div class="lock-overlay-btn" id="unlockBtn" style="display: none;">
@@ -266,19 +268,15 @@
             <div class="ctrl-title" id="overlayChTitle">Channel Name</div>
           </div>
           <div class="ctrl-top-right">
-            <!-- Cast Icon (Landscape Only) -->
             <button class="icon-btn btn-cast" title="Cast">
               <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.92-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
             </button>
-            <!-- Lock Button (Landscape Only) -->
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
-            <!-- Settings Gear Button -->
             <button class="icon-btn" id="settingsBtn" title="Settings">
-              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
-            <!-- Fullscreen Toggle Button -->
             <button class="icon-btn" id="fullscreenToggleBtn" title="Toggle Fullscreen">
               <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
@@ -313,7 +311,6 @@
               🧭 Watch Next
             </button>
             <div style="display:flex; gap:12px; margin-left:auto; align-items:center;">
-              <!-- Go Live Button -->
               <button class="btn-go-live" id="goLiveBtn">
                 <div class="live-dot"></div> Go Live
               </button>
@@ -355,36 +352,6 @@
   </div>
 </div>
 
-<!-- YouTube API Script -->
-<script>
-  let ytApiReady = false;
-  function loadYouTubeAPI() {
-    if (window.YT && window.YT.Player) { ytApiReady = true; return; }
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
-  }
-  window.onYouTubeIframeAPIReady = function() {
-    ytApiReady = true;
-  };
-  loadYouTubeAPI();
-
-  function extractYouTubeId(url) {
-    try {
-      const u = new URL(url.trim());
-      if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('/')[0];
-      if (u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com')) {
-        if (u.pathname === '/watch') return u.searchParams.get('v');
-        if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
-        if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
-      }
-    } catch(e) {
-      if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
-    }
-    return null;
-  }
-</script>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, onSnapshot, collection, query, where, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -417,14 +384,13 @@
   const authDb = getFirestore(authApp);
 
   let hlsInstance = null;
-  let ytPlayer = null;
-  let activeSourceType = null;
+  let ytPlayerInstance = null;
+  let activePlayerType = null; // 'hls' | 'youtube' | 'iframe'
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let currentChannel = null;
   let currentStreamUrl = null;
   let isUserSeeking = false;
-  let ytProgressTimer = null;
 
   let channelDocUnsub = null;
   let collectionUnsub = null;
@@ -438,37 +404,46 @@
     initApp(currentDocId);
   }
 
-  function stopAllMedia() {
-    // 1. Stop Video Player
+  function extractYouTubeId(url) {
+    try {
+      const u = new URL(url.trim());
+      if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('/')[0];
+      if (u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com')) {
+        if (u.pathname === '/watch') return u.searchParams.get('v');
+        if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
+        if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
+      }
+    } catch(e) {
+      if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+    }
+    return null;
+  }
+
+  // SOUND BUG FIX: Destroy previous players and stop sound immediately on channel switch
+  function destroyActivePlayers() {
+    if (hlsInstance) {
+      hlsInstance.destroy();
+      hlsInstance = null;
+    }
     const video = document.getElementById('videoPlayer');
     if (video) {
       video.pause();
       video.removeAttribute('src');
       video.load();
     }
-    if (hlsInstance) {
-      try { hlsInstance.destroy(); } catch(e){}
-      hlsInstance = null;
+    if (ytPlayerInstance) {
+      try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
+      ytPlayerInstance = null;
     }
-
-    // 2. Stop YouTube Player
-    if (ytPlayer) {
-      try {
-        if (ytPlayer.stopVideo) ytPlayer.stopVideo();
-        if (ytPlayer.destroy) ytPlayer.destroy();
-      } catch(e){}
-      ytPlayer = null;
-    }
-    const ytHost = document.getElementById('ytHost');
-    if (ytHost) ytHost.innerHTML = '';
-
-    // 3. Stop Iframe
     const iframe = document.getElementById('iframePlayer');
-    if (iframe) iframe.src = 'about:blank';
-
-    if (ytProgressTimer) {
-      clearInterval(ytProgressTimer);
-      ytProgressTimer = null;
+    if (iframe) {
+      iframe.src = 'about:blank';
+      iframe.style.display = 'none';
+    }
+    const ytHost = document.getElementById('ytFrameHost');
+    if (ytHost) {
+      ytHost.innerHTML = '';
+      ytHost.style.display = 'none';
     }
   }
 
@@ -556,7 +531,7 @@
   }
 
   function showDenied(title, desc, btnTxt, btnUrl) {
-    stopAllMedia();
+    destroyActivePlayers();
     const box = document.getElementById('accessDeniedBox');
     document.getElementById('deniedTitle').innerText = title;
     document.getElementById('deniedDesc').innerText = desc;
@@ -566,83 +541,67 @@
     box.style.display = 'flex';
 
     document.getElementById('controlsOverlay').style.display = 'none';
-    document.getElementById('videoPlayer').style.display = 'none';
-    document.getElementById('ytHost').style.display = 'none';
   }
 
   function initStreamPlayer(streamUrl) {
-    stopAllMedia(); // Kill any active sounds before opening new stream!
+    destroyActivePlayers();
 
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
-    const ytHost = document.getElementById('ytHost');
     const overlay = document.getElementById('controlsOverlay');
+    const ytHost = document.getElementById('ytFrameHost');
 
     if (!streamUrl) return;
 
-    isUserSeeking = false;
     const ytId = extractYouTubeId(streamUrl);
 
-    // 1. YouTube Stream
+    // CLEAN YOUTUBE MASKING: Embed via YT.Player API without YouTube overlays
     if (ytId) {
-      activeSourceType = 'yt';
+      activePlayerType = 'youtube';
       video.style.display = 'none';
       iframe.style.display = 'none';
       ytHost.style.display = 'block';
       overlay.style.display = 'flex';
 
-      const createYt = () => {
-        ytHost.innerHTML = '<div id="ytActual"></div>';
-        ytPlayer = new YT.Player('ytActual', {
-          videoId: ytId,
-          playerVars: {
-            controls: 0,
-            disablekb: 1,
-            modestbranding: 1,
-            rel: 0,
-            iv_load_policy: 3,
-            fs: 0,
-            playsinline: 1,
-            autoplay: 1,
-            origin: window.location.origin
-          },
-          events: {
-            onReady: (e) => {
-              e.target.playVideo();
-              setupYTProgressLoop();
-            },
-            onStateChange: (e) => {
-              const playIcon = document.getElementById('playIcon');
-              const pauseIcon = document.getElementById('pauseIcon');
-              if (e.data === YT.PlayerState.PLAYING) {
-                playIcon.style.display = 'none';
-                pauseIcon.style.display = 'block';
-              } else {
-                playIcon.style.display = 'block';
-                pauseIcon.style.display = 'none';
-              }
+      const div = document.createElement('div');
+      div.id = 'ytActualPlayer';
+      ytHost.appendChild(div);
+
+      ytPlayerInstance = new YT.Player('ytActualPlayer', {
+        videoId: ytId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          modestbranding: 1,
+          rel: 0,
+          iv_load_policy: 3,
+          fs: 0,
+          playsinline: 1,
+          origin: window.location.origin
+        },
+        events: {
+          onReady: (e) => e.target.playVideo(),
+          onStateChange: (e) => {
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            if (e.data === YT.PlayerState.PLAYING) {
+              playIcon.style.display = 'none';
+              pauseIcon.style.display = 'block';
+            } else {
+              playIcon.style.display = 'block';
+              pauseIcon.style.display = 'none';
             }
           }
-        });
-      };
-
-      if (window.YT && window.YT.Player) {
-        createYt();
-      } else {
-        let waitYt = setInterval(() => {
-          if (window.YT && window.YT.Player) {
-            clearInterval(waitYt);
-            createYt();
-          }
-        }, 200);
-      }
+        }
+      });
       setupInteraction();
     } 
-    // 2. HLS / M3U8 Stream
+    // HLS / M3U8 STREAM
     else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
-      activeSourceType = 'hls';
-      ytHost.style.display = 'none';
+      activePlayerType = 'hls';
       iframe.style.display = 'none';
+      ytHost.style.display = 'none';
       video.style.display = 'block';
       overlay.style.display = 'flex';
 
@@ -657,48 +616,15 @@
       }
       setupInteraction();
     } 
-    // 3. Generic Embed Fallback
+    // GENERIC IFRAME
     else {
-      activeSourceType = 'iframe';
+      activePlayerType = 'iframe';
       video.style.display = 'none';
       ytHost.style.display = 'none';
       overlay.style.display = 'none';
       iframe.style.display = 'block';
       iframe.src = streamUrl;
     }
-  }
-
-  function setupYTProgressLoop() {
-    const progressBar = document.getElementById('progressBar');
-    const timeDisplay = document.getElementById('timeDisplay');
-    const goLiveBtn = document.getElementById('goLiveBtn');
-
-    ytProgressTimer = setInterval(() => {
-      if (!ytPlayer || activeSourceType !== 'yt') return;
-      
-      if (!isUserSeeking) {
-        progressBar.value = 100;
-        progressBar.style.background = 'var(--accent-blue)';
-        timeDisplay.innerText = "LIVE";
-        goLiveBtn.style.display = 'none';
-      } else {
-        try {
-          const dur = ytPlayer.getDuration() || 0;
-          const cur = ytPlayer.getCurrentTime() || 0;
-          if (dur > 0) {
-            const percentage = (cur / dur) * 100;
-            progressBar.value = percentage;
-            progressBar.style.background = `linear-gradient(to right, #0072ef 0%, #0072ef ${percentage}%, rgba(255,255,255,0.25) ${percentage}%, rgba(255,255,255,0.25) 100%)`;
-            timeDisplay.innerText = new Date(cur * 1000).toISOString().substr(11, 8);
-            if (dur - cur > 12) {
-              goLiveBtn.style.display = 'flex';
-            } else {
-              isUserSeeking = false;
-            }
-          }
-        } catch(e) {}
-      }
-    }, 500);
   }
 
   function showToast(msg) {
@@ -735,6 +661,7 @@
       }, 3500);
     };
 
+    // Click to Wakeup & Click to Sleep
     playerContainer.onclick = (e) => {
       e.stopPropagation();
       if (isScreenLocked) return;
@@ -746,13 +673,14 @@
       }
     };
 
+    // Play/Pause Router
     const togglePlay = (e) => {
       e?.stopPropagation();
-      if (activeSourceType === 'yt' && ytPlayer) {
-        const state = ytPlayer.getPlayerState();
-        if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
-        else ytPlayer.playVideo();
-      } else if (activeSourceType === 'hls') {
+      if (activePlayerType === 'youtube' && ytPlayerInstance) {
+        const state = ytPlayerInstance.getPlayerState();
+        if (state === YT.PlayerState.PLAYING) ytPlayerInstance.pauseVideo();
+        else ytPlayerInstance.playVideo();
+      } else {
         if (video.paused) video.play(); else video.pause();
       }
       showControls();
@@ -763,30 +691,34 @@
     video.onplay = () => { playIcon.style.display = 'none'; pauseIcon.style.display = 'block'; };
     video.onpause = () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; };
 
+    // Rewind / Forward Router
     rewindBtn.onclick = (e) => {
       e.stopPropagation();
-      isUserSeeking = true;
-      goLiveBtn.style.display = 'flex';
-      if (activeSourceType === 'yt' && ytPlayer) {
-        ytPlayer.seekTo(Math.max(0, ytPlayer.getCurrentTime() - 10), true);
-      } else if (activeSourceType === 'hls') {
+      if (activePlayerType === 'youtube' && ytPlayerInstance) {
+        const cur = ytPlayerInstance.getCurrentTime() || 0;
+        ytPlayerInstance.seekTo(Math.max(0, cur - 10), true);
+      } else {
         video.currentTime -= 10;
       }
+      isUserSeeking = true;
+      goLiveBtn.style.display = 'flex';
       showControls();
     };
 
     forwardBtn.onclick = (e) => {
       e.stopPropagation();
-      if (activeSourceType === 'yt' && ytPlayer) {
-        ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10, true);
-      } else if (activeSourceType === 'hls') {
+      if (activePlayerType === 'youtube' && ytPlayerInstance) {
+        const cur = ytPlayerInstance.getCurrentTime() || 0;
+        ytPlayerInstance.seekTo(cur + 10, true);
+      } else {
         video.currentTime += 10;
       }
       showControls();
     };
 
+    // Steady Live Progress Bar (No Packet Jitter)
     video.ontimeupdate = () => {
-      if (activeSourceType !== 'hls') return;
+      if (activePlayerType === 'youtube') return;
       if (!isUserSeeking) {
         progressBar.value = 100;
         progressBar.style.background = 'var(--accent-blue)';
@@ -809,12 +741,28 @@
       }
     };
 
+    // Manual Progress Seek
+    progressBar.oninput = (e) => {
+      e.stopPropagation();
+      isUserSeeking = true;
+      if (activePlayerType === 'youtube' && ytPlayerInstance) {
+        const dur = ytPlayerInstance.getDuration() || 0;
+        ytPlayerInstance.seekTo(dur * (progressBar.value / 100), true);
+      } else if (video.duration && isFinite(video.duration)) {
+        video.currentTime = (progressBar.value / 100) * video.duration;
+      }
+      goLiveBtn.style.display = 'flex';
+    };
+
+    // Go Live Action
     goLiveBtn.onclick = (e) => {
       e.stopPropagation();
       isUserSeeking = false;
-      if (activeSourceType === 'yt' && ytPlayer) {
-        ytPlayer.seekTo(ytPlayer.getDuration(), true);
-      } else if (activeSourceType === 'hls') {
+      if (activePlayerType === 'youtube' && ytPlayerInstance) {
+        const dur = ytPlayerInstance.getDuration() || 0;
+        ytPlayerInstance.seekTo(dur - 1, true);
+        ytPlayerInstance.playVideo();
+      } else {
         if (hlsInstance && hlsInstance.liveSyncPosition) {
           video.currentTime = hlsInstance.liveSyncPosition;
         } else if (video.duration) {
@@ -827,20 +775,6 @@
       progressBar.style.background = 'var(--accent-blue)';
       timeDisplay.innerText = "LIVE";
       showToast("Live Stream Synced");
-    };
-
-    progressBar.oninput = (e) => {
-      e.stopPropagation();
-      isUserSeeking = true;
-      goLiveBtn.style.display = 'flex';
-      if (activeSourceType === 'yt' && ytPlayer) {
-        const dur = ytPlayer.getDuration() || 0;
-        ytPlayer.seekTo(dur * (progressBar.value / 100), true);
-      } else if (activeSourceType === 'hls') {
-        if (video.duration && isFinite(video.duration)) {
-          video.currentTime = (progressBar.value / 100) * video.duration;
-        }
-      }
     };
 
     lockBtn.onclick = (e) => {
@@ -857,12 +791,9 @@
       showControls();
     };
 
-    backBtn.onclick = (e) => { 
-      e.stopPropagation(); 
-      stopAllMedia();
-      window.history.back(); 
-    };
+    backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
+    // Fullscreen Toggle in Mobile Landscape
     fullscreenToggleBtn.onclick = async (e) => {
       e.stopPropagation();
       if (!document.fullscreenElement) {
@@ -894,6 +825,7 @@
       }
     });
 
+    // Pinch Gesture to Fit/Fill Screen
     let initialPinchDist = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -942,6 +874,7 @@
     };
     document.getElementById('closeWatchNextBtn').onclick = () => watchNextOverlay.classList.remove('show');
 
+    // Swipe-Down To Dismiss Watch Next
     let touchStartY = 0;
     let touchCurrentY = 0;
 
@@ -976,7 +909,7 @@
 
   // Seamless In-Place Channel Switch
   window.switchChannelInPlace = function(newId) {
-    stopAllMedia(); // Kill active sound immediately!
+    destroyActivePlayers();
     document.getElementById('watchNextOverlay').classList.remove('show');
     window.history.pushState({}, '', `1.html?watch=${newId}`);
     initApp(newId);
@@ -991,6 +924,7 @@
     return `More by ${partnerRaw}`;
   }
 
+  // Real-time All Channels Listener
   function listenToAllChannels(excludeId) {
     if (collectionUnsub) collectionUnsub();
 
