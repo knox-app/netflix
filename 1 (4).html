@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Disney+ Hotstar Player</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    :root {
+      --bg-dark: #000000;
+      --accent-blue: #0072ef;
+      --live-red: #e50914;
+      --text-main: #ffffff;
+      --text-muted: #9aa0a6;
+      --border-color: #262933;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden; user-select: none; }
+
+    /* Top Nav (Portrait Only) */
+    .top-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; background: #0c0d12; border-bottom: 1px solid var(--border-color);
+    }
+    .top-nav .brand { font-size: 17px; font-weight: 800; color: #fff; }
+    .top-nav .brand span { color: var(--accent-blue); }
+    .user-pill { font-size: 11px; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; }
+
+    .main-wrapper { max-width: 1100px; margin: 0 auto; padding-bottom: 30px; }
+
+    /* Player Container */
+    .player-container {
+      position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
+    }
+
+    video {
+      width: 100%; height: 100%; border: none; object-fit: contain;
+      transition: object-fit 0.3s ease;
+    }
+    video.fill-screen { object-fit: cover; }
+    iframe { width: 100%; height: 100%; border: none; }
+
+    /* Mobile Landscape Fullscreen */
+    body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
+    body.landscape-mode .player-container {
+      position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
+    }
+
+    /* Top Left Age Rating Badge (Screenshot 1) */
+    .age-rating-badge {
+      position: absolute; top: 18px; left: 18px; z-index: 25;
+      font-size: 13px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; gap: 6px;
+      opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
+    }
+    .age-rating-badge::before {
+      content: ''; width: 3px; height: 14px; background: var(--accent-blue); border-radius: 2px;
+    }
+    .age-rating-badge.show { opacity: 1; }
+
+    /* Initial 3-Second Language Toast Bar (Screenshot 1) */
+    .initial-lang-toast {
+      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+      z-index: 28; background: rgba(0, 0, 0, 0.85); border-radius: 30px;
+      padding: 6px 16px; display: flex; align-items: center; gap: 12px;
+      border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+      opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+    }
+    .initial-lang-toast.show { opacity: 1; pointer-events: auto; }
+
+    .lang-pills-row { display: flex; align-items: center; gap: 8px; }
+    .lang-pill-btn {
+      background: none; border: none; color: #ccc; font-size: 13px; font-weight: 600;
+      padding: 6px 14px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+    }
+    .lang-pill-btn.active { background: #1c1e24; color: #fff; font-weight: 700; }
+    .lang-pill-btn .orig-sub { font-size: 10px; color: var(--text-muted); }
+    .toast-close-x { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; padding-left: 6px; }
+
+    /* Toast Alert Message */
+    .toast-alert {
+      position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.85); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      z-index: 40; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+    }
+    .toast-alert.show { opacity: 1; }
+
+    /* Controls Overlay */
+    .controls-overlay {
+      position: absolute; inset: 0; z-index: 20;
+      background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.85) 100%);
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 14px 18px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none;
+    }
+    .controls-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .ctrl-top { display: flex; align-items: center; justify-content: space-between; }
+    .ctrl-top-left { display: flex; align-items: center; gap: 12px; }
+    .ctrl-title { font-size: 15px; font-weight: 600; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctrl-top-right { display: flex; align-items: center; gap: 16px; }
+
+    .icon-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; }
+    .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+    /* Portrait Rule: Hide Cast & Lock in Vertical Mode */
+    body:not(.landscape-mode) .btn-cast,
+    body:not(.landscape-mode) #lockBtn {
+      display: none !important;
+    }
+
+    /* Center Controls */
+    .ctrl-center {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      display: flex; align-items: center; gap: 45px;
+    }
+    .ctrl-center .icon-btn svg { width: 32px; height: 32px; }
+    .btn-main-play svg { width: 38px; height: 38px; fill: #fff; }
+
+    /* Bottom Timeline Controls */
+    .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .timeline-row { display: flex; align-items: center; gap: 12px; }
+
+    .progress-bar {
+      width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+      background: var(--accent-blue); outline: none; cursor: pointer; border-radius: 4px;
+    }
+    .progress-bar::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+      background: #ffffff; box-shadow: 0 0 10px rgba(0, 114, 239, 0.8); cursor: pointer;
+    }
+
+    .time-val { font-size: 12px; font-weight: 700; color: #ffffff; white-space: nowrap; }
+
+    .action-bar-row { display: flex; align-items: center; justify-content: space-between; }
+    .action-btn {
+      background: none; border: none; color: #fff; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px; cursor: pointer; opacity: 0.9;
+    }
+    .action-btn-watch-next { display: none; }
+    body.landscape-mode .action-btn-watch-next { display: flex; }
+
+    .btn-go-live {
+      background: rgba(229, 9, 20, 0.25); color: var(--live-red); border: 1px solid var(--live-red);
+      font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+      display: none; align-items: center; gap: 5px; text-transform: uppercase;
+    }
+    .btn-go-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live-red); }
+
+    /* Tap to Unlock Button (Screenshot 7) */
+    .tap-unlock-pill {
+      position: absolute; top: 16px; right: 16px; z-index: 35;
+      background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.25);
+      padding: 6px 14px; border-radius: 20px; color: #fff; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px; cursor: pointer; backdrop-filter: blur(6px);
+    }
+    .unlock-icon-circle {
+      width: 22px; height: 22px; background: rgba(255,255,255,0.2);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;
+    }
+
+    /* Hotstar Settings Sheet Modal (Screenshots 3, 4, 5 & 6) */
+    .settings-modal {
+      position: fixed; inset: 0; z-index: 100000; background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px); display: none; align-items: flex-end; justify-content: center;
+    }
+    .settings-modal.active { display: flex; }
+
+    .settings-sheet {
+      width: 100%; max-width: 650px; background: #0f1118; border-top-left-radius: 16px;
+      border-top-right-radius: 16px; padding: 20px; border-top: 1px solid var(--border-color);
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    body.landscape-mode .settings-sheet {
+      max-width: 100vw; height: 100vh; border-radius: 0; padding: 30px 40px;
+    }
+
+    .sheet-drag-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 0 auto 12px; }
+    body.landscape-mode .sheet-drag-handle { display: none; }
+
+    .sheet-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 18px;
+    }
+    .sheet-title { font-size: 16px; font-weight: 700; color: #fff; }
+    .sheet-tabs { display: flex; gap: 24px; }
+    .tab-btn {
+      background: none; border: none; color: var(--text-muted); font-size: 14px;
+      font-weight: 700; cursor: pointer; padding-bottom: 6px; position: relative;
+    }
+    .tab-btn.active { color: #fff; }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: -12px; left: 0; right: 0; height: 2px; background: var(--accent-blue);
+    }
+
+    .sheet-actions { display: flex; align-items: center; gap: 18px; font-size: 13px; }
+    .sheet-actions a { color: var(--text-muted); text-decoration: none; }
+    .close-modal-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+
+    .option-list { display: flex; flex-direction: column; gap: 14px; margin-top: 15px; }
+    .option-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border-radius: 8px; background: rgba(255,255,255,0.03); cursor: pointer;
+    }
+    .option-item.selected { background: rgba(0, 114, 239, 0.12); border: 1px solid rgba(0, 114, 239, 0.3); }
+    .option-check { color: var(--accent-blue); font-weight: bold; width: 18px; }
+    .option-title { font-size: 14px; font-weight: 600; color: #fff; }
+    .option-sub { font-size: 12px; color: var(--text-muted); }
+
+    /* Watch Next Overlay */
+    .watch-next-overlay {
+      position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
+      display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .watch-next-overlay.show { opacity: 1; pointer-events: auto; }
+    .watch-next-cards-row { display: flex; gap: 14px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+    .watch-next-cards-row::-webkit-scrollbar { display: none; }
+
+    .watch-card { min-width: 190px; width: 190px; text-decoration: none; color: #fff; cursor: pointer; }
+    .watch-card-thumb-wrap {
+      position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden;
+      background: #111; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.15);
+    }
+    .watch-card-thumb-wrap .banner-img { width: 100%; height: 100%; object-fit: cover; }
+    .watch-card-logo-top-right {
+      position: absolute; top: 6px; right: 6px; width: 28px; height: 28px;
+      object-fit: contain; background: rgba(0,0,0,0.6); border-radius: 4px; padding: 2px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .play-badge {
+      position: absolute; bottom: 8px; left: 8px; width: 20px; height: 20px;
+      background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; border: 1px solid rgba(255,255,255,0.5);
+    }
+    .play-badge svg { width: 9px; height: 9px; fill: #fff; margin-left: 1px; }
+
+    .watch-card-name { font-size: 13px; font-weight: 600; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .watch-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Access Denied Overlay */
+    .access-denied-box {
+      position: absolute; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.95);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px;
+    }
+    .denied-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .denied-desc { font-size: 13px; color: var(--text-muted); max-width: 400px; margin-bottom: 18px; }
+    .btn-login { background: var(--accent-blue); color: #fff; font-weight: 700; padding: 10px 22px; border-radius: 20px; text-decoration: none; }
+
+    /* Portrait Details Section */
+    .details-wrapper { padding: 16px; }
+    .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; }
+    .ch-lang-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .section-head { font-size: 16px; font-weight: 700; margin: 22px 0 12px; color: #fff; }
+    .channel-scroll-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+    .channel-scroll-row::-webkit-scrollbar { display: none; }
+
+    .card-item {
+      min-width: 140px; width: 140px; background: #131722; border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 10px; text-decoration: none; color: #fff; display: flex;
+      flex-direction: column; align-items: center; text-align: center; cursor: pointer;
+    }
+    .card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #000; border-radius: 6px; margin-bottom: 8px; }
+    .card-name { font-size: 12px; font-weight: 700; }
+
+    .loader-box { text-align: center; padding: 50px; color: var(--accent-blue); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div class="top-nav">
+  <div class="brand">⚡ Hotstar<span>TV</span></div>
+  <div class="user-pill" id="userPill">Checking User...</div>
+</div>
+
+<div id="loader" class="loader-box">Connecting Stream...</div>
+
+<div id="appContent" style="display: none;">
+  <div class="main-wrapper">
+    
+    <!-- Player Container -->
+    <div class="player-container" id="playerContainer">
+
+      <!-- Top Left Age Rating Badge (Screenshot 1) -->
+      <div class="age-rating-badge" id="ageBadge">| Rated U/A 7+</div>
+
+      <!-- Initial 3-Second Audio Language Toast Bar (Screenshot 1) -->
+      <div class="initial-lang-toast" id="initialLangToast">
+        <div class="lang-pills-row" id="langPillsRow"></div>
+        <button class="toast-close-x" id="closeLangToast">✕</button>
+      </div>
+
+      <!-- Toast Alert -->
+      <div class="toast-alert" id="toastAlert">Zoomed to Fill Screen</div>
+
+      <!-- Access Denied Overlay -->
+      <div class="access-denied-box" id="accessDeniedBox" style="display: none;">
+        <div style="font-size:36px; margin-bottom:10px;">🔒</div>
+        <div class="denied-title" id="deniedTitle">Access Restricted</div>
+        <div class="denied-desc" id="deniedDesc">Please log in to watch.</div>
+        <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
+      </div>
+
+      <!-- Video Element -->
+      <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
+      <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
+
+      <!-- Tap to Unlock Screen Pill (Screenshot 7) -->
+      <div class="tap-unlock-pill" id="unlockBtn" style="display: none;">
+        Tap to Unlock <div class="unlock-icon-circle">🔒</div>
+      </div>
+
+      <!-- Player Controls Overlay -->
+      <div class="controls-overlay" id="controlsOverlay">
+        
+        <!-- Top Control Bar -->
+        <div class="ctrl-top">
+          <div class="ctrl-top-left">
+            <button class="icon-btn" id="backBtn" title="Back">
+              <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            </button>
+            <div class="ctrl-title" id="overlayChTitle">Channel Name</div>
+          </div>
+          <div class="ctrl-top-right">
+            <button class="icon-btn btn-cast" title="Cast">
+              <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.92-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+            </button>
+            <button class="icon-btn" id="lockBtn" title="Lock Screen">
+              <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            </button>
+            <button class="icon-btn" id="settingsBtn" title="Settings">
+              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            </button>
+            <button class="icon-btn" id="fullscreenToggleBtn" title="Toggle Fullscreen">
+              <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Center Controls -->
+        <div class="ctrl-center">
+          <button class="icon-btn" id="rewindBtn" title="Rewind 10s">
+            <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+          </button>
+          
+          <button class="icon-btn btn-main-play" id="playBtn" title="Play/Pause">
+            <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+
+          <button class="icon-btn" id="forwardBtn" title="Forward 10s">
+            <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+          </button>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="ctrl-bottom">
+          <div class="timeline-row">
+            <input type="range" id="progressBar" class="progress-bar" value="100" min="0" max="100">
+            <span class="time-val" id="timeDisplay">LIVE</span>
+          </div>
+          
+          <div class="action-bar-row">
+            <button class="action-btn action-btn-watch-next" id="openWatchNextBtn">
+              🧭 Watch Next
+            </button>
+            <div style="display:flex; gap:12px; margin-left:auto; align-items:center;">
+              <button class="btn-go-live" id="goLiveBtn">
+                <div class="live-dot"></div> Go Live
+              </button>
+              <button class="action-btn" id="rateBtn">♡ Rate</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Watch Next Tray Overlay -->
+      <div class="watch-next-overlay" id="watchNextOverlay">
+        <div>
+          <div style="width:40px; height:4px; background:rgba(255,255,255,0.4); border-radius:2px; margin:0 auto 10px;"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:18px; font-weight:700;">Watch Next ˅</div>
+            <button class="icon-btn" id="closeWatchNextBtn" style="font-size:22px;">✕</button>
+          </div>
+        </div>
+        <div class="watch-next-cards-row" id="watchNextCards"></div>
+      </div>
+
+    </div>
+
+    <!-- Portrait Details Sections -->
+    <div class="details-wrapper">
+      <div class="ch-title-head" id="chTitle">Live Channel</div>
+      <div class="ch-lang-sub" id="chLangSub">हिंदी • Live Stream</div>
+
+      <div class="section-head" id="sec1Heading">Recommendations</div>
+      <div class="channel-scroll-row" id="recommendationsGrid"></div>
+
+      <div class="section-head" id="sec2Heading">More Channels</div>
+      <div class="channel-scroll-row" id="partnerGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Hotstar Settings Sheet Modal (Screenshots 3, 4, 5 & 6) -->
+<div class="settings-modal" id="settingsModal">
+  <div class="settings-sheet" id="settingsSheet">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-tabs">
+        <button class="tab-btn active" id="tabQuality">Quality</button>
+        <button class="tab-btn" id="tabAudio">Audio Language</button>
+      </div>
+      <div class="sheet-actions">
+        <a href="#">Report an Issue</a>
+        <button class="close-modal-btn" id="closeSettingsModal">✕</button>
+      </div>
+    </div>
+
+    <!-- Quality Tab Options -->
+    <div id="qualityTabContent" class="option-list">
+      <div class="option-item selected" data-quality="-1">
+        <div class="option-check">✓</div>
+        <div>
+          <div class="option-title">Auto</div>
+          <div class="option-sub">Recommended for best experience</div>
+        </div>
+      </div>
+      <div class="option-item" data-quality="1080">
+        <div class="option-check"></div>
+        <div>
+          <div class="option-title">Full HD</div>
+          <div class="option-sub">Up to 1080p</div>
+        </div>
+      </div>
+      <div class="option-item" data-quality="720">
+        <div class="option-check"></div>
+        <div>
+          <div class="option-title">HD</div>
+          <div class="option-sub">Up to 720p</div>
+        </div>
+      </div>
+      <div class="option-item" data-quality="360">
+        <div class="option-check"></div>
+        <div>
+          <div class="option-title">Data Saver</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Language Tab Options (Populated from Firestore) -->
+    <div id="audioTabContent" class="option-list" style="display: none;"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, doc, onSnapshot, collection, query, where, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // 1. Channel DB
+  const channelConfig = {
+    apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+    authDomain: "internal-systems-46728.firebaseapp.com",
+    projectId: "internal-systems-46728",
+    storageBucket: "internal-systems-46728.firebasestorage.app",
+    messagingSenderId: "172177452674",
+    appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+    measurementId: "G-Y87B8VRQ1N"
+  };
+  const channelApp = initializeApp(channelConfig, "channelApp");
+  const channelDb = getFirestore(channelApp);
+
+  // 2. Auth DB
+  const authConfig = {
+    apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+    authDomain: "question-metabase.firebaseapp.com",
+    databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "question-metabase",
+    storageBucket: "question-metabase.firebasestorage.app",
+    messagingSenderId: "770698198753",
+    appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+    measurementId: "G-6ZP1FPMKSJ"
+  };
+  const authApp = initializeApp(authConfig, "authApp");
+  const authDb = getFirestore(authApp);
+
+  let hlsInstance = null;
+  let hideControlsTimer = null;
+  let isScreenLocked = false;
+  let currentChannel = null;
+  let currentStreamUrl = null;
+  let isUserSeeking = false;
+
+  let channelDocUnsub = null;
+  let collectionUnsub = null;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentDocId = urlParams.get('watch');
+
+  if (!currentDocId) {
+    document.getElementById('loader').innerText = "URL Parameter Missing (?watch=DOCUMENT_ID)";
+  } else {
+    initApp(currentDocId);
+  }
+
+  function initApp(docId) {
+    const loader = document.getElementById('loader');
+    const userPill = document.getElementById('userPill');
+
+    let activeUser = null;
+    try { activeUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
+
+    if (channelDocUnsub) channelDocUnsub();
+
+    // 1. REAL-TIME LISTENER FOR CURRENT CHANNEL
+    channelDocUnsub = onSnapshot(doc(channelDb, "Live TV", docId), async (snap) => {
+      if (!snap.exists()) {
+        loader.innerText = `Channel '${docId}' not found.`;
+        return;
+      }
+
+      currentChannel = { id: snap.id, ...snap.data() };
+
+      document.getElementById('chTitle').innerText = currentChannel.Name || "Live Channel";
+      document.getElementById('overlayChTitle').innerText = currentChannel.Name || "Live Channel";
+      document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • ${currentChannel.Genres || 'Live Stream'}`;
+
+      loader.style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+
+      // Verify User Authentication & Subscription
+      if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
+        userPill.innerText = "Not Logged In";
+        showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
+        return;
+      }
+
+      userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
+
+      let isAuth = await verifyUserPlan(activeUser, currentChannel.Partner);
+
+      if (isAuth) {
+        document.getElementById('accessDeniedBox').style.display = 'none';
+        if (currentChannel.Stream !== currentStreamUrl) {
+          currentStreamUrl = currentChannel.Stream;
+          initStreamPlayer(currentStreamUrl);
+          showInitialOverlayToast(currentChannel);
+          populateAudioTabOptions(currentChannel);
+        }
+      } else {
+        showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
+      }
+    });
+
+    listenToAllChannels(docId);
+  }
+
+  // Extract Languages from Firestore `Multi-Language` Map (Screenshot 8)
+  function getChannelLanguages(channel) {
+    const list = [];
+    const mainLang = channel.Language || 'Hindi';
+    list.push({ name: mainLang, url: channel.Stream, isDefault: true });
+
+    const multiMap = channel['Multi-Language'] || channel.MultiLanguage;
+    if (multiMap && typeof multiMap === 'object') {
+      for (const [lName, lUrl] of Object.entries(multiMap)) {
+        if (lName.toLowerCase() !== mainLang.toLowerCase()) {
+          list.push({ name: lName, url: lUrl, isDefault: false });
+        }
+      }
+    }
+    return list;
+  }
+
+  // 3-Second Language & Age Rating Overlay Toast (Screenshot 1)
+  function showInitialOverlayToast(channel) {
+    const ageBadge = document.getElementById('ageBadge');
+    const toast = document.getElementById('initialLangToast');
+    const pillsRow = document.getElementById('langPillsRow');
+
+    ageBadge.innerText = `| Rated ${channel.AgeRating || 'U/A 7+'}`;
+    ageBadge.classList.add('show');
+
+    const langs = getChannelLanguages(channel);
+    pillsRow.innerHTML = langs.map((l, i) => `
+      <button class="lang-pill-btn ${i === 0 ? 'active' : ''}" onclick="window.switchLanguageStream('${l.url}', '${l.name}')">
+        ${l.name} ${l.isDefault ? '<span class="orig-sub">Original</span>' : ''}
+      </button>
+    `).join('');
+
+    toast.classList.add('show');
+
+    setTimeout(() => {
+      toast.classList.remove('show');
+      ageBadge.classList.remove('show');
+    }, 3500);
+  }
+
+  document.getElementById('closeLangToast').onclick = () => {
+    document.getElementById('initialLangToast').classList.remove('show');
+    document.getElementById('ageBadge').classList.remove('show');
+  };
+
+  window.switchLanguageStream = function(url, langName) {
+    if (!url) return;
+    showToast(`Language switched to ${langName}`);
+    currentStreamUrl = url;
+    initStreamPlayer(url);
+  };
+
+  function populateAudioTabOptions(channel) {
+    const audioTabContent = document.getElementById('audioTabContent');
+    const langs = getChannelLanguages(channel);
+
+    audioTabContent.innerHTML = langs.map((l, i) => `
+      <div class="option-item ${i === 0 ? 'selected' : ''}" onclick="window.switchLanguageStream('${l.url}', '${l.name}')">
+        <div class="option-check">${i === 0 ? '✓' : ''}</div>
+        <div>
+          <div class="option-title">${l.name}</div>
+          ${l.isDefault ? '<div class="option-sub">Original</div>' : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function verifyUserPlan(activeUser, channelPartnerRaw) {
+    let userPlans = [];
+    try {
+      const q = activeUser.Lotus 
+        ? query(collection(authDb, "UARM"), where("Lotus", "==", activeUser.Lotus)) 
+        : query(collection(authDb, "UARM"), where("Email", "==", activeUser.Email));
+      
+      const uarmSnap = await getDocs(q);
+      if (!uarmSnap.empty) {
+        const freshData = uarmSnap.docs[0].data();
+        userPlans = freshData.Plans || [];
+        localStorage.setItem('active_user', JSON.stringify(freshData));
+      } else {
+        userPlans = activeUser.Plans || [];
+      }
+    } catch (e) { userPlans = activeUser.Plans || []; }
+
+    if (!Array.isArray(userPlans) || userPlans.length === 0) return false;
+
+    const channelPartner = (channelPartnerRaw || "").trim().toLowerCase();
+
+    for (const planId of userPlans) {
+      try {
+        const planSnap = await getDoc(doc(authDb, "Plans & Subscriptions", planId));
+        if (planSnap.exists()) {
+          const studios = planSnap.data().Studio || [];
+          if (studios.some(s => s.toLowerCase() === channelPartner)) {
+            return true;
+          }
+        }
+      } catch (err) {}
+    }
+    return false;
+  }
+
+  function showDenied(title, desc, btnTxt, btnUrl) {
+    const box = document.getElementById('accessDeniedBox');
+    document.getElementById('deniedTitle').innerText = title;
+    document.getElementById('deniedDesc').innerText = desc;
+    const btn = document.getElementById('deniedBtn');
+    btn.innerText = btnTxt;
+    btn.href = btnUrl;
+    box.style.display = 'flex';
+
+    document.getElementById('controlsOverlay').style.display = 'none';
+    document.getElementById('videoPlayer').style.display = 'none';
+  }
+
+  function initStreamPlayer(streamUrl) {
+    const video = document.getElementById('videoPlayer');
+    const iframe = document.getElementById('iframePlayer');
+    const overlay = document.getElementById('controlsOverlay');
+
+    if (!streamUrl) return;
+
+    if (hlsInstance) {
+      hlsInstance.destroy();
+      hlsInstance = null;
+    }
+
+    if (streamUrl.includes('youtube.com') || streamUrl.includes('youtu.be')) {
+      let embedUrl = streamUrl;
+      if (streamUrl.includes('watch?v=')) embedUrl = `https://www.youtube.com/embed/${streamUrl.split('v=')[1].split('&')[0]}?autoplay=1`;
+      else if (streamUrl.includes('youtu.be/')) embedUrl = `https://www.youtube.com/embed/${streamUrl.split('youtu.be/')[1].split('?')[0]}?autoplay=1`;
+      
+      video.style.display = 'none';
+      overlay.style.display = 'none';
+      iframe.style.display = 'block';
+      iframe.src = embedUrl;
+    } else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
+      iframe.style.display = 'none';
+      video.style.display = 'block';
+
+      if (Hls.isSupported()) {
+        hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 10 });
+        hlsInstance.loadSource(streamUrl);
+        hlsInstance.attachMedia(video);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = streamUrl;
+        video.play().catch(() => {});
+      }
+      setupInteraction(video);
+    } else {
+      video.style.display = 'none';
+      overlay.style.display = 'none';
+      iframe.style.display = 'block';
+      iframe.src = streamUrl;
+    }
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toastAlert');
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  function setupInteraction(video) {
+    const overlay = document.getElementById('controlsOverlay');
+    const playerContainer = document.getElementById('playerContainer');
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const rewindBtn = document.getElementById('rewindBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
+    const lockBtn = document.getElementById('lockBtn');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const backBtn = document.getElementById('backBtn');
+    const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
+    const progressBar = document.getElementById('progressBar');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const goLiveBtn = document.getElementById('goLiveBtn');
+    const watchNextOverlay = document.getElementById('watchNextOverlay');
+
+    const showControls = () => {
+      if (isScreenLocked) return;
+      overlay.classList.add('show');
+      clearTimeout(hideControlsTimer);
+      hideControlsTimer = setTimeout(() => {
+        overlay.classList.remove('show');
+      }, 3500);
+    };
+
+    // Click to Wakeup & Click to Sleep
+    playerContainer.onclick = (e) => {
+      e.stopPropagation();
+      if (isScreenLocked) return;
+      if (overlay.classList.contains('show')) {
+        overlay.classList.remove('show');
+        clearTimeout(hideControlsTimer);
+      } else {
+        showControls();
+      }
+    };
+
+    const togglePlay = (e) => {
+      e?.stopPropagation();
+      if (video.paused) video.play(); else video.pause();
+      showControls();
+    };
+
+    playBtn.onclick = togglePlay;
+    video.onplay = () => { playIcon.style.display = 'none'; pauseIcon.style.display = 'block'; };
+    video.onpause = () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; };
+
+    rewindBtn.onclick = (e) => {
+      e.stopPropagation();
+      video.currentTime -= 10;
+      isUserSeeking = true;
+      goLiveBtn.style.display = 'flex';
+      showControls();
+    };
+
+    forwardBtn.onclick = (e) => { e.stopPropagation(); video.currentTime += 10; showControls(); };
+
+    // FIXED PROGRESS BAR
+    video.ontimeupdate = () => {
+      if (!isUserSeeking) {
+        progressBar.value = 100;
+        progressBar.style.background = 'var(--accent-blue)';
+        timeDisplay.innerText = "LIVE";
+        goLiveBtn.style.display = 'none';
+      } else {
+        if (video.duration && isFinite(video.duration)) {
+          const percentage = (video.currentTime / video.duration) * 100;
+          progressBar.value = percentage;
+          progressBar.style.background = `linear-gradient(to right, #0072ef 0%, #0072ef ${percentage}%, rgba(255,255,255,0.25) ${percentage}%, rgba(255,255,255,0.25) 100%)`;
+          const current = new Date(video.currentTime * 1000).toISOString().substr(11, 8);
+          timeDisplay.innerText = current;
+
+          if (video.duration - video.currentTime > 12) {
+            goLiveBtn.style.display = 'flex';
+          } else {
+            isUserSeeking = false;
+          }
+        }
+      }
+    };
+
+    progressBar.oninput = (e) => {
+      e.stopPropagation();
+      isUserSeeking = true;
+      if (video.duration && isFinite(video.duration)) {
+        video.currentTime = (progressBar.value / 100) * video.duration;
+        goLiveBtn.style.display = 'flex';
+      }
+    };
+
+    goLiveBtn.onclick = (e) => {
+      e.stopPropagation();
+      isUserSeeking = false;
+      if (hlsInstance && hlsInstance.liveSyncPosition) {
+        video.currentTime = hlsInstance.liveSyncPosition;
+      } else if (video.duration) {
+        video.currentTime = video.duration - 0.5;
+      }
+      video.play();
+      goLiveBtn.style.display = 'none';
+      progressBar.value = 100;
+      progressBar.style.background = 'var(--accent-blue)';
+      timeDisplay.innerText = "LIVE";
+      showToast("Live Stream Synced");
+    };
+
+    // Lock & Unlock Screen UI (Screenshot 7)
+    lockBtn.onclick = (e) => {
+      e.stopPropagation();
+      isScreenLocked = true;
+      overlay.classList.remove('show');
+      unlockBtn.style.display = 'flex';
+    };
+
+    unlockBtn.onclick = (e) => {
+      e.stopPropagation();
+      isScreenLocked = false;
+      unlockBtn.style.display = 'none';
+      showControls();
+    };
+
+    backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
+
+    // Fullscreen Toggle
+    fullscreenToggleBtn.onclick = async (e) => {
+      e.stopPropagation();
+      if (!document.fullscreenElement) {
+        try {
+          await playerContainer.requestFullscreen();
+          if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape').catch(() => {});
+          }
+        } catch (err) {}
+      } else {
+        try {
+          if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+          }
+        } catch (err) {}
+        if (document.exitFullscreen) {
+          await document.exitFullscreen().catch(() => {});
+        }
+        document.body.classList.remove('landscape-mode');
+      }
+    };
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        try { if (screen.orientation?.unlock) screen.orientation.unlock(); } catch(e){}
+        if (window.innerWidth < window.innerHeight) {
+          document.body.classList.remove('landscape-mode');
+        }
+      }
+    });
+
+    // Touch Pinch Gestures
+    let initialPinchDist = 0;
+    playerContainer.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    });
+
+    playerContainer.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && initialPinchDist > 0) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (dist - initialPinchDist > 35) {
+          if (!video.classList.contains('fill-screen')) {
+            video.classList.add('fill-screen');
+            showToast("Zoomed to Fill Screen");
+          }
+        } else if (initialPinchDist - dist > 35) {
+          if (video.classList.contains('fill-screen')) {
+            video.classList.remove('fill-screen');
+            showToast("Fit to Screen");
+          }
+        }
+      }
+    });
+
+    const checkOrientation = () => {
+      if (window.innerWidth > window.innerHeight) {
+        document.body.classList.add('landscape-mode');
+      } else {
+        document.body.classList.remove('landscape-mode');
+        watchNextOverlay.classList.remove('show');
+      }
+    };
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
+    checkOrientation();
+
+    // Watch Next Overlay Actions & Swipe-Down
+    document.getElementById('openWatchNextBtn').onclick = (e) => {
+      e.stopPropagation();
+      watchNextOverlay.classList.add('show');
+    };
+    document.getElementById('closeWatchNextBtn').onclick = () => watchNextOverlay.classList.remove('show');
+
+    let touchStartY = 0;
+    let touchCurrentY = 0;
+
+    watchNextOverlay.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    watchNextOverlay.addEventListener('touchmove', (e) => {
+      touchCurrentY = e.touches[0].clientY;
+      let diffY = touchCurrentY - touchStartY;
+      if (diffY > 0) {
+        watchNextOverlay.style.transform = `translateY(${diffY}px)`;
+        watchNextOverlay.style.transition = 'none';
+      }
+    }, { passive: true });
+
+    watchNextOverlay.addEventListener('touchend', () => {
+      let diffY = touchCurrentY - touchStartY;
+      watchNextOverlay.style.transition = 'transform 0.3s ease';
+      if (diffY > 65) {
+        watchNextOverlay.classList.remove('show');
+        watchNextOverlay.style.transform = '';
+      } else {
+        watchNextOverlay.style.transform = 'translateY(0)';
+      }
+      touchStartY = 0;
+      touchCurrentY = 0;
+    });
+
+    showControls();
+  }
+
+  // Hotstar Settings Modal Sheet Logic (Screenshots 3, 4, 5 & 6)
+  const settingsModal = document.getElementById('settingsModal');
+  const settingsSheet = document.getElementById('settingsSheet');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const closeSettingsModal = document.getElementById('closeSettingsModal');
+  const tabQuality = document.getElementById('tabQuality');
+  const tabAudio = document.getElementById('tabAudio');
+  const qualityTabContent = document.getElementById('qualityTabContent');
+  const audioTabContent = document.getElementById('audioTabContent');
+
+  settingsBtn.onclick = (e) => {
+    e.stopPropagation();
+    settingsModal.classList.add('active');
+  };
+
+  closeSettingsModal.onclick = () => settingsModal.classList.remove('active');
+  settingsModal.onclick = (e) => { if (e.target === settingsModal) settingsModal.classList.remove('active'); };
+
+  tabQuality.onclick = () => {
+    tabQuality.classList.add('active');
+    tabAudio.classList.remove('active');
+    qualityTabContent.style.display = 'flex';
+    audioTabContent.style.display = 'none';
+  };
+
+  tabAudio.onclick = () => {
+    tabAudio.classList.add('active');
+    tabQuality.classList.remove('active');
+    audioTabContent.style.display = 'flex';
+    qualityTabContent.style.display = 'none';
+  };
+
+  // Quality Level Switching
+  document.querySelectorAll('#qualityTabContent .option-item').forEach(item => {
+    item.onclick = () => {
+      document.querySelectorAll('#qualityTabContent .option-item').forEach(i => {
+        i.classList.remove('selected');
+        i.querySelector('.option-check').innerText = '';
+      });
+      item.classList.add('selected');
+      item.querySelector('.option-check').innerText = '✓';
+
+      const qualityVal = parseInt(item.dataset.quality);
+      if (hlsInstance) {
+        if (qualityVal === -1) {
+          hlsInstance.currentLevel = -1;
+        } else {
+          const lIdx = hlsInstance.levels.findIndex(l => l.height <= qualityVal);
+          if (lIdx !== -1) hlsInstance.currentLevel = lIdx;
+        }
+      }
+      setTimeout(() => settingsModal.classList.remove('active'), 200);
+    };
+  });
+
+  // Settings Sheet Swipe-Down to Close in Vertical Mode
+  let sheetStartY = 0;
+  settingsSheet.addEventListener('touchstart', (e) => { sheetStartY = e.touches[0].clientY; }, { passive: true });
+  settingsSheet.addEventListener('touchmove', (e) => {
+    let diffY = e.touches[0].clientY - sheetStartY;
+    if (diffY > 0 && !document.body.classList.contains('landscape-mode')) {
+      settingsSheet.style.transform = `translateY(${diffY}px)`;
+    }
+  }, { passive: true });
+
+  settingsSheet.addEventListener('touchend', (e) => {
+    let diffY = e.changedTouches[0].clientY - sheetStartY;
+    if (diffY > 70 && !document.body.classList.contains('landscape-mode')) {
+      settingsModal.classList.remove('active');
+    }
+    settingsSheet.style.transform = '';
+  });
+
+  // Seamless In-Place Channel Switch
+  window.switchChannelInPlace = function(newId) {
+    document.getElementById('watchNextOverlay').classList.remove('show');
+    window.history.pushState({}, '', `1.html?watch=${newId}`);
+    initApp(newId);
+  };
+
+  function getPartnerSectionTitle(partnerRaw) {
+    if (!partnerRaw) return "More Channels";
+    const lower = partnerRaw.toLowerCase();
+    if (lower.includes("sony")) return "More by Sony";
+    if (lower.includes("disney")) return "More from Disney";
+    if (lower.includes("star")) return "More by Star";
+    return `More by ${partnerRaw}`;
+  }
+
+  // REAL-TIME FIRESTORE LISTENER FOR ALL CHANNELS
+  function listenToAllChannels(excludeId) {
+    if (collectionUnsub) collectionUnsub();
+
+    const recGrid = document.getElementById('recommendationsGrid');
+    const partnerGrid = document.getElementById('partnerGrid');
+    const watchNextCards = document.getElementById('watchNextCards');
+    const sec2Heading = document.getElementById('sec2Heading');
+
+    collectionUnsub = onSnapshot(collection(channelDb, "Live TV"), (snap) => {
+      let allChannels = [];
+      snap.forEach(d => { if(d.id !== excludeId) allChannels.push({ id: d.id, ...d.data() }); });
+
+      const targetGenre = (currentChannel?.Genres || '').toLowerCase();
+      let recommended = allChannels.filter(c => targetGenre && (c.Genres || '').toLowerCase().includes(targetGenre));
+      if (recommended.length === 0) recommended = allChannels;
+
+      const targetPartner = (currentChannel?.Partner || '').toLowerCase();
+      let partnerChannels = allChannels.filter(c => targetPartner && (c.Partner || '').toLowerCase().includes(targetPartner));
+      if (partnerChannels.length === 0) partnerChannels = allChannels;
+
+      sec2Heading.innerText = getPartnerSectionTitle(currentChannel?.Partner);
+
+      const renderPortraitCard = (c) => `
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="card-item">
+          <img src="${c["Logo.png"] || c.Logo || ''}" class="card-thumb" alt="${c.Name}">
+          <div class="card-name">${c.Name || 'Live TV'}</div>
+        </div>
+      `;
+
+      recGrid.innerHTML = recommended.map(renderPortraitCard).join('');
+      partnerGrid.innerHTML = partnerChannels.map(renderPortraitCard).join('');
+
+      watchNextCards.innerHTML = allChannels.map(c => `
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
+          <div class="watch-card-thumb-wrap">
+            <img class="banner-img" src="${c.imageUrl || c.Banner || c["Logo.png"] || c.Logo || ''}" alt="${c.Name}">
+            <img class="watch-card-logo-top-right" src="${c["Logo.png"] || c.Logo || ''}" alt="Logo">
+            <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="watch-card-name">${c.Name || 'TV Channel'}</div>
+          <div class="watch-card-sub">${c.Genres || c.Language || 'Live Stream'}</div>
+        </div>
+      `).join('');
+    });
+  }
+</script>
+</body>
+</html>
