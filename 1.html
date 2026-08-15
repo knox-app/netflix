@@ -39,7 +39,21 @@
       transition: object-fit 0.3s ease;
     }
     video.fill-screen { object-fit: cover; }
-    iframe { width: 100%; height: 100%; border: none; }
+
+    /* YouTube IFrame Sizing & Clipping Mask (Hides YT Title, Logo, Share) */
+    .yt-host {
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1;
+    }
+    .yt-host iframe {
+      width: calc(100% + 120px) !important;
+      height: calc(100% + 180px) !important;
+      position: absolute !important;
+      top: -90px !important;
+      left: -60px !important;
+      pointer-events: none;
+    }
+
+    iframe.generic-embed { width: 100%; height: 100%; border: none; }
 
     /* Mobile Landscape Fullscreen Layout */
     body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
@@ -92,7 +106,6 @@
     .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .timeline-row { display: flex; align-items: center; gap: 12px; }
 
-    /* Fixed Blue Progress Bar */
     .progress-bar {
       width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
       background: var(--accent-blue); outline: none; cursor: pointer; border-radius: 4px;
@@ -226,9 +239,14 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- Video Element -->
+      <!-- HTML5 Video Element -->
       <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
-      <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
+
+      <!-- YouTube Host Wrapper (Cropped UI Mask) -->
+      <div id="ytHost" class="yt-host" style="display: none;"></div>
+
+      <!-- Generic IFrame Fallback -->
+      <iframe id="iframePlayer" class="generic-embed" style="display: none;" allowfullscreen allow="autoplay"></iframe>
 
       <!-- Unlock Button when Locked -->
       <div class="lock-overlay-btn" id="unlockBtn" style="display: none;">
@@ -336,6 +354,36 @@
   </div>
 </div>
 
+<!-- YouTube API Script -->
+<script>
+  let ytApiReady = false;
+  function loadYouTubeAPI() {
+    if (window.YT && window.YT.Player) { ytApiReady = true; return; }
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  }
+  window.onYouTubeIframeAPIReady = function() {
+    ytApiReady = true;
+  };
+  loadYouTubeAPI();
+
+  function extractYouTubeId(url) {
+    try {
+      const u = new URL(url.trim());
+      if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('/')[0];
+      if (u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com')) {
+        if (u.pathname === '/watch') return u.searchParams.get('v');
+        if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
+        if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
+      }
+    } catch(e) {
+      if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+    }
+    return null;
+  }
+</script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, onSnapshot, collection, query, where, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -368,13 +416,15 @@
   const authDb = getFirestore(authApp);
 
   let hlsInstance = null;
+  let ytPlayer = null;
+  let activeSourceType = null; // 'hls', 'yt', 'iframe'
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let currentChannel = null;
   let currentStreamUrl = null;
   let isUserSeeking = false;
+  let ytProgressTimer = null;
 
-  // Real-time listener unsubscribers
   let channelDocUnsub = null;
   let collectionUnsub = null;
 
@@ -394,10 +444,8 @@
     let activeUser = null;
     try { activeUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
 
-    // Unsubscribe existing Firestore listeners if any
     if (channelDocUnsub) channelDocUnsub();
 
-    // 1. REAL-TIME FIRESTORE LISTENER FOR CHANNEL DATA
     channelDocUnsub = onSnapshot(doc(channelDb, "Live TV", docId), async (snap) => {
       if (!snap.exists()) {
         loader.innerText = `Channel '${docId}' not found.`;
@@ -406,7 +454,6 @@
 
       currentChannel = { id: snap.id, ...snap.data() };
 
-      // Update UI Elements Live
       document.getElementById('chTitle').innerText = currentChannel.Name || "Live Channel";
       document.getElementById('overlayChTitle').innerText = currentChannel.Name || "Live Channel";
       document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • ${currentChannel.Genres || 'Live Stream'}`;
@@ -414,7 +461,6 @@
       loader.style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
 
-      // Check User Authentication & Subscription
       if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
         userPill.innerText = "Not Logged In";
         showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
@@ -423,12 +469,10 @@
 
       userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
 
-      // Check Plan Authorization
       let isAuth = await verifyUserPlan(activeUser, currentChannel.Partner);
 
       if (isAuth) {
         document.getElementById('accessDeniedBox').style.display = 'none';
-        // Auto-Update Stream in real-time if Stream URL changes in DB
         if (currentChannel.Stream !== currentStreamUrl) {
           currentStreamUrl = currentChannel.Stream;
           initStreamPlayer(currentStreamUrl);
@@ -438,7 +482,6 @@
       }
     });
 
-    // 2. REAL-TIME LISTENER FOR ALL CHANNELS (Recommendations & Watch Next)
     listenToAllChannels(docId);
   }
 
@@ -488,32 +531,85 @@
 
     document.getElementById('controlsOverlay').style.display = 'none';
     document.getElementById('videoPlayer').style.display = 'none';
+    document.getElementById('ytHost').style.display = 'none';
   }
 
   function initStreamPlayer(streamUrl) {
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
+    const ytHost = document.getElementById('ytHost');
     const overlay = document.getElementById('controlsOverlay');
 
     if (!streamUrl) return;
 
-    if (hlsInstance) {
-      hlsInstance.destroy();
-      hlsInstance = null;
-    }
+    // Clean up previous instances
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    if (ytProgressTimer) clearInterval(ytProgressTimer);
 
-    if (streamUrl.includes('youtube.com') || streamUrl.includes('youtu.be')) {
-      let embedUrl = streamUrl;
-      if (streamUrl.includes('watch?v=')) embedUrl = `https://www.youtube.com/embed/${streamUrl.split('v=')[1].split('&')[0]}?autoplay=1`;
-      else if (streamUrl.includes('youtu.be/')) embedUrl = `https://www.youtube.com/embed/${streamUrl.split('youtu.be/')[1].split('?')[0]}?autoplay=1`;
-      
+    const ytId = extractYouTubeId(streamUrl);
+
+    // 1. YouTube Stream (Uses Cropping Mask + YouTube IFrame API)
+    if (ytId) {
+      activeSourceType = 'yt';
       video.style.display = 'none';
-      overlay.style.display = 'none';
-      iframe.style.display = 'block';
-      iframe.src = embedUrl;
-    } else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
+      iframe.style.display = 'none';
+      ytHost.style.display = 'block';
+      overlay.style.display = 'flex';
+
+      const createYt = () => {
+        ytHost.innerHTML = '<div id="ytActual"></div>';
+        ytPlayer = new YT.Player('ytActual', {
+          videoId: ytId,
+          playerVars: {
+            controls: 0,
+            disablekb: 1,
+            modestbranding: 1,
+            rel: 0,
+            iv_load_policy: 3,
+            fs: 0,
+            playsinline: 1,
+            autoplay: 1,
+            origin: window.location.origin
+          },
+          events: {
+            onReady: (e) => {
+              e.target.playVideo();
+              setupYTProgressLoop();
+            },
+            onStateChange: (e) => {
+              const playIcon = document.getElementById('playIcon');
+              const pauseIcon = document.getElementById('pauseIcon');
+              if (e.data === YT.PlayerState.PLAYING) {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+              } else {
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+              }
+            }
+          }
+        });
+      };
+
+      if (window.YT && window.YT.Player) {
+        createYt();
+      } else {
+        let waitYt = setInterval(() => {
+          if (window.YT && window.YT.Player) {
+            clearInterval(waitYt);
+            createYt();
+          }
+        }, 200);
+      }
+      setupInteraction();
+    } 
+    // 2. HLS / M3U8 Stream
+    else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
+      activeSourceType = 'hls';
+      ytHost.style.display = 'none';
       iframe.style.display = 'none';
       video.style.display = 'block';
+      overlay.style.display = 'flex';
 
       if (Hls.isSupported()) {
         hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 10 });
@@ -524,13 +620,42 @@
         video.src = streamUrl;
         video.play().catch(() => {});
       }
-      setupInteraction(video);
-    } else {
+      setupInteraction();
+    } 
+    // 3. Generic Embed Fallback
+    else {
+      activeSourceType = 'iframe';
       video.style.display = 'none';
+      ytHost.style.display = 'none';
       overlay.style.display = 'none';
       iframe.style.display = 'block';
       iframe.src = streamUrl;
     }
+  }
+
+  function setupYTProgressLoop() {
+    const progressBar = document.getElementById('progressBar');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const goLiveBtn = document.getElementById('goLiveBtn');
+
+    ytProgressTimer = setInterval(() => {
+      if (!ytPlayer || activeSourceType !== 'yt' || isUserSeeking) return;
+      try {
+        const dur = ytPlayer.getDuration() || 0;
+        const cur = ytPlayer.getCurrentTime() || 0;
+
+        if (dur > 0) {
+          const percentage = (cur / dur) * 100;
+          progressBar.value = percentage;
+          progressBar.style.background = `linear-gradient(to right, #0072ef 0%, #0072ef ${percentage}%, rgba(255,255,255,0.25) ${percentage}%, rgba(255,255,255,0.25) 100%)`;
+          timeDisplay.innerText = new Date(cur * 1000).toISOString().substr(11, 8);
+        } else {
+          progressBar.value = 100;
+          progressBar.style.background = 'var(--accent-blue)';
+          timeDisplay.innerText = "LIVE";
+        }
+      } catch(e) {}
+    }, 500);
   }
 
   function showToast(msg) {
@@ -540,7 +665,8 @@
     setTimeout(() => toast.classList.remove('show'), 2000);
   }
 
-  function setupInteraction(video) {
+  function setupInteraction() {
+    const video = document.getElementById('videoPlayer');
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
     const playBtn = document.getElementById('playBtn');
@@ -566,7 +692,6 @@
       }, 3500);
     };
 
-    // Click to Wakeup AND Click to Sleep
     playerContainer.onclick = (e) => {
       e.stopPropagation();
       if (isScreenLocked) return;
@@ -578,29 +703,50 @@
       }
     };
 
+    // Unified Play/Pause
     const togglePlay = (e) => {
       e?.stopPropagation();
-      if (video.paused) video.play(); else video.pause();
+      if (activeSourceType === 'yt' && ytPlayer) {
+        const state = ytPlayer.getPlayerState();
+        if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
+        else ytPlayer.playVideo();
+      } else if (activeSourceType === 'hls') {
+        if (video.paused) video.play(); else video.pause();
+      }
       showControls();
     };
 
     playBtn.onclick = togglePlay;
+
     video.onplay = () => { playIcon.style.display = 'none'; pauseIcon.style.display = 'block'; };
     video.onpause = () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; };
 
-    // Rewind 10s (User Seeking Mode)
+    // Unified Rewind / Forward
     rewindBtn.onclick = (e) => {
       e.stopPropagation();
-      video.currentTime -= 10;
-      isUserSeeking = true;
-      goLiveBtn.style.display = 'flex';
+      if (activeSourceType === 'yt' && ytPlayer) {
+        ytPlayer.seekTo(Math.max(0, ytPlayer.getCurrentTime() - 10), true);
+      } else if (activeSourceType === 'hls') {
+        video.currentTime -= 10;
+        isUserSeeking = true;
+        goLiveBtn.style.display = 'flex';
+      }
       showControls();
     };
 
-    forwardBtn.onclick = (e) => { e.stopPropagation(); video.currentTime += 10; showControls(); };
+    forwardBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (activeSourceType === 'yt' && ytPlayer) {
+        ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10, true);
+      } else if (activeSourceType === 'hls') {
+        video.currentTime += 10;
+      }
+      showControls();
+    };
 
-    // FIXED PROGRESS BAR: No jitter on packet arrival
+    // Steady Progress Bar for HLS HTML5 Video
     video.ontimeupdate = () => {
+      if (activeSourceType !== 'hls') return;
       if (!isUserSeeking) {
         progressBar.value = 100;
         progressBar.style.background = 'var(--accent-blue)';
@@ -623,31 +769,39 @@
       }
     };
 
-    // Manual Progress Bar Seeking
-    progressBar.oninput = (e) => {
-      e.stopPropagation();
-      isUserSeeking = true;
-      if (video.duration && isFinite(video.duration)) {
-        video.currentTime = (progressBar.value / 100) * video.duration;
-        goLiveBtn.style.display = 'flex';
-      }
-    };
-
-    // Go Live Button Click Event
+    // Go Live Button
     goLiveBtn.onclick = (e) => {
       e.stopPropagation();
       isUserSeeking = false;
-      if (hlsInstance && hlsInstance.liveSyncPosition) {
-        video.currentTime = hlsInstance.liveSyncPosition;
-      } else if (video.duration) {
-        video.currentTime = video.duration - 0.5;
+      if (activeSourceType === 'yt' && ytPlayer) {
+        ytPlayer.seekTo(ytPlayer.getDuration(), true);
+      } else if (activeSourceType === 'hls') {
+        if (hlsInstance && hlsInstance.liveSyncPosition) {
+          video.currentTime = hlsInstance.liveSyncPosition;
+        } else if (video.duration) {
+          video.currentTime = video.duration - 0.5;
+        }
+        video.play();
       }
-      video.play();
       goLiveBtn.style.display = 'none';
       progressBar.value = 100;
       progressBar.style.background = 'var(--accent-blue)';
       timeDisplay.innerText = "LIVE";
       showToast("Live Stream Synced");
+    };
+
+    progressBar.oninput = (e) => {
+      e.stopPropagation();
+      isUserSeeking = true;
+      if (activeSourceType === 'yt' && ytPlayer) {
+        const dur = ytPlayer.getDuration() || 0;
+        ytPlayer.seekTo(dur * (progressBar.value / 100), true);
+      } else if (activeSourceType === 'hls') {
+        if (video.duration && isFinite(video.duration)) {
+          video.currentTime = (progressBar.value / 100) * video.duration;
+          goLiveBtn.style.display = 'flex';
+        }
+      }
     };
 
     lockBtn.onclick = (e) => {
@@ -666,7 +820,6 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    // Fullscreen Toggle (Enters Landscape / Exits to Vertical Mobile)
     fullscreenToggleBtn.onclick = async (e) => {
       e.stopPropagation();
       if (!document.fullscreenElement) {
@@ -689,7 +842,6 @@
       }
     };
 
-    // Listen to Fullscreen exit event
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) {
         try { if (screen.orientation?.unlock) screen.orientation.unlock(); } catch(e){}
@@ -699,7 +851,6 @@
       }
     });
 
-    // Touch Pinch-to-Fit Gesture (No Button)
     let initialPinchDist = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -742,7 +893,6 @@
     window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
     checkOrientation();
 
-    // Watch Next Tray Actions & Swipe-Down To Close
     document.getElementById('openWatchNextBtn').onclick = (e) => {
       e.stopPropagation();
       watchNextOverlay.classList.add('show');
@@ -781,7 +931,6 @@
     showControls();
   }
 
-  // Seamless In-Place Channel Switch
   window.switchChannelInPlace = function(newId) {
     document.getElementById('watchNextOverlay').classList.remove('show');
     window.history.pushState({}, '', `1.html?watch=${newId}`);
@@ -797,7 +946,6 @@
     return `More by ${partnerRaw}`;
   }
 
-  // REAL-TIME FIRESTORE LISTENER FOR ALL CHANNELS
   function listenToAllChannels(excludeId) {
     if (collectionUnsub) collectionUnsub();
 
