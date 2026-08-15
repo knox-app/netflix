@@ -36,32 +36,31 @@
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
     }
 
-    /* Video Aspect Ratio Modes (DEFAULT IS ORIGINAL / FIT SCREEN) */
+    /* M3U8 Video Aspect Modes */
     video {
       width: 100%; height: 100%; border: none; object-fit: contain;
-      transition: object-fit 0.3s ease;
+      transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     video.fill-screen {
       object-fit: cover !important;
     }
 
-    /* YouTube Host & Scaling */
+    /* Clean YouTube Frame Host Wrapper (Single-Staged Scale) */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
-      transition: all 0.3s ease;
     }
-    /* YouTube Default: Fit Screen */
+    /* YouTube Default Fit Screen: Scale 1.18x crops YouTube title bar while keeping 16:9 ratio */
     #ytFrameHost iframe {
       width: 100% !important; height: 100% !important;
       position: absolute !important; top: 0 !important; left: 0 !important;
-      pointer-events: none; transition: all 0.3s ease;
+      pointer-events: none;
+      transform: scale(1.18);
+      transform-origin: center center;
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    /* YouTube Zoomed: Fill Screen */
+    /* YouTube Zoomed Fill Screen: Scale 1.48x fills ultrawide curved phone displays */
     #ytFrameHost.fill-screen iframe {
-      width: calc(100% + 120px) !important;
-      height: calc(100% + 180px) !important;
-      top: -90px !important;
-      left: -60px !important;
+      transform: scale(1.48) !important;
     }
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; }
@@ -396,6 +395,7 @@
   let activePlayerType = null; // 'hls' | 'youtube' | 'iframe'
   let hideControlsTimer = null;
   let isScreenLocked = false;
+  let isFillScreen = false;
   let currentChannel = null;
   let currentStreamUrl = null;
   let isUserSeeking = false;
@@ -427,7 +427,7 @@
     return null;
   }
 
-  // STOP AUDIO LEAK ON CHANNEL SWITCH
+  // SOUND BUG FIX: Destroy active players completely on channel switch
   function destroyActivePlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
@@ -454,6 +454,24 @@
       ytHost.innerHTML = '';
       ytHost.style.display = 'none';
       ytHost.classList.remove('fill-screen');
+    }
+    isFillScreen = false;
+  }
+
+  // Unified Pinch Zoom Toggle Handler
+  function applyZoomState(fill) {
+    isFillScreen = fill;
+    const video = document.getElementById('videoPlayer');
+    const ytHost = document.getElementById('ytFrameHost');
+
+    if (fill) {
+      video.classList.add('fill-screen');
+      ytHost.classList.add('fill-screen');
+      showToast("Zoomed to Fill Screen");
+    } else {
+      video.classList.remove('fill-screen');
+      ytHost.classList.remove('fill-screen');
+      showToast("Fit to Screen (Original)");
     }
   }
 
@@ -661,7 +679,6 @@
     const timeDisplay = document.getElementById('timeDisplay');
     const goLiveBtn = document.getElementById('goLiveBtn');
     const watchNextOverlay = document.getElementById('watchNextOverlay');
-    const ytHost = document.getElementById('ytFrameHost');
 
     const showControls = () => {
       if (isScreenLocked) return;
@@ -831,7 +848,7 @@
       }
     });
 
-    // ROCK-SOLID PINCH GESTURE: DEFAULT IS FIT SCREEN, PINCH OUT TO ZOOM/FILL
+    // UNIFIED SINGLE-STAGED PINCH TO ZOOM GESTURE (M3U8 + YOUTUBE)
     let initialPinchDist = 0;
     let isPinching = false;
 
@@ -853,21 +870,17 @@
         );
         const diff = currentDist - initialPinchDist;
 
-        // PINCH OUT -> FILL / ZOOM SCREEN
+        // PINCH OUT -> FILL SCREEN
         if (diff > 30) {
-          if (!video.classList.contains('fill-screen')) {
-            video.classList.add('fill-screen');
-            ytHost.classList.add('fill-screen');
-            showToast("Zoomed to Fill Screen");
+          if (!isFillScreen) {
+            applyZoomState(true);
             initialPinchDist = currentDist;
           }
         } 
-        // PINCH IN -> ORIGINAL / FIT SCREEN
+        // PINCH IN -> FIT SCREEN (ORIGINAL)
         else if (diff < -30) {
-          if (video.classList.contains('fill-screen')) {
-            video.classList.remove('fill-screen');
-            ytHost.classList.remove('fill-screen');
-            showToast("Fit to Screen (Original)");
+          if (isFillScreen) {
+            applyZoomState(false);
             initialPinchDist = currentDist;
           }
         }
