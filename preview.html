@@ -8,7 +8,7 @@
     <style>
         :root {
             --bg: #0f1014;
-            --blue-tag: #42a5f5;
+            --blue-accent: #42a5f5;
             --text-dim: #a9a9a9;
             --white: #ffffff;
         }
@@ -21,159 +21,161 @@
             overflow-x: hidden;
         }
 
-        /* 1. YouTube Trailer Section with "Branding Crop" */
-        .hero {
+        /* 1. HERO / TRAILER AREA */
+        .hero-container {
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
             background: #000;
-            overflow: hidden; /* This crops the YouTube UI */
+            overflow: hidden; /* Important for cropping YouTube UI */
         }
 
         #banner-img {
             position: absolute;
-            width: 100%; height: 100%; object-fit: cover;
-            z-index: 3;
-            transition: opacity 1s ease-in-out;
+            width: 100%; height: 100%; 
+            object-fit: cover;
+            z-index: 5;
+            transition: opacity 1s ease;
         }
 
-        /* The YouTube Wrapper scales the video up to push UI elements off-screen */
-        #video-wrapper {
+        #video-wrap {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            display: none;
             z-index: 1;
+            display: none;
         }
 
-        #video-wrapper iframe {
+        /* Scaling & Offsetting to hide YouTube logo/title */
+        #video-wrap iframe {
             position: absolute;
-            top: -10%; left: -10%; /* Move up/left to hide title and logo */
-            width: 120%; height: 120%; /* Scale up to push UI out of view */
-            pointer-events: none; /* Prevents users from clicking to see YouTube title */
+            top: -10%; left: -10%;
+            width: 120%; height: 120%;
+            pointer-events: none;
         }
 
-        .trailer-label {
+        .trailer-overlay-text {
             position: absolute; top: 15px; left: 15px;
             font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4);
             z-index: 10;
         }
 
-        .close-icon {
+        .close-btn {
             position: absolute; top: 15px; right: 15px; font-size: 20px; z-index: 10; cursor: pointer;
         }
 
-        /* 2. Main Centered Content */
-        .content-body {
+        /* 2. MAIN INFO CONTENT (CENTERED) */
+        .content-main {
             display: flex; flex-direction: column; align-items: center;
             text-align: center; padding: 0 20px;
             margin-top: 20px;
         }
 
-        .main-logo {
+        .logo-box {
             max-width: 180px; max-height: 90px;
-            object-fit: contain; margin-bottom: 12px;
+            object-fit: contain; margin-bottom: 15px;
         }
 
-        /* Blue Tags Section */
-        .blue-tags {
-            color: var(--blue-tag);
+        /* DYNAMIC BLUE HIGHLIGHT TAGS */
+        .highlight-tags {
+            color: var(--blue-accent);
             font-size: 14px;
             font-weight: 500;
-            margin-bottom: 8px;
-            display: flex; gap: 8px;
+            margin-bottom: 10px;
+            display: flex; gap: 8px; justify-content: center;
         }
-        .blue-tags span::after { content: " •"; color: var(--text-dim); margin-left: 5px; }
-        .blue-tags span:last-child::after { content: ""; }
+        .highlight-tags span:not(:last-child)::after {
+            content: " •"; color: var(--text-dim); margin-left: 8px;
+        }
 
-        .meta-row {
+        .meta-data-row {
             font-size: 13px; color: var(--text-dim);
-            display: flex; gap: 10px; align-items: center; margin-bottom: 25px;
+            display: flex; gap: 12px; align-items: center; margin-bottom: 25px;
         }
-        .age-rating {
+        .age-badge {
             background: #3c3c3c; color: #fff; padding: 2px 6px;
             border-radius: 3px; font-weight: bold; font-size: 11px;
         }
 
-        /* 3. Action Button */
-        .btn-play {
-            width: 100%; max-width: 380px;
+        /* 3. PRIMARY ACTION BUTTON */
+        .action-btn-main {
+            width: 100%; max-width: 400px;
             background: #e1e6f0; color: #000;
-            border: none; padding: 14px; border-radius: 8px;
+            border: none; padding: 15px; border-radius: 8px;
             font-size: 16px; font-weight: 700;
             display: flex; align-items: center; justify-content: center;
-            gap: 10px; margin-bottom: 25px; cursor: pointer;
+            gap: 12px; margin-bottom: 30px; cursor: pointer;
         }
-        .btn-play span.subtext { color: #666; font-weight: 400; font-size: 14px; margin-left: 5px; }
+        .btn-sub-label { color: #666; font-weight: 400; font-size: 14px; }
 
-        /* 4. Details Section */
-        .genres {
+        /* 4. DETAILS (GENRES, DESC) */
+        .genres-display {
             font-size: 14px; font-weight: 500; color: #fff;
-            margin-bottom: 12px;
+            margin-bottom: 12px; display: flex; justify-content: center; gap: 10px;
         }
-        .genres span { margin: 0 8px; color: #444; }
+        .genres-display span { color: #444; }
 
-        .desc {
+        .desc-box {
             font-size: 14px; color: var(--text-dim);
             line-height: 1.5; text-align: left; width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
-        .air-time {
+        .broadcast-note {
             font-weight: bold; font-size: 14px; text-align: left; width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
-        /* 5. Icons Row */
-        .action-row {
+        /* 5. BOTTOM ACTIONS */
+        .icons-container {
             display: flex; justify-content: space-around; width: 100%;
-            max-width: 300px; padding-bottom: 40px;
+            max-width: 320px; padding-bottom: 50px;
         }
-        .action-item {
+        .icon-box {
             display: flex; flex-direction: column; align-items: center;
             font-size: 11px; color: var(--text-dim); gap: 10px;
         }
-        .action-item i { font-size: 22px; color: #fff; font-style: normal; }
+        .icon-box i { font-size: 22px; color: #fff; font-style: normal; }
 
+        #error-log { color: red; font-size: 12px; padding: 20px; text-align: center; display: none; }
     </style>
 </head>
 <body>
 
-<div id="previewer">
-    <!-- Banner & Cropped Video Area -->
-    <div class="hero">
-        <div class="trailer-label">TRAILER</div>
-        <div class="close-icon">✕</div>
+<div id="error-log"></div>
+
+<div id="preview-app">
+    <!-- Hero Section -->
+    <div class="hero-container">
+        <div class="trailer-overlay-text">TRAILER</div>
+        <div class="close-btn">✕</div>
         <img id="banner-img" src="" alt="Loading...">
-        <div id="video-wrapper">
-            <!-- Iframe injected here -->
-        </div>
+        <div id="video-wrap"></div>
     </div>
 
-    <!-- Centered Info -->
-    <div class="content-body">
-        <img id="logo-img" class="main-logo" src="" alt="">
+    <!-- Centered Metadata -->
+    <div class="content-main">
+        <img id="logo-img" class="logo-box" src="" alt="">
         
-        <div class="blue-tags" id="blue-tags">
-            <!-- Grand Premiere • New Release -->
+        <!-- Blue Highlight Tags (Dynamic from Firestore Tags Array) -->
+        <div class="highlight-tags" id="dynamic-blue-tags"></div>
+
+        <div class="meta-data-row" id="meta-row">
+            <!-- Year, Rating, Languages -->
         </div>
 
-        <div class="meta-row" id="meta-row">
-            <!-- Dynamically Loaded Meta -->
-        </div>
-
-        <button class="btn-play">
+        <button class="action-btn-main">
             <span style="font-size: 18px;">▶</span> 
             <span id="btn-label">Watch Now</span> 
-            <span id="btn-subtext" class="subtext"></span>
+            <span id="btn-subtext" class="btn-sub-label"></span>
         </button>
 
-        <div class="genres" id="genres-row"></div>
-        <div class="desc" id="description"></div>
-        <div class="air-time" id="air-time"></div>
+        <div class="genres-display" id="genre-row"></div>
+        <div class="desc-box" id="description"></div>
+        <div class="broadcast-note" id="air-time"></div>
 
-        <div class="action-row">
-            <div class="action-item"><i>＋</i> Watchlist</div>
-            <div class="action-item"><i>➦</i> Share</div>
-            <div class="action-item"><i>♡</i> Rate</div>
+        <div class="icons-container">
+            <div class="icon-box"><i>＋</i> Watchlist</div>
+            <div class="icon-box"><i>➦</i> Share</div>
+            <div class="icon-box"><i>♡</i> Rate</div>
         </div>
     </div>
 </div>
@@ -195,72 +197,99 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const watchId = urlParams.get('watch');
+    const params = new URLSearchParams(window.location.search);
+    const watchId = params.get('watch');
 
-    async function init() {
-        if(!watchId) return;
-        const snap = await getDoc(doc(db, "Live TV", watchId));
-        if(snap.exists()) render(snap.data());
+    async function startPreview() {
+        if(!watchId) {
+            logError("Missing 'watch' parameter in URL. (Ex: ?watch=aaj-tak)");
+            return;
+        }
+
+        try {
+            const snap = await getDoc(doc(db, "Live TV", watchId));
+            if(snap.exists()) {
+                render(snap.data());
+            } else {
+                logError("Content ID '" + watchId + "' not found in Live TV collection.");
+            }
+        } catch (e) {
+            logError("Firebase Error: " + e.message);
+        }
     }
 
     function render(data) {
-        document.getElementById('banner-img').src = data.Banner;
-        document.getElementById('logo-img').src = data.Logo;
-        document.getElementById('description').innerText = data.Description;
+        document.getElementById('banner-img').src = data.Banner || '';
+        document.getElementById('logo-img').src = data.Logo || '';
+        document.getElementById('description').innerText = data.Description || '';
 
-        // Blue Tags
-        const blueTags = document.getElementById('blue-tags');
-        blueTags.innerHTML = `<span>Grand Premiere</span> <span>New Release</span>`;
-
-        // Meta Data
-        document.getElementById('meta-row').innerHTML = `
-            <span>2026</span>
-            <span class="age-rating">${data['Age Rating'] || 'U/A 13+'}</span>
-            <span>5 Languages</span>
-        `;
-
-        // Genres Row
-        if(data.Genres) {
-            document.getElementById('genres-row').innerHTML = data.Genres.split(',').join(' <span>|</span> ');
+        // DYNAMIC BLUE TAGS: Takes first 2 tags from the Tags array in Firestore
+        const blueTagContainer = document.getElementById('dynamic-blue-tags');
+        if(data.Tags && Array.isArray(data.Tags)) {
+            const highlights = data.Tags.slice(0, 2); // Get first two tags
+            blueTagContainer.innerHTML = highlights.map(t => `<span>${t}</span>`).join('');
         }
 
-        // Action Button
+        // META DATA
+        document.getElementById('meta-row').innerHTML = `
+            <span>2024</span>
+            <span class="age-badge">${data['Age Rating'] || 'U/A 13+'}</span>
+            <span>${data.Language || 'Multiple'} Languages</span>
+        `;
+
+        // GENRES
+        if(data.Genres) {
+            document.getElementById('genre-row').innerHTML = data.Genres.split(',').join(' <span>|</span> ');
+        }
+
+        // BUTTON LOGIC
         const label = document.getElementById('btn-label');
         const sub = document.getElementById('btn-subtext');
         if(data.Type === 'Series') {
             label.innerText = "Watch Latest Episode";
-            sub.innerText = "15 Aug";
-            document.getElementById('air-time').innerText = "New Episode Sat-Sun at 8:00PM";
+            sub.innerText = "S1 E1";
+            document.getElementById('air-time').innerText = "New episodes added weekly.";
         }
 
-        // YouTube Trailer Logic (3 Second Delay)
+        // TRAILER LOGIC
         setTimeout(() => {
-            // Using "Stream" field for the YouTube URL based on previous prompt
-            const ytUrl = data.Stream || "";
-            if (ytUrl.includes('youtube') || ytUrl.includes('youtu.be')) {
-                const videoWrapper = document.getElementById('video-wrapper');
+            const streamUrl = data.Stream || "";
+            const ytId = extractYoutubeId(streamUrl);
+            
+            if (ytId) {
+                const wrap = document.getElementById('video-wrap');
                 const banner = document.getElementById('banner-img');
                 
-                let vidId = ytUrl.split('v=')[1] || ytUrl.split('/').pop();
-                
-                // Construct Iframe with parameters to hide as much as possible
-                // controls=0, disablekb=1, rel=0
-                videoWrapper.innerHTML = `
+                wrap.innerHTML = `
                     <iframe 
-                        src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1" 
+                        src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3" 
                         frameborder="0" 
                         allow="autoplay">
                     </iframe>`;
                 
-                videoWrapper.style.display = 'block';
-                banner.style.opacity = '0';
+                wrap.style.display = 'block';
+                banner.style.opacity = '0'; // Hide banner to show video underneath
+            } else {
+                console.warn("No valid YouTube ID found in 'Stream' field.");
             }
         }, 3000);
     }
 
-    init();
+    // Helper to get YouTube ID from almost any link format
+    function extractYoutubeId(url) {
+        const regex = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regex);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    function logError(msg) {
+        const el = document.getElementById('error-log');
+        el.innerText = msg;
+        el.style.display = 'block';
+    }
+
+    startPreview();
 </script>
 
 </body>
-    </html>
+</html>
