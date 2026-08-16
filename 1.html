@@ -8,7 +8,9 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- Google Shaka Player (Free Open-Source MPD/DASH ClearKey DRM Engine) -->
+  <!-- JWPlayer Library (Exact Library from Screenshot 2) -->
+  <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
+  <!-- Google Shaka Player (Fallback Engine) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.6/shaka-player.compiled.js"></script>
 
   <style>
@@ -40,7 +42,7 @@
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
     }
 
-    /* Video Aspect Modes */
+    /* M3U8 Video Aspect Modes */
     video {
       width: 100%; height: 100%; border: none; object-fit: contain;
       transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -66,6 +68,14 @@
       transform-origin: center center; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
+
+    /* JWPlayer Container for MPD */
+    #jwPlayerContainer {
+      position: absolute; inset: 0; display: none; width: 100%; height: 100%;
+    }
+    #jwPlayerContainer.fill-screen {
+      transform: scale(1.15);
+    }
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; }
 
@@ -253,11 +263,14 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- Video Element (Used for both HLS and Shaka MPD) -->
+      <!-- Video Element -->
       <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
 
       <!-- Clean YouTube Frame Host Wrapper -->
       <div id="ytFrameHost"></div>
+
+      <!-- JWPlayer / MPD Container -->
+      <div id="jwPlayerContainer"></div>
 
       <!-- Fallback IFrame -->
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
@@ -396,8 +409,9 @@
 
   let hlsInstance = null;
   let ytPlayerInstance = null;
+  let jwPlayerInstance = null;
   let shakaInstance = null;
-  let activePlayerType = null; // 'hls' | 'youtube' | 'shaka' | 'iframe'
+  let activePlayerType = null; // 'hls' | 'youtube' | 'jwplayer' | 'shaka' | 'iframe'
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let isFillScreen = false;
@@ -431,7 +445,7 @@
     return null;
   }
 
-  // STOP AUDIO LEAK & CLEANLY DESTROY PLAYERS
+  // STOP AUDIO LEAK & CLEANLY DESTROY ACTIVE PLAYERS
   async function destroyActivePlayers() {
     if (shakaInstance) {
       try { await shakaInstance.destroy(); } catch(e){}
@@ -452,6 +466,10 @@
       try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
       ytPlayerInstance = null;
     }
+    if (window.jwplayer && jwplayer("jwPlayerContainer").getState) {
+      try { jwplayer("jwPlayerContainer").remove(); } catch(e){}
+      jwPlayerInstance = null;
+    }
     const iframe = document.getElementById('iframePlayer');
     if (iframe) {
       iframe.src = 'about:blank';
@@ -463,6 +481,12 @@
       ytHost.style.display = 'none';
       ytHost.classList.remove('ready', 'fill-screen');
     }
+    const jwContainer = document.getElementById('jwPlayerContainer');
+    if (jwContainer) {
+      jwContainer.style.display = 'none';
+      jwContainer.innerHTML = '';
+      jwContainer.classList.remove('fill-screen');
+    }
     isFillScreen = false;
   }
 
@@ -471,14 +495,17 @@
     isFillScreen = fill;
     const video = document.getElementById('videoPlayer');
     const ytHost = document.getElementById('ytFrameHost');
+    const jwContainer = document.getElementById('jwPlayerContainer');
 
     if (fill) {
       video.classList.add('fill-screen');
       ytHost.classList.add('fill-screen');
+      jwContainer.classList.add('fill-screen');
       showToast("Zoomed to Fill Screen");
     } else {
       video.classList.remove('fill-screen');
       ytHost.classList.remove('fill-screen');
+      jwContainer.classList.remove('fill-screen');
       showToast("Fit to Screen (Original)");
     }
   }
@@ -576,7 +603,7 @@
     document.getElementById('controlsOverlay').style.display = 'none';
   }
 
-  // AUTOMATIC STREAM OR MPD DRM FALLBACK ROUTER
+  // AUTOMATIC STREAM OR MPD DRM ROUTER (DUAL JWPLAYER + SHAKA ENGINE)
   async function initStreamOrMpd(data) {
     await destroyActivePlayers();
 
@@ -584,11 +611,23 @@
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
     const ytHost = document.getElementById('ytFrameHost');
+    const jwContainer = document.getElementById('jwPlayerContainer');
 
     const streamUrl = (data.Stream || '').trim();
-    const mpdObj = data.mpd;
+    const mpdObj = data.mpd || data.MPD || null;
 
-    // 1. If Stream URL exists and is not empty
+    // Check if MPD object or file exists
+    const isMpd = (mpdObj && mpdObj.File) || streamUrl.includes('.mpd');
+
+    if (isMpd) {
+      const file = (mpdObj && mpdObj.File) ? mpdObj.File : streamUrl;
+      const keyId = mpdObj ? (mpdObj.KeyID || mpdObj.keyId || mpdObj.KeyId) : null;
+      const key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
+
+      playMpdDualEngine(file, keyId, key);
+      return;
+    }
+
     if (streamUrl && streamUrl !== '') {
       const ytId = extractYouTubeId(streamUrl);
 
@@ -597,6 +636,7 @@
         activePlayerType = 'youtube';
         video.style.display = 'none';
         iframe.style.display = 'none';
+        jwContainer.style.display = 'none';
         ytHost.style.display = 'block';
         overlay.style.display = 'flex';
 
@@ -641,6 +681,7 @@
         activePlayerType = 'hls';
         iframe.style.display = 'none';
         ytHost.style.display = 'none';
+        jwContainer.style.display = 'none';
         video.style.display = 'block';
         overlay.style.display = 'flex';
 
@@ -656,16 +697,12 @@
         setupInteraction();
         return;
       }
-      // Direct MPD Stream
-      else if (streamUrl.includes('.mpd')) {
-        playMpdWithShaka(streamUrl, mpdObj?.KeyID, mpdObj?.Key);
-        return;
-      }
-      // Generic IFrame
+      // Fallback IFrame
       else {
         activePlayerType = 'iframe';
         video.style.display = 'none';
         ytHost.style.display = 'none';
+        jwContainer.style.display = 'none';
         overlay.style.display = 'none';
         iframe.style.display = 'block';
         iframe.src = streamUrl;
@@ -673,42 +710,91 @@
       }
     }
 
-    // 2. Stream is empty/unavailable, but MPD object exists (Screenshot 1 & 2)
-    if (mpdObj && mpdObj.File) {
-      playMpdWithShaka(mpdObj.File, mpdObj.KeyID, mpdObj.Key);
-      return;
-    }
-
     showToast("No playable stream or MPD source found.");
   }
 
-  // PLAY MPD DASH WITH GOOGLE SHAKA PLAYER (CLEARKEY DRM SUPPORT)
-  async function playMpdWithShaka(mpdUrl, keyId, key) {
-    activePlayerType = 'shaka';
+  // DUAL-ENGINE PLAY MPD (PRIMARY: JWPLAYER, FALLBACK: SHAKA PLAYER)
+  function playMpdDualEngine(mpdUrl, keyId, key) {
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
     const ytHost = document.getElementById('ytFrameHost');
+    const jwContainer = document.getElementById('jwPlayerContainer');
 
+    video.style.display = 'none';
     iframe.style.display = 'none';
     ytHost.style.display = 'none';
-    video.style.display = 'block';
+    
+    // CRITICAL FIX: Make jwContainer visible BEFORE setup so JWPlayer can measure dimensions!
+    jwContainer.style.display = 'block';
     overlay.style.display = 'flex';
+
+    try {
+      activePlayerType = 'jwplayer';
+
+      const playlistItem = {
+        file: mpdUrl,
+        type: "dash"
+      };
+
+      if (keyId && key) {
+        playlistItem.drm = {
+          clearkey: {
+            keyId: keyId.trim().replace(/-/g, ''),
+            key: key.trim().replace(/-/g, '')
+          }
+        };
+      }
+
+      jwPlayerInstance = jwplayer("jwPlayerContainer").setup({
+        playlist: [playlistItem],
+        autostart: true,
+        width: "100%",
+        height: "100%",
+        stretching: "exactfit"
+      });
+
+      jwPlayerInstance.on('play', () => {
+        document.getElementById('playIcon').style.display = 'none';
+        document.getElementById('pauseIcon').style.display = 'block';
+      });
+
+      jwPlayerInstance.on('pause', () => {
+        document.getElementById('playIcon').style.display = 'block';
+        document.getElementById('pauseIcon').style.display = 'none';
+      });
+
+      jwPlayerInstance.on('error', (err) => {
+        console.warn("JWPlayer Error, falling back to Shaka Engine:", err);
+        fallbackToShaka(mpdUrl, keyId, key);
+      });
+
+      setupInteraction();
+
+    } catch (e) {
+      console.warn("JWPlayer Setup Exception, falling back to Shaka Engine:", e);
+      fallbackToShaka(mpdUrl, keyId, key);
+    }
+  }
+
+  // FALLBACK ENGINE: GOOGLE SHAKA PLAYER FOR MPD
+  async function fallbackToShaka(mpdUrl, keyId, key) {
+    const video = document.getElementById('videoPlayer');
+    const jwContainer = document.getElementById('jwPlayerContainer');
+    
+    jwContainer.style.display = 'none';
+    video.style.display = 'block';
+    activePlayerType = 'shaka';
 
     shaka.polyfill.installAll();
 
     if (!shaka.Player.isBrowserSupported()) {
-      showToast("Browser does not support DASH MPD playback.");
+      showToast("Browser does not support DASH MPD.");
       return;
     }
 
     shakaInstance = new shaka.Player(video);
 
-    shakaInstance.addEventListener('error', (event) => {
-      console.error('Shaka DRM Error:', event.detail);
-    });
-
-    // Configure ClearKey DRM Keys
     if (keyId && key) {
       const cleanKeyId = keyId.trim().replace(/-/g, '');
       const cleanKey = key.trim().replace(/-/g, '');
@@ -725,11 +811,8 @@
       await shakaInstance.load(mpdUrl);
       video.play().catch(() => {});
     } catch (e) {
-      console.error('Error loading MPD manifest:', e);
-      showToast("Error playing MPD stream: " + e.message);
+      showToast("Error loading MPD stream: " + e.message);
     }
-
-    setupInteraction();
   }
 
   function showToast(msg) {
@@ -784,6 +867,10 @@
         const state = ytPlayerInstance.getPlayerState();
         if (state === YT.PlayerState.PLAYING) ytPlayerInstance.pauseVideo();
         else ytPlayerInstance.playVideo();
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const state = jwPlayerInstance.getState();
+        if (state === 'playing') jwPlayerInstance.pause();
+        else jwPlayerInstance.play();
       } else {
         if (video.paused) video.play(); else video.pause();
       }
@@ -800,6 +887,9 @@
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         ytPlayerInstance.seekTo(Math.max(0, cur - 10), true);
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const pos = jwPlayerInstance.getPosition() || 0;
+        jwPlayerInstance.seek(Math.max(0, pos - 10));
       } else {
         video.currentTime -= 10;
       }
@@ -813,15 +903,18 @@
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         ytPlayerInstance.seekTo(cur + 10, true);
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const pos = jwPlayerInstance.getPosition() || 0;
+        jwPlayerInstance.seek(pos + 10);
       } else {
         video.currentTime += 10;
       }
       showControls();
     };
 
-    // Steady Progress Bar for Live Streams
+    // Steady Progress Bar for HLS Live
     video.ontimeupdate = () => {
-      if (activePlayerType === 'youtube') return;
+      if (activePlayerType === 'youtube' || activePlayerType === 'jwplayer') return;
       if (!isUserSeeking) {
         progressBar.value = 100;
         progressBar.style.background = 'var(--accent-blue)';
@@ -850,6 +943,9 @@
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         const dur = ytPlayerInstance.getDuration() || 0;
         ytPlayerInstance.seekTo(dur * (progressBar.value / 100), true);
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const dur = jwPlayerInstance.getDuration() || 0;
+        jwPlayerInstance.seek(dur * (progressBar.value / 100));
       } else if (video.duration && isFinite(video.duration)) {
         video.currentTime = (progressBar.value / 100) * video.duration;
       }
@@ -863,6 +959,10 @@
         const dur = ytPlayerInstance.getDuration() || 0;
         ytPlayerInstance.seekTo(dur - 1, true);
         ytPlayerInstance.playVideo();
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const dur = jwPlayerInstance.getDuration() || 0;
+        jwPlayerInstance.seek(dur - 1);
+        jwPlayerInstance.play();
       } else {
         if (hlsInstance && hlsInstance.liveSyncPosition) {
           video.currentTime = hlsInstance.liveSyncPosition;
@@ -1019,8 +1119,8 @@
   }
 
   // Seamless In-Place Channel Switch
-  window.switchChannelInPlace = function(newId) {
-    destroyActivePlayers();
+  window.switchChannelInPlace = async function(newId) {
+    await destroyActivePlayers();
     document.getElementById('watchNextOverlay').classList.remove('show');
     window.history.pushState({}, '', `1.html?watch=${newId}`);
     initApp(newId);
