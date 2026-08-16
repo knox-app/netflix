@@ -8,10 +8,8 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- JWPlayer Library (Exact Library from Screenshot 2) -->
+  <!-- JWPlayer Library (Includes Internal DASH Engine) -->
   <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
-  <!-- Google Shaka Player (Fallback Engine) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.6/shaka-player.compiled.js"></script>
 
   <style>
     :root {
@@ -410,8 +408,7 @@
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
-  let shakaInstance = null;
-  let activePlayerType = null; // 'hls' | 'youtube' | 'jwplayer' | 'shaka' | 'iframe'
+  let activePlayerType = null; // 'hls' | 'youtube' | 'jwplayer' | 'iframe'
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let isFillScreen = false;
@@ -430,6 +427,12 @@
     initApp(currentDocId);
   }
 
+  // Safe HTTPS Image/Stream URL Sanitizer to prevent Mixed Content Block
+  function safeUrl(url) {
+    if (!url) return '';
+    return url.trim().replace(/^http:\/\//i, 'https://');
+  }
+
   function extractYouTubeId(url) {
     try {
       const u = new URL(url.trim());
@@ -446,11 +449,7 @@
   }
 
   // STOP AUDIO LEAK & CLEANLY DESTROY ACTIVE PLAYERS
-  async function destroyActivePlayers() {
-    if (shakaInstance) {
-      try { await shakaInstance.destroy(); } catch(e){}
-      shakaInstance = null;
-    }
+  function destroyActivePlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
       hlsInstance = null;
@@ -603,9 +602,9 @@
     document.getElementById('controlsOverlay').style.display = 'none';
   }
 
-  // AUTOMATIC STREAM OR MPD DRM ROUTER (DUAL JWPLAYER + SHAKA ENGINE)
-  async function initStreamOrMpd(data) {
-    await destroyActivePlayers();
+  // AUTOMATIC STREAM OR MPD ROUTER
+  function initStreamOrMpd(data) {
+    destroyActivePlayers();
 
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
@@ -613,18 +612,18 @@
     const ytHost = document.getElementById('ytFrameHost');
     const jwContainer = document.getElementById('jwPlayerContainer');
 
-    const streamUrl = (data.Stream || '').trim();
+    const streamUrl = safeUrl(data.Stream || '');
     const mpdObj = data.mpd || data.MPD || null;
 
-    // Check if MPD object or file exists
+    // Check if MPD object or file exists (From Screenshot 1)
     const isMpd = (mpdObj && mpdObj.File) || streamUrl.includes('.mpd');
 
     if (isMpd) {
-      const file = (mpdObj && mpdObj.File) ? mpdObj.File : streamUrl;
+      const file = safeUrl((mpdObj && mpdObj.File) ? mpdObj.File : streamUrl);
       const keyId = mpdObj ? (mpdObj.KeyID || mpdObj.keyId || mpdObj.KeyId) : null;
       const key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
 
-      playMpdDualEngine(file, keyId, key);
+      playMpdStreamJW(file, keyId, key);
       return;
     }
 
@@ -713,8 +712,9 @@
     showToast("No playable stream or MPD source found.");
   }
 
-  // DUAL-ENGINE PLAY MPD (PRIMARY: JWPLAYER, FALLBACK: SHAKA PLAYER)
-  function playMpdDualEngine(mpdUrl, keyId, key) {
+  // PLAY MPD CLEARKEY DASH WITH JWPLAYER (From Screenshot 2)
+  function playMpdStreamJW(mpdUrl, keyId, key) {
+    activePlayerType = 'jwplayer';
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
@@ -725,94 +725,54 @@
     iframe.style.display = 'none';
     ytHost.style.display = 'none';
     
-    // CRITICAL FIX: Make jwContainer visible BEFORE setup so JWPlayer can measure dimensions!
+    // CRITICAL: SHOW CONTAINER FIRST so JWPlayer measures dimensions properly
     jwContainer.style.display = 'block';
     overlay.style.display = 'flex';
 
-    try {
-      activePlayerType = 'jwplayer';
-
-      const playlistItem = {
-        file: mpdUrl,
-        type: "dash"
-      };
-
-      if (keyId && key) {
-        playlistItem.drm = {
-          clearkey: {
-            keyId: keyId.trim().replace(/-/g, ''),
-            key: key.trim().replace(/-/g, '')
-          }
-        };
-      }
-
-      jwPlayerInstance = jwplayer("jwPlayerContainer").setup({
-        playlist: [playlistItem],
-        autostart: true,
-        width: "100%",
-        height: "100%",
-        stretching: "exactfit"
-      });
-
-      jwPlayerInstance.on('play', () => {
-        document.getElementById('playIcon').style.display = 'none';
-        document.getElementById('pauseIcon').style.display = 'block';
-      });
-
-      jwPlayerInstance.on('pause', () => {
-        document.getElementById('playIcon').style.display = 'block';
-        document.getElementById('pauseIcon').style.display = 'none';
-      });
-
-      jwPlayerInstance.on('error', (err) => {
-        console.warn("JWPlayer Error, falling back to Shaka Engine:", err);
-        fallbackToShaka(mpdUrl, keyId, key);
-      });
-
-      setupInteraction();
-
-    } catch (e) {
-      console.warn("JWPlayer Setup Exception, falling back to Shaka Engine:", e);
-      fallbackToShaka(mpdUrl, keyId, key);
-    }
-  }
-
-  // FALLBACK ENGINE: GOOGLE SHAKA PLAYER FOR MPD
-  async function fallbackToShaka(mpdUrl, keyId, key) {
-    const video = document.getElementById('videoPlayer');
-    const jwContainer = document.getElementById('jwPlayerContainer');
-    
-    jwContainer.style.display = 'none';
-    video.style.display = 'block';
-    activePlayerType = 'shaka';
-
-    shaka.polyfill.installAll();
-
-    if (!shaka.Player.isBrowserSupported()) {
-      showToast("Browser does not support DASH MPD.");
-      return;
-    }
-
-    shakaInstance = new shaka.Player(video);
+    const playlistItem = {
+      file: mpdUrl,
+      type: "dash"
+    };
 
     if (keyId && key) {
-      const cleanKeyId = keyId.trim().replace(/-/g, '');
-      const cleanKey = key.trim().replace(/-/g, '');
-      shakaInstance.configure({
-        drm: {
-          clearKeys: {
-            [cleanKeyId]: cleanKey
-          }
+      playlistItem.drm = {
+        clearkey: {
+          keyId: keyId.trim().replace(/-/g, ''),
+          key: key.trim().replace(/-/g, '')
         }
-      });
+      };
     }
 
-    try {
-      await shakaInstance.load(mpdUrl);
-      video.play().catch(() => {});
-    } catch (e) {
-      showToast("Error loading MPD stream: " + e.message);
-    }
+    jwPlayerInstance = jwplayer("jwPlayerContainer").setup({
+      playlist: [playlistItem],
+      autostart: true,
+      width: "100%",
+      height: "100%",
+      stretching: "exactfit",
+      controls: false // Driven by custom Hotstar UI
+    });
+
+    jwPlayerInstance.on('play', () => {
+      document.getElementById('playIcon').style.display = 'none';
+      document.getElementById('pauseIcon').style.display = 'block';
+    });
+
+    jwPlayerInstance.on('pause', () => {
+      document.getElementById('playIcon').style.display = 'block';
+      document.getElementById('pauseIcon').style.display = 'none';
+    });
+
+    jwPlayerInstance.on('error', (err) => {
+      console.warn("JWPlayer Error, retrying...", err);
+      setTimeout(() => {
+        if (jwPlayerInstance) {
+          jwPlayerInstance.load();
+          jwPlayerInstance.play();
+        }
+      }, 3000);
+    });
+
+    setupInteraction();
   }
 
   function showToast(msg) {
@@ -1119,8 +1079,8 @@
   }
 
   // Seamless In-Place Channel Switch
-  window.switchChannelInPlace = async function(newId) {
-    await destroyActivePlayers();
+  window.switchChannelInPlace = function(newId) {
+    destroyActivePlayers();
     document.getElementById('watchNextOverlay').classList.remove('show');
     window.history.pushState({}, '', `1.html?watch=${newId}`);
     initApp(newId);
@@ -1159,7 +1119,7 @@
 
       const renderPortraitCard = (c) => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="card-item">
-          <img src="${c["Logo.png"] || c.Logo || ''}" class="card-thumb" alt="${c.Name}">
+          <img src="${safeUrl(c["Logo.png"] || c.Logo || '')}" class="card-thumb" alt="${c.Name}">
           <div class="card-name">${c.Name || 'Live TV'}</div>
         </div>
       `;
@@ -1170,8 +1130,8 @@
       watchNextCards.innerHTML = allChannels.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
           <div class="watch-card-thumb-wrap">
-            <img class="banner-img" src="${c.imageUrl || c.Banner || c["Logo.png"] || c.Logo || ''}" alt="${c.Name}">
-            <img class="watch-card-logo-top-right" src="${c["Logo.png"] || c.Logo || ''}" alt="Logo">
+            <img class="banner-img" src="${safeUrl(c.imageUrl || c.Banner || c["Logo.png"] || c.Logo || '')}" alt="${c.Name}">
+            <img class="watch-card-logo-top-right" src="${safeUrl(c["Logo.png"] || c.Logo || '')}" alt="Logo">
             <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="watch-card-name">${c.Name || 'TV Channel'}</div>
