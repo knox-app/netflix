@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Disney+ Player</title>
+  <title>Disney+ Hotstar Player</title>
   <!-- HLS.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- JWPlayer Library (Includes Internal DASH Engine) -->
+  <!-- JWPlayer Library (Exact Library from Your Code) -->
   <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
 
   <style>
@@ -67,11 +67,11 @@
     }
     #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
 
-    /* JWPlayer Container for MPD */
-    #jwPlayerContainer {
+    /* JWPlayer Host Wrapper for MPD ClearKey DRM */
+    #jwHost {
       position: absolute; inset: 0; display: none; width: 100%; height: 100%;
     }
-    #jwPlayerContainer.fill-screen {
+    #jwHost.fill-screen {
       transform: scale(1.15);
     }
 
@@ -267,8 +267,10 @@
       <!-- Clean YouTube Frame Host Wrapper -->
       <div id="ytFrameHost"></div>
 
-      <!-- JWPlayer / MPD Container -->
-      <div id="jwPlayerContainer"></div>
+      <!-- JWPlayer Host Wrapper (Re-hydrated cleanly on channel switch) -->
+      <div id="jwHost">
+        <div id="player"></div>
+      </div>
 
       <!-- Fallback IFrame -->
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
@@ -427,7 +429,7 @@
     initApp(currentDocId);
   }
 
-  // Safe HTTPS Image/Stream URL Sanitizer to prevent Mixed Content Block
+  // Safe HTTPS Sanitizer
   function safeUrl(url) {
     if (!url) return '';
     return url.trim().replace(/^http:\/\//i, 'https://');
@@ -448,7 +450,7 @@
     return null;
   }
 
-  // STOP AUDIO LEAK & CLEANLY DESTROY ACTIVE PLAYERS
+  // STOP AUDIO LEAK & CLEANLY RE-HYDRATE PLAYERS
   function destroyActivePlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
@@ -465,9 +467,16 @@
       try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
       ytPlayerInstance = null;
     }
-    if (window.jwplayer && jwplayer("jwPlayerContainer").getState) {
-      try { jwplayer("jwPlayerContainer").remove(); } catch(e){}
+    if (window.jwplayer && jwplayer("player") && jwplayer("player").getState) {
+      try { jwplayer("player").remove(); } catch(e){}
       jwPlayerInstance = null;
+    }
+    const jwHost = document.getElementById('jwHost');
+    if (jwHost) {
+      // Re-hydrate <div id="player"> so JWPlayer .setup() never fails on DOM lookup!
+      jwHost.innerHTML = '<div id="player"></div>';
+      jwHost.style.display = 'none';
+      jwHost.classList.remove('fill-screen');
     }
     const iframe = document.getElementById('iframePlayer');
     if (iframe) {
@@ -480,12 +489,6 @@
       ytHost.style.display = 'none';
       ytHost.classList.remove('ready', 'fill-screen');
     }
-    const jwContainer = document.getElementById('jwPlayerContainer');
-    if (jwContainer) {
-      jwContainer.style.display = 'none';
-      jwContainer.innerHTML = '';
-      jwContainer.classList.remove('fill-screen');
-    }
     isFillScreen = false;
   }
 
@@ -494,17 +497,17 @@
     isFillScreen = fill;
     const video = document.getElementById('videoPlayer');
     const ytHost = document.getElementById('ytFrameHost');
-    const jwContainer = document.getElementById('jwPlayerContainer');
+    const jwHost = document.getElementById('jwHost');
 
     if (fill) {
       video.classList.add('fill-screen');
       ytHost.classList.add('fill-screen');
-      jwContainer.classList.add('fill-screen');
+      jwHost.classList.add('fill-screen');
       showToast("Zoomed to Fill Screen");
     } else {
       video.classList.remove('fill-screen');
       ytHost.classList.remove('fill-screen');
-      jwContainer.classList.remove('fill-screen');
+      jwHost.classList.remove('fill-screen');
       showToast("Fit to Screen (Original)");
     }
   }
@@ -610,23 +613,31 @@
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
     const ytHost = document.getElementById('ytFrameHost');
-    const jwContainer = document.getElementById('jwPlayerContainer');
 
     const streamUrl = safeUrl(data.Stream || '');
     const mpdObj = data.mpd || data.MPD || null;
 
-    // Check if MPD object or file exists (From Screenshot 1)
-    const isMpd = (mpdObj && mpdObj.File) || streamUrl.includes('.mpd');
+    let mpdFile = null;
+    let keyId = null;
+    let key = null;
 
-    if (isMpd) {
-      const file = safeUrl((mpdObj && mpdObj.File) ? mpdObj.File : streamUrl);
-      const keyId = mpdObj ? (mpdObj.KeyID || mpdObj.keyId || mpdObj.KeyId) : null;
-      const key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
+    if (mpdObj && (mpdObj.File || mpdObj.file)) {
+      mpdFile = safeUrl(mpdObj.File || mpdObj.file);
+      keyId = mpdObj.KeyID || mpdObj.keyId || mpdObj.KeyId || mpdObj.keyid;
+      key = mpdObj.Key || mpdObj.key;
+    } else if (streamUrl.includes('.mpd')) {
+      mpdFile = streamUrl;
+      keyId = mpdObj ? (mpdObj.KeyID || mpdObj.keyId || mpdObj.KeyId) : null;
+      key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
+    }
 
-      playMpdStreamJW(file, keyId, key);
+    // 1. Play MPD DASH with ClearKey DRM if MPD File exists
+    if (mpdFile) {
+      playJWPlayerMPD(mpdFile, keyId, key);
       return;
     }
 
+    // 2. Stream URL handling
     if (streamUrl && streamUrl !== '') {
       const ytId = extractYouTubeId(streamUrl);
 
@@ -635,7 +646,6 @@
         activePlayerType = 'youtube';
         video.style.display = 'none';
         iframe.style.display = 'none';
-        jwContainer.style.display = 'none';
         ytHost.style.display = 'block';
         overlay.style.display = 'flex';
 
@@ -680,7 +690,6 @@
         activePlayerType = 'hls';
         iframe.style.display = 'none';
         ytHost.style.display = 'none';
-        jwContainer.style.display = 'none';
         video.style.display = 'block';
         overlay.style.display = 'flex';
 
@@ -701,7 +710,6 @@
         activePlayerType = 'iframe';
         video.style.display = 'none';
         ytHost.style.display = 'none';
-        jwContainer.style.display = 'none';
         overlay.style.display = 'none';
         iframe.style.display = 'block';
         iframe.src = streamUrl;
@@ -712,65 +720,70 @@
     showToast("No playable stream or MPD source found.");
   }
 
-  // PLAY MPD CLEARKEY DASH WITH JWPLAYER (From Screenshot 2)
-  function playMpdStreamJW(mpdUrl, keyId, key) {
+  // EXACT WORKING JWPLAYER CLEARKEY DRM SETUP (From Your Snippet)
+  function playJWPlayerMPD(mpdUrl, keyId, key) {
     activePlayerType = 'jwplayer';
+
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
-    const overlay = document.getElementById('controlsOverlay');
     const ytHost = document.getElementById('ytFrameHost');
-    const jwContainer = document.getElementById('jwPlayerContainer');
+    const jwHost = document.getElementById('jwHost');
+    const overlay = document.getElementById('controlsOverlay');
 
     video.style.display = 'none';
     iframe.style.display = 'none';
     ytHost.style.display = 'none';
     
-    // CRITICAL: SHOW CONTAINER FIRST so JWPlayer measures dimensions properly
-    jwContainer.style.display = 'block';
+    // Ensure jwHost is visible and contains a fresh <div id="player">
+    jwHost.style.display = 'block';
+    jwHost.innerHTML = '<div id="player"></div>';
     overlay.style.display = 'flex';
 
-    const playlistItem = {
-      file: mpdUrl,
-      type: "dash"
-    };
-
-    if (keyId && key) {
-      playlistItem.drm = {
-        clearkey: {
-          keyId: keyId.trim().replace(/-/g, ''),
-          key: key.trim().replace(/-/g, '')
-        }
-      };
-    }
-
-    jwPlayerInstance = jwplayer("jwPlayerContainer").setup({
-      playlist: [playlistItem],
+    const setupConfig = {
+      playlist: [{
+        file: mpdUrl,
+        type: "dash",
+        drm: (keyId && key) ? {
+          clearkey: {
+            keyId: keyId.toString().trim(),
+            key: key.toString().trim()
+          }
+        } : undefined
+      }],
       autostart: true,
       width: "100%",
       height: "100%",
       stretching: "exactfit",
-      controls: false // Driven by custom Hotstar UI
-    });
+      controls: false // Hotstar controls drive it
+    };
 
-    jwPlayerInstance.on('play', () => {
-      document.getElementById('playIcon').style.display = 'none';
-      document.getElementById('pauseIcon').style.display = 'block';
-    });
+    try {
+      jwPlayerInstance = jwplayer("player").setup(setupConfig);
 
-    jwPlayerInstance.on('pause', () => {
-      document.getElementById('playIcon').style.display = 'block';
-      document.getElementById('pauseIcon').style.display = 'none';
-    });
+      jwPlayerInstance.on('play', () => {
+        document.getElementById('playIcon').style.display = 'none';
+        document.getElementById('pauseIcon').style.display = 'block';
+      });
 
-    jwPlayerInstance.on('error', (err) => {
-      console.warn("JWPlayer Error, retrying...", err);
-      setTimeout(() => {
-        if (jwPlayerInstance) {
-          jwPlayerInstance.load();
-          jwPlayerInstance.play();
-        }
-      }, 3000);
-    });
+      jwPlayerInstance.on('pause', () => {
+        document.getElementById('playIcon').style.display = 'block';
+        document.getElementById('pauseIcon').style.display = 'none';
+      });
+
+      jwPlayerInstance.on('error', function() {
+        setTimeout(() => {
+          if (jwPlayerInstance) {
+            try {
+              jwPlayerInstance.load();
+              jwPlayerInstance.play();
+            } catch(e){}
+          }
+        }, 3000);
+      });
+
+    } catch (err) {
+      console.error("JWPlayer setup error:", err);
+    }
 
     setupInteraction();
   }
