@@ -4,9 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Disney+ Hotstar Player</title>
+  <!-- HLS.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- JWPlayer Library for DASH/MPD ClearKey DRM -->
+  <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
+
   <style>
     :root {
       --bg-dark: #000000;
@@ -45,33 +49,30 @@
       object-fit: cover !important;
     }
 
-    /* ZERO-FLASH PRIVACY YOUTUBE HOST MASK */
+    /* Clean Zero-Flash YouTube Frame Host Wrapper */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
-      background: #000;
-      opacity: 0; /* Kept invisible during 1-2s initial YouTube load */
+      background: #000; opacity: 0;
       transition: opacity 0.4s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    #ytFrameHost.ready {
-      opacity: 1 !important; /* Smooth fade-in ONLY after initial title auto-dismisses */
-    }
+    #ytFrameHost.ready { opacity: 1 !important; }
 
-    /* Deeper Top Crop (-110px) Buries Title & Logo Completely Off-Screen */
     #ytFrameHost iframe {
       width: calc(100% + 160px) !important;
       height: calc(100% + 220px) !important;
       position: absolute !important;
-      top: -110px !important;
-      left: -80px !important;
-      pointer-events: none;
-      transform: scale(1.05);
-      transform-origin: center center;
-      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      top: -110px !important; left: -80px !important;
+      pointer-events: none; transform: scale(1.05);
+      transform-origin: center center; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
+    #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
 
-    /* Zoomed Fill Screen for YouTube */
-    #ytFrameHost.fill-screen iframe {
-      transform: scale(1.35) !important;
+    /* JWPlayer Container for MPD */
+    #jwPlayerContainer {
+      position: absolute; inset: 0; display: none; width: 100%; height: 100%;
+    }
+    #jwPlayerContainer.fill-screen {
+      transform: scale(1.15);
     }
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; }
@@ -263,8 +264,11 @@
       <!-- Video Element -->
       <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
 
-      <!-- Clean Zero-Flash YouTube Frame Host Wrapper -->
+      <!-- Clean YouTube Frame Host Wrapper -->
       <div id="ytFrameHost"></div>
+
+      <!-- JWPlayer Container for MPD / ClearKey DRM -->
+      <div id="jwPlayerContainer"></div>
 
       <!-- Fallback IFrame -->
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
@@ -403,12 +407,12 @@
 
   let hlsInstance = null;
   let ytPlayerInstance = null;
-  let activePlayerType = null; // 'hls' | 'youtube' | 'iframe'
+  let jwPlayerInstance = null;
+  let activePlayerType = null; // 'hls' | 'youtube' | 'jwplayer' | 'iframe'
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let isFillScreen = false;
   let currentChannel = null;
-  let currentStreamUrl = null;
   let isUserSeeking = false;
 
   let channelDocUnsub = null;
@@ -438,7 +442,7 @@
     return null;
   }
 
-  // STOP AUDIO LEAK ON CHANNEL SWITCH
+  // STOP AUDIO LEAK & DESTROY ACTIVE PLAYERS ON CHANNEL SWITCH
   function destroyActivePlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
@@ -455,6 +459,10 @@
       try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
       ytPlayerInstance = null;
     }
+    if (window.jwplayer && jwplayer("jwPlayerContainer").getState) {
+      try { jwplayer("jwPlayerContainer").remove(); } catch(e){}
+      jwPlayerInstance = null;
+    }
     const iframe = document.getElementById('iframePlayer');
     if (iframe) {
       iframe.src = 'about:blank';
@@ -466,6 +474,11 @@
       ytHost.style.display = 'none';
       ytHost.classList.remove('ready', 'fill-screen');
     }
+    const jwContainer = document.getElementById('jwPlayerContainer');
+    if (jwContainer) {
+      jwContainer.style.display = 'none';
+      jwContainer.classList.remove('fill-screen');
+    }
     isFillScreen = false;
   }
 
@@ -474,14 +487,17 @@
     isFillScreen = fill;
     const video = document.getElementById('videoPlayer');
     const ytHost = document.getElementById('ytFrameHost');
+    const jwContainer = document.getElementById('jwPlayerContainer');
 
     if (fill) {
       video.classList.add('fill-screen');
       ytHost.classList.add('fill-screen');
+      jwContainer.classList.add('fill-screen');
       showToast("Zoomed to Fill Screen");
     } else {
       video.classList.remove('fill-screen');
       ytHost.classList.remove('fill-screen');
+      jwContainer.classList.remove('fill-screen');
       showToast("Fit to Screen (Original)");
     }
   }
@@ -522,10 +538,7 @@
 
       if (isAuth) {
         document.getElementById('accessDeniedBox').style.display = 'none';
-        if (currentChannel.Stream !== currentStreamUrl) {
-          currentStreamUrl = currentChannel.Stream;
-          initStreamPlayer(currentStreamUrl);
-        }
+        initStreamOrMpd(currentChannel);
       } else {
         showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
       }
@@ -582,95 +595,171 @@
     document.getElementById('controlsOverlay').style.display = 'none';
   }
 
-  function initStreamPlayer(streamUrl) {
+  // AUTOMATIC STREAM OR MPD DRM FALLBACK ROUTER
+  function initStreamOrMpd(data) {
     destroyActivePlayers();
 
     const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
     const ytHost = document.getElementById('ytFrameHost');
+    const jwContainer = document.getElementById('jwPlayerContainer');
 
-    if (!streamUrl) return;
+    const streamUrl = (data.Stream || '').trim();
+    const mpdObj = data.mpd;
 
-    const ytId = extractYouTubeId(streamUrl);
+    // 1. If Stream URL exists and is not empty
+    if (streamUrl && streamUrl !== '') {
+      const ytId = extractYouTubeId(streamUrl);
 
-    // ZERO-FLASH PRIVACY YOUTUBE EMBED
-    if (ytId) {
-      activePlayerType = 'youtube';
-      video.style.display = 'none';
-      iframe.style.display = 'none';
-      ytHost.style.display = 'block';
-      overlay.style.display = 'flex';
+      // YouTube Stream
+      if (ytId) {
+        activePlayerType = 'youtube';
+        video.style.display = 'none';
+        iframe.style.display = 'none';
+        jwContainer.style.display = 'none';
+        ytHost.style.display = 'block';
+        overlay.style.display = 'flex';
 
-      const div = document.createElement('div');
-      div.id = 'ytActualPlayer';
-      ytHost.appendChild(div);
+        const div = document.createElement('div');
+        div.id = 'ytActualPlayer';
+        ytHost.appendChild(div);
 
-      ytPlayerInstance = new YT.Player('ytActualPlayer', {
-        videoId: ytId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          modestbranding: 1,
-          rel: 0,
-          iv_load_policy: 3,
-          fs: 0,
-          playsinline: 1,
-          origin: window.location.origin
-        },
-        events: {
-          onReady: (e) => e.target.playVideo(),
-          onStateChange: (e) => {
-            const playIcon = document.getElementById('playIcon');
-            const pauseIcon = document.getElementById('pauseIcon');
-
-            // FADE-IN ONLY WHEN PLAYING (Hides 1-2s initial title/logo completely)
-            if (e.data === YT.PlayerState.PLAYING) {
-              playIcon.style.display = 'none';
-              pauseIcon.style.display = 'block';
-              
-              // 400ms delay ensures YouTube's initial title banner auto-dismisses behind curtain
-              setTimeout(() => {
-                ytHost.classList.add('ready');
-              }, 400);
-            } else {
-              playIcon.style.display = 'block';
-              pauseIcon.style.display = 'none';
+        ytPlayerInstance = new YT.Player('ytActualPlayer', {
+          videoId: ytId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            modestbranding: 1,
+            rel: 0,
+            iv_load_policy: 3,
+            fs: 0,
+            playsinline: 1,
+            origin: window.location.origin
+          },
+          events: {
+            onReady: (e) => e.target.playVideo(),
+            onStateChange: (e) => {
+              const playIcon = document.getElementById('playIcon');
+              const pauseIcon = document.getElementById('pauseIcon');
+              if (e.data === YT.PlayerState.PLAYING) {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+                setTimeout(() => ytHost.classList.add('ready'), 400);
+              } else {
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+              }
             }
           }
-        }
-      });
-      setupInteraction();
-    } 
-    // HLS / M3U8 STREAM
-    else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
-      activePlayerType = 'hls';
-      iframe.style.display = 'none';
-      ytHost.style.display = 'none';
-      video.style.display = 'block';
-      overlay.style.display = 'flex';
-
-      if (Hls.isSupported()) {
-        hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 10 });
-        hlsInstance.loadSource(streamUrl);
-        hlsInstance.attachMedia(video);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = streamUrl;
-        video.play().catch(() => {});
+        });
+        setupInteraction();
+        return;
       }
-      setupInteraction();
-    } 
-    // GENERIC IFRAME
-    else {
-      activePlayerType = 'iframe';
-      video.style.display = 'none';
-      ytHost.style.display = 'none';
-      overlay.style.display = 'none';
-      iframe.style.display = 'block';
-      iframe.src = streamUrl;
+      // HLS / M3U8 Stream
+      else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
+        activePlayerType = 'hls';
+        iframe.style.display = 'none';
+        ytHost.style.display = 'none';
+        jwContainer.style.display = 'none';
+        video.style.display = 'block';
+        overlay.style.display = 'flex';
+
+        if (Hls.isSupported()) {
+          hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 10 });
+          hlsInstance.loadSource(streamUrl);
+          hlsInstance.attachMedia(video);
+          hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamUrl;
+          video.play().catch(() => {});
+        }
+        setupInteraction();
+        return;
+      }
+      // Direct MPD in Stream
+      else if (streamUrl.includes('.mpd')) {
+        playMpdStream(streamUrl, mpdObj?.KeyID, mpdObj?.Key);
+        return;
+      }
+      // Generic IFrame
+      else {
+        activePlayerType = 'iframe';
+        video.style.display = 'none';
+        ytHost.style.display = 'none';
+        jwContainer.style.display = 'none';
+        overlay.style.display = 'none';
+        iframe.style.display = 'block';
+        iframe.src = streamUrl;
+        return;
+      }
     }
+
+    // 2. Stream is unavailable/empty, but MPD object exists (Screenshot 1 & 2)
+    if (mpdObj && mpdObj.File) {
+      playMpdStream(mpdObj.File, mpdObj.KeyID, mpdObj.Key);
+      return;
+    }
+
+    showToast("No playable stream or MPD source found.");
+  }
+
+  // PLAY MPD / DASH STREAM WITH JWPLAYER CLEARKEY DRM
+  function playMpdStream(mpdUrl, keyId, key) {
+    activePlayerType = 'jwplayer';
+    const video = document.getElementById('videoPlayer');
+    const iframe = document.getElementById('iframePlayer');
+    const overlay = document.getElementById('controlsOverlay');
+    const ytHost = document.getElementById('ytFrameHost');
+    const jwContainer = document.getElementById('jwPlayerContainer');
+
+    video.style.display = 'none';
+    iframe.style.display = 'none';
+    ytHost.style.display = 'none';
+    jwContainer.style.display = 'block';
+    overlay.style.display = 'flex';
+
+    const drmConfig = (keyId && key) ? {
+      clearkey: {
+        keyId: keyId,
+        key: key
+      }
+    } : undefined;
+
+    jwPlayerInstance = jwplayer("jwPlayerContainer").setup({
+      playlist: [{
+        file: mpdUrl,
+        type: "dash",
+        drm: drmConfig
+      }],
+      autostart: true,
+      width: "100%",
+      height: "100%",
+      stretching: "exactfit",
+      controls: false // Hide default JW controls so Hotstar Controls drive it
+    });
+
+    jwPlayerInstance.on('play', () => {
+      document.getElementById('playIcon').style.display = 'none';
+      document.getElementById('pauseIcon').style.display = 'block';
+    });
+
+    jwPlayerInstance.on('pause', () => {
+      document.getElementById('playIcon').style.display = 'block';
+      document.getElementById('pauseIcon').style.display = 'none';
+    });
+
+    jwPlayerInstance.on('error', () => {
+      setTimeout(() => {
+        if (jwPlayerInstance) {
+          jwPlayerInstance.load();
+          jwPlayerInstance.play();
+        }
+      }, 3000);
+    });
+
+    setupInteraction();
   }
 
   function showToast(msg) {
@@ -725,6 +814,10 @@
         const state = ytPlayerInstance.getPlayerState();
         if (state === YT.PlayerState.PLAYING) ytPlayerInstance.pauseVideo();
         else ytPlayerInstance.playVideo();
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const state = jwPlayerInstance.getState();
+        if (state === 'playing') jwPlayerInstance.pause();
+        else jwPlayerInstance.play();
       } else {
         if (video.paused) video.play(); else video.pause();
       }
@@ -741,6 +834,9 @@
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         ytPlayerInstance.seekTo(Math.max(0, cur - 10), true);
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const pos = jwPlayerInstance.getPosition() || 0;
+        jwPlayerInstance.seek(Math.max(0, pos - 10));
       } else {
         video.currentTime -= 10;
       }
@@ -754,6 +850,9 @@
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         ytPlayerInstance.seekTo(cur + 10, true);
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const pos = jwPlayerInstance.getPosition() || 0;
+        jwPlayerInstance.seek(pos + 10);
       } else {
         video.currentTime += 10;
       }
@@ -762,7 +861,7 @@
 
     // Steady Progress Bar for HLS Live
     video.ontimeupdate = () => {
-      if (activePlayerType === 'youtube') return;
+      if (activePlayerType === 'youtube' || activePlayerType === 'jwplayer') return;
       if (!isUserSeeking) {
         progressBar.value = 100;
         progressBar.style.background = 'var(--accent-blue)';
@@ -791,6 +890,9 @@
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         const dur = ytPlayerInstance.getDuration() || 0;
         ytPlayerInstance.seekTo(dur * (progressBar.value / 100), true);
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const dur = jwPlayerInstance.getDuration() || 0;
+        jwPlayerInstance.seek(dur * (progressBar.value / 100));
       } else if (video.duration && isFinite(video.duration)) {
         video.currentTime = (progressBar.value / 100) * video.duration;
       }
@@ -804,6 +906,10 @@
         const dur = ytPlayerInstance.getDuration() || 0;
         ytPlayerInstance.seekTo(dur - 1, true);
         ytPlayerInstance.playVideo();
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const dur = jwPlayerInstance.getDuration() || 0;
+        jwPlayerInstance.seek(dur - 1);
+        jwPlayerInstance.play();
       } else {
         if (hlsInstance && hlsInstance.liveSyncPosition) {
           video.currentTime = hlsInstance.liveSyncPosition;
@@ -866,7 +972,7 @@
       }
     });
 
-    // UNIFIED SINGLE-STAGED PINCH TO ZOOM GESTURE (M3U8 + YOUTUBE)
+    // UNIFIED SINGLE-STAGED PINCH TO ZOOM GESTURE
     let initialPinchDist = 0;
     let isPinching = false;
 
@@ -888,15 +994,12 @@
         );
         const diff = currentDist - initialPinchDist;
 
-        // PINCH OUT -> FILL SCREEN
         if (diff > 30) {
           if (!isFillScreen) {
             applyZoomState(true);
             initialPinchDist = currentDist;
           }
-        } 
-        // PINCH IN -> FIT SCREEN (ORIGINAL)
-        else if (diff < -30) {
+        } else if (diff < -30) {
           if (isFillScreen) {
             applyZoomState(false);
             initialPinchDist = currentDist;
