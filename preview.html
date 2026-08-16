@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streaviewer</title>
+    <title>Stream Previewer</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0f1014;
-            --blue-accent: #42a5f5;
+            --blue: #42a5f5;
             --text-dim: #a9a9a9;
+            --white: #ffffff;
         }
 
         body {
             margin: 0; padding: 0;
             background-color: var(--bg);
-            color: #fff;
+            color: var(--white);
             font-family: 'Roboto', sans-serif;
             overflow-x: hidden;
         }
 
-        /* 1. HERO AREA */
-        .hero-section {
+        /* 1. Hero Area (Banner & Trailer) */
+        .hero {
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
@@ -38,15 +39,15 @@
             transition: opacity 1s ease;
         }
 
-        #trailer-container {
+        #trailer-wrapper {
             position: absolute;
             inset: 0;
-            z-index: 5; /* Starts behind banner */
+            z-index: 5;
             background: #000;
         }
 
-        /* Cropping YouTube UI */
-        #trailer-container iframe {
+        /* YouTube Crop Logic: scale and offset to hide title/logo */
+        #trailer-wrapper iframe {
             position: absolute;
             top: -12%; left: -12%;
             width: 124%; height: 124%;
@@ -59,11 +60,10 @@
             z-index: 20;
         }
 
-        /* 2. CENTERED CONTENT */
-        .content-main {
+        /* 2. Main Content Info (Centered) */
+        .content-body {
             display: flex; flex-direction: column; align-items: center;
-            text-align: center; padding: 0 20px;
-            margin-top: 20px;
+            text-align: center; padding: 20px;
         }
 
         .main-logo {
@@ -71,82 +71,124 @@
             object-fit: contain; margin-bottom: 12px;
         }
 
-        /* BLUE TAGS FROM FIREBASE */
-        .blue-tags-row {
-            color: var(--blue-accent);
+        .blue-highlights {
+            color: var(--blue);
             font-size: 14px;
             font-weight: 500;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .meta-data {
             font-size: 13px; color: var(--text-dim);
             display: flex; gap: 12px; margin-bottom: 25px;
         }
-        .rating-box {
+
+        .rating-badge {
             background: #3c3c3c; color: #fff; padding: 2px 6px;
             border-radius: 3px; font-weight: bold; font-size: 11px;
         }
 
-        /* 3. ACTION BUTTON */
-        .action-btn {
+        /* 3. Action Button */
+        .btn-action {
             width: 100%; max-width: 400px;
             background: #e1e6f0; color: #000;
             border: none; padding: 15px; border-radius: 8px;
             font-size: 16px; font-weight: 700;
             display: flex; align-items: center; justify-content: center;
-            gap: 12px; margin-bottom: 30px; cursor: pointer;
+            gap: 12px; margin-bottom: 25px; cursor: pointer;
         }
-        .btn-sub { color: #666; font-weight: 400; font-size: 14px; }
+
+        .genres {
+            font-size: 14px; font-weight: 500; color: #fff;
+            margin-bottom: 12px;
+        }
+        .genres span { margin: 0 8px; color: #444; }
 
         .description {
             font-size: 14px; color: var(--text-dim);
             line-height: 1.5; text-align: left; width: 100%;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
-        /* 4. ICONS */
+        /* 4. Episodes Section */
+        .episodes-section {
+            padding: 0 20px;
+            display: none; /* Only for Series */
+        }
+
+        .section-title {
+            font-size: 18px; font-weight: bold; margin-bottom: 15px;
+        }
+
+        .episode-row {
+            display: flex; align-items: center; gap: 15px;
+            padding: 10px 0; border-bottom: 1px solid #222;
+        }
+
+        .ep-thumb {
+            width: 110px; aspect-ratio: 16/9;
+            border-radius: 4px; object-fit: cover;
+        }
+
+        .ep-info { flex: 1; font-size: 14px; }
+
+        .view-more-btn {
+            width: 100%; padding: 12px;
+            background: transparent; color: var(--blue);
+            border: 1px solid #333; border-radius: 6px;
+            margin: 20px 0; cursor: pointer; font-weight: bold;
+        }
+
+        /* 5. Icons Section */
         .action-icons {
             display: flex; justify-content: space-around; width: 100%;
-            max-width: 320px; padding-bottom: 50px;
+            max-width: 320px; margin: 30px auto 50px auto;
         }
-        .icon-box {
+        .icon-item {
             display: flex; flex-direction: column; align-items: center;
             font-size: 11px; color: var(--text-dim); gap: 10px;
         }
-        .icon-box span { font-size: 22px; color: #fff; }
+        .icon-item i { font-size: 22px; color: #fff; font-style: normal; }
+
     </style>
 </head>
 <body>
 
-<div id="app">
-    <div class="hero-section">
+<div id="preview-app">
+    <!-- Hero Area -->
+    <div class="hero">
         <div class="trailer-label">TRAILER</div>
-        <img id="banner-img" src="" alt="">
-        <div id="trailer-container"></div>
+        <img id="banner-img" src="" alt="Banner">
+        <div id="trailer-wrapper"></div>
     </div>
 
-    <div class="content-main">
+    <!-- Centered Body -->
+    <div class="content-body">
         <img id="logo-img" class="main-logo" src="" alt="">
+        <div class="blue-highlights" id="blue-tags"></div>
         
-        <!-- Field: Blue Tags -->
-        <div class="blue-tags-row" id="blue-tags"></div>
+        <div class="meta-data" id="meta-row">
+            <!-- Year, Rating, Languages -->
+        </div>
 
-        <div class="meta-data" id="meta-row"></div>
+        <button class="btn-action" id="main-btn">▶ Watch Now</button>
 
-        <button class="action-btn">
-            <span style="font-size: 18px;">▶</span> 
-            <span id="btn-label">Watch Now</span> 
-            <span id="btn-subtext" class="btn-sub"></span>
-        </button>
-
+        <div class="genres" id="genres-row"></div>
         <div class="description" id="desc-text"></div>
 
+        <!-- Action Icons -->
         <div class="action-icons">
-            <div class="icon-box"><span>＋</span> Watchlist</div>
-            <div class="icon-box"><span>➦</span> Share</div>
-            <div class="icon-box"><span>♡</span> Rate</div>
+            <div class="icon-item"><i>＋</i> Watchlist</div>
+            <div class="icon-item"><i>➦</i> Share</div>
+            <div class="icon-item"><i>♡</i> Rate</div>
         </div>
+    </div>
+
+    <!-- Episodes List -->
+    <div class="episodes-section" id="episodes-area">
+        <div class="section-title">Episodes</div>
+        <div id="episodes-list"></div>
+        <button class="view-more-btn" id="view-more" style="display:none;">View More</button>
     </div>
 </div>
 
@@ -167,79 +209,94 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const params = new URLSearchParams(window.location.search);
-    const watchId = params.get('watch'); // e.g. ?watch=sony-yay
+    const urlParams = new URLSearchParams(window.location.search);
+    const watchId = urlParams.get('watch');
 
     async function init() {
         if(!watchId) return;
-
-        try {
-            // Updated collection path to 'Live TV'
-            const snap = await getDoc(doc(db, "Live TV", watchId));
-            if(snap.exists()) {
-                render(snap.data());
-            } else {
-                console.error("No document found for ID:", watchId);
-            }
-        } catch (e) { console.error(e); }
+        const snap = await getDoc(doc(db, "Live TV", watchId));
+        if(snap.exists()) render(snap.data());
     }
 
     function render(data) {
-        const banner = document.getElementById('banner-img');
-        banner.src = data.Banner || '';
-        document.getElementById('logo-img').src = data.Logo || '';
-        document.getElementById('desc-text').innerText = data.Description || '';
-
-        // Correct Field: Blue Tags
+        document.getElementById('banner-img').src = data.Banner;
+        document.getElementById('logo-img').src = data.Logo;
         document.getElementById('blue-tags').innerText = data['Blue Tags'] || '';
+        document.getElementById('desc-text').innerText = data.Description;
 
-        // Meta Row
+        // Meta Data
         document.getElementById('meta-row').innerHTML = `
             <span>2024</span>
-            <span class="rating-box">${data['Age Rating'] || 'U/A 7+'}</span>
+            <span class="rating-badge">${data['Age Rating'] || 'U/A 7+'}</span>
             <span>${data.Language || 'Hindi'}</span>
         `;
 
-        // Button Label Logic
-        const btnMain = document.getElementById('btn-label');
-        const btnSub = document.getElementById('btn-subtext');
-        
-        // Check for specific type or partner to determine button text
-        if(data.Partner === "YouTube" || data.Type === "Series") {
-            btnMain.innerText = "Watch Latest Season";
-            btnSub.innerText = "S1 E1";
+        // Genres
+        if(data.Genres) {
+            document.getElementById('genres-row').innerHTML = data.Genres.split(',').join(' <span>|</span> ');
         }
 
-        // --- TRAILER REPAIR ---
-        setTimeout(() => {
-            // Get URL from the specific 'Trailer' field in your screenshot
-            const trailerUrl = data.Trailer || "";
-            const ytId = extractId(trailerUrl);
+        // --- Series Logic ---
+        if(data.Type === "Series") {
+            document.getElementById('main-btn').innerText = "▶ Watch EP 1";
+            document.getElementById('episodes-area').style.display = "block";
+            generateEpisodes(data);
+        }
 
+        // --- Trailer Switch Logic (3 seconds) ---
+        setTimeout(() => {
+            const ytId = extractId(data.Trailer);
             if(ytId) {
-                const container = document.getElementById('trailer-container');
+                const wrapper = document.getElementById('trailer-wrapper');
+                const banner = document.getElementById('banner-img');
                 
-                // Set Up Video
-                container.innerHTML = `
-                    <iframe 
-                        src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1" 
-                        frameborder="0" 
-                        allow="autoplay; encrypted-media">
-                    </iframe>`;
+                wrapper.innerHTML = `
+                    <iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1" 
+                            frameborder="0" allow="autoplay"></iframe>`;
                 
-                // CHANGE LAYERING: Bring video to front, hide banner
-                container.style.zIndex = "15"; 
+                wrapper.style.zIndex = "15";
                 banner.style.opacity = "0";
-                console.log("Trailer playing ID:", ytId);
-            } else {
-                console.warn("Field 'Trailer' is empty or invalid YouTube link.");
             }
         }, 3000);
     }
 
+    function generateEpisodes(data) {
+        const list = document.getElementById('episodes-list');
+        const viewMore = document.getElementById('view-more');
+        
+        // Simulating episode count from your playlist field
+        // In a real scenario, you'd fetch from YouTube API, here we mock 12 episodes
+        const episodeCount = 12; 
+
+        for(let i = 1; i <= episodeCount; i++) {
+            const row = document.createElement('div');
+            row.className = 'episode-row';
+            if(i > 5) row.style.display = 'none'; // Hide episodes > 5 initially
+            
+            row.innerHTML = `
+                <img class="ep-thumb" src="${data.Banner}" alt="">
+                <div class="ep-info">
+                    <div style="font-weight:bold">Episode ${i}</div>
+                    <div style="color:var(--text-dim); font-size:12px">Duration: 22m</div>
+                </div>
+                <div style="font-size: 20px;">⇩</div>
+            `;
+            list.appendChild(row);
+        }
+
+        if(episodeCount > 5) {
+            viewMore.style.display = 'block';
+            viewMore.onclick = () => {
+                const hidden = list.querySelectorAll('.episode-row[style*="display: none"]');
+                hidden.forEach(el => el.style.display = 'flex');
+                viewMore.style.display = 'none';
+            };
+        }
+    }
+
     function extractId(url) {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-        const match = url.match(regExp);
+        const match = url ? url.match(regExp) : null;
         return (match && match[2].length === 11) ? match[2] : null;
     }
 
