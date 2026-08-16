@@ -4,361 +4,265 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stream Previewer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f1014;
-            --text-main: #ffffff;
+            --bg: #0f1014;
+            --blue-tag: #42a5f5;
             --text-dim: #a9a9a9;
-            --blue-accent: #007aff;
-            --tag-bg: rgba(0, 122, 255, 0.2);
+            --white: #ffffff;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            margin: 0; padding: 0;
+            background-color: var(--bg);
+            color: var(--white);
+            font-family: 'Roboto', sans-serif;
             overflow-x: hidden;
-            padding-bottom: 100px; /* Space for bottom bar */
         }
 
-        /* --- Hero / Trailer Section --- */
-        .hero-container {
+        /* 1. Banner Area */
+        .hero {
             position: relative;
             width: 100%;
-            aspect-ratio: 16 / 11;
-            background-color: #000;
+            aspect-ratio: 16 / 9;
+            background: #000;
         }
 
         #banner-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            width: 100%; height: 100%; object-fit: cover;
             transition: opacity 1s;
         }
 
-        .trailer-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: none;
-            z-index: 2;
+        #video-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; z-index: 2;
         }
 
-        .status-msg {
-            position: absolute;
-            top: 20px; left: 20px;
-            font-size: 10px; font-weight: 800;
-            color: rgba(255,255,255,0.4);
-            letter-spacing: 1.5px;
-            display: none;
+        .trailer-label {
+            position: absolute; top: 15px; left: 15px;
+            font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.5);
             z-index: 5;
         }
 
-        .hero-gradient {
-            position: absolute;
-            bottom: 0; left: 0; width: 100%; height: 60%;
-            background: linear-gradient(to top, var(--bg-color) 10%, transparent);
-            z-index: 3;
+        .close-icon {
+            position: absolute; top: 15px; right: 15px; font-size: 20px; z-index: 5;
         }
 
-        /* --- Content Area --- */
-        .content-main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 0 20px;
-            margin-top: -40px;
-            position: relative;
-            z-index: 10;
+        /* 2. Language Bar */
+        .lang-bar {
+            display: flex; gap: 15px; padding: 15px 20px;
+            overflow-x: auto; align-items: center;
+        }
+        .lang-pill {
+            padding: 6px 16px; border-radius: 20px; font-size: 13px;
+            background: rgba(255,255,255,0.1); color: var(--text-dim);
+            white-space: nowrap;
+        }
+        .lang-pill.active { background: #333; color: #fff; border: 1px solid #555; }
+
+        /* 3. Main Centered Info */
+        .content-body {
+            display: flex; flex-direction: column; align-items: center;
+            text-align: center; padding: 0 20px;
         }
 
-        .logo-box {
-            height: 70px;
-            width: 180px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
+        .main-logo {
+            max-width: 160px; max-height: 80px;
+            object-fit: contain; margin-bottom: 15px;
         }
 
-        .logo-box img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        .meta-text {
-            font-size: 13px;
-            color: var(--text-dim);
-            margin-bottom: 25px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .age-rating {
-            background: #333;
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: #fff;
-            font-weight: bold;
-        }
-
-        /* --- Buttons --- */
-        .btn-play {
-            width: 100%;
-            max-width: 450px;
-            background: #fff;
-            color: #000;
-            border: none;
-            padding: 14px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 25px;
-        }
-
-        .btn-play span { color: #666; font-weight: 400; font-size: 14px; }
-
-        /* Blue Progress Bar on Button */
-        .btn-progress {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 4px;
-            width: 40%; /* Mock progress */
-            background: var(--blue-accent);
-        }
-
-        /* --- Blue Tags Section --- */
-        .tags-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        .blue-tag {
-            background: var(--tag-bg);
-            color: var(--blue-accent);
-            padding: 4px 12px;
-            border-radius: 100px;
-            font-size: 12px;
-            font-weight: 600;
-            border: 1px solid rgba(0, 122, 255, 0.3);
-        }
-
-        .genres-row {
-            font-size: 13px;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .desc-box {
+        /* BLUE TAGS SECTION */
+        .blue-tags {
+            color: var(--blue-tag);
             font-size: 14px;
-            color: var(--text-dim);
-            line-height: 1.5;
-            text-align: left;
-            width: 100%;
+            font-weight: 500;
+            margin-bottom: 10px;
+            display: flex; gap: 8px; align-items: center;
+        }
+        .blue-tags span::after { content: " •"; color: var(--text-dim); margin-left: 5px; }
+        .blue-tags span:last-child::after { content: ""; }
+
+        .meta-row {
+            font-size: 13px; color: var(--text-dim);
+            display: flex; gap: 10px; align-items: center; margin-bottom: 25px;
+        }
+        .age-rating {
+            background: #444; color: #fff; padding: 1px 5px;
+            border-radius: 3px; font-weight: bold; font-size: 11px;
+        }
+
+        /* 4. Action Button */
+        .btn-play {
+            width: 100%; max-width: 380px;
+            background: #e1e6f0; color: #000;
+            border: none; padding: 12px; border-radius: 8px;
+            font-size: 16px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px; margin-bottom: 25px; cursor: pointer;
+        }
+        .btn-play span { color: #777; font-weight: 400; font-size: 14px; }
+
+        /* 5. Details Section */
+        .genres {
+            font-size: 14px; font-weight: 500; color: #fff;
+            margin-bottom: 12px;
+        }
+        .genres span { margin: 0 8px; color: #555; }
+
+        .desc {
+            font-size: 13px; color: var(--text-dim);
+            line-height: 1.5; text-align: left; width: 100%;
+            margin-bottom: 15px;
+        }
+        .air-time {
+            font-weight: bold; font-size: 13px; text-align: left; width: 100%;
             margin-bottom: 30px;
         }
 
-        /* --- Bottom Blue Divider Bar --- */
-        .bottom-nav-spacer {
-            position: fixed;
-            bottom: 60px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--blue-accent), transparent);
-            box-shadow: 0 0 15px var(--blue-accent);
-            z-index: 100;
+        /* 6. Action Icons */
+        .action-row {
+            display: flex; justify-content: space-around; width: 100%;
+            max-width: 300px; margin-bottom: 40px;
         }
+        .action-item {
+            display: flex; flex-direction: column; align-items: center;
+            font-size: 11px; color: var(--text-dim); gap: 8px;
+        }
+        .action-item i { font-size: 20px; color: #fff; }
 
-        /* --- Episode Section --- */
-        .section-header { padding: 0 20px; margin: 20px 0; font-size: 18px; }
-        
-        .ep-card {
-            display: flex;
-            padding: 10px 20px;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .ep-img {
-            width: 130px; aspect-ratio: 16/9;
-            background: #222; border-radius: 6px; object-fit: cover;
-        }
-
-        #loader {
-            position: fixed; inset:0; background: #000; 
-            display: flex; justify-content: center; align-items: center; z-index: 1000;
-        }
     </style>
 </head>
 <body>
 
-    <div id="loader">Loading...</div>
-
-    <div id="preview-app" style="display:none;">
-        <div class="hero-container">
-            <div id="trailer-status" class="status-msg">TRAILER UNAVAILABLE</div>
-            <img id="banner-img" src="">
-            <div id="trailer-player" class="trailer-overlay"></div>
-            <div class="hero-gradient"></div>
-        </div>
-
-        <div class="content-main">
-            <div class="logo-box">
-                <img id="content-logo" src="">
-            </div>
-
-            <div class="meta-text" id="meta-data">
-                <!-- Year, Rating, etc -->
-            </div>
-
-            <button class="btn-play" id="action-btn">
-                ▶ <div id="main-btn-text">Watch Now</div> <span id="sub-btn-text"></span>
-                <div class="btn-progress"></div>
-            </button>
-
-            <!-- Blue Tags -->
-            <div class="tags-container" id="blue-tags"></div>
-
-            <div class="genres-row" id="genre-list"></div>
-
-            <div class="desc-box" id="content-desc"></div>
-        </div>
-
-        <div id="episodes-area" style="display:none;">
-            <h3 class="section-header">Episodes</h3>
-            <div id="ep-list"></div>
-        </div>
-
-        <!-- The Blue Accent Line from Design -->
-        <div class="bottom-nav-spacer"></div>
+<div id="app">
+    <!-- Banner Section -->
+    <div class="hero">
+        <div class="trailer-label">TRAILER</div>
+        <div class="close-icon">✕</div>
+        <img id="banner-img" src="" alt="">
+        <div id="video-container"></div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <!-- Language Selector -->
+    <div class="lang-bar">
+        <div class="lang-pill active">Hindi <span>Original</span></div>
+        <div class="lang-pill">Telugu</div>
+        <div class="lang-pill">Bhojpuri</div>
+        <div class="lang-pill">Tamil</div>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
-            authDomain: "internal-systems-46728.firebaseapp.com",
-            projectId: "internal-systems-46728",
-            storageBucket: "internal-systems-46728.firebasestorage.app",
-            messagingSenderId: "172177452674",
-            appId: "1:172177452674:web:155a2417da5531dd7ece9b",
-            measurementId: "G-Y87B8VRQ1N"
-        };
+    <!-- Main Content -->
+    <div class="content-body">
+        <img id="logo-img" class="main-logo" src="" alt="">
+        
+        <!-- Blue Tags -->
+        <div class="blue-tags" id="blue-tags">
+            <!-- Dynamically loaded: Grand Premiere, New Release -->
+        </div>
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        <!-- Meta Data -->
+        <div class="meta-row" id="meta-row">
+            <!-- Year, Age, Languages -->
+        </div>
 
-        const params = new URLSearchParams(window.location.search);
-        const watchId = params.get('watch');
+        <!-- Action Button -->
+        <button class="btn-play">
+            <span style="color:#000; font-size: 18px;">▶</span> 
+            <label id="btn-label">Watch Now</label> 
+            <span id="btn-subtext"></span>
+        </button>
 
-        async function init() {
-            if(!watchId) return;
+        <!-- Genres -->
+        <div class="genres" id="genres-row"></div>
 
-            try {
-                // Adjusting to your collection name seen in screenshot "Live TV"
-                const docRef = doc(db, "Live TV", watchId);
-                const snap = await getDoc(docRef);
+        <!-- Description -->
+        <div class="desc" id="description"></div>
+        <div class="air-time" id="air-time"></div>
 
-                if (snap.exists()) {
-                    const data = snap.data();
-                    renderPreview(data);
-                }
-            } catch (err) { console.error(err); }
+        <!-- Bottom Icons -->
+        <div class="action-row">
+            <div class="action-item"><i>＋</i> Watchlist</div>
+            <div class="action-item"><i>➦</i> Share</div>
+            <div class="action-item"><i>♡</i> Rate</div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+        authDomain: "internal-systems-46728.firebaseapp.com",
+        projectId: "internal-systems-46728",
+        storageBucket: "internal-systems-46728.firebasestorage.app",
+        messagingSenderId: "172177452674",
+        appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+        measurementId: "G-Y87B8VRQ1N"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const watchId = urlParams.get('watch');
+
+    async function load() {
+        if(!watchId) return;
+        const snap = await getDoc(doc(db, "Live TV", watchId));
+        if(snap.exists()) render(snap.data());
+    }
+
+    function render(data) {
+        document.getElementById('banner-img').src = data.Banner;
+        document.getElementById('logo-img').src = data.Logo;
+        document.getElementById('description').innerText = data.Description;
+
+        // Blue Tags Logic (Add if they exist in your DB or check tags)
+        const blueTagArea = document.getElementById('blue-tags');
+        if(data.Tags && data.Tags.includes("Grand Premiere")) {
+            blueTagArea.innerHTML += `<span>Grand Premiere</span>`;
+        }
+        blueTagArea.innerHTML += `<span>New Release</span>`; // Hardcoded for demo matching screenshot
+
+        // Meta Info
+        document.getElementById('meta-row').innerHTML = `
+            <span>2026</span>
+            <span class="age-rating">${data['Age Rating'] || 'U/A 13+'}</span>
+            <span>5 Languages</span>
+        `;
+
+        // Action Button
+        const label = document.getElementById('btn-label');
+        const sub = document.getElementById('btn-subtext');
+        if(data.Type === 'Series') {
+            label.innerText = "Watch Latest Episode";
+            sub.innerText = "15 Aug";
+            document.getElementById('air-time').innerText = "New Episode Sat-Sun at 8:00PM";
         }
 
-        function renderPreview(data) {
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('preview-app').style.display = 'block';
-
-            document.getElementById('banner-img').src = data.Banner || '';
-            document.getElementById('content-logo').src = data.Logo || '';
-            document.getElementById('content-desc').innerText = data.Description || '';
-
-            // Meta Data
-            document.getElementById('meta-data').innerHTML = `
-                <span>2024</span>
-                <span class="age-rating">${data['Age Rating'] || 'U'}</span>
-                <span>${data.Type === 'Series' ? '3 Seasons' : ''}</span>
-                <span>${data.Language || 'Hindi'}</span>
-            `;
-
-            // Button Config
-            const btnLabel = document.getElementById('main-btn-text');
-            const btnSub = document.getElementById('sub-btn-text');
-            if(data.Type === 'Series') {
-                btnLabel.innerText = "Watch Latest Season";
-                btnSub.innerText = "S3 E1";
-                renderEpisodes(data);
-            } else if (data.Type === 'Live') {
-                btnLabel.innerText = "Watch Live";
-            }
-
-            // Blue Tags logic
-            const tagsWrap = document.getElementById('blue-tags');
-            if(data.Tags && Array.isArray(data.Tags)) {
-                data.Tags.forEach(t => {
-                    const el = document.createElement('div');
-                    el.className = 'blue-tag';
-                    el.innerText = t;
-                    tagsWrap.appendChild(el);
-                });
-            }
-
-            // Genres logic (The pipe separated white text)
-            if(data.Genres) {
-                document.getElementById('genre-list').innerText = data.Genres.split(',').join('  |  ');
-            }
-
-            // Trailer Timer
-            setTimeout(() => {
-                if(data.Stream && data.Stream.includes('youtube')) {
-                    const player = document.getElementById('trailer-player');
-                    player.style.display = 'block';
-                    document.getElementById('banner-img').style.opacity = '0';
-                    let vid = data.Stream.split('v=')[1] || data.Stream.split('/').pop();
-                    player.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vid}?autoplay=1&mute=1&controls=0" frameborder="0" allow="autoplay"></iframe>`;
-                } else {
-                    document.getElementById('trailer-status').style.display = 'block';
-                }
-            }, 3000);
+        // Genres
+        if(data.Genres) {
+            const genreList = data.Genres.split(',').join(' <span>|</span> ');
+            document.getElementById('genres-row').innerHTML = genreList;
         }
 
-        function renderEpisodes(data) {
-            document.getElementById('episodes-area').style.display = 'block';
-            const list = document.getElementById('ep-list');
-            for(let i=1; i<=3; i++) {
-                const div = document.createElement('div');
-                div.className = 'ep-card';
-                div.innerHTML = `
-                    <img class="ep-img" src="${data.Banner}">
-                    <div style="flex-grow:1">Episode ${i} Title</div>
-                    <div style="font-size:20px">⇩</div>
-                `;
-                list.appendChild(div);
+        // Trailer Logic (3 second delay)
+        setTimeout(() => {
+            if (data.Stream && data.Stream.includes('youtube')) {
+                const videoBox = document.getElementById('video-container');
+                videoBox.style.display = 'block';
+                document.getElementById('banner-img').style.opacity = '0';
+                let id = data.Stream.split('v=')[1] || data.Stream.split('/').pop();
+                videoBox.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0" frameborder="0"></iframe>`;
             }
-        }
+        }, 3000);
+    }
 
-        init();
-    </script>
+    load();
+</script>
+
 </body>
 </html>
