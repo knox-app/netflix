@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stream Previewer</title>
+    <title>Streaviewer</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0f1014;
-            --blue: #42a5f5;
+            --blue-accent: #42a5f5;
             --text-dim: #a9a9a9;
         }
 
@@ -20,8 +20,8 @@
             overflow-x: hidden;
         }
 
-        /* HERO AREA */
-        .hero {
+        /* 1. HERO AREA */
+        .hero-section {
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
@@ -29,71 +29,67 @@
             overflow: hidden;
         }
 
-        /* Banner starts on top */
         #banner-img {
             position: absolute;
+            inset: 0;
             width: 100%; height: 100%;
             object-fit: cover;
-            z-index: 20; 
+            z-index: 10;
             transition: opacity 1s ease;
         }
 
-        /* Video starts hidden in background */
-        #video-container {
+        #trailer-container {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 1; 
+            inset: 0;
+            z-index: 5; /* Starts behind banner */
             background: #000;
         }
 
-        /* Scaling to hide YouTube UI (Crop effect) */
-        #video-container iframe {
+        /* Cropping YouTube UI */
+        #trailer-container iframe {
             position: absolute;
             top: -12%; left: -12%;
             width: 124%; height: 124%;
             pointer-events: none;
         }
 
-        .trailer-text {
+        .trailer-label {
             position: absolute; top: 15px; left: 15px;
             font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4);
-            z-index: 30;
+            z-index: 20;
         }
 
-        /* CONTENT */
-        .main-content {
+        /* 2. CENTERED CONTENT */
+        .content-main {
             display: flex; flex-direction: column; align-items: center;
             text-align: center; padding: 0 20px;
-            margin-top: 25px;
+            margin-top: 20px;
         }
 
-        .logo {
+        .main-logo {
             max-width: 180px; max-height: 90px;
-            object-fit: contain; margin-bottom: 15px;
+            object-fit: contain; margin-bottom: 12px;
         }
 
-        .blue-highlights {
-            color: var(--blue);
+        /* BLUE TAGS FROM FIREBASE */
+        .blue-tags-row {
+            color: var(--blue-accent);
             font-size: 14px;
             font-weight: 500;
             margin-bottom: 10px;
-            display: flex; gap: 8px;
-        }
-        .blue-highlights span:not(:last-child)::after {
-            content: " •"; color: var(--text-dim); margin-left: 8px;
         }
 
-        .meta {
+        .meta-data {
             font-size: 13px; color: var(--text-dim);
             display: flex; gap: 12px; margin-bottom: 25px;
         }
-        .rating {
+        .rating-box {
             background: #3c3c3c; color: #fff; padding: 2px 6px;
             border-radius: 3px; font-weight: bold; font-size: 11px;
         }
 
-        .btn-play {
+        /* 3. ACTION BUTTON */
+        .action-btn {
             width: 100%; max-width: 400px;
             background: #e1e6f0; color: #000;
             border: none; padding: 15px; border-radius: 8px;
@@ -101,58 +97,55 @@
             display: flex; align-items: center; justify-content: center;
             gap: 12px; margin-bottom: 30px; cursor: pointer;
         }
-        .sub-txt { color: #666; font-weight: 400; font-size: 14px; }
+        .btn-sub { color: #666; font-weight: 400; font-size: 14px; }
 
-        .desc {
+        .description {
             font-size: 14px; color: var(--text-dim);
             line-height: 1.5; text-align: left; width: 100%;
-            margin-bottom: 35px;
+            margin-bottom: 40px;
         }
 
-        .icons {
+        /* 4. ICONS */
+        .action-icons {
             display: flex; justify-content: space-around; width: 100%;
             max-width: 320px; padding-bottom: 50px;
         }
-        .icon-item {
+        .icon-box {
             display: flex; flex-direction: column; align-items: center;
             font-size: 11px; color: var(--text-dim); gap: 10px;
         }
-        .icon-item span { font-size: 22px; color: #fff; }
-
+        .icon-box span { font-size: 22px; color: #fff; }
     </style>
 </head>
 <body>
 
-<div id="preview">
-    <div class="hero">
-        <div class="trailer-text">TRAILER</div>
-        <img id="banner-img" src="" alt="Banner Loading...">
-        <div id="video-container"></div>
+<div id="app">
+    <div class="hero-section">
+        <div class="trailer-label">TRAILER</div>
+        <img id="banner-img" src="" alt="">
+        <div id="trailer-container"></div>
     </div>
 
-    <div class="main-content">
-        <img id="content-logo" class="logo" src="" alt="">
+    <div class="content-main">
+        <img id="logo-img" class="main-logo" src="" alt="">
         
-        <div class="blue-highlights" id="blue-tags">
-            <!-- Dynamic Tags -->
-        </div>
+        <!-- Field: Blue Tags -->
+        <div class="blue-tags-row" id="blue-tags"></div>
 
-        <div class="meta" id="meta-info">
-            <!-- Dynamic Meta -->
-        </div>
+        <div class="meta-data" id="meta-row"></div>
 
-        <button class="btn-play">
+        <button class="action-btn">
             <span style="font-size: 18px;">▶</span> 
             <span id="btn-label">Watch Now</span> 
-            <span id="btn-subtext" class="sub-txt"></span>
+            <span id="btn-subtext" class="btn-sub"></span>
         </button>
 
-        <div class="desc" id="description"></div>
+        <div class="description" id="desc-text"></div>
 
-        <div class="icons">
-            <div class="icon-item"><span>＋</span> Watchlist</div>
-            <div class="icon-item"><span>➦</span> Share</div>
-            <div class="icon-item"><span>♡</span> Rate</div>
+        <div class="action-icons">
+            <div class="icon-box"><span>＋</span> Watchlist</div>
+            <div class="icon-box"><span>➦</span> Share</div>
+            <div class="icon-box"><span>♡</span> Rate</div>
         </div>
     </div>
 </div>
@@ -174,76 +167,83 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const watchId = urlParams.get('watch');
+    const params = new URLSearchParams(window.location.search);
+    const watchId = params.get('watch'); // e.g. ?watch=sony-yay
 
-    async function start() {
+    async function init() {
         if(!watchId) return;
-        const snap = await getDoc(doc(db, "Live TV", watchId));
-        if(snap.exists()) render(snap.data());
+
+        try {
+            // Updated collection path to 'Live TV'
+            const snap = await getDoc(doc(db, "Live TV", watchId));
+            if(snap.exists()) {
+                render(snap.data());
+            } else {
+                console.error("No document found for ID:", watchId);
+            }
+        } catch (e) { console.error(e); }
     }
 
     function render(data) {
         const banner = document.getElementById('banner-img');
-        banner.src = data.Banner;
-        document.getElementById('content-logo').src = data.Logo;
-        document.getElementById('description').innerText = data.Description;
+        banner.src = data.Banner || '';
+        document.getElementById('logo-img').src = data.Logo || '';
+        document.getElementById('desc-text').innerText = data.Description || '';
 
-        // Dynamic Blue Tags (First 2 from array)
-        if(data.Tags && Array.isArray(data.Tags)) {
-            const tagsDiv = document.getElementById('blue-tags');
-            tagsDiv.innerHTML = data.Tags.slice(0, 2).map(t => `<span>${t}</span>`).join('');
-        }
+        // Correct Field: Blue Tags
+        document.getElementById('blue-tags').innerText = data['Blue Tags'] || '';
 
-        // Meta Info
-        document.getElementById('meta-info').innerHTML = `
+        // Meta Row
+        document.getElementById('meta-row').innerHTML = `
             <span>2024</span>
-            <span class="rating">${data['Age Rating'] || 'U/A 13+'}</span>
-            <span>${data.Language || 'English'}</span>
+            <span class="rating-box">${data['Age Rating'] || 'U/A 7+'}</span>
+            <span>${data.Language || 'Hindi'}</span>
         `;
 
-        // Button Logic
-        const label = document.getElementById('btn-label');
-        const sub = document.getElementById('btn-subtext');
-        if(data.Type === 'Series') {
-            label.innerText = "Watch Latest Episode";
-            sub.innerText = "S1 E1";
+        // Button Label Logic
+        const btnMain = document.getElementById('btn-label');
+        const btnSub = document.getElementById('btn-subtext');
+        
+        // Check for specific type or partner to determine button text
+        if(data.Partner === "YouTube" || data.Type === "Series") {
+            btnMain.innerText = "Watch Latest Season";
+            btnSub.innerText = "S1 E1";
         }
 
-        // --- TRAILER LOGIC ---
+        // --- TRAILER REPAIR ---
         setTimeout(() => {
-            const streamUrl = data.Stream || "";
-            const ytId = getID(streamUrl);
-            
-            if (ytId) {
-                const videoBox = document.getElementById('video-container');
+            // Get URL from the specific 'Trailer' field in your screenshot
+            const trailerUrl = data.Trailer || "";
+            const ytId = extractId(trailerUrl);
+
+            if(ytId) {
+                const container = document.getElementById('trailer-container');
                 
-                // Inject Iframe
-                videoBox.innerHTML = `
+                // Set Up Video
+                container.innerHTML = `
                     <iframe 
                         src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1" 
                         frameborder="0" 
                         allow="autoplay; encrypted-media">
                     </iframe>`;
                 
-                // Move Video to FRONT and Banner to BACK
-                videoBox.style.zIndex = "50"; 
+                // CHANGE LAYERING: Bring video to front, hide banner
+                container.style.zIndex = "15"; 
                 banner.style.opacity = "0";
-                banner.style.zIndex = "-1";
-                console.log("Trailer started for ID:", ytId);
+                console.log("Trailer playing ID:", ytId);
             } else {
-                console.error("No valid YouTube ID found in 'Stream' field.");
+                console.warn("Field 'Trailer' is empty or invalid YouTube link.");
             }
         }, 3000);
     }
 
-    function getID(url) {
+    function extractId(url) {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
         const match = url.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
     }
 
-    start();
+    init();
 </script>
 
 </body>
