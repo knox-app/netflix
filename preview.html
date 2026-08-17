@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stream Previewer - Hotstar Style</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>Stream Previewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0f1014;
-            --blue-gradient: linear-gradient(90deg, #0a58ca 0%, #d63384 100%);
+            --blue-pink-gradient: linear-gradient(90deg, #0a58ca 0%, #d63384 100%);
             --text-dim: #a9a9a9;
             --white: #ffffff;
-            --sidebar-width: 80px;
         }
 
         body {
@@ -22,23 +21,12 @@
             overflow-x: hidden;
         }
 
-        /* 1. Left Sidebar Mockup (Desktop Only) */
-        .sidebar {
-            position: fixed; left: 0; top: 0; bottom: 0;
-            width: var(--sidebar-width);
-            background: rgba(0,0,0,0.4);
-            display: none; flex-direction: column; align-items: center;
-            padding-top: 30px; z-index: 100;
-            border-right: 1px solid rgba(255,255,255,0.05);
-        }
-        .sidebar-item { margin-bottom: 35px; color: #777; cursor: pointer; font-size: 20px; }
-        .sidebar-item:hover { color: #fff; }
-
-        /* 2. Hero Section (Full Screen Banner) */
+        /* 1. Hero Section (Banner & Trailer) */
         .hero {
             position: relative;
             width: 100%;
-            height: 85vh;
+            height: 56.25vw; /* 16:9 ratio */
+            max-height: 85vh;
             background: #000;
             overflow: hidden;
         }
@@ -55,38 +43,43 @@
             z-index: 0; background: #000;
         }
 
+        /* YouTube UI Cropping Logic */
         #trailer-wrapper iframe {
             position: absolute; top: -12%; left: -12%;
             width: 124%; height: 124%; pointer-events: none;
         }
 
-        /* Gradients to make text readable */
+        /* Cinematic Gradients */
         .v-gradient {
             position: absolute; inset: 0;
-            background: linear-gradient(to top, var(--bg) 5%, transparent 60%);
+            background: linear-gradient(to top, var(--bg) 8%, transparent 60%);
             z-index: 2;
         }
+        .h-gradient { display: none; } /* Only for Desktop */
 
-        .h-gradient {
-            position: absolute; inset: 0;
-            background: linear-gradient(to right, var(--bg) 10%, transparent 80%);
-            z-index: 3;
-            display: none;
-        }
-
-        /* 3. Main Content Content Overlay */
+        /* 2. Main Content Overlay */
         .main-wrapper {
             position: relative;
             z-index: 10;
             padding: 0 20px;
-            margin-top: -15vh; /* Pull content up for mobile */
+            margin-top: -10vh; /* Overlap gradient for mobile */
             display: flex; flex-direction: column; align-items: center;
             text-align: center;
         }
 
-        .content-logo {
+        /* Logo vs Title Styling */
+        #logo-img {
             max-width: 220px; max-height: 120px;
             object-fit: contain; margin-bottom: 15px;
+            display: none; /* Shown only if URL exists */
+        }
+
+        #fallback-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 32px; font-weight: 800;
+            margin: 0 0 15px 0;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+            display: none; /* Shown only if Logo is missing */
         }
 
         .meta-row {
@@ -96,36 +89,36 @@
 
         .description {
             font-size: 14px; line-height: 1.6; color: #ccc;
-            max-width: 600px; margin-bottom: 15px;
+            max-width: 600px; margin-bottom: 20px;
         }
 
         .genres-row {
             font-size: 13px; font-weight: bold; color: #fff;
-            margin-bottom: 30px; letter-spacing: 0.5px;
+            margin-bottom: 30px;
         }
 
-        /* 4. Action Buttons (Hotstar Style) */
-        .button-group {
-            display: flex; gap: 15px; width: 100%; justify-content: center;
+        /* 3. Action Buttons */
+        .btn-group {
+            display: flex; gap: 12px; width: 100%; justify-content: center;
             margin-bottom: 40px;
         }
 
         .watch-btn {
-            background: var(--blue-gradient);
+            background: var(--blue-pink-gradient);
             color: #fff; border: none; border-radius: 6px;
-            padding: 12px 35px; font-size: 16px; font-weight: bold;
+            padding: 14px 30px; font-size: 16px; font-weight: bold;
             display: flex; align-items: center; gap: 10px; cursor: pointer;
-            flex-grow: 1; max-width: 300px;
+            flex-grow: 1; max-width: 350px;
         }
-        .watch-btn span.date { font-weight: 400; font-size: 14px; margin-left: 10px; opacity: 0.9; }
+        .watch-btn .sub-info { font-weight: 400; font-size: 14px; margin-left: auto; opacity: 0.8; }
 
-        .plus-btn {
+        .add-btn {
             background: rgba(255,255,255,0.1);
             color: #fff; border: none; border-radius: 6px;
             width: 50px; font-size: 24px; cursor: pointer;
         }
 
-        /* 5. Episode List Section */
+        /* 4. Episode List */
         .episodes-area {
             max-width: 1200px; margin: 40px auto; padding: 0 20px;
             display: none;
@@ -136,72 +129,67 @@
             display: flex; gap: 15px; background: rgba(255,255,255,0.03);
             padding: 12px; border-radius: 8px; align-items: center;
         }
-        .ep-thumb { width: 130px; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; background: #333; }
-        .ep-title { font-weight: bold; font-size: 14px; flex: 1; }
+        .ep-thumb { width: 120px; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; background: #333; }
+        .ep-info { flex: 1; font-size: 14px; }
+        .ep-title { font-weight: bold; margin-bottom: 4px; }
 
         /* --- DESKTOP VIEWPORT --- */
         @media (min-width: 1024px) {
-            .sidebar { display: flex; }
-            .h-gradient { display: block; }
-            .hero { height: 100vh; }
-            
+            .hero { height: 85vh; }
+            .h-gradient {
+                display: block; position: absolute; inset: 0;
+                background: linear-gradient(to right, var(--bg) 10%, transparent 70%);
+                z-index: 3;
+            }
             .main-wrapper {
-                position: absolute; top: 0; left: var(--sidebar-width);
-                width: 50%; height: 100vh;
+                position: absolute; top: 0; left: 0;
+                width: 50%; height: 85vh;
                 padding-left: 60px; padding-top: 50px;
                 align-items: flex-start; text-align: left;
                 justify-content: center; margin-top: 0;
             }
-
-            .content-logo { max-width: 400px; max-height: 180px; }
+            #fallback-title { font-size: 56px; max-width: 600px; }
+            #logo-img { max-width: 380px; max-height: 180px; }
             .description { font-size: 16px; max-width: 550px; }
-            .button-group { justify-content: flex-start; }
+            .btn-group { justify-content: flex-start; }
+            .watch-btn { flex-grow: 0; width: 320px; }
             .ep-grid { grid-template-columns: 1fr 1fr; }
-            .watch-btn { flex-grow: 0; }
         }
     </style>
 </head>
 <body>
 
-<!-- Navigation Sidebar -->
-<div class="sidebar">
-    <div class="sidebar-item">🏠</div>
-    <div class="sidebar-item">🔍</div>
-    <div class="sidebar-item">📺</div>
-    <div class="sidebar-item">🎬</div>
-    <div class="sidebar-item">⚽</div>
-    <div class="sidebar-item">👤</div>
-</div>
-
-<div id="preview-page">
+<div id="app">
+    <!-- Hero (Visuals) -->
     <div class="hero">
-        <img id="banner-img" src="" alt="Banner">
+        <img id="banner-img" src="" alt="">
         <div id="trailer-wrapper"></div>
         <div class="v-gradient"></div>
         <div class="h-gradient"></div>
     </div>
 
+    <!-- Info Overlay -->
     <div class="main-wrapper">
-        <img id="logo-img" class="content-logo" src="" alt="Logo">
+        <!-- Brand Logic: Image or Text -->
+        <img id="logo-img" src="" alt="">
+        <h1 id="fallback-title"></h1>
         
         <div class="meta-row" id="meta-data"></div>
-
         <div class="description" id="desc-text"></div>
-
         <div class="genres-row" id="genres-row"></div>
 
-        <div class="button-group">
-            <button class="watch-btn" id="main-play-btn">
+        <div class="btn-group">
+            <button class="watch-btn" id="main-play">
                 <span style="font-size: 20px;">▶</span> 
-                <span>Watch Latest Episode</span> 
-                <span class="date" id="btn-date"></span>
+                <span id="btn-label">Watch Now</span> 
+                <span class="sub-info" id="btn-date"></span>
             </button>
-            <button class="plus-btn">＋</button>
+            <button class="add-btn">＋</button>
         </div>
     </div>
 
-    <!-- Episode List Section -->
-    <div class="episodes-area" id="series-section">
+    <!-- Series Episodes -->
+    <div class="episodes-area" id="episodes-section">
         <div class="section-title">Season 1 Episodes</div>
         <div class="ep-grid" id="ep-list"></div>
     </div>
@@ -230,48 +218,59 @@
     async function init() {
         if(!watchId) return;
 
-        // Try Series collection first
+        // Try Series then Live TV
         let snap = await getDoc(doc(db, "Series", watchId));
         if(!snap.exists()) {
             snap = await getDoc(doc(db, "Live TV", watchId));
         }
 
         if(snap.exists()) {
-            renderPage(snap.data());
+            renderContent(snap.data());
         }
     }
 
-    function renderPage(data) {
+    function renderContent(data) {
         document.getElementById('banner-img').src = data.Banner || '';
-        document.getElementById('logo-img').src = data.Logo || '';
         document.getElementById('desc-text').innerText = data.Description || '';
 
-        // Meta (Year, Age, Lang)
+        // Branding Logic: Logo vs Name
+        const logoEl = document.getElementById('logo-img');
+        const titleEl = document.getElementById('fallback-title');
+
+        if(data.Logo && data.Logo.trim() !== "") {
+            logoEl.src = data.Logo;
+            logoEl.style.display = 'block';
+            titleEl.style.display = 'none';
+        } else {
+            titleEl.innerText = data.Name || data.Title || "Stream Content";
+            titleEl.style.display = 'block';
+            logoEl.style.display = 'none';
+        }
+
+        // Meta (Year, Age, Language)
         document.getElementById('meta-data').innerHTML = `
             <span>2024</span> • 
             <span>${data['Age Rating'] || 'U/A 13+'}</span> • 
             <span>${data.Language || 'Hindi'}</span>
         `;
 
-        // Genres Row
+        // Genres
         if(data.Genres) {
             document.getElementById('genres-row').innerText = data.Genres.split(',').join(' | ');
         }
 
-        // Series Logic: Check for Season 1 structure
+        // Series Logic
         const season1 = data['Season 1'];
         if(season1 && season1.Episodes) {
-            document.getElementById('series-section').style.display = 'block';
-            document.getElementById('btn-date').innerText = "17 Aug"; // Demo date
+            document.getElementById('episodes-section').style.display = 'block';
+            document.getElementById('btn-label').innerText = "Watch Latest Episode";
+            document.getElementById('btn-date').innerText = "17 Aug";
             renderEpisodes(season1.Episodes, data.Banner);
-        } else {
-            // Adjust button for Movie/Live
-            document.getElementById('main-play-btn').querySelector('span:nth-child(2)').innerText = "Watch Now";
         }
 
-        // --- TRAILER REPAIR (3 seconds delay) ---
+        // --- YouTube Trailer (3s delay) ---
         setTimeout(() => {
-            const ytId = extractID(data.Trailer);
+            const ytId = getYTID(data.Trailer);
             if(ytId) {
                 const wrapper = document.getElementById('trailer-wrapper');
                 const banner = document.getElementById('banner-img');
@@ -285,27 +284,27 @@
     function renderEpisodes(arr, thumb) {
         const list = document.getElementById('ep-list');
         arr.forEach((ep, i) => {
-            const card = document.createElement('div');
-            card.className = 'ep-card';
-            card.innerHTML = `
+            const div = document.createElement('div');
+            div.className = 'ep-card';
+            div.innerHTML = `
                 <img class="ep-thumb" src="${thumb}">
                 <div class="ep-info">
                     <div class="ep-title">${i+1}. ${ep.Tittle || 'New Episode'}</div>
                 </div>
                 <div style="font-size: 20px; cursor:pointer" onclick="window.open('${ep.Stream || '#'}','_blank')">▶</div>
             `;
-            list.appendChild(card);
+            list.appendChild(div);
         });
     }
 
-    function extractID(url) {
-        const reg = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-        const m = url ? url.match(reg) : null;
-        return (m && m[2].length === 11) ? m[2] : null;
+    function getYTID(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url ? url.match(regExp) : null;
+        return (match && match[2].length === 11) ? match[2] : null;
     }
 
     init();
 </script>
 
 </body>
-</html>
+    </html>
