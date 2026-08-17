@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- JWPlayer Library for DASH MPD -->
+  <!-- JWPlayer Library (Exact Library for DASH MPD) -->
   <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
 
   <style>
@@ -67,11 +67,13 @@
     }
     #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
 
-    /* JWPlayer Host Wrapper */
+    /* JWPlayer Host Wrapper for MPD ClearKey DRM */
     #jwHost {
       position: absolute; inset: 0; display: none; width: 100%; height: 100%;
     }
-    #jwHost.fill-screen { transform: scale(1.15); }
+    #jwHost.fill-screen {
+      transform: scale(1.15);
+    }
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; }
 
@@ -108,8 +110,11 @@
     .icon-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
+    /* Portrait Rule: Show ONLY Settings and Fullscreen in vertical mode */
     body:not(.landscape-mode) .btn-cast,
-    body:not(.landscape-mode) #lockBtn { display: none !important; }
+    body:not(.landscape-mode) #lockBtn {
+      display: none !important;
+    }
 
     /* Center Controls */
     .ctrl-center {
@@ -142,6 +147,7 @@
     .action-btn-watch-next { display: none; }
     body.landscape-mode .action-btn-watch-next { display: flex; }
 
+    /* Go Live Button */
     .btn-go-live {
       background: rgba(229, 9, 20, 0.25); color: var(--live-red); border: 1px solid var(--live-red);
       font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; cursor: pointer;
@@ -149,50 +155,7 @@
     }
     .btn-go-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live-red); }
 
-    /* Settings Drawer Modal */
-    .settings-modal {
-      position: absolute; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.94);
-      backdrop-filter: blur(10px); display: none; flex-direction: column; padding: 20px 30px;
-    }
-    .settings-modal.active { display: flex; }
-
-    .sheet-header {
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding-bottom: 14px; margin-bottom: 20px;
-    }
-    .sheet-tabs { display: flex; gap: 30px; }
-    .tab-btn {
-      background: none; border: none; color: var(--text-muted); font-size: 15px;
-      font-weight: 700; cursor: pointer; padding-bottom: 8px; position: relative;
-    }
-    .tab-btn.active { color: #fff; }
-    .tab-btn.active::after {
-      content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: #fff; border-radius: 2px;
-    }
-    .sheet-actions { display: flex; align-items: center; gap: 20px; font-size: 13px; }
-    .sheet-actions a { color: var(--text-muted); text-decoration: none; font-weight: 600; }
-    .sheet-actions .close-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; }
-
-    .tab-content-panel { display: none; width: 100%; height: 100%; overflow-y: auto; }
-    .tab-content-panel.active { display: block; }
-
-    .quality-option-list { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
-    .q-item { display: flex; align-items: center; gap: 14px; cursor: pointer; }
-    .q-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
-    .q-title { font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
-    .q-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-left: 6px; }
-
-    .two-col-layout { display: flex; gap: 40px; height: 100%; }
-    .col-half { flex: 1; display: flex; flex-direction: column; }
-    .col-divider { width: 1px; background: rgba(255,255,255,0.1); height: 100%; }
-    .col-title { font-size: 12px; font-weight: 800; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase; }
-
-    .audio-option-list, .sub-option-list { display: flex; flex-direction: column; gap: 16px; }
-    .lang-item { display: flex; align-items: center; gap: 12px; cursor: pointer; }
-    .lang-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
-    .lang-label { font-size: 15px; font-weight: 700; color: #fff; }
-
-    /* Watch Next Tray */
+    /* Watch Next Overlay Tray */
     .watch-next-overlay {
       position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
@@ -201,11 +164,16 @@
     }
     .watch-next-overlay.show { opacity: 1; pointer-events: auto; }
 
-    .watch-next-drag-handle { width: 40px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 2px; margin: 0 auto 10px; }
+    .watch-next-drag-handle {
+      width: 40px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 2px; margin: 0 auto 10px;
+    }
+
     .watch-next-header { display: flex; align-items: center; justify-content: space-between; }
     .watch-next-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 
-    .watch-next-cards-row { display: flex; gap: 14px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+    .watch-next-cards-row {
+      display: flex; gap: 14px; overflow-x: auto; padding: 10px 0; scrollbar-width: none;
+    }
     .watch-next-cards-row::-webkit-scrollbar { display: none; }
 
     .watch-card { min-width: 190px; width: 190px; text-decoration: none; color: #fff; cursor: pointer; }
@@ -262,13 +230,7 @@
       flex-direction: column; align-items: center; text-align: center; cursor: pointer;
     }
     .card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #000; border-radius: 6px; margin-bottom: 8px; }
-    .card-name { font-size: 12px; font-weight: 700; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-
-    .ep-card-item {
-      min-width: 160px; width: 160px; background: #131722; border: 1px solid var(--border-color);
-      border-radius: 8px; padding: 8px; cursor: pointer; transition: 0.2s;
-    }
-    .ep-card-item:hover, .ep-card-item.active { border-color: var(--accent-blue); background: rgba(0, 114, 239, 0.15); }
+    .card-name { font-size: 12px; font-weight: 700; }
 
     .loader-box { text-align: center; padding: 50px; color: var(--accent-blue); font-weight: 600; }
   </style>
@@ -285,10 +247,13 @@
 <div id="appContent" style="display: none;">
   <div class="main-wrapper">
     
+    <!-- Player Container -->
     <div class="player-container" id="playerContainer">
 
+      <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Zoomed to Fill Screen</div>
 
+      <!-- Access Denied Overlay -->
       <div class="access-denied-box" id="accessDeniedBox" style="display: none;">
         <div style="font-size:36px; margin-bottom:10px;">🔒</div>
         <div class="denied-title" id="deniedTitle">Access Restricted</div>
@@ -296,19 +261,29 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <video id="videoPlayer1" playsinline crossorigin="anonymous"></video>
-      <video id="videoPlayer2" class="hidden-video" playsinline crossorigin="anonymous"></video>
+      <!-- Video Element -->
+      <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
 
+      <!-- Clean Zero-Flash YouTube Frame Host Wrapper -->
       <div id="ytFrameHost"></div>
-      <div id="jwHost"><div id="player"></div></div>
+
+      <!-- JWPlayer Host Wrapper (Re-hydrated cleanly on channel switch) -->
+      <div id="jwHost">
+        <div id="player"></div>
+      </div>
+
+      <!-- Fallback IFrame -->
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
 
+      <!-- Unlock Button when Locked -->
       <div class="lock-overlay-btn" id="unlockBtn" style="display: none;">
         🔓 Tap to Unlock Controls
       </div>
 
+      <!-- Player Controls Overlay -->
       <div class="controls-overlay" id="controlsOverlay">
         
+        <!-- Top Control Bar -->
         <div class="ctrl-top">
           <div class="ctrl-top-left">
             <button class="icon-btn" id="backBtn" title="Back">
@@ -324,7 +299,7 @@
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
             <button class="icon-btn" id="settingsBtn" title="Settings">
-              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
             <button class="icon-btn" id="fullscreenToggleBtn" title="Toggle Fullscreen">
               <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
@@ -332,6 +307,7 @@
           </div>
         </div>
 
+        <!-- Center Controls -->
         <div class="ctrl-center">
           <button class="icon-btn" id="rewindBtn" title="Rewind 10s">
             <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
@@ -347,6 +323,7 @@
           </button>
         </div>
 
+        <!-- Bottom Controls -->
         <div class="ctrl-bottom">
           <div class="timeline-row">
             <input type="range" id="progressBar" class="progress-bar" value="100" min="0" max="100">
@@ -368,58 +345,7 @@
 
       </div>
 
-      <!-- Settings Drawer Modal -->
-      <div class="settings-modal" id="settingsModal">
-        <div class="sheet-header">
-          <div class="sheet-tabs">
-            <button class="tab-btn active" id="tabQuality">Quality</button>
-            <button class="tab-btn" id="tabAudio">Audio & Subtitles</button>
-            <button class="tab-btn" id="tabSpeed">Playback Speed</button>
-          </div>
-          <div class="sheet-actions">
-            <a href="#">Report an Issue</a>
-            <button class="close-btn" id="closeSettingsBtn">✕</button>
-          </div>
-        </div>
-
-        <div class="tab-content-panel active" id="qualityPanel">
-          <div class="quality-option-list" id="qualityOptionsList">
-            <div class="q-item" data-level="-1"><div class="q-check">✓</div><div><div class="q-title">Auto <span class="q-sub">Recommended for best experience</span></div></div></div>
-            <div class="q-item" data-level="1080"><div class="q-check"></div><div><div class="q-title">Full HD <span class="q-sub">Up to 1080p</span></div></div></div>
-            <div class="q-item" data-level="720"><div class="q-check"></div><div><div class="q-title">HD <span class="q-sub">Up to 720p</span></div></div></div>
-            <div class="q-item" data-level="360"><div class="q-check"></div><div><div class="q-title">Data Saver</div></div></div>
-          </div>
-        </div>
-
-        <div class="tab-content-panel" id="audioPanel">
-          <div class="two-col-layout">
-            <div class="col-half">
-              <div class="col-title">AUDIO</div>
-              <div class="audio-option-list" id="audioOptionsList"></div>
-            </div>
-            <div class="col-divider"></div>
-            <div class="col-half">
-              <div class="col-title">SUBTITLES</div>
-              <div class="sub-option-list">
-                <div class="lang-item"><div class="lang-check">✓</div><div><div class="lang-label">Off</div></div></div>
-                <div class="lang-item"><div class="lang-check"></div><div><div class="lang-label">Chinese</div></div></div>
-                <div class="lang-item"><div class="lang-check"></div><div><div class="lang-label">English</div></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="tab-content-panel" id="speedPanel">
-          <div class="quality-option-list" id="speedOptionsList">
-            <div class="q-item" data-speed="1"><div class="q-check">✓</div><div class="q-title">Normal (1x)</div></div>
-            <div class="q-item" data-speed="1.25"><div class="q-check"></div><div class="q-title">1.25x</div></div>
-            <div class="q-item" data-speed="1.5"><div class="q-check"></div><div class="q-title">1.5x</div></div>
-            <div class="q-item" data-speed="2"><div class="q-check"></div><div class="q-title">2x</div></div>
-            <div class="q-item" data-speed="0.75"><div class="q-check"></div><div class="q-title">0.75x</div></div>
-          </div>
-        </div>
-      </div>
-
+      <!-- Watch Next Tray Overlay -->
       <div class="watch-next-overlay" id="watchNextOverlay">
         <div>
           <div class="watch-next-drag-handle"></div>
@@ -433,19 +359,16 @@
 
     </div>
 
+    <!-- Portrait Details Sections -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Live Channel</div>
       <div class="ch-lang-sub" id="chLangSub">हिंदी • Live Stream</div>
 
-      <!-- Episode List Container (Shown for Series) -->
-      <div id="episodesSection" style="display: none;">
-        <div class="section-head" id="episodesHeading">Season 1 Episodes</div>
-        <div class="channel-scroll-row" id="episodesGrid"></div>
-      </div>
-
+      <!-- Section 1: Recommendations -->
       <div class="section-head" id="sec1Heading">Recommendations</div>
       <div class="channel-scroll-row" id="recommendationsGrid"></div>
 
+      <!-- Section 2: More by <Partner> -->
       <div class="section-head" id="sec2Heading">More Channels</div>
       <div class="channel-scroll-row" id="partnerGrid"></div>
     </div>
@@ -487,14 +410,12 @@
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
-  let activePlayerType = null;
+  let activePlayerType = null; // 'hls' | 'youtube' | 'jwplayer' | 'iframe'
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let isFillScreen = false;
   let currentChannel = null;
   let isUserSeeking = false;
-  let activeVideoIndex = 1;
-  let isContentSeries = false;
 
   let channelDocUnsub = null;
   let collectionUnsub = null;
@@ -508,6 +429,7 @@
     initApp(currentDocId);
   }
 
+  // Safe HTTPS Sanitizer
   function safeUrl(url) {
     if (!url) return '';
     return url.trim().replace(/^http:\/\//i, 'https://');
@@ -528,24 +450,19 @@
     return null;
   }
 
-  function getActiveVideo() {
-    return document.getElementById(activeVideoIndex === 1 ? 'videoPlayer1' : 'videoPlayer2');
-  }
-
+  // STOP AUDIO LEAK & CLEANLY RE-HYDRATE PLAYERS
   function destroyActivePlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
       hlsInstance = null;
     }
-    [1, 2].forEach(idx => {
-      const v = document.getElementById(`videoPlayer${idx}`);
-      if (v) {
-        v.pause();
-        v.removeAttribute('src');
-        v.load();
-        v.classList.remove('fill-screen');
-      }
-    });
+    const video = document.getElementById('videoPlayer');
+    if (video) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      video.classList.remove('fill-screen');
+    }
     if (ytPlayerInstance) {
       try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
       ytPlayerInstance = null;
@@ -574,29 +491,26 @@
     isFillScreen = false;
   }
 
+  // Unified Pinch Zoom Handler
   function applyZoomState(fill) {
     isFillScreen = fill;
-    const v1 = document.getElementById('videoPlayer1');
-    const v2 = document.getElementById('videoPlayer2');
+    const video = document.getElementById('videoPlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const jwHost = document.getElementById('jwHost');
 
     if (fill) {
-      v1.classList.add('fill-screen');
-      v2.classList.add('fill-screen');
+      video.classList.add('fill-screen');
       ytHost.classList.add('fill-screen');
       jwHost.classList.add('fill-screen');
       showToast("Zoomed to Fill Screen");
     } else {
-      v1.classList.remove('fill-screen');
-      v2.classList.remove('fill-screen');
+      video.classList.remove('fill-screen');
       ytHost.classList.remove('fill-screen');
       jwHost.classList.remove('fill-screen');
       showToast("Fit to Screen (Original)");
     }
   }
 
-  // DUAL COLLECTION AUTO-SEARCH (Live TV & Series)
   function initApp(docId) {
     const loader = document.getElementById('loader');
     const userPill = document.getElementById('userPill');
@@ -606,113 +520,43 @@
 
     if (channelDocUnsub) channelDocUnsub();
 
-    // 1. Search "Live TV" collection
     channelDocUnsub = onSnapshot(doc(channelDb, "Live TV", docId), async (snap) => {
-      if (snap.exists()) {
-        processLoadedContent({ id: snap.id, collectionName: "Live TV", ...snap.data() }, activeUser);
+      if (!snap.exists()) {
+        loader.innerText = `Channel '${docId}' not found.`;
+        return;
+      }
+
+      currentChannel = { id: snap.id, ...snap.data() };
+
+      document.getElementById('chTitle').innerText = currentChannel.Name || "Live Channel";
+      document.getElementById('overlayChTitle').innerText = currentChannel.Name || "Live Channel";
+      document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • ${currentChannel.Genres || 'Live Stream'}`;
+
+      loader.style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+
+      if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
+        userPill.innerText = "Not Logged In";
+        showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
+        return;
+      }
+
+      userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
+
+      let isAuth = await verifyUserPlan(activeUser, currentChannel.Partner);
+
+      if (isAuth) {
+        document.getElementById('accessDeniedBox').style.display = 'none';
+        initStreamOrMpd(currentChannel);
       } else {
-        // 2. If not found in "Live TV", Search "Series" collection (Screenshot 1)
-        if (channelDocUnsub) channelDocUnsub();
-        channelDocUnsub = onSnapshot(doc(channelDb, "Series", docId), async (seriesSnap) => {
-          if (seriesSnap.exists()) {
-            processLoadedContent({ id: seriesSnap.id, collectionName: "Series", ...seriesSnap.data() }, activeUser);
-          } else {
-            loader.innerText = `Content '${docId}' not found.`;
-          }
-        });
+        showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
       }
     });
 
     listenToAllChannels(docId);
   }
 
-  async function processLoadedContent(data, activeUser) {
-    const loader = document.getElementById('loader');
-    const userPill = document.getElementById('userPill');
-
-    currentChannel = data;
-
-    // Detect Series vs Live TV (Check screenshot structure)
-    const season1Data = currentChannel["Season 1"] || currentChannel.Season1 || null;
-    const isSeriesColl = currentChannel.collectionName === "Series";
-    isContentSeries = isSeriesColl || !!season1Data || (currentChannel.Type || '').toLowerCase() === 'series';
-
-    let playableStream = currentChannel.Stream || '';
-    let seriesEpisodes = [];
-
-    if (isContentSeries && season1Data && Array.isArray(season1Data.Episodes)) {
-      seriesEpisodes = season1Data.Episodes;
-      if (seriesEpisodes.length > 0) {
-        playableStream = seriesEpisodes[0].Stream || playableStream;
-        currentChannel.Stream = playableStream; // Set episode stream
-      }
-    }
-
-    document.getElementById('chTitle').innerText = currentChannel.Name || currentChannel.id || "Title";
-    document.getElementById('overlayChTitle').innerText = currentChannel.Name || currentChannel.id || "Title";
-
-    if (isContentSeries) {
-      document.getElementById('chLangSub').innerText = `Season 1 • ${currentChannel.Partner || 'Series'}`;
-      renderSeriesEpisodes(seriesEpisodes);
-    } else {
-      document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • Live Stream`;
-      document.getElementById('episodesSection').style.display = 'none';
-    }
-
-    loader.style.display = 'none';
-    document.getElementById('appContent').style.display = 'block';
-
-    if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
-      userPill.innerText = "Not Logged In";
-      showDenied("Login Required", "Please sign in to watch.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
-      return;
-    }
-
-    userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
-
-    let isAuth = await verifyUserPlanSmart(activeUser, currentChannel.Partner);
-
-    if (isAuth) {
-      document.getElementById('accessDeniedBox').style.display = 'none';
-      initStreamOrMpd(currentChannel);
-      populateAudioOptions(currentChannel);
-    } else {
-      showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
-    }
-  }
-
-  // Render Episode List for Series
-  function renderSeriesEpisodes(episodes) {
-    const sec = document.getElementById('episodesSection');
-    const grid = document.getElementById('episodesGrid');
-
-    if (!episodes || episodes.length === 0) {
-      sec.style.display = 'none';
-      return;
-    }
-
-    sec.style.display = 'block';
-    grid.innerHTML = episodes.map((ep, idx) => `
-      <div class="ep-card-item ${idx === 0 ? 'active' : ''}" onclick="playSeriesEpisode('${safeUrl(ep.Stream)}', '${ep.Title || 'Episode ' + (idx + 1)}', this)">
-        <div style="font-size:12px; font-weight:700; color:#fff;">E${idx + 1} - ${ep.Title || 'Episode ' + (idx + 1)}</div>
-      </div>
-    `).join('');
-  }
-
-  window.playSeriesEpisode = function(streamUrl, title, el) {
-    document.querySelectorAll('.ep-card-item').forEach(e => e.classList.remove('active'));
-    if (el) el.classList.add('active');
-    
-    currentChannel.Stream = streamUrl;
-    showToast(`Playing ${title}`);
-    initStreamOrMpd(currentChannel);
-  };
-
-  async function verifyUserPlanSmart(activeUser, channelPartnerRaw) {
-    if (!channelPartnerRaw || channelPartnerRaw.trim() === '' || channelPartnerRaw.trim().toLowerCase() === 'n/a') {
-      return true;
-    }
-
+  async function verifyUserPlan(activeUser, channelPartnerRaw) {
     let userPlans = [];
     try {
       const q = activeUser.Lotus 
@@ -731,20 +575,15 @@
 
     if (!Array.isArray(userPlans) || userPlans.length === 0) return false;
 
-    const cleanPartner = channelPartnerRaw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const channelPartner = (channelPartnerRaw || "").trim().toLowerCase();
 
     for (const planId of userPlans) {
       try {
         const planSnap = await getDoc(doc(authDb, "Plans & Subscriptions", planId));
         if (planSnap.exists()) {
           const studios = planSnap.data().Studio || [];
-          if (Array.isArray(studios)) {
-            for (const s of studios) {
-              const cleanStudio = s.toLowerCase().replace(/[^a-z0-9]/g, '');
-              if (cleanStudio.includes(cleanPartner) || cleanPartner.includes(cleanStudio)) {
-                return true;
-              }
-            }
+          if (studios.some(s => s.toLowerCase() === channelPartner)) {
+            return true;
           }
         }
       } catch (err) {}
@@ -765,10 +604,11 @@
     document.getElementById('controlsOverlay').style.display = 'none';
   }
 
+  // AUTOMATIC STREAM OR MPD ROUTER
   function initStreamOrMpd(data) {
     destroyActivePlayers();
 
-    const video = getActiveVideo();
+    const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
     const ytHost = document.getElementById('ytFrameHost');
@@ -790,14 +630,17 @@
       key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
     }
 
+    // 1. Play MPD DASH with ClearKey DRM if MPD File exists
     if (mpdFile) {
       playJWPlayerMPD(mpdFile, keyId, key);
       return;
     }
 
+    // 2. Stream URL handling
     if (streamUrl && streamUrl !== '') {
       const ytId = extractYouTubeId(streamUrl);
 
+      // YouTube Stream
       if (ytId) {
         activePlayerType = 'youtube';
         video.style.display = 'none';
@@ -812,8 +655,15 @@
         ytPlayerInstance = new YT.Player('ytActualPlayer', {
           videoId: ytId,
           playerVars: {
-            autoplay: 1, controls: 0, disablekb: 1, modestbranding: 1,
-            rel: 0, iv_load_policy: 3, fs: 0, playsinline: 1, origin: window.location.origin
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            modestbranding: 1,
+            rel: 0,
+            iv_load_policy: 3,
+            fs: 0,
+            playsinline: 1,
+            origin: window.location.origin
           },
           events: {
             onReady: (e) => e.target.playVideo(),
@@ -834,26 +684,27 @@
         setupInteraction();
         return;
       }
-      else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls') || streamUrl.includes('.mp4')) {
+      // HLS / M3U8 Stream
+      else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
         activePlayerType = 'hls';
         iframe.style.display = 'none';
         ytHost.style.display = 'none';
         video.style.display = 'block';
-        video.classList.remove('hidden-video');
         overlay.style.display = 'flex';
 
-        if (Hls.isSupported() && streamUrl.includes('.m3u8')) {
+        if (Hls.isSupported()) {
           hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 10 });
           hlsInstance.loadSource(streamUrl);
           hlsInstance.attachMedia(video);
           hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-        } else {
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = streamUrl;
           video.play().catch(() => {});
         }
         setupInteraction();
         return;
       }
+      // Fallback IFrame
       else {
         activePlayerType = 'iframe';
         video.style.display = 'none';
@@ -865,13 +716,14 @@
       }
     }
 
-    showToast("No playable stream found.");
+    showToast("No playable stream or MPD source found.");
   }
 
+  // EXACT WORKING JWPLAYER CLEARKEY DRM SETUP
   function playJWPlayerMPD(mpdUrl, keyId, key) {
     activePlayerType = 'jwplayer';
 
-    const video = getActiveVideo();
+    const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const jwHost = document.getElementById('jwHost');
@@ -881,6 +733,7 @@
     iframe.style.display = 'none';
     ytHost.style.display = 'none';
     
+    // Ensure jwHost is visible and contains a fresh <div id="player">
     jwHost.style.display = 'block';
     jwHost.innerHTML = '<div id="player"></div>';
     overlay.style.display = 'flex';
@@ -897,8 +750,8 @@
         } : undefined
       }],
       autostart: true,
-      mute: false,
-      volume: 100,
+      mute: false,     // Explicitly request unmuted playback
+      volume: 100,    // Explicitly set 100% volume
       width: "100%",
       height: "100%",
       stretching: "exactfit",
@@ -911,7 +764,12 @@
       jwPlayerInstance.on('play', () => {
         document.getElementById('playIcon').style.display = 'none';
         document.getElementById('pauseIcon').style.display = 'block';
-        try { jwPlayerInstance.setMute(false); jwPlayerInstance.setVolume(100); } catch(e){}
+
+        // FORCE UNMUTE & FULL VOLUME ON PLAY EVENT
+        try {
+          jwPlayerInstance.setMute(false);
+          jwPlayerInstance.setVolume(100);
+        } catch(e){}
       });
 
       jwPlayerInstance.on('pause', () => {
@@ -919,83 +777,22 @@
         document.getElementById('pauseIcon').style.display = 'none';
       });
 
-    } catch (err) { console.error(err); }
+      jwPlayerInstance.on('error', function() {
+        setTimeout(() => {
+          if (jwPlayerInstance) {
+            try {
+              jwPlayerInstance.load();
+              jwPlayerInstance.play();
+            } catch(e){}
+          }
+        }, 3000);
+      });
+
+    } catch (err) {
+      console.error("JWPlayer setup error:", err);
+    }
 
     setupInteraction();
-  }
-
-  function seamlessSwitchLanguageStream(targetStreamUrl) {
-    if (!targetStreamUrl) return;
-
-    showToast("Switching Audio Language...");
-
-    const currentVid = getActiveVideo();
-    const nextVideoIdx = activeVideoIndex === 1 ? 2 : 1;
-    const nextVid = document.getElementById(`videoPlayer${nextVideoIdx}`);
-
-    if (activePlayerType === 'hls') {
-      const newHls = new Hls({ liveSyncDurationCount: 3 });
-      newHls.loadSource(targetStreamUrl);
-      newHls.attachMedia(nextVid);
-      
-      newHls.on(Hls.Events.MANIFEST_PARSED, () => {
-        nextVid.currentTime = currentVid.currentTime || 0;
-        nextVid.play().then(() => {
-          nextVid.classList.remove('hidden-video');
-          currentVid.classList.add('hidden-video');
-
-          if (hlsInstance) hlsInstance.destroy();
-          hlsInstance = newHls;
-          currentVid.pause();
-          activeVideoIndex = nextVideoIdx;
-          setupInteraction();
-        }).catch(err => console.error(err));
-      });
-    } else {
-      initStreamOrMpd({ Stream: targetStreamUrl, Partner: currentChannel.Partner });
-    }
-  }
-
-  function populateAudioOptions(ch) {
-    const list = document.getElementById('audioOptionsList');
-    list.innerHTML = '';
-
-    const defaultLang = ch.Language || 'Hindi';
-    const multiLangMap = ch["Multi-Language"] || ch.multiLanguage || ch.MultiLanguage || {};
-
-    list.innerHTML += `
-      <div class="lang-item" data-stream="${safeUrl(ch.Stream)}">
-        <div class="lang-check">✓</div>
-        <div>
-          <div class="lang-label">${defaultLang}</div>
-          <div class="lang-sub">Original</div>
-        </div>
-      </div>
-    `;
-
-    Object.keys(multiLangMap).forEach(langKey => {
-      const langUrl = safeUrl(multiLangMap[langKey]);
-      list.innerHTML += `
-        <div class="lang-item" data-stream="${langUrl}">
-          <div class="lang-check"></div>
-          <div><div class="lang-label">${langKey}</div></div>
-        </div>
-      `;
-    });
-
-    document.querySelectorAll('#audioOptionsList .lang-item').forEach(item => {
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
-        item.querySelector('.lang-check').innerText = '✓';
-
-        const streamUrl = item.dataset.stream;
-        if (streamUrl) {
-          seamlessSwitchLanguageStream(streamUrl);
-        }
-        setTimeout(() => document.getElementById('settingsModal').classList.remove('active'), 300);
-      };
-    });
   }
 
   function showToast(msg) {
@@ -1006,7 +803,7 @@
   }
 
   function setupInteraction() {
-    const video = getActiveVideo();
+    const video = document.getElementById('videoPlayer');
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
     const playBtn = document.getElementById('playBtn');
@@ -1017,7 +814,6 @@
     const lockBtn = document.getElementById('lockBtn');
     const unlockBtn = document.getElementById('unlockBtn');
     const backBtn = document.getElementById('backBtn');
-    const settingsBtn = document.getElementById('settingsBtn');
     const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
     const progressBar = document.getElementById('progressBar');
     const timeDisplay = document.getElementById('timeDisplay');
@@ -1033,9 +829,11 @@
       }, 3500);
     };
 
+    // Click to Wakeup & Click to Sleep + AUTO-UNMUTE ON FIRST TAP
     playerContainer.onclick = (e) => {
       e.stopPropagation();
 
+      // UNMUTE AUDIO ON TAP IF BROWSER MUTED AUTOPLAY
       try {
         if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
           jwPlayerInstance.setMute(false);
@@ -1091,7 +889,7 @@
         video.currentTime -= 10;
       }
       isUserSeeking = true;
-      if (!isContentSeries) goLiveBtn.style.display = 'flex';
+      goLiveBtn.style.display = 'flex';
       showControls();
     };
 
@@ -1109,39 +907,26 @@
       showControls();
     };
 
+    // Steady Progress Bar for HLS Live
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube' || activePlayerType === 'jwplayer') return;
-      
-      if (isContentSeries) {
+      if (!isUserSeeking) {
+        progressBar.value = 100;
+        progressBar.style.background = 'var(--accent-blue)';
+        timeDisplay.innerText = "LIVE";
+        goLiveBtn.style.display = 'none';
+      } else {
         if (video.duration && isFinite(video.duration)) {
           const percentage = (video.currentTime / video.duration) * 100;
           progressBar.value = percentage;
           progressBar.style.background = `linear-gradient(to right, #0072ef 0%, #0072ef ${percentage}%, rgba(255,255,255,0.25) ${percentage}%, rgba(255,255,255,0.25) 100%)`;
-          
-          const curStr = new Date(video.currentTime * 1000).toISOString().substr(11, 8);
-          const durStr = new Date(video.duration * 1000).toISOString().substr(11, 8);
-          timeDisplay.innerText = `${curStr} / ${durStr}`;
-          goLiveBtn.style.display = 'none';
-        }
-      } else {
-        if (!isUserSeeking) {
-          progressBar.value = 100;
-          progressBar.style.background = 'var(--accent-blue)';
-          timeDisplay.innerText = "LIVE";
-          goLiveBtn.style.display = 'none';
-        } else {
-          if (video.duration && isFinite(video.duration)) {
-            const percentage = (video.currentTime / video.duration) * 100;
-            progressBar.value = percentage;
-            progressBar.style.background = `linear-gradient(to right, #0072ef 0%, #0072ef ${percentage}%, rgba(255,255,255,0.25) ${percentage}%, rgba(255,255,255,0.25) 100%)`;
-            const current = new Date(video.currentTime * 1000).toISOString().substr(11, 8);
-            timeDisplay.innerText = current;
+          const current = new Date(video.currentTime * 1000).toISOString().substr(11, 8);
+          timeDisplay.innerText = current;
 
-            if (video.duration - video.currentTime > 12) {
-              goLiveBtn.style.display = 'flex';
-            } else {
-              isUserSeeking = false;
-            }
+          if (video.duration - video.currentTime > 12) {
+            goLiveBtn.style.display = 'flex';
+          } else {
+            isUserSeeking = false;
           }
         }
       }
@@ -1159,7 +944,7 @@
       } else if (video.duration && isFinite(video.duration)) {
         video.currentTime = (progressBar.value / 100) * video.duration;
       }
-      if (!isContentSeries) goLiveBtn.style.display = 'flex';
+      goLiveBtn.style.display = 'flex';
     };
 
     goLiveBtn.onclick = (e) => {
@@ -1204,88 +989,6 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    const settingsModal = document.getElementById('settingsModal');
-    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-    const tabQuality = document.getElementById('tabQuality');
-    const tabAudio = document.getElementById('tabAudio');
-    const tabSpeed = document.getElementById('tabSpeed');
-    const qualityPanel = document.getElementById('qualityPanel');
-    const audioPanel = document.getElementById('audioPanel');
-    const speedPanel = document.getElementById('speedPanel');
-
-    settingsBtn.onclick = (e) => {
-      e.stopPropagation();
-      settingsModal.classList.add('active');
-    };
-
-    closeSettingsBtn.onclick = (e) => {
-      e.stopPropagation();
-      settingsModal.classList.remove('active');
-    };
-
-    tabQuality.onclick = (e) => {
-      e.stopPropagation();
-      tabQuality.classList.add('active');
-      tabAudio.classList.remove('active');
-      tabSpeed.classList.remove('active');
-      qualityPanel.classList.add('active');
-      audioPanel.classList.remove('active');
-      speedPanel.classList.remove('active');
-    };
-
-    tabAudio.onclick = (e) => {
-      e.stopPropagation();
-      tabAudio.classList.add('active');
-      tabQuality.classList.remove('active');
-      tabSpeed.classList.remove('active');
-      audioPanel.classList.add('active');
-      qualityPanel.classList.remove('active');
-      speedPanel.classList.remove('active');
-    };
-
-    tabSpeed.onclick = (e) => {
-      e.stopPropagation();
-      tabSpeed.classList.add('active');
-      tabQuality.classList.remove('active');
-      tabAudio.classList.remove('active');
-      speedPanel.classList.add('active');
-      qualityPanel.classList.remove('active');
-      audioPanel.classList.remove('active');
-    };
-
-    document.querySelectorAll('#qualityOptionsList .q-item').forEach(item => {
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#qualityOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
-        item.querySelector('.q-check').innerText = '✓';
-
-        const targetHeight = parseInt(item.dataset.level);
-        if (hlsInstance) {
-          if (targetHeight === -1) {
-            hlsInstance.currentLevel = -1;
-          } else {
-            const idx = hlsInstance.levels.findIndex(l => l.height <= targetHeight);
-            if (idx !== -1) hlsInstance.currentLevel = idx;
-          }
-        }
-        setTimeout(() => settingsModal.classList.remove('active'), 250);
-      };
-    });
-
-    document.querySelectorAll('#speedOptionsList .q-item').forEach(item => {
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#speedOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
-        item.querySelector('.q-check').innerText = '✓';
-
-        const spd = parseFloat(item.dataset.speed);
-        if (video) video.playbackRate = spd;
-        if (ytPlayerInstance && ytPlayerInstance.setPlaybackRate) ytPlayerInstance.setPlaybackRate(spd);
-        showToast(`Speed: ${spd}x`);
-        setTimeout(() => settingsModal.classList.remove('active'), 250);
-      };
-    });
-
     fullscreenToggleBtn.onclick = async (e) => {
       e.stopPropagation();
       if (!document.fullscreenElement) {
@@ -1305,7 +1008,6 @@
           await document.exitFullscreen().catch(() => {});
         }
         document.body.classList.remove('landscape-mode');
-        settingsModal.classList.remove('active');
       }
     };
 
@@ -1314,12 +1016,11 @@
         try { if (screen.orientation?.unlock) screen.orientation.unlock(); } catch(e){}
         if (window.innerWidth < window.innerHeight) {
           document.body.classList.remove('landscape-mode');
-          settingsModal.classList.remove('active');
         }
       }
     });
 
-    // UNIFIED PINCH TO ZOOM GESTURE
+    // UNIFIED SINGLE-STAGED PINCH TO ZOOM GESTURE
     let initialPinchDist = 0;
     let isPinching = false;
 
@@ -1367,7 +1068,6 @@
       } else {
         document.body.classList.remove('landscape-mode');
         watchNextOverlay.classList.remove('show');
-        settingsModal.classList.remove('active');
       }
     };
     window.addEventListener('resize', checkOrientation);
