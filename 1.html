@@ -40,12 +40,16 @@
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
     }
 
+    /* M3U8 Video Aspect Modes */
     video {
       width: 100%; height: 100%; border: none; object-fit: contain;
       transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    video.fill-screen { object-fit: cover !important; }
+    video.fill-screen {
+      object-fit: cover !important;
+    }
 
+    /* Clean Zero-Flash YouTube Frame Host Wrapper */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
       background: #000; opacity: 0;
@@ -63,6 +67,7 @@
     }
     #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
 
+    /* JWPlayer Host Wrapper */
     #jwHost {
       position: absolute; inset: 0; display: none; width: 100%; height: 100%;
     }
@@ -94,6 +99,7 @@
     }
     .controls-overlay.show { opacity: 1; pointer-events: auto; }
 
+    /* Top Controls Bar */
     .ctrl-top { display: flex; align-items: center; justify-content: space-between; }
     .ctrl-top-left { display: flex; align-items: center; gap: 12px; }
     .ctrl-title { font-size: 15px; font-weight: 600; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -105,6 +111,7 @@
     body:not(.landscape-mode) .btn-cast,
     body:not(.landscape-mode) #lockBtn { display: none !important; }
 
+    /* Center Controls */
     .ctrl-center {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
       display: flex; align-items: center; gap: 45px;
@@ -112,6 +119,7 @@
     .ctrl-center .icon-btn svg { width: 32px; height: 32px; }
     .btn-main-play svg { width: 38px; height: 38px; fill: #fff; }
 
+    /* Bottom Timeline Controls */
     .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .timeline-row { display: flex; align-items: center; gap: 12px; }
 
@@ -141,7 +149,7 @@
     }
     .btn-go-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live-red); }
 
-    /* Settings Modal Drawer */
+    /* Settings Drawer Modal */
     .settings-modal {
       position: absolute; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.94);
       backdrop-filter: blur(10px); display: none; flex-direction: column; padding: 20px 30px;
@@ -183,7 +191,6 @@
     .lang-item { display: flex; align-items: center; gap: 12px; cursor: pointer; }
     .lang-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
     .lang-label { font-size: 15px; font-weight: 700; color: #fff; }
-    .lang-sub { font-size: 12px; color: var(--text-muted); }
 
     /* Watch Next Tray */
     .watch-next-overlay {
@@ -224,6 +231,7 @@
     .watch-card-name { font-size: 13px; font-weight: 600; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
     .watch-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
+    /* Access Denied Overlay */
     .access-denied-box {
       position: absolute; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -239,6 +247,7 @@
       color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
     }
 
+    /* Portrait Details Section */
     .details-wrapper { padding: 16px; }
     .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; }
     .ch-lang-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
@@ -253,7 +262,13 @@
       flex-direction: column; align-items: center; text-align: center; cursor: pointer;
     }
     .card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #000; border-radius: 6px; margin-bottom: 8px; }
-    .card-name { font-size: 12px; font-weight: 700; }
+    .card-name { font-size: 12px; font-weight: 700; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .ep-card-item {
+      min-width: 160px; width: 160px; background: #131722; border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 8px; cursor: pointer; transition: 0.2s;
+    }
+    .ep-card-item:hover, .ep-card-item.active { border-color: var(--accent-blue); background: rgba(0, 114, 239, 0.15); }
 
     .loader-box { text-align: center; padding: 50px; color: var(--accent-blue); font-weight: 600; }
   </style>
@@ -309,7 +324,7 @@
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
             <button class="icon-btn" id="settingsBtn" title="Settings">
-              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/></svg>
             </button>
             <button class="icon-btn" id="fullscreenToggleBtn" title="Toggle Fullscreen">
               <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
@@ -369,22 +384,10 @@
 
         <div class="tab-content-panel active" id="qualityPanel">
           <div class="quality-option-list" id="qualityOptionsList">
-            <div class="q-item" data-level="-1">
-              <div class="q-check">✓</div>
-              <div><div class="q-title">Auto <span class="q-sub">Recommended for best experience</span></div></div>
-            </div>
-            <div class="q-item" data-level="1080">
-              <div class="q-check"></div>
-              <div><div class="q-title">Full HD <span class="q-sub">Up to 1080p</span></div></div>
-            </div>
-            <div class="q-item" data-level="720">
-              <div class="q-check"></div>
-              <div><div class="q-title">HD <span class="q-sub">Up to 720p</span></div></div>
-            </div>
-            <div class="q-item" data-level="360">
-              <div class="q-check"></div>
-              <div><div class="q-title">Data Saver</div></div>
-            </div>
+            <div class="q-item" data-level="-1"><div class="q-check">✓</div><div><div class="q-title">Auto <span class="q-sub">Recommended for best experience</span></div></div></div>
+            <div class="q-item" data-level="1080"><div class="q-check"></div><div><div class="q-title">Full HD <span class="q-sub">Up to 1080p</span></div></div></div>
+            <div class="q-item" data-level="720"><div class="q-check"></div><div><div class="q-title">HD <span class="q-sub">Up to 720p</span></div></div></div>
+            <div class="q-item" data-level="360"><div class="q-check"></div><div><div class="q-title">Data Saver</div></div></div>
           </div>
         </div>
 
@@ -398,18 +401,9 @@
             <div class="col-half">
               <div class="col-title">SUBTITLES</div>
               <div class="sub-option-list">
-                <div class="lang-item">
-                  <div class="lang-check">✓</div>
-                  <div><div class="lang-label">Off</div></div>
-                </div>
-                <div class="lang-item">
-                  <div class="lang-check"></div>
-                  <div><div class="lang-label">Chinese</div></div>
-                </div>
-                <div class="lang-item">
-                  <div class="lang-check"></div>
-                  <div><div class="lang-label">English</div></div>
-                </div>
+                <div class="lang-item"><div class="lang-check">✓</div><div><div class="lang-label">Off</div></div></div>
+                <div class="lang-item"><div class="lang-check"></div><div><div class="lang-label">Chinese</div></div></div>
+                <div class="lang-item"><div class="lang-check"></div><div><div class="lang-label">English</div></div></div>
               </div>
             </div>
           </div>
@@ -442,6 +436,12 @@
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Live Channel</div>
       <div class="ch-lang-sub" id="chLangSub">हिंदी • Live Stream</div>
+
+      <!-- Episode List Container (Shown for Series) -->
+      <div id="episodesSection" style="display: none;">
+        <div class="section-head" id="episodesHeading">Season 1 Episodes</div>
+        <div class="channel-scroll-row" id="episodesGrid"></div>
+      </div>
 
       <div class="section-head" id="sec1Heading">Recommendations</div>
       <div class="channel-scroll-row" id="recommendationsGrid"></div>
@@ -596,6 +596,7 @@
     }
   }
 
+  // DUAL COLLECTION AUTO-SEARCH (Live TV & Series)
   function initApp(docId) {
     const loader = document.getElementById('loader');
     const userPill = document.getElementById('userPill');
@@ -605,59 +606,111 @@
 
     if (channelDocUnsub) channelDocUnsub();
 
+    // 1. Search "Live TV" collection
     channelDocUnsub = onSnapshot(doc(channelDb, "Live TV", docId), async (snap) => {
-      if (!snap.exists()) {
-        loader.innerText = `Channel '${docId}' not found.`;
-        return;
-      }
-
-      currentChannel = { id: snap.id, ...snap.data() };
-
-      // Detect Series vs. Live Mode
-      const chType = (currentChannel.Type || currentChannel.type || '').toLowerCase();
-      isContentSeries = chType === 'series' || !!currentChannel.Season || !!currentChannel.Episode;
-
-      document.getElementById('chTitle').innerText = currentChannel.Name || "Live Channel";
-      document.getElementById('overlayChTitle').innerText = currentChannel.Name || "Live Channel";
-
-      if (isContentSeries) {
-        const sTag = currentChannel.Season ? `S${currentChannel.Season}` : '';
-        const eTag = currentChannel.Episode ? `E${currentChannel.Episode}` : '';
-        document.getElementById('chLangSub').innerText = `${sTag} ${eTag} • ${currentChannel.Genres || 'Series'}`.trim();
+      if (snap.exists()) {
+        processLoadedContent({ id: snap.id, collectionName: "Live TV", ...snap.data() }, activeUser);
       } else {
-        document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • Live Stream`;
-      }
-
-      loader.style.display = 'none';
-      document.getElementById('appContent').style.display = 'block';
-
-      if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
-        userPill.innerText = "Not Logged In";
-        showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
-        return;
-      }
-
-      userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
-
-      // Smart Flexible Studio Verification
-      let isAuth = await verifyUserPlanSmart(activeUser, currentChannel.Partner);
-
-      if (isAuth) {
-        document.getElementById('accessDeniedBox').style.display = 'none';
-        initStreamOrMpd(currentChannel);
-        populateAudioOptions(currentChannel);
-      } else {
-        showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
+        // 2. If not found in "Live TV", Search "Series" collection (Screenshot 1)
+        if (channelDocUnsub) channelDocUnsub();
+        channelDocUnsub = onSnapshot(doc(channelDb, "Series", docId), async (seriesSnap) => {
+          if (seriesSnap.exists()) {
+            processLoadedContent({ id: seriesSnap.id, collectionName: "Series", ...seriesSnap.data() }, activeUser);
+          } else {
+            loader.innerText = `Content '${docId}' not found.`;
+          }
+        });
       }
     });
 
     listenToAllChannels(docId);
   }
 
-  // SMART FLEXIBLE STUDIO/PLAN VERIFICATION
+  async function processLoadedContent(data, activeUser) {
+    const loader = document.getElementById('loader');
+    const userPill = document.getElementById('userPill');
+
+    currentChannel = data;
+
+    // Detect Series vs Live TV (Check screenshot structure)
+    const season1Data = currentChannel["Season 1"] || currentChannel.Season1 || null;
+    const isSeriesColl = currentChannel.collectionName === "Series";
+    isContentSeries = isSeriesColl || !!season1Data || (currentChannel.Type || '').toLowerCase() === 'series';
+
+    let playableStream = currentChannel.Stream || '';
+    let seriesEpisodes = [];
+
+    if (isContentSeries && season1Data && Array.isArray(season1Data.Episodes)) {
+      seriesEpisodes = season1Data.Episodes;
+      if (seriesEpisodes.length > 0) {
+        playableStream = seriesEpisodes[0].Stream || playableStream;
+        currentChannel.Stream = playableStream; // Set episode stream
+      }
+    }
+
+    document.getElementById('chTitle').innerText = currentChannel.Name || currentChannel.id || "Title";
+    document.getElementById('overlayChTitle').innerText = currentChannel.Name || currentChannel.id || "Title";
+
+    if (isContentSeries) {
+      document.getElementById('chLangSub').innerText = `Season 1 • ${currentChannel.Partner || 'Series'}`;
+      renderSeriesEpisodes(seriesEpisodes);
+    } else {
+      document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • Live Stream`;
+      document.getElementById('episodesSection').style.display = 'none';
+    }
+
+    loader.style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+
+    if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
+      userPill.innerText = "Not Logged In";
+      showDenied("Login Required", "Please sign in to watch.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
+      return;
+    }
+
+    userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
+
+    let isAuth = await verifyUserPlanSmart(activeUser, currentChannel.Partner);
+
+    if (isAuth) {
+      document.getElementById('accessDeniedBox').style.display = 'none';
+      initStreamOrMpd(currentChannel);
+      populateAudioOptions(currentChannel);
+    } else {
+      showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
+    }
+  }
+
+  // Render Episode List for Series
+  function renderSeriesEpisodes(episodes) {
+    const sec = document.getElementById('episodesSection');
+    const grid = document.getElementById('episodesGrid');
+
+    if (!episodes || episodes.length === 0) {
+      sec.style.display = 'none';
+      return;
+    }
+
+    sec.style.display = 'block';
+    grid.innerHTML = episodes.map((ep, idx) => `
+      <div class="ep-card-item ${idx === 0 ? 'active' : ''}" onclick="playSeriesEpisode('${safeUrl(ep.Stream)}', '${ep.Title || 'Episode ' + (idx + 1)}', this)">
+        <div style="font-size:12px; font-weight:700; color:#fff;">E${idx + 1} - ${ep.Title || 'Episode ' + (idx + 1)}</div>
+      </div>
+    `).join('');
+  }
+
+  window.playSeriesEpisode = function(streamUrl, title, el) {
+    document.querySelectorAll('.ep-card-item').forEach(e => e.classList.remove('active'));
+    if (el) el.classList.add('active');
+    
+    currentChannel.Stream = streamUrl;
+    showToast(`Playing ${title}`);
+    initStreamOrMpd(currentChannel);
+  };
+
   async function verifyUserPlanSmart(activeUser, channelPartnerRaw) {
     if (!channelPartnerRaw || channelPartnerRaw.trim() === '' || channelPartnerRaw.trim().toLowerCase() === 'n/a') {
-      return true; // Unrestricted studio -> Allow immediate playback!
+      return true;
     }
 
     let userPlans = [];
@@ -678,7 +731,6 @@
 
     if (!Array.isArray(userPlans) || userPlans.length === 0) return false;
 
-    // Clean alphanumeric comparison
     const cleanPartner = channelPartnerRaw.toLowerCase().replace(/[^a-z0-9]/g, '');
 
     for (const planId of userPlans) {
@@ -760,15 +812,8 @@
         ytPlayerInstance = new YT.Player('ytActualPlayer', {
           videoId: ytId,
           playerVars: {
-            autoplay: 1,
-            controls: 0,
-            disablekb: 1,
-            modestbranding: 1,
-            rel: 0,
-            iv_load_policy: 3,
-            fs: 0,
-            playsinline: 1,
-            origin: window.location.origin
+            autoplay: 1, controls: 0, disablekb: 1, modestbranding: 1,
+            rel: 0, iv_load_policy: 3, fs: 0, playsinline: 1, origin: window.location.origin
           },
           events: {
             onReady: (e) => e.target.playVideo(),
@@ -789,7 +834,7 @@
         setupInteraction();
         return;
       }
-      else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
+      else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls') || streamUrl.includes('.mp4')) {
         activePlayerType = 'hls';
         iframe.style.display = 'none';
         ytHost.style.display = 'none';
@@ -797,12 +842,12 @@
         video.classList.remove('hidden-video');
         overlay.style.display = 'flex';
 
-        if (Hls.isSupported()) {
+        if (Hls.isSupported() && streamUrl.includes('.m3u8')) {
           hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 10 });
           hlsInstance.loadSource(streamUrl);
           hlsInstance.attachMedia(video);
           hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        } else {
           video.src = streamUrl;
           video.play().catch(() => {});
         }
@@ -820,7 +865,7 @@
       }
     }
 
-    showToast("No playable stream or MPD source found.");
+    showToast("No playable stream found.");
   }
 
   function playJWPlayerMPD(mpdUrl, keyId, key) {
@@ -874,17 +919,7 @@
         document.getElementById('pauseIcon').style.display = 'none';
       });
 
-      jwPlayerInstance.on('error', function() {
-        setTimeout(() => {
-          if (jwPlayerInstance) {
-            try { jwPlayerInstance.load(); jwPlayerInstance.play(); } catch(e){}
-          }
-        }, 3000);
-      });
-
-    } catch (err) {
-      console.error("JWPlayer error:", err);
-    }
+    } catch (err) { console.error(err); }
 
     setupInteraction();
   }
@@ -1074,11 +1109,9 @@
       showControls();
     };
 
-    // Time & Progress Update Routine
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube' || activePlayerType === 'jwplayer') return;
       
-      // Dynamic handling for Series Mode vs. Live TV Mode
       if (isContentSeries) {
         if (video.duration && isFinite(video.duration)) {
           const percentage = (video.currentTime / video.duration) * 100;
