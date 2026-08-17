@@ -40,42 +40,32 @@
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
     }
 
-    /* Primary and Background Video Elements for Seamless Language Switching */
     video {
-      position: absolute; inset: 0; width: 100%; height: 100%; border: none; object-fit: contain;
-      transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
-      z-index: 1;
+      width: 100%; height: 100%; border: none; object-fit: contain;
+      transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     video.fill-screen { object-fit: cover !important; }
-    video.hidden-video { opacity: 0; pointer-events: none; z-index: 0; }
 
-    /* Clean Zero-Flash YouTube Frame Host Wrapper */
+    /* YouTube Host */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
-      background: #000; opacity: 0; z-index: 2;
-      transition: opacity 0.4s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      background: #000; opacity: 0; transition: opacity 0.4s ease;
     }
     #ytFrameHost.ready { opacity: 1 !important; }
-
     #ytFrameHost iframe {
-      width: calc(100% + 160px) !important;
-      height: calc(100% + 220px) !important;
-      position: absolute !important;
-      top: -110px !important; left: -80px !important;
-      pointer-events: none; transform: scale(1.05);
-      transform-origin: center center; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      width: calc(100% + 160px) !important; height: calc(100% + 220px) !important;
+      position: absolute !important; top: -110px !important; left: -80px !important;
+      pointer-events: none; transform: scale(1.05); transform-origin: center center;
     }
     #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
 
-    /* JWPlayer Host Wrapper for MPD ClearKey DRM */
-    #jwHost {
-      position: absolute; inset: 0; display: none; width: 100%; height: 100%; z-index: 2;
-    }
+    /* JWPlayer Host */
+    #jwHost { position: absolute; inset: 0; display: none; width: 100%; height: 100%; }
     #jwHost.fill-screen { transform: scale(1.15); }
 
-    iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
+    iframe#iframePlayer { width: 100%; height: 100%; border: none; }
 
-    /* Mobile Landscape Fullscreen Layout */
+    /* Mobile Landscape Layout */
     body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
     body.landscape-mode .player-container {
       position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
@@ -108,11 +98,8 @@
     .icon-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Portrait Rule: Show ONLY Settings and Fullscreen in vertical mode */
     body:not(.landscape-mode) .btn-cast,
-    body:not(.landscape-mode) #lockBtn {
-      display: none !important;
-    }
+    body:not(.landscape-mode) #lockBtn { display: none !important; }
 
     /* Center Controls */
     .ctrl-center {
@@ -122,7 +109,7 @@
     .ctrl-center .icon-btn svg { width: 32px; height: 32px; }
     .btn-main-play svg { width: 38px; height: 38px; fill: #fff; }
 
-    /* Bottom Timeline Controls */
+    /* Bottom Controls */
     .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .timeline-row { display: flex; align-items: center; gap: 12px; }
 
@@ -135,25 +122,24 @@
       background: #ffffff; box-shadow: 0 0 10px rgba(0, 114, 239, 0.8); cursor: pointer;
     }
 
-    .time-val { font-size: 12px; font-weight: 700; color: #ffffff; white-space: nowrap; letter-spacing: 0.5px; }
+    .time-val { font-size: 12px; font-weight: 700; color: #ffffff; white-space: nowrap; }
 
     .action-bar-row { display: flex; align-items: center; justify-content: space-between; }
     .action-btn {
       background: none; border: none; color: #fff; font-size: 13px; font-weight: 600;
       display: flex; align-items: center; gap: 6px; cursor: pointer; opacity: 0.9;
     }
-    .action-btn-watch-next { display: none; }
-    body.landscape-mode .action-btn-watch-next { display: flex; }
+    .action-btn-landscape { display: none; }
+    body.landscape-mode .action-btn-landscape { display: flex; }
 
-    /* Go Live Button */
     .btn-go-live {
       background: rgba(229, 9, 20, 0.25); color: var(--live-red); border: 1px solid var(--live-red);
       font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; cursor: pointer;
-      display: none; align-items: center; gap: 5px; text-transform: uppercase; letter-spacing: 0.5px;
+      display: none; align-items: center; gap: 5px; text-transform: uppercase;
     }
     .btn-go-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live-red); }
 
-    /* Disney+ Hotstar Settings Drawer Modal (Screenshots 2 & 3) */
+    /* Settings Modal */
     .settings-modal {
       position: absolute; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.94);
       backdrop-filter: blur(10px); display: none; flex-direction: column; padding: 20px 30px;
@@ -180,27 +166,18 @@
     .tab-content-panel { display: none; width: 100%; height: 100%; overflow-y: auto; }
     .tab-content-panel.active { display: block; }
 
-    /* Quality List Layout (Screenshot 2) */
-    .quality-option-list { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
-    .q-item { display: flex; align-items: center; gap: 14px; cursor: pointer; }
-    .q-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
-    .q-title { font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .quality-option-list, .audio-option-list { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
+    .q-item, .lang-item { display: flex; align-items: center; gap: 14px; cursor: pointer; }
+    .q-check, .lang-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
+    .q-title, .lang-label { font-size: 15px; font-weight: 700; color: #fff; }
     .q-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-left: 6px; }
-    .upgrade-tag { font-size: 10px; color: #ffaa00; font-weight: 800; letter-spacing: 0.5px; }
 
-    /* Audio & Subtitles Two-Column Layout (Screenshot 3) */
     .two-col-layout { display: flex; gap: 40px; height: 100%; }
     .col-half { flex: 1; display: flex; flex-direction: column; }
     .col-divider { width: 1px; background: rgba(255,255,255,0.1); height: 100%; }
     .col-title { font-size: 12px; font-weight: 800; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase; }
 
-    .audio-option-list, .sub-option-list { display: flex; flex-direction: column; gap: 16px; }
-    .lang-item { display: flex; align-items: center; gap: 12px; cursor: pointer; }
-    .lang-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
-    .lang-label { font-size: 15px; font-weight: 700; color: #fff; }
-    .lang-sub { font-size: 12px; color: var(--text-muted); }
-
-    /* Watch Next Overlay Tray */
+    /* Watch Next & Episodes Drawer (Screenshots 1 & 2) */
     .watch-next-overlay {
       position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
@@ -209,31 +186,39 @@
     }
     .watch-next-overlay.show { opacity: 1; pointer-events: auto; }
 
-    .watch-next-drag-handle {
-      width: 40px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 2px; margin: 0 auto 10px;
+    .watch-next-drag-handle { width: 40px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 2px; margin: 0 auto 10px; }
+
+    .season-tabs-row { display: flex; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px; }
+    .season-tab { background: none; border: none; color: var(--text-muted); font-size: 14px; font-weight: 700; cursor: pointer; }
+    .season-tab.active { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 4px; }
+
+    .cards-horizontal-row { display: flex; gap: 16px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+    .cards-horizontal-row::-webkit-scrollbar { display: none; }
+
+    /* Episode Card (Screenshot 2) */
+    .ep-card { min-width: 250px; width: 250px; text-decoration: none; color: #fff; cursor: pointer; }
+    .ep-thumb-wrap {
+      position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden;
+      background: #111; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.15);
     }
+    .ep-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .ep-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+    .ep-title { font-size: 14px; font-weight: 700; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .ep-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
+    .ep-desc { font-size: 11px; color: #808595; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
 
-    .watch-next-header { display: flex; align-items: center; justify-content: space-between; }
-    .watch-next-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-
-    .watch-next-cards-row {
-      display: flex; gap: 14px; overflow-x: auto; padding: 10px 0; scrollbar-width: none;
-    }
-    .watch-next-cards-row::-webkit-scrollbar { display: none; }
-
+    /* Watch Next Card (Screenshot 1) */
     .watch-card { min-width: 190px; width: 190px; text-decoration: none; color: #fff; cursor: pointer; }
     .watch-card-thumb-wrap {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden;
       background: #111; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.15);
     }
     .watch-card-thumb-wrap .banner-img { width: 100%; height: 100%; object-fit: cover; }
-    
     .watch-card-logo-top-right {
       position: absolute; top: 6px; right: 6px; width: 28px; height: 28px;
       object-fit: contain; background: rgba(0,0,0,0.6); border-radius: 4px; padding: 2px;
       border: 1px solid rgba(255,255,255,0.2);
     }
-
     .play-badge {
       position: absolute; bottom: 8px; left: 8px; width: 20px; height: 20px;
       background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center;
@@ -241,14 +226,11 @@
     }
     .play-badge svg { width: 9px; height: 9px; fill: #fff; margin-left: 1px; }
 
-    .watch-card-name { font-size: 13px; font-weight: 600; line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-    .watch-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-
-    /* Access Denied Overlay */
+    /* Access Denied Overlay (Non-blocking Controls) */
     .access-denied-box {
-      position: absolute; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.95);
+      position: absolute; inset: 0; z-index: 15; background: rgba(0, 0, 0, 0.92);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 20px;
+      text-align: center; padding: 20px; pointer-events: auto;
     }
     .denied-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
     .denied-desc { font-size: 13px; color: var(--text-muted); max-width: 400px; margin-bottom: 18px; }
@@ -298,7 +280,7 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Zoomed to Fill Screen</div>
 
-      <!-- Access Denied Overlay -->
+      <!-- Access Denied Overlay (Allows Controls To Work Over It) -->
       <div class="access-denied-box" id="accessDeniedBox" style="display: none;">
         <div style="font-size:36px; margin-bottom:10px;">🔒</div>
         <div class="denied-title" id="deniedTitle">Access Restricted</div>
@@ -306,14 +288,13 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- Primary and Secondary Video Elements for Gapless Language Switching -->
-      <video id="videoPlayer1" playsinline crossorigin="anonymous"></video>
-      <video id="videoPlayer2" class="hidden-video" playsinline crossorigin="anonymous"></video>
+      <!-- Video Element -->
+      <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
 
       <!-- Clean Zero-Flash YouTube Frame Host Wrapper -->
       <div id="ytFrameHost"></div>
 
-      <!-- JWPlayer Host Wrapper for MPD ClearKey DRM -->
+      <!-- JWPlayer Host Wrapper -->
       <div id="jwHost"><div id="player"></div></div>
 
       <!-- Fallback IFrame -->
@@ -342,7 +323,6 @@
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
-            <!-- Settings Gear Button -->
             <button class="icon-btn" id="settingsBtn" title="Settings">
               <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
@@ -376,21 +356,28 @@
           </div>
           
           <div class="action-bar-row">
-            <button class="action-btn action-btn-watch-next" id="openWatchNextBtn">
+            <button class="action-btn action-btn-landscape" id="openWatchNextBtn">
               🧭 Watch Next
             </button>
+            <button class="action-btn action-btn-landscape" id="openEpisodesBtn" style="display: none;">
+              📺 Episodes
+            </button>
+
             <div style="display:flex; gap:12px; margin-left:auto; align-items:center;">
               <button class="btn-go-live" id="goLiveBtn">
                 <div class="live-dot"></div> Go Live
               </button>
               <button class="action-btn" id="rateBtn">♡ Rate</button>
+              <button class="action-btn action-btn-landscape" id="nextEpBtn" style="display: none;">
+                ⏭ Next Episode
+              </button>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Disney+ Hotstar Settings Drawer Modal (Screenshots 2 & 3) -->
+      <!-- Settings Drawer Modal -->
       <div class="settings-modal" id="settingsModal">
         <div class="sheet-header">
           <div class="sheet-tabs">
@@ -404,88 +391,63 @@
           </div>
         </div>
 
-        <!-- Quality Panel (Screenshot 2) -->
         <div class="tab-content-panel active" id="qualityPanel">
           <div class="quality-option-list" id="qualityOptionsList">
-            <div class="q-item" data-level="-1">
-              <div class="q-check">✓</div>
-              <div>
-                <div class="q-title">Auto <span class="q-sub">Recommended for best experience</span></div>
-              </div>
-            </div>
-            <div class="q-item" data-level="1080">
-              <div class="q-check"></div>
-              <div>
-                <div class="q-title">Full HD <span class="q-sub">Up to 1080p</span></div>
-              </div>
-            </div>
-            <div class="q-item" data-level="720">
-              <div class="q-check"></div>
-              <div>
-                <div class="q-title">HD <span class="q-sub">Up to 720p</span></div>
-              </div>
-            </div>
-            <div class="q-item" data-level="360">
-              <div class="q-check"></div>
-              <div>
-                <div class="q-title">Data Saver</div>
-              </div>
-            </div>
+            <div class="q-item" data-level="-1"><div class="q-check">✓</div><div class="q-title">Auto <span class="q-sub">Recommended for best experience</span></div></div>
+            <div class="q-item" data-level="1080"><div class="q-check"></div><div class="q-title">Full HD <span class="q-sub">Up to 1080p</span></div></div>
+            <div class="q-item" data-level="720"><div class="q-check"></div><div class="q-title">HD <span class="q-sub">Up to 720p</span></div></div>
+            <div class="q-item" data-level="360"><div class="q-check"></div><div class="q-title">Data Saver</div></div>
           </div>
         </div>
 
-        <!-- Audio & Subtitles Panel (Screenshot 3) -->
         <div class="tab-content-panel" id="audioPanel">
           <div class="two-col-layout">
-            <div class="col-half">
-              <div class="col-title">AUDIO</div>
-              <div class="audio-option-list" id="audioOptionsList">
-                <!-- Dynamically populated from Multi-Language map -->
-              </div>
-            </div>
+            <div class="col-half"><div class="col-title">AUDIO</div><div class="audio-option-list" id="audioOptionsList"></div></div>
             <div class="col-divider"></div>
             <div class="col-half">
               <div class="col-title">SUBTITLES</div>
               <div class="sub-option-list">
-                <div class="lang-item">
-                  <div class="lang-check">✓</div>
-                  <div><div class="lang-label">Off</div></div>
-                </div>
-                <div class="lang-item">
-                  <div class="lang-check"></div>
-                  <div><div class="lang-label">Chinese</div></div>
-                </div>
-                <div class="lang-item">
-                  <div class="lang-check"></div>
-                  <div><div class="lang-label">English</div></div>
-                </div>
+                <div class="lang-item"><div class="lang-check">✓</div><div class="lang-label">Off</div></div>
+                <div class="lang-item"><div class="lang-check"></div><div class="lang-label">Chinese</div></div>
+                <div class="lang-item"><div class="lang-check"></div><div class="lang-label">English</div></div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Playback Speed Panel -->
         <div class="tab-content-panel" id="speedPanel">
           <div class="quality-option-list" id="speedOptionsList">
             <div class="q-item" data-speed="1"><div class="q-check">✓</div><div class="q-title">Normal (1x)</div></div>
             <div class="q-item" data-speed="1.25"><div class="q-check"></div><div class="q-title">1.25x</div></div>
             <div class="q-item" data-speed="1.5"><div class="q-check"></div><div class="q-title">1.5x</div></div>
             <div class="q-item" data-speed="2"><div class="q-check"></div><div class="q-title">2x</div></div>
-            <div class="q-item" data-speed="0.75"><div class="q-check"></div><div class="q-title">0.75x</div></div>
           </div>
         </div>
       </div>
 
-      <!-- Watch Next Tray Overlay -->
+      <!-- Watch Next & Episodes Drawer Tray (Screenshots 1 & 2) -->
       <div class="watch-next-overlay" id="watchNextOverlay">
         <div>
           <div class="watch-next-drag-handle"></div>
           <div class="watch-next-header">
-            <div class="watch-next-title">Watch Next ˅</div>
+            <div class="sheet-tabs">
+              <button class="tab-btn active" id="drawerTabWatchNext">Watch Next</button>
+              <button class="tab-btn" id="drawerTabEpisodes" style="display: none;">Episodes</button>
+            </div>
             <button class="icon-btn" id="closeWatchNextBtn" style="font-size:22px;">✕</button>
           </div>
         </div>
-        <div class="watch-next-cards-row" id="watchNextCards"></div>
+
+        <!-- Watch Next Content -->
+        <div id="drawerWatchNextContent">
+          <div class="cards-horizontal-row" id="watchNextCards"></div>
+        </div>
+
+        <!-- Episodes Content (Screenshot 2) -->
+        <div id="drawerEpisodesContent" style="display: none;">
+          <div class="season-tabs-row" id="seasonTabsRow"></div>
+          <div class="cards-horizontal-row" id="episodesCardsRow"></div>
+        </div>
       </div>
 
     </div>
@@ -495,11 +457,9 @@
       <div class="ch-title-head" id="chTitle">Live Channel</div>
       <div class="ch-lang-sub" id="chLangSub">हिंदी • Live Stream</div>
 
-      <!-- Section 1: Recommendations -->
       <div class="section-head" id="sec1Heading">Recommendations</div>
       <div class="channel-scroll-row" id="recommendationsGrid"></div>
 
-      <!-- Section 2: More by <Partner> -->
       <div class="section-head" id="sec2Heading">More Channels</div>
       <div class="channel-scroll-row" id="partnerGrid"></div>
     </div>
@@ -541,25 +501,27 @@
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
-  let activePlayerType = null; // 'hls' | 'youtube' | 'jwplayer' | 'iframe'
+  let activePlayerType = null;
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let isFillScreen = false;
-  let currentChannel = null;
-  let currentStreamUrl = null;
-  let isUserSeeking = false;
-  let activeVideoIndex = 1; // 1 or 2 for dual background video buffering
+  let currentContent = null;
+  let isSeriesMode = false;
+  let currentSeasonKey = "Season 1";
+  let currentEpIndex = 0;
+  let currentEpisodesList = [];
 
   let channelDocUnsub = null;
   let collectionUnsub = null;
 
   const urlParams = new URLSearchParams(window.location.search);
   const currentDocId = urlParams.get('watch');
+  const epParam = urlParams.get('ep');
 
   if (!currentDocId) {
     document.getElementById('loader').innerText = "URL Parameter Missing (?watch=DOCUMENT_ID)";
   } else {
-    initApp(currentDocId);
+    initApp(currentDocId, epParam);
   }
 
   function safeUrl(url) {
@@ -582,24 +544,18 @@
     return null;
   }
 
-  function getActiveVideo() {
-    return document.getElementById(activeVideoIndex === 1 ? 'videoPlayer1' : 'videoPlayer2');
-  }
-
   function destroyActivePlayers() {
     if (hlsInstance) {
-      hlsInstance.destroy();
+      try { hlsInstance.stopLoad(); hlsInstance.destroy(); } catch(e){}
       hlsInstance = null;
     }
-    [1, 2].forEach(idx => {
-      const v = document.getElementById(`videoPlayer${idx}`);
-      if (v) {
-        v.pause();
-        v.removeAttribute('src');
-        v.load();
-        v.classList.remove('fill-screen');
-      }
-    });
+    const video = document.getElementById('videoPlayer');
+    if (video) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      video.classList.remove('fill-screen');
+    }
     if (ytPlayerInstance) {
       try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
       ytPlayerInstance = null;
@@ -630,27 +586,24 @@
 
   function applyZoomState(fill) {
     isFillScreen = fill;
-    const v1 = document.getElementById('videoPlayer1');
-    const v2 = document.getElementById('videoPlayer2');
+    const video = document.getElementById('videoPlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const jwHost = document.getElementById('jwHost');
 
     if (fill) {
-      v1.classList.add('fill-screen');
-      v2.classList.add('fill-screen');
+      video.classList.add('fill-screen');
       ytHost.classList.add('fill-screen');
       jwHost.classList.add('fill-screen');
       showToast("Zoomed to Fill Screen");
     } else {
-      v1.classList.remove('fill-screen');
-      v2.classList.remove('fill-screen');
+      video.classList.remove('fill-screen');
       ytHost.classList.remove('fill-screen');
       jwHost.classList.remove('fill-screen');
       showToast("Fit to Screen (Original)");
     }
   }
 
-  function initApp(docId) {
+  async function initApp(docId, epIdx) {
     const loader = document.getElementById('loader');
     const userPill = document.getElementById('userPill');
 
@@ -659,41 +612,93 @@
 
     if (channelDocUnsub) channelDocUnsub();
 
-    channelDocUnsub = onSnapshot(doc(channelDb, "Live TV", docId), async (snap) => {
-      if (!snap.exists()) {
-        loader.innerText = `Channel '${docId}' not found.`;
-        return;
+    // FIRST: Check if Document exists in "Live TV" collection
+    const liveTvRef = doc(channelDb, "Live TV", docId);
+    const liveTvSnap = await getDoc(liveTvRef);
+
+    if (liveTvSnap.exists()) {
+      isSeriesMode = false;
+      setupRealtimeContent(doc(channelDb, "Live TV", docId), activeUser);
+    } else {
+      // SECOND: Check if Document exists in "Series" collection
+      const seriesRef = doc(channelDb, "Series", docId);
+      const seriesSnap = await getDoc(seriesRef);
+
+      if (seriesSnap.exists()) {
+        isSeriesMode = true;
+        setupRealtimeContent(doc(channelDb, "Series", docId), activeUser, epIdx);
+      } else {
+        loader.innerText = `Content '${docId}' not found in database.`;
+      }
+    }
+
+    listenToAllChannels(docId);
+  }
+
+  function setupRealtimeContent(docRef, activeUser, epIdx) {
+    const loader = document.getElementById('loader');
+    const userPill = document.getElementById('userPill');
+
+    channelDocUnsub = onSnapshot(docRef, async (snap) => {
+      if (!snap.exists()) return;
+      currentContent = { id: snap.id, ...snap.data() };
+
+      let targetStream = currentContent.Stream || '';
+      let displayTitle = currentContent.Name || currentContent.Title || "Stream";
+
+      // HANDLE SERIES / EPISODES DATA
+      if (isSeriesMode) {
+        document.getElementById('openEpisodesBtn').style.display = 'flex';
+        document.getElementById('drawerTabEpisodes').style.display = 'block';
+
+        // Extract Season 1 or first available season
+        const season1Data = currentContent["Season 1"] || currentContent.Season1 || {};
+        currentEpisodesList = season1Data.Episodes || season1Data.episodes || [];
+
+        currentEpIndex = epIdx !== null && epIdx !== undefined ? parseInt(epIdx) : 0;
+        const currentEp = currentEpisodesList[currentEpIndex] || {};
+
+        if (currentEp.Stream) targetStream = currentEp.Stream;
+        if (currentEp.Title) displayTitle = `${currentContent.Name || 'Series'} - ${currentEp.Title}`;
+
+        // Next Episode Button
+        if (currentEpIndex < currentEpisodesList.length - 1) {
+          const nextBtn = document.getElementById('nextEpBtn');
+          nextBtn.style.display = 'flex';
+          nextBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.switchChannelInPlace(currentContent.id, currentEpIndex + 1);
+          };
+        }
+
+        setupEpisodesDrawer(currentContent);
       }
 
-      currentChannel = { id: snap.id, ...snap.data() };
-
-      document.getElementById('chTitle').innerText = currentChannel.Name || "Live Channel";
-      document.getElementById('overlayChTitle').innerText = currentChannel.Name || "Live Channel";
-      document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • ${currentChannel.Genres || 'Live Stream'}`;
+      document.getElementById('chTitle').innerText = displayTitle;
+      document.getElementById('overlayChTitle').innerText = displayTitle;
+      document.getElementById('chLangSub').innerText = `${currentContent.Language || 'Hindi'} • ${currentContent.Partner || 'Disney+ Hotstar'}`;
 
       loader.style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
 
       if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
         userPill.innerText = "Not Logged In";
-        showDenied("Login Required", "Please sign in to watch this channel.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
+        showDenied("Login Required", "Please sign in to watch this content.", "Sign In", `1 (3).html?continue=${encodeURIComponent(window.location.href)}`);
         return;
       }
 
       userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
 
-      let isAuth = await verifyUserPlan(activeUser, currentChannel.Partner);
+      let isAuth = await verifyUserPlan(activeUser, currentContent.Partner);
 
       if (isAuth) {
         document.getElementById('accessDeniedBox').style.display = 'none';
-        initStreamOrMpd(currentChannel);
-        populateAudioOptions(currentChannel);
+        initStreamOrMpd({ ...currentContent, Stream: targetStream });
+        populateAudioOptions(currentContent);
       } else {
-        showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
+        showDenied("Access Restricted", `Your plan does not include content from '${currentContent.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
       }
     });
-
-    listenToAllChannels(docId);
   }
 
   async function verifyUserPlan(activeUser, channelPartnerRaw) {
@@ -740,14 +745,12 @@
     btn.innerText = btnTxt;
     btn.href = btnUrl;
     box.style.display = 'flex';
-
-    document.getElementById('controlsOverlay').style.display = 'none';
   }
 
   function initStreamOrMpd(data) {
     destroyActivePlayers();
 
-    const video = getActiveVideo();
+    const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
     const ytHost = document.getElementById('ytFrameHost');
@@ -825,7 +828,6 @@
         iframe.style.display = 'none';
         ytHost.style.display = 'none';
         video.style.display = 'block';
-        video.classList.remove('hidden-video');
         overlay.style.display = 'flex';
 
         if (Hls.isSupported()) {
@@ -857,7 +859,7 @@
   function playJWPlayerMPD(mpdUrl, keyId, key) {
     activePlayerType = 'jwplayer';
 
-    const video = getActiveVideo();
+    const video = document.getElementById('videoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const jwHost = document.getElementById('jwHost');
@@ -905,100 +907,90 @@
         document.getElementById('pauseIcon').style.display = 'none';
       });
 
-      jwPlayerInstance.on('error', function() {
-        setTimeout(() => {
-          if (jwPlayerInstance) {
-            try { jwPlayerInstance.load(); jwPlayerInstance.play(); } catch(e){}
-          }
-        }, 3000);
-      });
-
-    } catch (err) {
-      console.error("JWPlayer error:", err);
-    }
+    } catch (err) { console.error("JWPlayer error:", err); }
 
     setupInteraction();
   }
 
-  // SEAMLESS GAPLESS LANGUAGE SWITCHING (DUAL BACKGROUND VIDEO BUFFERING)
-  function seamlessSwitchLanguageStream(targetStreamUrl) {
-    if (!targetStreamUrl) return;
+  // EPISODES DRAWER SETUP (Screenshots 1 & 2)
+  function setupEpisodesDrawer(seriesData) {
+    const seasonTabsRow = document.getElementById('seasonTabsRow');
+    const episodesCardsRow = document.getElementById('episodesCardsRow');
 
-    showToast("Switching Audio Language...");
+    seasonTabsRow.innerHTML = '';
+    episodesCardsRow.innerHTML = '';
 
-    const currentVid = getActiveVideo();
-    const nextVideoIdx = activeVideoIndex === 1 ? 2 : 1;
-    const nextVid = document.getElementById(`videoPlayer${nextVideoIdx}`);
+    const seasonsKeys = Object.keys(seriesData).filter(k => k.toLowerCase().includes('season'));
 
-    if (activePlayerType === 'hls') {
-      const newHls = new Hls({ liveSyncDurationCount: 3 });
-      newHls.loadSource(targetStreamUrl);
-      newHls.attachMedia(nextVid);
-      
-      newHls.on(Hls.Events.MANIFEST_PARSED, () => {
-        nextVid.currentTime = currentVid.currentTime || 0;
-        nextVid.play().then(() => {
-          // SWAP ACTIVE PLAYERS ONLY AFTER NEW STREAM IS PLAYING SMOOTHLY
-          nextVid.classList.remove('hidden-video');
-          currentVid.classList.add('hidden-video');
+    if (seasonsKeys.length === 0) seasonsKeys.push('Season 1');
 
-          if (hlsInstance) hlsInstance.destroy();
-          hlsInstance = newHls;
-          currentVid.pause();
-          activeVideoIndex = nextVideoIdx;
-          setupInteraction();
-        }).catch(err => console.error(err));
-      });
-    } else {
-      initStreamOrMpd({ Stream: targetStreamUrl, Partner: currentChannel.Partner });
-    }
+    seasonsKeys.forEach((sKey, idx) => {
+      const isAct = idx === 0;
+      seasonTabsRow.innerHTML += `<button class="season-tab ${isAct ? 'active' : ''}" data-skey="${sKey}">${sKey}</button>`;
+    });
+
+    const renderEpisodesList = (sKey) => {
+      const seasonData = seriesData[sKey] || {};
+      const epList = seasonData.Episodes || seasonData.episodes || [];
+
+      episodesCardsRow.innerHTML = epList.map((ep, eIdx) => `
+        <div onclick="window.switchChannelInPlace('${seriesData.id}', ${eIdx})" class="ep-card">
+          <div class="ep-thumb-wrap">
+            <img src="${safeUrl(ep.Banner || seriesData.Banner || seriesData["Logo.png"] || '')}" alt="${ep.Title}">
+            <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="ep-title-row">
+            <div class="ep-title">${ep.Title || `Episode ${eIdx + 1}`}</div>
+            <div style="font-size:14px; opacity:0.8;">⬇</div>
+          </div>
+          <div class="ep-sub">${sKey} E${eIdx + 1} · 21m</div>
+          <div class="ep-desc">${ep.Description || 'Watch full episode now.'}</div>
+        </div>
+      `).join('');
+    };
+
+    renderEpisodesList(seasonsKeys[0]);
+
+    document.querySelectorAll('.season-tab').forEach(tab => {
+      tab.onclick = (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.season-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderEpisodesList(tab.dataset.skey);
+      };
+    });
   }
 
-  // POPULATE DYNAMIC MULTI-LANGUAGE AUDIO OPTIONS (Screenshot 3)
   function populateAudioOptions(ch) {
     const list = document.getElementById('audioOptionsList');
     list.innerHTML = '';
 
     const defaultLang = ch.Language || 'Hindi';
-    const multiLangMap = ch["Multi-Language"] || ch.multiLanguage || ch.MultiLanguage || {};
+    const multiLangMap = ch["Multi-Language"] || ch.multiLanguage || {};
 
-    // 1. Default Primary Language Option
     list.innerHTML += `
       <div class="lang-item" data-stream="${safeUrl(ch.Stream)}">
         <div class="lang-check">✓</div>
-        <div>
-          <div class="lang-label">${defaultLang}</div>
-          <div class="lang-sub">Original</div>
-        </div>
+        <div><div class="lang-label">${defaultLang}</div><div class="lang-sub">Original</div></div>
       </div>
     `;
 
-    // 2. Dynamic Options from Firestore `Multi-Language` Map Object
     Object.keys(multiLangMap).forEach(langKey => {
-      const langUrl = safeUrl(multiLangMap[langKey]);
       list.innerHTML += `
-        <div class="lang-item" data-stream="${langUrl}">
+        <div class="lang-item" data-stream="${safeUrl(multiLangMap[langKey])}">
           <div class="lang-check"></div>
-          <div>
-            <div class="lang-label">${langKey}</div>
-          </div>
+          <div><div class="lang-label">${langKey}</div></div>
         </div>
       `;
     });
 
-    // Attach Click Event for Gapless Switching
     document.querySelectorAll('#audioOptionsList .lang-item').forEach(item => {
       item.onclick = (e) => {
         e.stopPropagation();
-        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => {
-          i.querySelector('.lang-check').innerText = '';
-        });
+        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
         item.querySelector('.lang-check').innerText = '✓';
-
         const streamUrl = item.dataset.stream;
-        if (streamUrl) {
-          seamlessSwitchLanguageStream(streamUrl);
-        }
+        if (streamUrl) initStreamOrMpd({ ...ch, Stream: streamUrl });
         setTimeout(() => document.getElementById('settingsModal').classList.remove('active'), 300);
       };
     });
@@ -1012,7 +1004,7 @@
   }
 
   function setupInteraction() {
-    const video = getActiveVideo();
+    const video = document.getElementById('videoPlayer');
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
     const playBtn = document.getElementById('playBtn');
@@ -1039,20 +1031,16 @@
       }, 3500);
     };
 
-    // Click to Wakeup & Click to Sleep + AUTO-UNMUTE ON TAP
     playerContainer.onclick = (e) => {
       e.stopPropagation();
 
       try {
         if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
-          jwPlayerInstance.setMute(false);
-          jwPlayerInstance.setVolume(100);
+          jwPlayerInstance.setMute(false); jwPlayerInstance.setVolume(100);
         } else if (activePlayerType === 'hls' && video) {
-          video.muted = false;
-          video.volume = 1.0;
+          video.muted = false; video.volume = 1.0;
         } else if (activePlayerType === 'youtube' && ytPlayerInstance) {
-          ytPlayerInstance.unMute();
-          ytPlayerInstance.setVolume(100);
+          ytPlayerInstance.unMute(); ytPlayerInstance.setVolume(100);
         }
       } catch(err){}
 
@@ -1116,7 +1104,6 @@
       showControls();
     };
 
-    // Steady Progress Bar for HLS Live
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube' || activePlayerType === 'jwplayer') return;
       if (!isUserSeeking) {
@@ -1198,15 +1185,12 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    // HOTSTAR SETTINGS DRAWER MODAL INTERACTION (Screenshots 2 & 3)
+    // SETTINGS MODAL TABS
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const tabQuality = document.getElementById('tabQuality');
     const tabAudio = document.getElementById('tabAudio');
     const tabSpeed = document.getElementById('tabSpeed');
-    const qualityPanel = document.getElementById('qualityPanel');
-    const audioPanel = document.getElementById('audioPanel');
-    const speedPanel = document.getElementById('speedPanel');
 
     settingsBtn.onclick = (e) => {
       e.stopPropagation();
@@ -1220,68 +1204,27 @@
 
     tabQuality.onclick = (e) => {
       e.stopPropagation();
-      tabQuality.classList.add('active');
-      tabAudio.classList.remove('active');
-      tabSpeed.classList.remove('active');
-      qualityPanel.classList.add('active');
-      audioPanel.classList.remove('active');
-      speedPanel.classList.remove('active');
+      tabQuality.classList.add('active'); tabAudio.classList.remove('active'); tabSpeed.classList.remove('active');
+      document.getElementById('qualityPanel').classList.add('active');
+      document.getElementById('audioPanel').classList.remove('active');
+      document.getElementById('speedPanel').classList.remove('active');
     };
 
     tabAudio.onclick = (e) => {
       e.stopPropagation();
-      tabAudio.classList.add('active');
-      tabQuality.classList.remove('active');
-      tabSpeed.classList.remove('active');
-      audioPanel.classList.add('active');
-      qualityPanel.classList.remove('active');
-      speedPanel.classList.remove('active');
+      tabAudio.classList.add('active'); tabQuality.classList.remove('active'); tabSpeed.classList.remove('active');
+      document.getElementById('audioPanel').classList.add('active');
+      document.getElementById('qualityPanel').classList.remove('active');
+      document.getElementById('speedPanel').classList.remove('active');
     };
 
     tabSpeed.onclick = (e) => {
       e.stopPropagation();
-      tabSpeed.classList.add('active');
-      tabQuality.classList.remove('active');
-      tabAudio.classList.remove('active');
-      speedPanel.classList.add('active');
-      qualityPanel.classList.remove('active');
-      audioPanel.classList.remove('active');
+      tabSpeed.classList.add('active'); tabQuality.classList.remove('active'); tabAudio.classList.remove('active');
+      document.getElementById('speedPanel').classList.add('active');
+      document.getElementById('qualityPanel').classList.remove('active');
+      document.getElementById('audioPanel').classList.remove('active');
     };
-
-    // Quality Selection Handler (Screenshot 2)
-    document.querySelectorAll('#qualityOptionsList .q-item').forEach(item => {
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#qualityOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
-        item.querySelector('.q-check').innerText = '✓';
-
-        const targetHeight = parseInt(item.dataset.level);
-        if (hlsInstance) {
-          if (targetHeight === -1) {
-            hlsInstance.currentLevel = -1; // Auto
-          } else {
-            const idx = hlsInstance.levels.findIndex(l => l.height <= targetHeight);
-            if (idx !== -1) hlsInstance.currentLevel = idx;
-          }
-        }
-        setTimeout(() => settingsModal.classList.remove('active'), 250);
-      };
-    });
-
-    // Speed Selection Handler
-    document.querySelectorAll('#speedOptionsList .q-item').forEach(item => {
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#speedOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
-        item.querySelector('.q-check').innerText = '✓';
-
-        const spd = parseFloat(item.dataset.speed);
-        if (video) video.playbackRate = spd;
-        if (ytPlayerInstance && ytPlayerInstance.setPlaybackRate) ytPlayerInstance.setPlaybackRate(spd);
-        showToast(`Speed: ${spd}x`);
-        setTimeout(() => settingsModal.classList.remove('active'), 250);
-      };
-    });
 
     fullscreenToggleBtn.onclick = async (e) => {
       e.stopPropagation();
@@ -1316,7 +1259,7 @@
       }
     });
 
-    // UNIFIED SINGLE-STAGED PINCH TO ZOOM GESTURE
+    // PINCH TO ZOOM GESTURE
     let initialPinchDist = 0;
     let isPinching = false;
 
@@ -1339,23 +1282,15 @@
         const diff = currentDist - initialPinchDist;
 
         if (diff > 30) {
-          if (!isFillScreen) {
-            applyZoomState(true);
-            initialPinchDist = currentDist;
-          }
+          if (!isFillScreen) { applyZoomState(true); initialPinchDist = currentDist; }
         } else if (diff < -30) {
-          if (isFillScreen) {
-            applyZoomState(false);
-            initialPinchDist = currentDist;
-          }
+          if (isFillScreen) { applyZoomState(false); initialPinchDist = currentDist; }
         }
       }
     }, { passive: true });
 
     playerContainer.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) {
-        isPinching = false;
-      }
+      if (e.touches.length < 2) isPinching = false;
     });
 
     const checkOrientation = () => {
@@ -1371,10 +1306,36 @@
     window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
     checkOrientation();
 
+    // WATCH NEXT & EPISODES DRAWER TABS
+    const drawerTabWatchNext = document.getElementById('drawerTabWatchNext');
+    const drawerTabEpisodes = document.getElementById('drawerTabEpisodes');
+    const drawerWatchNextContent = document.getElementById('drawerWatchNextContent');
+    const drawerEpisodesContent = document.getElementById('drawerEpisodesContent');
+
     document.getElementById('openWatchNextBtn').onclick = (e) => {
       e.stopPropagation();
       watchNextOverlay.classList.add('show');
+      drawerTabWatchNext.click();
     };
+
+    document.getElementById('openEpisodesBtn').onclick = (e) => {
+      e.stopPropagation();
+      watchNextOverlay.classList.add('show');
+      drawerTabEpisodes.click();
+    };
+
+    drawerTabWatchNext.onclick = (e) => {
+      e.stopPropagation();
+      drawerTabWatchNext.classList.add('active'); drawerTabEpisodes.classList.remove('active');
+      drawerWatchNextContent.style.display = 'block'; drawerEpisodesContent.style.display = 'none';
+    };
+
+    drawerTabEpisodes.onclick = (e) => {
+      e.stopPropagation();
+      drawerTabEpisodes.classList.add('active'); drawerTabWatchNext.classList.remove('active');
+      drawerEpisodesContent.style.display = 'block'; drawerWatchNextContent.style.display = 'none';
+    };
+
     document.getElementById('closeWatchNextBtn').onclick = () => watchNextOverlay.classList.remove('show');
 
     // Swipe-Down To Dismiss Watch Next
@@ -1410,12 +1371,14 @@
     showControls();
   }
 
-  // Seamless In-Place Channel Switch
-  window.switchChannelInPlace = function(newId) {
+  // Seamless Channel / Episode Switch
+  window.switchChannelInPlace = function(newId, epIdx = null) {
     destroyActivePlayers();
     document.getElementById('watchNextOverlay').classList.remove('show');
-    window.history.pushState({}, '', `1.html?watch=${newId}`);
-    initApp(newId);
+    let targetUrl = `1.html?watch=${newId}`;
+    if (epIdx !== null) targetUrl += `&ep=${epIdx}`;
+    window.history.pushState({}, '', targetUrl);
+    initApp(newId, epIdx);
   };
 
   function getPartnerSectionTitle(partnerRaw) {
@@ -1439,15 +1402,15 @@
       let allChannels = [];
       snap.forEach(d => { if(d.id !== excludeId) allChannels.push({ id: d.id, ...d.data() }); });
 
-      const targetGenre = (currentChannel?.Genres || '').toLowerCase();
+      const targetGenre = (currentContent?.Genres || '').toLowerCase();
       let recommended = allChannels.filter(c => targetGenre && (c.Genres || '').toLowerCase().includes(targetGenre));
       if (recommended.length === 0) recommended = allChannels;
 
-      const targetPartner = (currentChannel?.Partner || '').toLowerCase();
+      const targetPartner = (currentContent?.Partner || '').toLowerCase();
       let partnerChannels = allChannels.filter(c => targetPartner && (c.Partner || '').toLowerCase().includes(targetPartner));
       if (partnerChannels.length === 0) partnerChannels = allChannels;
 
-      sec2Heading.innerText = getPartnerSectionTitle(currentChannel?.Partner);
+      sec2Heading.innerText = getPartnerSectionTitle(currentContent?.Partner);
 
       const renderPortraitCard = (c) => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="card-item">
