@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - Sync, Filter & Randomize Channel</title>
+  <title>Admin - Sync Channel or Playlist</title>
   <style>
     body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 30px; }
     .card { background: #1e1e1e; padding: 25px; border-radius: 8px; max-width: 650px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
@@ -20,13 +20,13 @@
 <div class="card">
   <h2>YouTube Live Stream Setup</h2>
   
-  <label>1. YouTube Channel URL or Handle:</label>
-  <input type="text" id="channelInput" placeholder="e.g. https://www.youtube.com/@LofiGirl or Channel URL">
-  <div class="note">Supports full URLs, Handles (@name), or Channel IDs</div>
+  <label>1. YouTube Channel or Playlist URL / Handle:</label>
+  <input type="text" id="sourceInput" placeholder="e.g. Playlist URL, Channel URL, or @handle">
+  <div class="note">Supports: Playlist URLs, Channel URLs, Handles (@name), or Playlist/Channel IDs</div>
 
   <label>2. Title Filter Keyword (Optional):</label>
-  <input type="text" id="filterInput" placeholder="e.g. doraemon, shin chan, episode">
-  <div class="note">Only videos with matching titles will be picked (separate multiple with commas)</div>
+  <input type="text" id="filterInput" placeholder="e.g. doraemon, shinchan, episode">
+  <div class="note">Only videos matching keyword(s) will be included (comma-separated for multiple)</div>
 
   <button onclick="fetchFilterShuffleSave()">Filter, Randomize & Sync Stream</button>
   <div id="status"></div>
@@ -69,86 +69,108 @@
     return array;
   }
 
-  // Resolve Channel ID from input
-  async function resolveChannelId(input) {
+  // Resolves Input into a YouTube Playlist ID (Works for Channels & Playlists)
+  async function resolveToPlaylistId(input) {
     input = input.trim();
 
-    if (input.startsWith('UC') && input.length === 24) return input;
-
-    let handleMatch = input.match(/@([\w.-]+)/);
-    let handle = handleMatch ? handleMatch[1] : (input.startsWith('@') ? input.slice(1) : null);
-
-    if (handle) {
-      const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${handle}&key=${YT_API_KEY}`);
-      const data = await res.json();
-      if (data.items && data.items.length > 0) return data.items[0].id;
+    // 1. Check if input contains a Playlist ID (e.g. list=PL123... or direct PL...)
+    let playlistMatch = input.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    if (playlistMatch) return playlistMatch[1];
+    if ((input.startsWith('PL') || input.startsWith('UU')) && input.length >= 18) {
+      return input;
     }
 
-    let channelMatch = input.match(/channel\/(UC[\w-]+)/);
-    if (channelMatch) return channelMatch[1];
+    // 2. Direct Channel ID (UC...)
+    let channelId = null;
+    if (input.startsWith('UC') && input.length === 24) {
+      channelId = input;
+    } else {
+      // 3. Extract Handle (@username)
+      let handleMatch = input.match(/@([\w.-]+)/);
+      let handle = handleMatch ? handleMatch[1] : (input.startsWith('@') ? input.slice(1) : null);
 
-    throw new Error("Invalid YouTube Channel URL or Handle. Could not resolve Channel ID.");
+      if (handle) {
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${handle}&key=${YT_API_KEY}`);
+        const data = await res.json();
+        if (data.items && data.items.length > 0) {
+          return data.items[0].contentDetails.relatedPlaylists.uploads;
+        }
+      }
+
+      // 4. Extract channel/UC... from full Channel URL
+      let channelMatch = input.match(/channel\/(UC[\w-]+)/);
+      if (channelMatch) channelId = channelMatch[1];
+    }
+
+    if (channelId) {
+      const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YT_API_KEY}`);
+      const chData = await chRes.json();
+      if (chData.items && chData.items.length > 0) {
+        return chData.items[0].contentDetails.relatedPlaylists.uploads;
+      }
+    }
+
+    throw new Error("Could not resolve Playlist or Channel ID. Please check the URL.");
   }
 
   async function fetchFilterShuffleSave() {
-    const rawInput = document.getElementById('channelInput').value;
+    const rawInput = document.getElementById('sourceInput').value;
     const filterText = document.getElementById('filterInput').value.trim().toLowerCase();
     const statusDiv = document.getElementById('status');
 
-    if (!rawInput) return alert('Please enter a Channel URL or Handle');
+    if (!rawInput) return alert('Please enter a Playlist URL, Channel URL, or Handle');
 
     statusDiv.style.color = "#fff";
-    statusDiv.innerText = "Resolving Channel ID...";
+    statusDiv.innerText = "Resolving Playlist ID...";
 
     try {
-      // 1. Get Channel ID
-      const channelId = await resolveChannelId(rawInput);
-      statusDiv.innerText = `Channel ID found: ${channelId}. Fetching recent videos...`;
+      // 1. Resolve to Playlist ID
+      const playlistId = await resolveToPlaylistId(rawInput);
+      statusDiv.innerText = `Playlist ID found: ${playlistId}. Fetching videos...`;
 
-      // 2. Get Uploads Playlist ID
-      const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YT_API_KEY}`);
-      const chData = await chRes.json();
-      const uploadsPlaylistId = chData.items[0].contentDetails.relatedPlaylists.uploads;
-
-      // 3. Fetch 50 video IDs from Uploads Playlist
-      const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${uploadsPlaylistId}&maxResults=50&key=${YT_API_KEY}`);
+      // 2. Fetch up to 50 videos from the Playlist
+      const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=50&key=${YT_API_KEY}`);
       const plData = await plRes.json();
+
+      if (!plData.items || plData.items.length === 0) {
+        throw new Error("No videos found in this playlist.");
+      }
+
       const videoIds = plData.items.map(item => item.contentDetails.videoId).join(',');
 
-      // 4. Fetch details & durations
+      // 3. Fetch details & durations
       const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${YT_API_KEY}`);
       const vData = await vRes.json();
 
       // Split filter keywords if comma-separated
       const keywords = filterText ? filterText.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
 
-      // 5. Filter videos based on keywords
+      // 4. Filter videos based on keywords
       let videos = vData.items.map(v => ({
         id: v.id,
         title: v.snippet.title,
         duration: parseISO8601Duration(v.contentDetails.duration)
       })).filter(v => {
-        if (v.duration <= 0) return false; // Ignore live streams / zero length
-        if (keywords.length === 0) return true; // No filter specified, keep all
+        if (v.duration <= 0) return false; // Exclude live streams / zero duration
+        if (keywords.length === 0) return true; // Keep all if no filter
 
-        // Keep video if title matches ANY of the keywords
         const titleLower = v.title.toLowerCase();
         return keywords.some(keyword => titleLower.includes(keyword));
       });
 
       if (videos.length === 0) {
-        throw new Error("No videos found matching your filter keyword(s). Try different keywords.");
+        throw new Error("No videos matched your keyword filter.");
       }
 
-      // 6. RANDOMIZE / SHUFFLE FILTERED VIDEOS
+      // 5. RANDOMIZE / SHUFFLE VIDEOS
       videos = shuffleArray(videos);
 
-      // Calculate Total Duration
+      // Calculate Total Loop Duration
       const totalDuration = videos.reduce((acc, v) => acc + v.duration, 0);
 
       statusDiv.innerText = `Matched ${videos.length} videos. Saving schedule to Firestore...`;
 
-      // 7. Save to Firestore
+      // 6. Save to Firestore DB
       await db.collection("schedules").doc("main").set({
         epochStartTime: Date.now(),
         totalDuration: totalDuration,
