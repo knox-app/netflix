@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- JWPlayer Library (Exact Library for DASH MPD) -->
+  <!-- JWPlayer Library for DASH MPD -->
   <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
 
   <style>
@@ -40,19 +40,19 @@
       position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden;
     }
 
-    /* M3U8 Video Aspect Modes */
+    /* Primary and Background Video Elements for Seamless Language Switching */
     video {
-      width: 100%; height: 100%; border: none; object-fit: contain;
-      transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: absolute; inset: 0; width: 100%; height: 100%; border: none; object-fit: contain;
+      transition: object-fit 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+      z-index: 1;
     }
-    video.fill-screen {
-      object-fit: cover !important;
-    }
+    video.fill-screen { object-fit: cover !important; }
+    video.hidden-video { opacity: 0; pointer-events: none; z-index: 0; }
 
     /* Clean Zero-Flash YouTube Frame Host Wrapper */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
-      background: #000; opacity: 0;
+      background: #000; opacity: 0; z-index: 2;
       transition: opacity 0.4s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     #ytFrameHost.ready { opacity: 1 !important; }
@@ -69,13 +69,11 @@
 
     /* JWPlayer Host Wrapper for MPD ClearKey DRM */
     #jwHost {
-      position: absolute; inset: 0; display: none; width: 100%; height: 100%;
+      position: absolute; inset: 0; display: none; width: 100%; height: 100%; z-index: 2;
     }
-    #jwHost.fill-screen {
-      transform: scale(1.15);
-    }
+    #jwHost.fill-screen { transform: scale(1.15); }
 
-    iframe#iframePlayer { width: 100%; height: 100%; border: none; }
+    iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
 
     /* Mobile Landscape Fullscreen Layout */
     body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
@@ -154,6 +152,53 @@
       display: none; align-items: center; gap: 5px; text-transform: uppercase; letter-spacing: 0.5px;
     }
     .btn-go-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live-red); }
+
+    /* Disney+ Hotstar Settings Drawer Modal (Screenshots 2 & 3) */
+    .settings-modal {
+      position: absolute; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.94);
+      backdrop-filter: blur(10px); display: none; flex-direction: column; padding: 20px 30px;
+    }
+    .settings-modal.active { display: flex; }
+
+    .sheet-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding-bottom: 14px; margin-bottom: 20px;
+    }
+    .sheet-tabs { display: flex; gap: 30px; }
+    .tab-btn {
+      background: none; border: none; color: var(--text-muted); font-size: 15px;
+      font-weight: 700; cursor: pointer; padding-bottom: 8px; position: relative;
+    }
+    .tab-btn.active { color: #fff; }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: #fff; border-radius: 2px;
+    }
+    .sheet-actions { display: flex; align-items: center; gap: 20px; font-size: 13px; }
+    .sheet-actions a { color: var(--text-muted); text-decoration: none; font-weight: 600; }
+    .sheet-actions .close-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; }
+
+    .tab-content-panel { display: none; width: 100%; height: 100%; overflow-y: auto; }
+    .tab-content-panel.active { display: block; }
+
+    /* Quality List Layout (Screenshot 2) */
+    .quality-option-list { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
+    .q-item { display: flex; align-items: center; gap: 14px; cursor: pointer; }
+    .q-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
+    .q-title { font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .q-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-left: 6px; }
+    .upgrade-tag { font-size: 10px; color: #ffaa00; font-weight: 800; letter-spacing: 0.5px; }
+
+    /* Audio & Subtitles Two-Column Layout (Screenshot 3) */
+    .two-col-layout { display: flex; gap: 40px; height: 100%; }
+    .col-half { flex: 1; display: flex; flex-direction: column; }
+    .col-divider { width: 1px; background: rgba(255,255,255,0.1); height: 100%; }
+    .col-title { font-size: 12px; font-weight: 800; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase; }
+
+    .audio-option-list, .sub-option-list { display: flex; flex-direction: column; gap: 16px; }
+    .lang-item { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .lang-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
+    .lang-label { font-size: 15px; font-weight: 700; color: #fff; }
+    .lang-sub { font-size: 12px; color: var(--text-muted); }
 
     /* Watch Next Overlay Tray */
     .watch-next-overlay {
@@ -261,16 +306,15 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- Video Element -->
-      <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
+      <!-- Primary and Secondary Video Elements for Gapless Language Switching -->
+      <video id="videoPlayer1" playsinline crossorigin="anonymous"></video>
+      <video id="videoPlayer2" class="hidden-video" playsinline crossorigin="anonymous"></video>
 
       <!-- Clean Zero-Flash YouTube Frame Host Wrapper -->
       <div id="ytFrameHost"></div>
 
-      <!-- JWPlayer Host Wrapper (Re-hydrated cleanly on channel switch) -->
-      <div id="jwHost">
-        <div id="player"></div>
-      </div>
+      <!-- JWPlayer Host Wrapper for MPD ClearKey DRM -->
+      <div id="jwHost"><div id="player"></div></div>
 
       <!-- Fallback IFrame -->
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
@@ -298,6 +342,7 @@
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
+            <!-- Settings Gear Button -->
             <button class="icon-btn" id="settingsBtn" title="Settings">
               <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
@@ -343,6 +388,92 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Disney+ Hotstar Settings Drawer Modal (Screenshots 2 & 3) -->
+      <div class="settings-modal" id="settingsModal">
+        <div class="sheet-header">
+          <div class="sheet-tabs">
+            <button class="tab-btn active" id="tabQuality">Quality</button>
+            <button class="tab-btn" id="tabAudio">Audio & Subtitles</button>
+            <button class="tab-btn" id="tabSpeed">Playback Speed</button>
+          </div>
+          <div class="sheet-actions">
+            <a href="#">Report an Issue</a>
+            <button class="close-btn" id="closeSettingsBtn">✕</button>
+          </div>
+        </div>
+
+        <!-- Quality Panel (Screenshot 2) -->
+        <div class="tab-content-panel active" id="qualityPanel">
+          <div class="quality-option-list" id="qualityOptionsList">
+            <div class="q-item" data-level="-1">
+              <div class="q-check">✓</div>
+              <div>
+                <div class="q-title">Auto <span class="q-sub">Recommended for best experience</span></div>
+              </div>
+            </div>
+            <div class="q-item" data-level="1080">
+              <div class="q-check"></div>
+              <div>
+                <div class="q-title">Full HD <span class="q-sub">Up to 1080p</span></div>
+              </div>
+            </div>
+            <div class="q-item" data-level="720">
+              <div class="q-check"></div>
+              <div>
+                <div class="q-title">HD <span class="q-sub">Up to 720p</span></div>
+              </div>
+            </div>
+            <div class="q-item" data-level="360">
+              <div class="q-check"></div>
+              <div>
+                <div class="q-title">Data Saver</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio & Subtitles Panel (Screenshot 3) -->
+        <div class="tab-content-panel" id="audioPanel">
+          <div class="two-col-layout">
+            <div class="col-half">
+              <div class="col-title">AUDIO</div>
+              <div class="audio-option-list" id="audioOptionsList">
+                <!-- Dynamically populated from Multi-Language map -->
+              </div>
+            </div>
+            <div class="col-divider"></div>
+            <div class="col-half">
+              <div class="col-title">SUBTITLES</div>
+              <div class="sub-option-list">
+                <div class="lang-item">
+                  <div class="lang-check">✓</div>
+                  <div><div class="lang-label">Off</div></div>
+                </div>
+                <div class="lang-item">
+                  <div class="lang-check"></div>
+                  <div><div class="lang-label">Chinese</div></div>
+                </div>
+                <div class="lang-item">
+                  <div class="lang-check"></div>
+                  <div><div class="lang-label">English</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playback Speed Panel -->
+        <div class="tab-content-panel" id="speedPanel">
+          <div class="quality-option-list" id="speedOptionsList">
+            <div class="q-item" data-speed="1"><div class="q-check">✓</div><div class="q-title">Normal (1x)</div></div>
+            <div class="q-item" data-speed="1.25"><div class="q-check"></div><div class="q-title">1.25x</div></div>
+            <div class="q-item" data-speed="1.5"><div class="q-check"></div><div class="q-title">1.5x</div></div>
+            <div class="q-item" data-speed="2"><div class="q-check"></div><div class="q-title">2x</div></div>
+            <div class="q-item" data-speed="0.75"><div class="q-check"></div><div class="q-title">0.75x</div></div>
+          </div>
+        </div>
       </div>
 
       <!-- Watch Next Tray Overlay -->
@@ -415,7 +546,9 @@
   let isScreenLocked = false;
   let isFillScreen = false;
   let currentChannel = null;
+  let currentStreamUrl = null;
   let isUserSeeking = false;
+  let activeVideoIndex = 1; // 1 or 2 for dual background video buffering
 
   let channelDocUnsub = null;
   let collectionUnsub = null;
@@ -429,7 +562,6 @@
     initApp(currentDocId);
   }
 
-  // Safe HTTPS Sanitizer
   function safeUrl(url) {
     if (!url) return '';
     return url.trim().replace(/^http:\/\//i, 'https://');
@@ -450,19 +582,24 @@
     return null;
   }
 
-  // STOP AUDIO LEAK & CLEANLY RE-HYDRATE PLAYERS
+  function getActiveVideo() {
+    return document.getElementById(activeVideoIndex === 1 ? 'videoPlayer1' : 'videoPlayer2');
+  }
+
   function destroyActivePlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
       hlsInstance = null;
     }
-    const video = document.getElementById('videoPlayer');
-    if (video) {
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-      video.classList.remove('fill-screen');
-    }
+    [1, 2].forEach(idx => {
+      const v = document.getElementById(`videoPlayer${idx}`);
+      if (v) {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+        v.classList.remove('fill-screen');
+      }
+    });
     if (ytPlayerInstance) {
       try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
       ytPlayerInstance = null;
@@ -491,20 +628,22 @@
     isFillScreen = false;
   }
 
-  // Unified Pinch Zoom Handler
   function applyZoomState(fill) {
     isFillScreen = fill;
-    const video = document.getElementById('videoPlayer');
+    const v1 = document.getElementById('videoPlayer1');
+    const v2 = document.getElementById('videoPlayer2');
     const ytHost = document.getElementById('ytFrameHost');
     const jwHost = document.getElementById('jwHost');
 
     if (fill) {
-      video.classList.add('fill-screen');
+      v1.classList.add('fill-screen');
+      v2.classList.add('fill-screen');
       ytHost.classList.add('fill-screen');
       jwHost.classList.add('fill-screen');
       showToast("Zoomed to Fill Screen");
     } else {
-      video.classList.remove('fill-screen');
+      v1.classList.remove('fill-screen');
+      v2.classList.remove('fill-screen');
       ytHost.classList.remove('fill-screen');
       jwHost.classList.remove('fill-screen');
       showToast("Fit to Screen (Original)");
@@ -548,6 +687,7 @@
       if (isAuth) {
         document.getElementById('accessDeniedBox').style.display = 'none';
         initStreamOrMpd(currentChannel);
+        populateAudioOptions(currentChannel);
       } else {
         showDenied("Access Restricted", `Your subscription plan does not include content from '${currentChannel.Partner || 'this studio'}'.`, "Upgrade Plan", "1 (3).html");
       }
@@ -604,11 +744,10 @@
     document.getElementById('controlsOverlay').style.display = 'none';
   }
 
-  // AUTOMATIC STREAM OR MPD ROUTER
   function initStreamOrMpd(data) {
     destroyActivePlayers();
 
-    const video = document.getElementById('videoPlayer');
+    const video = getActiveVideo();
     const iframe = document.getElementById('iframePlayer');
     const overlay = document.getElementById('controlsOverlay');
     const ytHost = document.getElementById('ytFrameHost');
@@ -630,17 +769,14 @@
       key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
     }
 
-    // 1. Play MPD DASH with ClearKey DRM if MPD File exists
     if (mpdFile) {
       playJWPlayerMPD(mpdFile, keyId, key);
       return;
     }
 
-    // 2. Stream URL handling
     if (streamUrl && streamUrl !== '') {
       const ytId = extractYouTubeId(streamUrl);
 
-      // YouTube Stream
       if (ytId) {
         activePlayerType = 'youtube';
         video.style.display = 'none';
@@ -684,12 +820,12 @@
         setupInteraction();
         return;
       }
-      // HLS / M3U8 Stream
       else if (streamUrl.includes('.m3u8') || streamUrl.includes('hls')) {
         activePlayerType = 'hls';
         iframe.style.display = 'none';
         ytHost.style.display = 'none';
         video.style.display = 'block';
+        video.classList.remove('hidden-video');
         overlay.style.display = 'flex';
 
         if (Hls.isSupported()) {
@@ -704,7 +840,6 @@
         setupInteraction();
         return;
       }
-      // Fallback IFrame
       else {
         activePlayerType = 'iframe';
         video.style.display = 'none';
@@ -719,11 +854,10 @@
     showToast("No playable stream or MPD source found.");
   }
 
-  // EXACT WORKING JWPLAYER CLEARKEY DRM SETUP
   function playJWPlayerMPD(mpdUrl, keyId, key) {
     activePlayerType = 'jwplayer';
 
-    const video = document.getElementById('videoPlayer');
+    const video = getActiveVideo();
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const jwHost = document.getElementById('jwHost');
@@ -733,7 +867,6 @@
     iframe.style.display = 'none';
     ytHost.style.display = 'none';
     
-    // Ensure jwHost is visible and contains a fresh <div id="player">
     jwHost.style.display = 'block';
     jwHost.innerHTML = '<div id="player"></div>';
     overlay.style.display = 'flex';
@@ -750,8 +883,8 @@
         } : undefined
       }],
       autostart: true,
-      mute: false,     // Explicitly request unmuted playback
-      volume: 100,    // Explicitly set 100% volume
+      mute: false,
+      volume: 100,
       width: "100%",
       height: "100%",
       stretching: "exactfit",
@@ -764,12 +897,7 @@
       jwPlayerInstance.on('play', () => {
         document.getElementById('playIcon').style.display = 'none';
         document.getElementById('pauseIcon').style.display = 'block';
-
-        // FORCE UNMUTE & FULL VOLUME ON PLAY EVENT
-        try {
-          jwPlayerInstance.setMute(false);
-          jwPlayerInstance.setVolume(100);
-        } catch(e){}
+        try { jwPlayerInstance.setMute(false); jwPlayerInstance.setVolume(100); } catch(e){}
       });
 
       jwPlayerInstance.on('pause', () => {
@@ -780,19 +908,100 @@
       jwPlayerInstance.on('error', function() {
         setTimeout(() => {
           if (jwPlayerInstance) {
-            try {
-              jwPlayerInstance.load();
-              jwPlayerInstance.play();
-            } catch(e){}
+            try { jwPlayerInstance.load(); jwPlayerInstance.play(); } catch(e){}
           }
         }, 3000);
       });
 
     } catch (err) {
-      console.error("JWPlayer setup error:", err);
+      console.error("JWPlayer error:", err);
     }
 
     setupInteraction();
+  }
+
+  // SEAMLESS GAPLESS LANGUAGE SWITCHING (DUAL BACKGROUND VIDEO BUFFERING)
+  function seamlessSwitchLanguageStream(targetStreamUrl) {
+    if (!targetStreamUrl) return;
+
+    showToast("Switching Audio Language...");
+
+    const currentVid = getActiveVideo();
+    const nextVideoIdx = activeVideoIndex === 1 ? 2 : 1;
+    const nextVid = document.getElementById(`videoPlayer${nextVideoIdx}`);
+
+    if (activePlayerType === 'hls') {
+      const newHls = new Hls({ liveSyncDurationCount: 3 });
+      newHls.loadSource(targetStreamUrl);
+      newHls.attachMedia(nextVid);
+      
+      newHls.on(Hls.Events.MANIFEST_PARSED, () => {
+        nextVid.currentTime = currentVid.currentTime || 0;
+        nextVid.play().then(() => {
+          // SWAP ACTIVE PLAYERS ONLY AFTER NEW STREAM IS PLAYING SMOOTHLY
+          nextVid.classList.remove('hidden-video');
+          currentVid.classList.add('hidden-video');
+
+          if (hlsInstance) hlsInstance.destroy();
+          hlsInstance = newHls;
+          currentVid.pause();
+          activeVideoIndex = nextVideoIdx;
+          setupInteraction();
+        }).catch(err => console.error(err));
+      });
+    } else {
+      initStreamOrMpd({ Stream: targetStreamUrl, Partner: currentChannel.Partner });
+    }
+  }
+
+  // POPULATE DYNAMIC MULTI-LANGUAGE AUDIO OPTIONS (Screenshot 3)
+  function populateAudioOptions(ch) {
+    const list = document.getElementById('audioOptionsList');
+    list.innerHTML = '';
+
+    const defaultLang = ch.Language || 'Hindi';
+    const multiLangMap = ch["Multi-Language"] || ch.multiLanguage || ch.MultiLanguage || {};
+
+    // 1. Default Primary Language Option
+    list.innerHTML += `
+      <div class="lang-item" data-stream="${safeUrl(ch.Stream)}">
+        <div class="lang-check">✓</div>
+        <div>
+          <div class="lang-label">${defaultLang}</div>
+          <div class="lang-sub">Original</div>
+        </div>
+      </div>
+    `;
+
+    // 2. Dynamic Options from Firestore `Multi-Language` Map Object
+    Object.keys(multiLangMap).forEach(langKey => {
+      const langUrl = safeUrl(multiLangMap[langKey]);
+      list.innerHTML += `
+        <div class="lang-item" data-stream="${langUrl}">
+          <div class="lang-check"></div>
+          <div>
+            <div class="lang-label">${langKey}</div>
+          </div>
+        </div>
+      `;
+    });
+
+    // Attach Click Event for Gapless Switching
+    document.querySelectorAll('#audioOptionsList .lang-item').forEach(item => {
+      item.onclick = (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => {
+          i.querySelector('.lang-check').innerText = '';
+        });
+        item.querySelector('.lang-check').innerText = '✓';
+
+        const streamUrl = item.dataset.stream;
+        if (streamUrl) {
+          seamlessSwitchLanguageStream(streamUrl);
+        }
+        setTimeout(() => document.getElementById('settingsModal').classList.remove('active'), 300);
+      };
+    });
   }
 
   function showToast(msg) {
@@ -803,7 +1012,7 @@
   }
 
   function setupInteraction() {
-    const video = document.getElementById('videoPlayer');
+    const video = getActiveVideo();
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
     const playBtn = document.getElementById('playBtn');
@@ -814,6 +1023,7 @@
     const lockBtn = document.getElementById('lockBtn');
     const unlockBtn = document.getElementById('unlockBtn');
     const backBtn = document.getElementById('backBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
     const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
     const progressBar = document.getElementById('progressBar');
     const timeDisplay = document.getElementById('timeDisplay');
@@ -829,11 +1039,10 @@
       }, 3500);
     };
 
-    // Click to Wakeup & Click to Sleep + AUTO-UNMUTE ON FIRST TAP
+    // Click to Wakeup & Click to Sleep + AUTO-UNMUTE ON TAP
     playerContainer.onclick = (e) => {
       e.stopPropagation();
 
-      // UNMUTE AUDIO ON TAP IF BROWSER MUTED AUTOPLAY
       try {
         if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
           jwPlayerInstance.setMute(false);
@@ -989,6 +1198,91 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
+    // HOTSTAR SETTINGS DRAWER MODAL INTERACTION (Screenshots 2 & 3)
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const tabQuality = document.getElementById('tabQuality');
+    const tabAudio = document.getElementById('tabAudio');
+    const tabSpeed = document.getElementById('tabSpeed');
+    const qualityPanel = document.getElementById('qualityPanel');
+    const audioPanel = document.getElementById('audioPanel');
+    const speedPanel = document.getElementById('speedPanel');
+
+    settingsBtn.onclick = (e) => {
+      e.stopPropagation();
+      settingsModal.classList.add('active');
+    };
+
+    closeSettingsBtn.onclick = (e) => {
+      e.stopPropagation();
+      settingsModal.classList.remove('active');
+    };
+
+    tabQuality.onclick = (e) => {
+      e.stopPropagation();
+      tabQuality.classList.add('active');
+      tabAudio.classList.remove('active');
+      tabSpeed.classList.remove('active');
+      qualityPanel.classList.add('active');
+      audioPanel.classList.remove('active');
+      speedPanel.classList.remove('active');
+    };
+
+    tabAudio.onclick = (e) => {
+      e.stopPropagation();
+      tabAudio.classList.add('active');
+      tabQuality.classList.remove('active');
+      tabSpeed.classList.remove('active');
+      audioPanel.classList.add('active');
+      qualityPanel.classList.remove('active');
+      speedPanel.classList.remove('active');
+    };
+
+    tabSpeed.onclick = (e) => {
+      e.stopPropagation();
+      tabSpeed.classList.add('active');
+      tabQuality.classList.remove('active');
+      tabAudio.classList.remove('active');
+      speedPanel.classList.add('active');
+      qualityPanel.classList.remove('active');
+      audioPanel.classList.remove('active');
+    };
+
+    // Quality Selection Handler (Screenshot 2)
+    document.querySelectorAll('#qualityOptionsList .q-item').forEach(item => {
+      item.onclick = (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('#qualityOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
+        item.querySelector('.q-check').innerText = '✓';
+
+        const targetHeight = parseInt(item.dataset.level);
+        if (hlsInstance) {
+          if (targetHeight === -1) {
+            hlsInstance.currentLevel = -1; // Auto
+          } else {
+            const idx = hlsInstance.levels.findIndex(l => l.height <= targetHeight);
+            if (idx !== -1) hlsInstance.currentLevel = idx;
+          }
+        }
+        setTimeout(() => settingsModal.classList.remove('active'), 250);
+      };
+    });
+
+    // Speed Selection Handler
+    document.querySelectorAll('#speedOptionsList .q-item').forEach(item => {
+      item.onclick = (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('#speedOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
+        item.querySelector('.q-check').innerText = '✓';
+
+        const spd = parseFloat(item.dataset.speed);
+        if (video) video.playbackRate = spd;
+        if (ytPlayerInstance && ytPlayerInstance.setPlaybackRate) ytPlayerInstance.setPlaybackRate(spd);
+        showToast(`Speed: ${spd}x`);
+        setTimeout(() => settingsModal.classList.remove('active'), 250);
+      };
+    });
+
     fullscreenToggleBtn.onclick = async (e) => {
       e.stopPropagation();
       if (!document.fullscreenElement) {
@@ -1008,6 +1302,7 @@
           await document.exitFullscreen().catch(() => {});
         }
         document.body.classList.remove('landscape-mode');
+        settingsModal.classList.remove('active');
       }
     };
 
@@ -1016,6 +1311,7 @@
         try { if (screen.orientation?.unlock) screen.orientation.unlock(); } catch(e){}
         if (window.innerWidth < window.innerHeight) {
           document.body.classList.remove('landscape-mode');
+          settingsModal.classList.remove('active');
         }
       }
     });
@@ -1068,6 +1364,7 @@
       } else {
         document.body.classList.remove('landscape-mode');
         watchNextOverlay.classList.remove('show');
+        settingsModal.classList.remove('active');
       }
     };
     window.addEventListener('resize', checkOrientation);
