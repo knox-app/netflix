@@ -2,27 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - Sync & Randomize Cannel</title>
+  <title>Admin - Sync, Filter & Randomize Channel</title>
   <style>
     body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 30px; }
     .card { background: #1e1e1e; padding: 25px; border-radius: 8px; max-width: 650px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-    input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 5px; border: none; box-sizing: border-box; }
+    label { font-size: 14px; font-weight: bold; margin-top: 15px; display: block; color: #ddd; }
+    input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 5px; border: none; box-sizing: border-box; }
     input { background: #2d2d2d; color: #fff; font-size: 15px; }
-    button { background: #ff0000; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 15px; }
+    button { background: #ff0000; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 20px; }
     button:hover { background: #cc0000; }
     #status { margin-top: 15px; font-size: 14px; word-break: break-all; line-height: 1.4; }
-    .note { font-size: 12px; color: #aaa; margin-top: 5px; }
+    .note { font-size: 12px; color: #aaa; margin-top: 3px; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>YouTube Live Stream Randomizer</h2>
-  <label>Paste YouTube Channel URL or Handle:</label>
-  <input type="text" id="channelInput" placeholder="e.g. https://www.youtube.com/@LofiGirl or https://www.youtube.com/channel/UC...">
-  <div class="note">Supports: Channel URLs, Handles (@username), or Channel IDs</div>
+  <h2>YouTube Live Stream Setup</h2>
   
-  <button onclick="fetchShuffleAndSave()">Randomize & Sync to Firestore</button>
+  <label>1. YouTube Channel URL or Handle:</label>
+  <input type="text" id="channelInput" placeholder="e.g. https://www.youtube.com/@LofiGirl or Channel URL">
+  <div class="note">Supports full URLs, Handles (@name), or Channel IDs</div>
+
+  <label>2. Title Filter Keyword (Optional):</label>
+  <input type="text" id="filterInput" placeholder="e.g. doraemon, shin chan, episode">
+  <div class="note">Only videos with matching titles will be picked (separate multiple with commas)</div>
+
+  <button onclick="fetchFilterShuffleSave()">Filter, Randomize & Sync Stream</button>
   <div id="status"></div>
 </div>
 
@@ -45,7 +51,7 @@
   const db = firebase.firestore();
   const YT_API_KEY = "AIzaSyB9esPb8otx99iGcttUGPEbn1Vm0h14l-w";
 
-  // Helper: Convert ISO 8601 Duration (PT1H2M10S) to Seconds
+  // Helper: Convert ISO 8601 Duration to Seconds
   function parseISO8601Duration(duration) {
     const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     const hours = parseInt(match[1] || 0);
@@ -63,40 +69,33 @@
     return array;
   }
 
-  // Resolves Channel ID from URL, Handle, or direct ID
+  // Resolve Channel ID from input
   async function resolveChannelId(input) {
     input = input.trim();
 
-    // 1. Check if direct UC... ID
-    if (input.startsWith('UC') && input.length === 24) {
-      return input;
-    }
+    if (input.startsWith('UC') && input.length === 24) return input;
 
-    // 2. Extract Handle (@username)
     let handleMatch = input.match(/@([\w.-]+)/);
     let handle = handleMatch ? handleMatch[1] : (input.startsWith('@') ? input.slice(1) : null);
 
     if (handle) {
       const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${handle}&key=${YT_API_KEY}`);
       const data = await res.json();
-      if (data.items && data.items.length > 0) {
-        return data.items[0].id;
-      }
+      if (data.items && data.items.length > 0) return data.items[0].id;
     }
 
-    // 3. Extract channel/UC... from full URL
     let channelMatch = input.match(/channel\/(UC[\w-]+)/);
-    if (channelMatch) {
-      return channelMatch[1];
-    }
+    if (channelMatch) return channelMatch[1];
 
     throw new Error("Invalid YouTube Channel URL or Handle. Could not resolve Channel ID.");
   }
 
-  async function fetchShuffleAndSave() {
+  async function fetchFilterShuffleSave() {
     const rawInput = document.getElementById('channelInput').value;
+    const filterText = document.getElementById('filterInput').value.trim().toLowerCase();
     const statusDiv = document.getElementById('status');
-    if (!rawInput) return alert('Please enter a Channel URL or ID');
+
+    if (!rawInput) return alert('Please enter a Channel URL or Handle');
 
     statusDiv.style.color = "#fff";
     statusDiv.innerText = "Resolving Channel ID...";
@@ -104,37 +103,52 @@
     try {
       // 1. Get Channel ID
       const channelId = await resolveChannelId(rawInput);
-      statusDiv.innerText = `Channel ID found: ${channelId}. Fetching uploads...`;
+      statusDiv.innerText = `Channel ID found: ${channelId}. Fetching recent videos...`;
 
       // 2. Get Uploads Playlist ID
       const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YT_API_KEY}`);
       const chData = await chRes.json();
       const uploadsPlaylistId = chData.items[0].contentDetails.relatedPlaylists.uploads;
 
-      // 3. Get Video IDs from Playlist (Fetches top 50 recent videos)
+      // 3. Fetch 50 video IDs from Uploads Playlist
       const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${uploadsPlaylistId}&maxResults=50&key=${YT_API_KEY}`);
       const plData = await plRes.json();
       const videoIds = plData.items.map(item => item.contentDetails.videoId).join(',');
 
-      // 4. Get Video Details & Durations
+      // 4. Fetch details & durations
       const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${YT_API_KEY}`);
       const vData = await vRes.json();
 
+      // Split filter keywords if comma-separated
+      const keywords = filterText ? filterText.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
+
+      // 5. Filter videos based on keywords
       let videos = vData.items.map(v => ({
         id: v.id,
         title: v.snippet.title,
         duration: parseISO8601Duration(v.contentDetails.duration)
-      })).filter(v => v.duration > 0); // Exclude live streams without duration
+      })).filter(v => {
+        if (v.duration <= 0) return false; // Ignore live streams / zero length
+        if (keywords.length === 0) return true; // No filter specified, keep all
 
-      // 5. RANDOMIZE / SHUFFLE VIDEOS
+        // Keep video if title matches ANY of the keywords
+        const titleLower = v.title.toLowerCase();
+        return keywords.some(keyword => titleLower.includes(keyword));
+      });
+
+      if (videos.length === 0) {
+        throw new Error("No videos found matching your filter keyword(s). Try different keywords.");
+      }
+
+      // 6. RANDOMIZE / SHUFFLE FILTERED VIDEOS
       videos = shuffleArray(videos);
 
       // Calculate Total Duration
       const totalDuration = videos.reduce((acc, v) => acc + v.duration, 0);
 
-      statusDiv.innerText = "Saving randomized playlist schedule to Firestore...";
+      statusDiv.innerText = `Matched ${videos.length} videos. Saving schedule to Firestore...`;
 
-      // 6. Save to Firestore
+      // 7. Save to Firestore
       await db.collection("schedules").doc("main").set({
         epochStartTime: Date.now(),
         totalDuration: totalDuration,
@@ -142,7 +156,7 @@
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      statusDiv.innerHTML = `<span style="color:#00ff00;">Success! ${videos.length} videos randomly ordered & synced.<br>Total Loop Time: ${Math.round(totalDuration/60)} Mins.</span>`;
+      statusDiv.innerHTML = `<span style="color:#00ff00;">Success! Matched & randomized <b>${videos.length}</b> videos.<br>Total Loop Duration: ${Math.round(totalDuration/60)} Mins.</span>`;
 
     } catch (err) {
       console.error(err);
