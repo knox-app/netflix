@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Sync & Randomize Channel</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 30px; }
+    .card { background: #1e1e1e; padding: 25px; border-radius: 8px; max-width: 650px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 5px; border: none; box-sizing: border-box; }
+    input { background: #2d2d2d; color: #fff; font-size: 15px; }
+    button { background: #ff0000; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 15px; }
+    button:hover { background: #cc0000; }
+    #status { margin-top: 15px; font-size: 14px; word-break: break-all; line-height: 1.4; }
+    .note { font-size: 12px; color: #aaa; margin-top: 5px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>YouTube Live Stream Randomizer</h2>
+  <label>Paste YouTube Channel URL or Handle:</label>
+  <input type="text" id="channelInput" placeholder="e.g. https://www.youtube.com/@LofiGirl or https://www.youtube.com/channel/UC...">
+  <div class="note">Supports: Channel URLs, Handles (@username), or Channel IDs</div>
+  
+  <button onclick="fetchShuffleAndSave()">Randomize & Sync to Firestore</button>
+  <div id="status"></div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+    authDomain: "internal-systems-46728.firebaseapp.com",
+    projectId: "internal-systems-46728",
+    storageBucket: "internal-systems-46728.firebasestorage.app",
+    messagingSenderId: "172177452674",
+    appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+    measurementId: "G-Y87B8VRQ1N"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const YT_API_KEY = "AIzaSyB9esPb8otx99iGcttUGPEbn1Vm0h14l-w";
+
+  // Helper: Convert ISO 8601 Duration (PT1H2M10S) to Seconds
+  function parseISO8601Duration(duration) {
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const hours = parseInt(match[1] || 0);
+    const minutes = parseInt(match[2] || 0);
+    const seconds = parseInt(match[3] || 0);
+    return (hours * 3600) + (minutes * 60) + seconds;
+  }
+
+  // Fisher-Yates Array Shuffle Logic
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  // Resolves Channel ID from URL, Handle, or direct ID
+  async function resolveChannelId(input) {
+    input = input.trim();
+
+    // 1. Check if direct UC... ID
+    if (input.startsWith('UC') && input.length === 24) {
+      return input;
+    }
+
+    // 2. Extract Handle (@username)
+    let handleMatch = input.match(/@([\w.-]+)/);
+    let handle = handleMatch ? handleMatch[1] : (input.startsWith('@') ? input.slice(1) : null);
+
+    if (handle) {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${handle}&key=${YT_API_KEY}`);
+      const data = await res.json();
+      if (data.items && data.items.length > 0) {
+        return data.items[0].id;
+      }
+    }
+
+    // 3. Extract channel/UC... from full URL
+    let channelMatch = input.match(/channel\/(UC[\w-]+)/);
+    if (channelMatch) {
+      return channelMatch[1];
+    }
+
+    throw new Error("Invalid YouTube Channel URL or Handle. Could not resolve Channel ID.");
+  }
+
+  async function fetchShuffleAndSave() {
+    const rawInput = document.getElementById('channelInput').value;
+    const statusDiv = document.getElementById('status');
+    if (!rawInput) return alert('Please enter a Channel URL or ID');
+
+    statusDiv.style.color = "#fff";
+    statusDiv.innerText = "Resolving Channel ID...";
+
+    try {
+      // 1. Get Channel ID
+      const channelId = await resolveChannelId(rawInput);
+      statusDiv.innerText = `Channel ID found: ${channelId}. Fetching uploads...`;
+
+      // 2. Get Uploads Playlist ID
+      const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YT_API_KEY}`);
+      const chData = await chRes.json();
+      const uploadsPlaylistId = chData.items[0].contentDetails.relatedPlaylists.uploads;
+
+      // 3. Get Video IDs from Playlist (Fetches top 50 recent videos)
+      const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${uploadsPlaylistId}&maxResults=50&key=${YT_API_KEY}`);
+      const plData = await plRes.json();
+      const videoIds = plData.items.map(item => item.contentDetails.videoId).join(',');
+
+      // 4. Get Video Details & Durations
+      const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${YT_API_KEY}`);
+      const vData = await vRes.json();
+
+      let videos = vData.items.map(v => ({
+        id: v.id,
+        title: v.snippet.title,
+        duration: parseISO8601Duration(v.contentDetails.duration)
+      })).filter(v => v.duration > 0); // Exclude live streams without duration
+
+      // 5. RANDOMIZE / SHUFFLE VIDEOS
+      videos = shuffleArray(videos);
+
+      // Calculate Total Duration
+      const totalDuration = videos.reduce((acc, v) => acc + v.duration, 0);
+
+      statusDiv.innerText = "Saving randomized playlist schedule to Firestore...";
+
+      // 6. Save to Firestore
+      await db.collection("schedules").doc("main").set({
+        epochStartTime: Date.now(),
+        totalDuration: totalDuration,
+        videos: videos,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      statusDiv.innerHTML = `<span style="color:#00ff00;">Success! ${videos.length} videos randomly ordered & synced.<br>Total Loop Time: ${Math.round(totalDuration/60)} Mins.</span>`;
+
+    } catch (err) {
+      console.error(err);
+      statusDiv.style.color = "#ff4444";
+      statusDiv.innerText = "Error: " + err.message;
+    }
+  }
+</script>
+</body>
+</html>
