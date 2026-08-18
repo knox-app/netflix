@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Synced Live Stream Player</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
+    
+    .video-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none; /* Prevents users from clicking on YouTube video */
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      cursor: pointer;
+    }
+
+    .live-badge {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: red;
+      color: white;
+      padding: 5px 12px;
+      font-weight: bold;
+      border-radius: 4px;
+      font-size: 14px;
+      letter-spacing: 1px;
+      z-index: 10;
+    }
+
+    #now-playing {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: white;
+      background: rgba(0,0,0,0.6);
+      padding: 8px 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+<div class="live-badge">LIVE</div>
+<div id="now-playing">Connecting to channel stream...</div>
+
+<div id="overlay" onclick="startStream()">
+  <h1>Click to Join Stream</h1>
+  <p style="margin-top: 10px; color: #aaa;">Syncing time with live server...</p>
+</div>
+
+<div class="video-container">
+  <div id="player"></div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+    authDomain: "internal-systems-46728.firebaseapp.com",
+    projectId: "internal-systems-46728",
+    storageBucket: "internal-systems-46728.firebasestorage.app",
+    messagingSenderId: "172177452674",
+    appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+    measurementId: "G-Y87B8VRQ1N"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let player;
+  let scheduleData = null;
+  let syncTimer = null;
+
+  // Load YouTube IFrame API
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  const firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+  function onYouTubeIframeAPIReady() {
+    fetchScheduleAndSync();
+  }
+
+  async function fetchScheduleAndSync() {
+    try {
+      const doc = await db.collection("schedules").doc("main").get();
+      if (!doc.exists) {
+        document.getElementById('now-playing').innerText = "No stream schedule found. Run 1.html first.";
+        return;
+      }
+      scheduleData = doc.data();
+      syncStream();
+    } catch (e) {
+      console.error(e);
+      document.getElementById('now-playing').innerText = "Error syncing stream data.";
+    }
+  }
+
+  // Calculate current active video and current start offset
+  function calculateCurrentPlayback(schedule) {
+    const now = Date.now();
+    const elapsedSeconds = Math.floor((now - schedule.epochStartTime) / 1000);
+    
+    let cycleTime = elapsedSeconds % schedule.totalDuration;
+    if (cycleTime < 0) cycleTime += schedule.totalDuration;
+
+    let accumulatedTime = 0;
+    for (let i = 0; i < schedule.videos.length; i++) {
+      const video = schedule.videos[i];
+      if (cycleTime >= accumulatedTime && cycleTime < (accumulatedTime + video.duration)) {
+        const offset = cycleTime - accumulatedTime;
+        return {
+          video: video,
+          offset: offset,
+          remaining: video.duration - offset
+        };
+      }
+      accumulatedTime += video.duration;
+    }
+    return { video: schedule.videos[0], offset: 0, remaining: schedule.videos[0].duration };
+  }
+
+  function syncStream() {
+    if (!scheduleData) return;
+
+    const current = calculateCurrentPlayback(scheduleData);
+    document.getElementById('now-playing').innerText = "Playing: " + current.video.title;
+
+    if (!player) {
+      player = new YT.Player('player', {
+        videoId: current.video.id,
+        playerVars: {
+          'autoplay': 1,
+          'controls': 0,        // Removes YouTube player controls
+          'disablekb': 1,       // Disables keyboard inputs
+          'modestbranding': 1,  // Minimal YouTube logo branding
+          'rel': 0,             // Prevents unrelated video recommendations
+          'start': Math.floor(current.offset) // Exact sync timestamp start
+        },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    } else {
+      player.loadVideoById({
+        videoId: current.video.id,
+        startSeconds: Math.floor(current.offset)
+      });
+    }
+
+    // Set automatic sync timer for when current video finishes
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+      syncStream();
+    }, (current.remaining) * 1000);
+  }
+
+  function onPlayerReady(event) {
+    event.target.playVideo();
+  }
+
+  function onPlayerStateChange(event) {
+    // When a video ends, automatically sync to the next video
+    if (event.data === YT.PlayerState.ENDED) {
+      syncStream();
+    }
+  }
+
+  function startStream() {
+    document.getElementById('overlay').style.display = 'none';
+    if (player && player.playVideo) {
+      player.playVideo();
+    }
+  }
+</script>
+</body>
+</html>
