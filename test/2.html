@@ -2,28 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Synced Live Stream layer</title>
+  <title>24/7 TV Live Broadcast</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
     
-    .video-container {
+    .player-container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      pointer-events: none; /* Prevents users from clicking on YouTube video */
+      pointer-events: none; /* Prevents controls interaction */
     }
 
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
+    /* Dual Player Stacked Style */
+    .player-frame {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
     }
+
+    .player-frame.active {
+      opacity: 1;
+      z-index: 2;
+    }
+
+    iframe { width: 100%; height: 100%; border: none; }
 
     #overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.9);
       color: white;
       display: flex;
       flex-direction: column;
@@ -35,43 +45,35 @@
 
     .live-badge {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      background: red;
-      color: white;
-      padding: 5px 12px;
-      font-weight: bold;
-      border-radius: 4px;
-      font-size: 14px;
-      letter-spacing: 1px;
-      z-index: 10;
+      top: 20px; left: 20px;
+      background: red; color: white;
+      padding: 5px 12px; font-weight: bold;
+      border-radius: 4px; font-size: 14px;
+      letter-spacing: 1px; z-index: 10;
     }
 
     #now-playing {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
-      color: white;
-      background: rgba(0,0,0,0.6);
-      padding: 8px 15px;
-      border-radius: 4px;
-      font-size: 14px;
-      z-index: 10;
+      bottom: 20px; left: 20px;
+      color: white; background: rgba(0,0,0,0.7);
+      padding: 8px 15px; border-radius: 4px;
+      font-size: 14px; z-index: 10;
     }
   </style>
 </head>
 <body>
 
-<div class="live-badge">LIVE</div>
-<div id="now-playing">Connecting to channel stream...</div>
+<div class="live-badge">LIVE TV</div>
+<div id="now-playing">Loading TV Schedule...</div>
 
-<div id="overlay" onclick="startStream()">
-  <h1>Click to Join Stream</h1>
-  <p style="margin-top: 10px; color: #aaa;">Syncing time with live server...</p>
+<div id="overlay" onclick="startBroadcast()">
+  <h1>Click to Join Live Broadcast</h1>
+  <p style="margin-top: 10px; color: #aaa;">Syncing time & pre-buffering stream...</p>
 </div>
 
-<div class="video-container">
-  <div id="player"></div>
+<div class="player-container">
+  <div id="wrapperA" class="player-frame active"><div id="playerA"></div></div>
+  <div id="wrapperB" class="player-frame"><div id="playerB"></div></div>
 </div>
 
 <!-- Firebase SDKs -->
@@ -92,111 +94,145 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  let player;
+  let playerA, playerB;
+  let activePlayerIndex = 0; // 0 = Player A, 1 = Player B
   let scheduleData = null;
-  let syncTimer = null;
+  let preloadedNextVideo = false;
+  let mainLoopInterval = null;
+  let currentActiveState = null;
 
   // Load YouTube IFrame API
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
-  const firstScriptTag = document.getElementsByTagName('script')[0];
-  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+  document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, document.getElementsByTagName('script')[0]);
 
   function onYouTubeIframeAPIReady() {
-    fetchScheduleAndSync();
+    const playerVars = {
+      'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'autoplay': 1
+    };
+
+    playerA = new YT.Player('playerA', { playerVars, events: { 'onReady': onPlayersReady } });
+    playerB = new YT.Player('playerB', { playerVars, events: { 'onReady': onPlayersReady } });
   }
 
-  async function fetchScheduleAndSync() {
+  let playersReadyCount = 0;
+  function onPlayersReady() {
+    playersReadyCount++;
+    if (playersReadyCount === 2) {
+      fetchScheduleAndStart();
+    }
+  }
+
+  async function fetchScheduleAndStart() {
     try {
       const doc = await db.collection("schedules").doc("main").get();
       if (!doc.exists) {
-        document.getElementById('now-playing').innerText = "No stream schedule found. Run 1.html first.";
+        document.getElementById('now-playing').innerText = "No schedule found. Run 1.html first.";
         return;
       }
       scheduleData = doc.data();
-      syncStream();
+      startBroadcastLoop();
     } catch (e) {
       console.error(e);
-      document.getElementById('now-playing').innerText = "Error syncing stream data.";
+      document.getElementById('now-playing').innerText = "Error fetching schedule.";
     }
   }
 
-  // Calculate current active video and current start offset
-  function calculateCurrentPlayback(schedule) {
-    const now = Date.now();
-    const elapsedSeconds = Math.floor((now - schedule.epochStartTime) / 1000);
-    
-    let cycleTime = elapsedSeconds % schedule.totalDuration;
-    if (cycleTime < 0) cycleTime += schedule.totalDuration;
+  function getActiveSlotState() {
+    const now = new Date();
+    const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+    const currentSecondsInMin = now.getSeconds();
 
-    let accumulatedTime = 0;
-    for (let i = 0; i < schedule.videos.length; i++) {
-      const video = schedule.videos[i];
-      if (cycleTime >= accumulatedTime && cycleTime < (accumulatedTime + video.duration)) {
-        const offset = cycleTime - accumulatedTime;
+    // Find active slot based on current clock time
+    let slot = scheduleData.slots.find(s => currentMinutes >= s.startMinutes && currentMinutes < s.endMinutes);
+    
+    // Fallback to first slot if out of bounds
+    if (!slot) slot = scheduleData.slots[0];
+
+    const elapsedInSlotSeconds = ((currentMinutes - slot.startMinutes) * 60) + currentSecondsInMin;
+    let cycleTime = elapsedInSlotSeconds % slot.totalDuration;
+    if (cycleTime < 0) cycleTime += slot.totalDuration;
+
+    let accumulated = 0;
+    for (let i = 0; i < slot.videos.length; i++) {
+      const vid = slot.videos[i];
+      if (cycleTime >= accumulated && cycleTime < (accumulated + vid.duration)) {
+        const offset = cycleTime - accumulated;
+        
+        // Find Next Video for 10-sec preloader
+        let nextVid = slot.videos[(i + 1) % slot.videos.length];
+
         return {
-          video: video,
+          slot: slot,
+          video: vid,
           offset: offset,
-          remaining: video.duration - offset
+          remaining: vid.duration - offset,
+          nextVideo: nextVid
         };
       }
-      accumulatedTime += video.duration;
+      accumulated += vid.duration;
     }
-    return { video: schedule.videos[0], offset: 0, remaining: schedule.videos[0].duration };
+
+    return { slot: slot, video: slot.videos[0], offset: 0, remaining: slot.videos[0].duration, nextVideo: slot.videos[1] || slot.videos[0] };
   }
 
-  function syncStream() {
-    if (!scheduleData) return;
+  function startBroadcastLoop() {
+    clearInterval(mainLoopInterval);
+    
+    // Initial Load for Active Player
+    currentActiveState = getActiveSlotState();
+    getActivePlayer().loadVideoById({ videoId: currentActiveState.video.id, startSeconds: Math.floor(currentActiveState.offset) });
+    document.getElementById('now-playing').innerText = "Playing: " + currentActiveState.video.title;
+    preloadedNextVideo = false;
 
-    const current = calculateCurrentPlayback(scheduleData);
-    document.getElementById('now-playing').innerText = "Playing: " + current.video.title;
+    // Monitor Loop (Checks every 1 second)
+    mainLoopInterval = setInterval(() => {
+      const state = getActiveSlotState();
 
-    if (!player) {
-      player = new YT.Player('player', {
-        videoId: current.video.id,
-        playerVars: {
-          'autoplay': 1,
-          'controls': 0,        // Removes YouTube player controls
-          'disablekb': 1,       // Disables keyboard inputs
-          'modestbranding': 1,  // Minimal YouTube logo branding
-          'rel': 0,             // Prevents unrelated video recommendations
-          'start': Math.floor(current.offset) // Exact sync timestamp start
-        },
-        events: {
-          'onReady': onPlayerReady,
-          'onStateChange': onPlayerStateChange
-        }
-      });
+      // Update Label
+      document.getElementById('now-playing').innerText = "Playing: " + state.video.title;
+
+      // PRE-LOADER TRIGGER: 10 Seconds before video ends
+      if (state.remaining <= 10 && !preloadedNextVideo) {
+        preloadedNextVideo = true;
+        const bgPlayer = getBackgroundPlayer();
+        bgPlayer.loadVideoById({ videoId: state.nextVideo.id, startSeconds: 0 });
+        bgPlayer.pauseVideo(); // Pre-buffered in background
+      }
+
+      // INSTANT SWAP TRIGGER: When current video finishes
+      if (state.remaining <= 1) {
+        swapPlayers();
+        preloadedNextVideo = false;
+      }
+    }, 1000);
+  }
+
+  function getActivePlayer() { return activePlayerIndex === 0 ? playerA : playerB; }
+  function getBackgroundPlayer() { return activePlayerIndex === 0 ? playerB : playerA; }
+
+  function swapPlayers() {
+    const bgPlayer = getBackgroundPlayer();
+    bgPlayer.playVideo(); // Start playing background player
+
+    // Swap CSS visibility
+    const wrapperA = document.getElementById('wrapperA');
+    const wrapperB = document.getElementById('wrapperB');
+
+    if (activePlayerIndex === 0) {
+      wrapperA.classList.remove('active');
+      wrapperB.classList.add('active');
+      activePlayerIndex = 1;
     } else {
-      player.loadVideoById({
-        videoId: current.video.id,
-        startSeconds: Math.floor(current.offset)
-      });
-    }
-
-    // Set automatic sync timer for when current video finishes
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => {
-      syncStream();
-    }, (current.remaining) * 1000);
-  }
-
-  function onPlayerReady(event) {
-    event.target.playVideo();
-  }
-
-  function onPlayerStateChange(event) {
-    // When a video ends, automatically sync to the next video
-    if (event.data === YT.PlayerState.ENDED) {
-      syncStream();
+      wrapperB.classList.remove('active');
+      wrapperA.classList.add('active');
+      activePlayerIndex = 0;
     }
   }
 
-  function startStream() {
+  function startBroadcast() {
     document.getElementById('overlay').style.display = 'none';
-    if (player && player.playVideo) {
-      player.playVideo();
-    }
+    if (playerA && playerA.playVideo) playerA.playVideo();
   }
 </script>
 </body>
