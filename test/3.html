@@ -3,161 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro HLS Multi-Language Runner</title>
+    <title>HLS Video Player with Multi-Audio</title>
+    
+    <!-- HLS.js Library via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
     <style>
-        :root { --accent: #00ff88; --bg: #0a0a0a; --card: #161616; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        
-        .container { width: 100%; max-width: 900px; }
-        
-        .header { text-align: left; margin-bottom: 20px; border-left: 4px solid var(--accent); padding-left: 15px; }
-        h1 { margin: 0; font-size: 24px; }
-        
-        .input-panel { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
-        input { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: var(--accent); border-radius: 6px; box-sizing: border-box; }
-        
-        .btn-group { display: flex; gap: 10px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-main { background: var(--accent); color: black; }
-        .btn-proxy { background: #333; color: white; }
-        button:hover { opacity: 0.8; transform: translateY(-1px); }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        .video-wrapper { background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); aspect-ratio: 16/9; }
-        video { width: 100%; height: 100%; }
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-        .track-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .control-box { background: var(--card); padding: 15px; border-radius: 10px; }
-        label { display: block; font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 8px; letter-spacing: 1px; }
-        select { width: 100%; background: #222; color: white; border: 1px solid #444; padding: 10px; border-radius: 5px; outline: none; }
+        .player-container {
+            width: 100%;
+            max-width: 900px;
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+        }
 
-        .status-bar { margin-top: 15px; font-size: 13px; padding: 10px; border-radius: 5px; background: rgba(255,255,255,0.05); display: none; }
-        .error { color: #ff4444; border-left: 3px solid #ff4444; }
-        .success { color: var(--accent); border-left: 3px solid var(--accent); }
+        .player-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .player-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        /* Language Selector UI */
+        .audio-selector-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        select {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            padding: 6px 12px;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: border-color 0.2s;
+        }
+
+        select:hover, select:focus {
+            border-color: #38bdf8;
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: #000000;
+        }
+
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            outline: none;
+        }
+
+        .error-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            color: #ef4444;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .error-message h3 {
+            margin-bottom: 8px;
+            font-size: 1.2rem;
+        }
+
+        .error-message p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h1>M3U8 Runner</h1>
-        <small style="color: #666;">Multi-Language & CORS Bypass Support</small>
-    </div>
-
-    <div class="input-panel">
-        <input type="text" id="streamUrl" placeholder="Enter .m3u8 URL...">
-        <div class="btn-group">
-            <button class="btn-main" onclick="loadStream(false)">DIRECT PLAY</button>
-            <button class="btn-proxy" onclick="loadStream(true)">PLAY VIA PROXY (Fix Localhost Error)</button>
+    <div class="player-container">
+        <div class="player-header">
+            <h2>Live HLS Stream</h2>
+            
+            <!-- Dynamic Audio Language Selector -->
+            <div id="audioTrackSelector" class="audio-selector-container" style="display: none;">
+                <label for="audioSelect">🌐 Audio:</label>
+                <select id="audioSelect"></select>
+            </div>
+        </div>
+        
+        <div class="video-wrapper">
+            <video id="video" controls preload="auto" crossorigin="anonymous"></video>
+            
+            <div id="errorMessage" class="error-message" style="display: none;">
+                <h3>Stream Error</h3>
+                <p id="errorDetails">Unable to load the video stream.</p>
+            </div>
         </div>
     </div>
 
-    <div class="video-wrapper">
-        <video id="video" controls></video>
-    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.getElementById('video');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorDetails = document.getElementById('errorDetails');
+            
+            const audioTrackSelector = document.getElementById('audioTrackSelector');
+            const audioSelect = document.getElementById('audioSelect');
 
-    <div id="status" class="status-bar"></div>
+            // The target M3U8 URL
+            const streamUrl = "https://edge1-madrid-sprintcdn.r66nv9ed.com/hls2/03/10422/ebuhwuc5szpk_x/master.m3u8?t=1yxml3d3IqPopMbYIKaunzNEgOUzzrxFb02QFH4xefc&s=1787133329&e=10800&f=52113532&srv=1055&asn=9829&sp=5500&p=0";
 
-    <div class="track-controls">
-        <div class="control-box">
-            <label>Audio Language</label>
-            <select id="audioTracks" onchange="changeAudio()"><option value="-1">Auto</option></select>
-        </div>
-        <div class="control-box">
-            <label>Subtitles</label>
-            <select id="subtitleTracks" onchange="changeSubtitle()"><option value="-1">None</option></select>
-        </div>
-    </div>
-</div>
+            function showError(msg) {
+                errorMessage.style.display = 'flex';
+                errorDetails.textContent = msg;
+            }
 
-<script>
-    const video = document.getElementById('video');
-    const status = document.getElementById('status');
-    const audioSelect = document.getElementById('audioTracks');
-    const subSelect = document.getElementById('subtitleTracks');
-    let hls = null;
+            // Check if HLS.js is supported
+            if (Hls.isSupported()) {
+                const hls = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                });
 
-    function showStatus(msg, isError) {
-        status.style.display = 'block';
-        status.innerText = msg;
-        status.className = 'status-bar ' + (isError ? 'error' : 'success');
-    }
+                hls.loadSource(streamUrl);
+                hls.attachMedia(video);
 
-    function loadStream(useProxy) {
-        let url = document.getElementById('streamUrl').value.trim();
-        if (!url) return;
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(() => {
+                        console.log("Autoplay prevented. User interaction required.");
+                    });
+                });
 
-        // Apply CORS Proxy if selected
-        if (useProxy) {
-            url = "https://corsproxy.io/?" + encodeURIComponent(url);
-            showStatus("Attempting to bypass CORS using Proxy...", false);
-        } else {
-            showStatus("Loading stream directly...", false);
-        }
+                // Listen for available Audio Tracks
+                hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (event, data) => {
+                    const tracks = hls.audioTracks;
 
-        if (hls) hls.destroy();
+                    // If more than 1 audio track is available, show the language dropdown
+                    if (tracks && tracks.length > 1) {
+                        audioTrackSelector.style.display = 'flex';
+                        audioSelect.innerHTML = ''; // Clear existing options
 
-        if (Hls.isSupported()) {
-            hls = new Hls({
-                enableWorker: true,
-                lowLatencyMode: true,
-                backBufferLength: 90
-            });
+                        tracks.forEach((track, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            
+                            // Display track name, language code, or fallback label
+                            const langName = track.name || track.lang || `Track ${index + 1}`;
+                            option.textContent = langName.toUpperCase();
+                            
+                            if (index === hls.audioTrack) {
+                                option.selected = true;
+                            }
+                            audioSelect.appendChild(option);
+                        });
+                    } else {
+                        audioTrackSelector.style.display = 'none';
+                    }
+                });
 
-            hls.loadSource(url);
-            hls.attachMedia(video);
+                // Handle switching Audio Language when selected from dropdown
+                audioSelect.addEventListener('change', (e) => {
+                    const selectedTrackId = parseInt(e.target.value, 10);
+                    hls.audioTrack = selectedTrackId;
+                    console.log(`Audio track changed to: ${selectedTrackId}`);
+                });
 
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                showStatus("Manifest loaded successfully!", false);
-                video.play();
-            });
+                // Error Handling
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                showError("Network error: Stream link expired or CORS restricted.");
+                                hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                hls.destroy();
+                                showError("Fatal playback error. Link may have expired.");
+                                break;
+                        }
+                    }
+                });
 
-            // Populate Multi-Language Audio
-            hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (event, data) => {
-                audioSelect.innerHTML = hls.audioTracks.map((track, id) => 
-                    `<option value="${id}">${track.name || track.lang || 'Track ' + id}</option>`
-                ).join('');
-            });
+            // Native HLS support (Safari on macOS/iOS)
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = streamUrl;
+                
+                video.addEventListener('loadedmetadata', () => {
+                    video.play().catch(() => console.log("Autoplay prevented."));
+                });
 
-            // Populate Subtitles
-            hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
-                let options = '<option value="-1">None</option>';
-                options += hls.subtitleTracks.map((track, id) => 
-                    `<option value="${id}">${track.name || track.lang || 'Subtitle ' + id}</option>`
-                ).join('');
-                subSelect.innerHTML = options;
-            });
-
-            // Error Handling
-            hls.on(Hls.Events.ERROR, (event, data) => {
-                if (data.fatal) {
-                    showStatus("Network Error: " + data.details + ". Try 'PLAY VIA PROXY'.", true);
-                    console.error(data);
-                }
-            });
-
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Fallback for Safari
-            video.src = url;
-            showStatus("Native Playback (Safari)", false);
-        }
-    }
-
-    function changeAudio() {
-        hls.audioTrack = parseInt(audioSelect.value);
-    }
-
-    function changeSubtitle() {
-        const id = parseInt(subSelect.value);
-        hls.subtitleTrack = id;
-        hls.subtitleDisplay = (id !== -1);
-    }
-
-    // Auto-fill your URL for testing
-    window.onload = () => {
-        document.getElementById('streamUrl').value = "https://upcloud.animanga.fun/proxy?url=https%3A%2F%2Fcdn.watching.onl%2Fanime%2Fd30960ce77e83d896503d43ba249caf7%2F979b1b166a74bfdba8203e77c6a37cb4%2Fmaster.m3u8&headers=%7B%22user-agent%22%3A%22Mozilla%2F5.0+%28Windows+NT+10.0%3B+Win64%3B+x64%3B+rv%3A137.0%29+Gecko%2F20100101+Firefox%2F137.0%22%2C%22accept%22%3A%22*%2F*%22%2C%22accept-language%22%3A%22en-US%2Cen%3Bq%3D0.5%22%2C%22sec-fetch-dest%22%3A%22empty%22%2C%22sec-fetch-mode%22%3A%22cors%22%2C%22sec-fetch-site%22%3A%22cross-site%22%2C%22origin%22%3A%22https%3A%2F%2Fmegaplay.buzz%22%2C%22referer%22%3A%22https%3A%2F%2Fmegaplay.buzz%2F%22%7D";
-    };
-</script>
-
+                // Note: Safari includes native language controls inside its built-in media controls
+                video.addEventListener('error', () => {
+                    showError("Error loading stream natively. Link might be expired.");
+                });
+            } else {
+                showError("Your browser does not support HLS video playback.");
+            }
+        });
+    </script>
 </body>
 </html>
