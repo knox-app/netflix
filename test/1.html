@@ -2,33 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - Sync Channel or Playlist</title>
+  <title>Admin - 24/7 TV Time-Slot Scheduler</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 30px; }
-    .card { background: #1e1e1e; padding: 25px; border-radius: 8px; max-width: 650px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-    label { font-size: 14px; font-weight: bold; margin-top: 15px; display: block; color: #ddd; }
-    input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 5px; border: none; box-sizing: border-box; }
-    input { background: #2d2d2d; color: #fff; font-size: 15px; }
-    button { background: #ff0000; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 20px; }
-    button:hover { background: #cc0000; }
+    body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 20px; }
+    .card { background: #1e1e1e; padding: 25px; border-radius: 8px; max-width: 800px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    .slot-row { background: #2a2a2a; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff0000; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { font-size: 12px; font-weight: bold; color: #bbb; display: block; margin-top: 8px; }
+    input { width: 100%; padding: 10px; margin-top: 3px; border-radius: 4px; border: none; background: #3d3d3d; color: #fff; box-sizing: border-box; }
+    button { padding: 12px 20px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; font-size: 15px; }
+    .btn-add { background: #007bff; color: white; margin-top: 10px; }
+    .btn-save { background: #ff0000; color: white; width: 100%; margin-top: 20px; }
+    .btn-remove { background: #d9534f; color: white; padding: 5px 10px; font-size: 12px; float: right; margin-top: -5px; }
     #status { margin-top: 15px; font-size: 14px; word-break: break-all; line-height: 1.4; }
-    .note { font-size: 12px; color: #aaa; margin-top: 3px; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>YouTube Live Stream Setup</h2>
+  <h2>24/7 TV Channel Scheduler</h2>
+  <p style="color: #aaa; font-size: 13px;">Define time slots for your stream schedule (e.g. 14:00 to 14:30 for Doraemon).</p>
   
-  <label>1. YouTube Channel or Playlist URL / Handle:</label>
-  <input type="text" id="sourceInput" placeholder="e.g. Playlist URL, Channel URL, or @handle">
-  <div class="note">Supports: Playlist URLs, Channel URLs, Handles (@name), or Playlist/Channel IDs</div>
+  <div id="slotsContainer">
+    <!-- Default Slot Row -->
+    <div class="slot-row">
+      <button class="btn-remove" onclick="removeSlot(this)">Remove Slot</button>
+      <div class="grid">
+        <div>
+          <label>Start Time (HH:MM 24h format):</label>
+          <input type="time" class="start-time" value="14:00">
+        </div>
+        <div>
+          <label>End Time (HH:MM 24h format):</label>
+          <input type="time" class="end-time" value="14:30">
+        </div>
+      </div>
+      <label>YouTube Playlist or Channel URL / Handle:</label>
+      <input type="text" class="source-input" placeholder="e.g. Playlist URL, Channel URL, or @handle">
+      
+      <label>Title Keyword Filter (Optional):</label>
+      <input type="text" class="filter-input" placeholder="e.g. doraemon, episode">
+    </div>
+  </div>
 
-  <label>2. Title Filter Keyword (Optional):</label>
-  <input type="text" id="filterInput" placeholder="e.g. doraemon, shinchan, episode">
-  <div class="note">Only videos matching keyword(s) will be included (comma-separated for multiple)</div>
-
-  <button onclick="fetchFilterShuffleSave()">Filter, Randomize & Sync Stream</button>
+  <button class="btn-add" onclick="addSlot()">+ Add Another Time Slot</button>
+  <button class="btn-save" onclick="saveFullSchedule()">Publish 24/7 Schedule to Firestore</button>
   <div id="status"></div>
 </div>
 
@@ -51,16 +69,11 @@
   const db = firebase.firestore();
   const YT_API_KEY = "AIzaSyB9esPb8otx99iGcttUGPEbn1Vm0h14l-w";
 
-  // Helper: Convert ISO 8601 Duration to Seconds
   function parseISO8601Duration(duration) {
     const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    const hours = parseInt(match[1] || 0);
-    const minutes = parseInt(match[2] || 0);
-    const seconds = parseInt(match[3] || 0);
-    return (hours * 3600) + (minutes * 60) + seconds;
+    return (parseInt(match[1] || 0) * 3600) + (parseInt(match[2] || 0) * 60) + parseInt(match[3] || 0);
   }
 
-  // Fisher-Yates Array Shuffle Logic
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -69,35 +82,62 @@
     return array;
   }
 
-  // Resolves Input into a YouTube Playlist ID (Works for Channels & Playlists)
+  function timeToMinutes(timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    return (h * 60) + m;
+  }
+
+  function addSlot() {
+    const container = document.getElementById('slotsContainer');
+    const div = document.createElement('div');
+    div.className = 'slot-row';
+    div.innerHTML = `
+      <button class="btn-remove" onclick="removeSlot(this)">Remove Slot</button>
+      <div class="grid">
+        <div>
+          <label>Start Time (HH:MM 24h format):</label>
+          <input type="time" class="start-time" value="14:30">
+        </div>
+        <div>
+          <label>End Time (HH:MM 24h format):</label>
+          <input type="time" class="end-time" value="15:00">
+        </div>
+      </div>
+      <label>YouTube Playlist or Channel URL / Handle:</label>
+      <input type="text" class="source-input" placeholder="e.g. Playlist URL, Channel URL, or @handle">
+      
+      <label>Title Keyword Filter (Optional):</label>
+      <input type="text" class="filter-input" placeholder="e.g. shinchan, episode">
+    `;
+    container.appendChild(div);
+  }
+
+  function removeSlot(btn) {
+    const rows = document.querySelectorAll('.slot-row');
+    if (rows.length > 1) {
+      btn.closest('.slot-row').remove();
+    } else {
+      alert("At least one time slot is required.");
+    }
+  }
+
   async function resolveToPlaylistId(input) {
     input = input.trim();
-
-    // 1. Check if input contains a Playlist ID (e.g. list=PL123... or direct PL...)
     let playlistMatch = input.match(/[?&]list=([a-zA-Z0-9_-]+)/);
     if (playlistMatch) return playlistMatch[1];
-    if ((input.startsWith('PL') || input.startsWith('UU')) && input.length >= 18) {
-      return input;
-    }
+    if ((input.startsWith('PL') || input.startsWith('UU')) && input.length >= 18) return input;
 
-    // 2. Direct Channel ID (UC...)
-    let channelId = null;
-    if (input.startsWith('UC') && input.length === 24) {
-      channelId = input;
-    } else {
-      // 3. Extract Handle (@username)
+    let channelId = input.startsWith('UC') && input.length === 24 ? input : null;
+    if (!channelId) {
       let handleMatch = input.match(/@([\w.-]+)/);
       let handle = handleMatch ? handleMatch[1] : (input.startsWith('@') ? input.slice(1) : null);
 
       if (handle) {
         const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${handle}&key=${YT_API_KEY}`);
         const data = await res.json();
-        if (data.items && data.items.length > 0) {
-          return data.items[0].contentDetails.relatedPlaylists.uploads;
-        }
+        if (data.items && data.items.length > 0) return data.items[0].contentDetails.relatedPlaylists.uploads;
       }
 
-      // 4. Extract channel/UC... from full Channel URL
       let channelMatch = input.match(/channel\/(UC[\w-]+)/);
       if (channelMatch) channelId = channelMatch[1];
     }
@@ -105,80 +145,84 @@
     if (channelId) {
       const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YT_API_KEY}`);
       const chData = await chRes.json();
-      if (chData.items && chData.items.length > 0) {
-        return chData.items[0].contentDetails.relatedPlaylists.uploads;
-      }
+      if (chData.items && chData.items.length > 0) return chData.items[0].contentDetails.relatedPlaylists.uploads;
     }
 
-    throw new Error("Could not resolve Playlist or Channel ID. Please check the URL.");
+    throw new Error("Could not resolve Playlist/Channel ID for input: " + input);
   }
 
-  async function fetchFilterShuffleSave() {
-    const rawInput = document.getElementById('sourceInput').value;
-    const filterText = document.getElementById('filterInput').value.trim().toLowerCase();
+  async function saveFullSchedule() {
     const statusDiv = document.getElementById('status');
-
-    if (!rawInput) return alert('Please enter a Playlist URL, Channel URL, or Handle');
-
     statusDiv.style.color = "#fff";
-    statusDiv.innerText = "Resolving Playlist ID...";
+    statusDiv.innerText = "Processing schedule time slots...";
+
+    const slotRows = document.querySelectorAll('.slot-row');
+    const processedSlots = [];
 
     try {
-      // 1. Resolve to Playlist ID
-      const playlistId = await resolveToPlaylistId(rawInput);
-      statusDiv.innerText = `Playlist ID found: ${playlistId}. Fetching videos...`;
+      for (let i = 0; i < slotRows.length; i++) {
+        const row = slotRows[i];
+        const startTime = row.querySelector('.start-time').value;
+        const endTime = row.querySelector('.end-time').value;
+        const sourceInput = row.querySelector('.source-input').value;
+        const filterInput = row.querySelector('.filter-input').value.trim().toLowerCase();
 
-      // 2. Fetch up to 50 videos from the Playlist
-      const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=50&key=${YT_API_KEY}`);
-      const plData = await plRes.json();
+        if (!startTime || !endTime || !sourceInput) {
+          throw new Error(`Slot #${i+1} is missing Start Time, End Time, or Source URL.`);
+        }
 
-      if (!plData.items || plData.items.length === 0) {
-        throw new Error("No videos found in this playlist.");
+        statusDiv.innerText = `Processing Slot #${i+1} (${startTime} - ${endTime})...`;
+
+        const playlistId = await resolveToPlaylistId(sourceInput);
+        const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=50&key=${YT_API_KEY}`);
+        const plData = await plRes.json();
+
+        if (!plData.items || plData.items.length === 0) {
+          throw new Error(`No videos found in Playlist for Slot #${i+1}`);
+        }
+
+        const videoIds = plData.items.map(item => item.contentDetails.videoId).join(',');
+        const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${YT_API_KEY}`);
+        const vData = await vRes.json();
+
+        const keywords = filterInput ? filterInput.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
+
+        let videos = vData.items.map(v => ({
+          id: v.id,
+          title: v.snippet.title,
+          duration: parseISO8601Duration(v.contentDetails.duration)
+        })).filter(v => {
+          if (v.duration <= 0) return false;
+          if (keywords.length === 0) return true;
+          const titleLower = v.title.toLowerCase();
+          return keywords.some(keyword => titleLower.includes(keyword));
+        });
+
+        if (videos.length === 0) {
+          throw new Error(`Slot #${i+1}: No videos matched your filter keyword(s).`);
+        }
+
+        videos = shuffleArray(videos);
+        const totalDuration = videos.reduce((acc, v) => acc + v.duration, 0);
+
+        processedSlots.push({
+          startTimeStr: startTime,
+          endTimeStr: endTime,
+          startMinutes: timeToMinutes(startTime),
+          endMinutes: timeToMinutes(endTime),
+          videos: videos,
+          totalDuration: totalDuration
+        });
       }
 
-      const videoIds = plData.items.map(item => item.contentDetails.videoId).join(',');
+      statusDiv.innerText = "Saving complete TV schedule to Firestore...";
 
-      // 3. Fetch details & durations
-      const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${YT_API_KEY}`);
-      const vData = await vRes.json();
-
-      // Split filter keywords if comma-separated
-      const keywords = filterText ? filterText.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
-
-      // 4. Filter videos based on keywords
-      let videos = vData.items.map(v => ({
-        id: v.id,
-        title: v.snippet.title,
-        duration: parseISO8601Duration(v.contentDetails.duration)
-      })).filter(v => {
-        if (v.duration <= 0) return false; // Exclude live streams / zero duration
-        if (keywords.length === 0) return true; // Keep all if no filter
-
-        const titleLower = v.title.toLowerCase();
-        return keywords.some(keyword => titleLower.includes(keyword));
-      });
-
-      if (videos.length === 0) {
-        throw new Error("No videos matched your keyword filter.");
-      }
-
-      // 5. RANDOMIZE / SHUFFLE VIDEOS
-      videos = shuffleArray(videos);
-
-      // Calculate Total Loop Duration
-      const totalDuration = videos.reduce((acc, v) => acc + v.duration, 0);
-
-      statusDiv.innerText = `Matched ${videos.length} videos. Saving schedule to Firestore...`;
-
-      // 6. Save to Firestore DB
       await db.collection("schedules").doc("main").set({
-        epochStartTime: Date.now(),
-        totalDuration: totalDuration,
-        videos: videos,
+        slots: processedSlots,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      statusDiv.innerHTML = `<span style="color:#00ff00;">Success! Matched & randomized <b>${videos.length}</b> videos.<br>Total Loop Duration: ${Math.round(totalDuration/60)} Mins.</span>`;
+      statusDiv.innerHTML = `<span style="color:#00ff00;">Success! Saved ${processedSlots.length} time-slot(s) to Firestore schedule.</span>`;
 
     } catch (err) {
       console.error(err);
