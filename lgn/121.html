@@ -24,7 +24,7 @@
             --text-secondary: #aaaaaa;
             --input-border: #3a3a3a;
             --input-focus: #ffffff;
-            --input-bg: #000000; /* Inner input background is set to black */
+            --input-bg: #000000;
             --btn-bg: #ffffff;
             --btn-text: #000000;
             --btn-hover: #e0e0e0;
@@ -44,9 +44,9 @@
 
         .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
         
-        h1 { font-size: 32px; font-weight: 600; margin-bottom: 10px; color: var(--text-primary); }
+        h1 { font-size: 32px; font-weight: 600; margin-bottom: 5px; color: var(--text-primary); }
         
-        p.subtitle { color: var(--text-secondary); font-size: 15px; margin-bottom: 30px; line-height: 1.5; }
+        p.subtitle { color: var(--text-secondary); font-size: 15px; margin-bottom: 25px; line-height: 1.5; }
         
         .input-group { position: relative; margin-bottom: 20px; text-align: left; }
         
@@ -92,117 +92,13 @@
         .btn:hover { background: var(--btn-hover); }
         .links { margin-top: 20px; font-size: 14px; }
         .links a { color: #0066cc; text-decoration: none; cursor: pointer; }
-
-        .already-logged-in {
-            display: none;
-            position: absolute;
-            bottom: calc(100% + 8px);
-            left: 0;
-            right: 0;
-            box-sizing: border-box;
-            background: rgba(0, 128, 0, 0.08);
-            border: 1px solid rgba(0, 128, 0, 0.3);
-            color: var(--text-primary);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 13px;
-            text-align: left;
-        }
-
-        .already-logged-in.visible {
-            display: block;
-        }
-
-        .profile-picker-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .profile-picker-card {
-            background: var(--bg-color);
-            color: var(--text-primary);
-            border-radius: 16px;
-            padding: 28px 24px;
-            max-width: 380px;
-            width: 90%;
-            text-align: center;
-        }
-
-        .profile-picker-card h2 { font-size: 20px; margin: 0 0 6px 0; }
-        .profile-picker-card p { color: var(--text-secondary); font-size: 13px; margin: 0 0 20px 0; }
-
-        .profile-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 320px;
-            overflow-y: auto;
-        }
-
-        .profile-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            border: 1px solid var(--input-border);
-            border-radius: 10px;
-            cursor: pointer;
-            text-align: left;
-            background: none;
-            width: 100%;
-            box-sizing: border-box;
-            transition: background 0.15s;
-        }
-
-        .profile-option:hover { background: rgba(128, 128, 128, 0.1); }
-
-        .profile-option img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #ccc;
-            flex-shrink: 0;
-        }
-
-        .profile-option .profile-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-        .profile-option .profile-sub { font-size: 12px; color: var(--text-secondary); }
-
-        .badge {
-            display: inline-block;
-            font-size: 10px;
-            font-weight: 600;
-            padding: 2px 7px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        .badge-loggedin { background: rgba(128, 128, 128, 0.15); color: #666666; border: 1px solid rgba(128, 128, 128, 0.4); }
-        .badge-kids { background: rgba(0, 102, 204, 0.12); color: #0066cc; border: 1px solid rgba(0, 102, 204, 0.35); display: inline-flex; align-items: center; gap: 3px; }
-        .badge-kids svg { width: 10px; height: 10px; flex-shrink: 0; }
-
-        .profile-picker-cancel {
-            margin-top: 18px;
-            font-size: 13px;
-            color: #0066cc;
-            cursor: pointer;
-            background: none;
-            border: none;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Sign in</h1>
-    <p class="subtitle">Use your AAAAAA Account. The account will be added to this device and available to other our Apps & Services.</p>
-
-    <div class="already-logged-in" id="alreadyLoggedInMsg"></div>
+    <p class="subtitle" id="subtitleText">to continue</p>
 
     <div class="input-group">
         <label>Email or Mobile</label>
@@ -216,18 +112,9 @@
     </div>
 </div>
 
-<div class="profile-picker-overlay" id="profilePickerOverlay">
-    <div class="profile-picker-card">
-        <h2>Who's Trying to Log In?</h2>
-        <p>This phone number is linked to more than one account.</p>
-        <div class="profile-list" id="profileList"></div>
-        <button class="profile-picker-cancel" id="profilePickerCancel">Cancel</button>
-    </div>
-</div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
@@ -242,7 +129,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Safeguard localStorage JSON parsing to prevent script crashes
+    // Safeguard localStorage
     try {
         if (localStorage.getItem('saved_accounts')) {
             let accounts = JSON.parse(localStorage.getItem('saved_accounts'));
@@ -254,67 +141,10 @@
         console.error("Local storage read error:", e);
     }
 
-    // Check (after the user enters their email/mobile) whether that same
-    // account is already logged in on this device, and show an inline message.
-    // Uses the reserved-space "visible" class (not display) so toggling it
-    // never shifts the layout or the Continue button's position.
-    function setAlreadyLoggedInMessage(matchedText) {
-        const msgEl = document.getElementById('alreadyLoggedInMsg');
-        msgEl.innerHTML = '';
-
-        if (!matchedText) {
-            msgEl.classList.remove('visible');
-            return;
-        }
-
-        msgEl.textContent = `You're already logged in on this device as ${matchedText}`;
-        msgEl.classList.add('visible');
-    }
-
-    function checkAlreadyLoggedIn() {
-        let typedIdentifier = document.getElementById('identifier').value.trim();
-        if (!typedIdentifier) {
-            setAlreadyLoggedInMessage(null);
-            return;
-        }
-
-        const isMobile = /^\+?\d+$/.test(typedIdentifier);
-        if (!isMobile && !typedIdentifier.includes('@')) {
-            typedIdentifier += '@AAAAAA.com';
-        }
-
-        try {
-            const activeUserRaw = localStorage.getItem('active_user');
-            if (activeUserRaw) {
-                const activeUser = JSON.parse(activeUserRaw);
-                const activeEmail = activeUser && activeUser["Email"];
-                const activePhone = activeUser && activeUser["Phone Number"];
-
-                if (isMobile && activePhone && activePhone === typedIdentifier) {
-                    setAlreadyLoggedInMessage(activePhone);
-                    return;
-                }
-                if (!isMobile && activeEmail && activeEmail.toLowerCase() === typedIdentifier.toLowerCase()) {
-                    setAlreadyLoggedInMessage(activeEmail);
-                    return;
-                }
-            }
-        } catch (e) {
-            console.error("Active user read error:", e);
-        }
-
-        setAlreadyLoggedInMessage(null);
-    }
-
-    document.getElementById('identifier').addEventListener('blur', checkAlreadyLoggedIn);
-    document.getElementById('identifier').addEventListener('input', () => {
-        // Hide the message as soon as they start editing again
-        setAlreadyLoggedInMessage(null);
-    });
-
     const urlParams = new URLSearchParams(window.location.search);
     let session = urlParams.get('session');
     let continueUrl = urlParams.get('continue') || '4.html';
+    const provider = urlParams.get('provider');
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
 
     /* ================= LIVE THEME ================= */
@@ -344,12 +174,34 @@
         }
     });
 
-    // 1. Session Generation
+    // 1. Resolve Provider Info from Firestore "API Keys"
+    async function resolveProvider() {
+        if (provider) {
+            const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+            document.getElementById('subtitleText').innerText = `to continue to ${providerName}`;
+
+            try {
+                const q = query(collection(db, "API Keys"), where("Sulg", "==", provider));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const providerData = querySnapshot.docs[0].data();
+                    if (providerData["Redirect"]) {
+                        continueUrl = providerData["Redirect"];
+                    }
+                }
+            } catch (err) {
+                console.error("Provider lookup error:", err);
+            }
+        } else {
+            document.getElementById('subtitleText').innerText = "Use your Perplexity Account. The account will be added to this device and available to other Apps & Services.";
+        }
+    }
+
+    // 2. Session Generation
     async function initSession() {
         if (!session) {
             session = Math.floor(1000000000 + Math.random() * 9000000000).toString();
             try {
-                // Store session in ASPX Keys using setDoc to explicitly name the document
                 await setDoc(doc(db, "ASPX Keys", session), {
                     sessionId: session,
                     createdAt: new Date()
@@ -357,15 +209,19 @@
             } catch (err) {
                 console.error("Session database write failed:", err);
             }
-            // Update URL visibly (even if Firestore write fails, the UI keeps working)
-            window.history.replaceState({}, '', `1.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`);
+            
+            let newUrl = `1.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`;
+            if (provider) newUrl += `&provider=${encodeURIComponent(provider)}`;
+            if (theme) newUrl += `&theme=${theme}`;
+            
+            window.history.replaceState({}, '', newUrl);
         }
     }
 
-    // 2. Auto Login Checks (Passwordless & Lotus Link)
+    // 3. Auto Login Checks
     async function checkAutoLogins() {
         try {
-            // A. Existing SafeOpt Passwordless Check
+            // Passwordless Check
             if (urlParams.get('env') === 'safeopt' && urlParams.get('e') && urlParams.get('p')) {
                 const email = urlParams.get('e');
                 const pass = urlParams.get('p');
@@ -382,16 +238,15 @@
                 }
             }
 
-            // B. Automatic Lotus ID Login Check
+            // Lotus ID Auto-Login
             const lotusId = urlParams.get('lotus') || urlParams.get('Lotus');
             if (lotusId) {
-                document.getElementById('continueBtn').innerText = "Logging in..."; // UI feedback
+                document.getElementById('continueBtn').innerText = "Logging in...";
                 const q = query(collection(db, "UARM"), where("Lotus", "==", lotusId));
                 const querySnapshot = await getDocs(q);
                 
                 if (!querySnapshot.empty) {
                     const userData = querySnapshot.docs[0].data();
-                    // Automatically save user to local storage and login completely
                     saveAccountAndLogin(userData);
                     window.location.href = continueUrl;
                 } else {
@@ -421,132 +276,24 @@
         }
     }
 
-    // Initialize
-    initSession().then(checkAutoLogins);
+    // Initialize Page
+    resolveProvider()
+        .then(initSession)
+        .then(checkAutoLogins);
 
-    // Build the redirect URL for a chosen account and navigate to it.
-    // The Lotus id is a private internal key, so it is NEVER put in the URL —
-    // instead it's saved on the existing session document in Firestore, and
-    // 2.html should look it up server/client-side using only the session id.
-    async function goToNextStep(userData) {
-        try {
-            await updateDoc(doc(db, "ASPX Keys", session), {
-                Lotus: userData["Lotus"],
-                loggedInAt: new Date()
-            });
-        } catch (err) {
-            console.error("Failed to attach Lotus to session:", err);
-            alert("Could not complete login. Please try again.");
-            document.getElementById('continueBtn').innerText = "Continue";
-            document.getElementById('continueBtn').disabled = false;
-            return;
-        }
-
-        let redirectUrl = `2.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`;
-        if (theme) {
-            redirectUrl += `&theme=${theme}`;
-        }
-        window.location.href = redirectUrl;
-    }
-
-    // Show the "Who's Trying to Log In?" picker when a phone number is
-    // shared across multiple accounts (e.g. a parent account and kids' accounts).
-    function showProfilePicker(accountDocs) {
-        const listEl = document.getElementById('profileList');
-        listEl.innerHTML = '';
-
-        // Figure out which account (if any) is already logged in on this device
-        let activeLotus = null;
-        try {
-            const activeUserRaw = localStorage.getItem('active_user');
-            if (activeUserRaw) {
-                const activeUser = JSON.parse(activeUserRaw);
-                activeLotus = activeUser && activeUser["Lotus"] ? activeUser["Lotus"] : null;
-            }
-        } catch (e) {
-            console.error("Active user read error:", e);
-        }
-
-        accountDocs.forEach((docSnap) => {
-            const userData = docSnap.data();
-            const name = userData["First Name"] || "Account";
-            const pictureUrl = userData["Profile Picture"] || '';
-            const isKids = (userData["Type"] || '').toLowerCase() === 'kids';
-            const isLoggedIn = activeLotus && userData["Lotus"] && userData["Lotus"] === activeLotus;
-
-            const optionBtn = document.createElement('button');
-            optionBtn.type = 'button';
-            optionBtn.className = 'profile-option';
-
-            const img = document.createElement('img');
-            img.src = pictureUrl || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"></svg>';
-            img.alt = name;
-
-            const textWrap = document.createElement('div');
-            const nameEl = document.createElement('div');
-            nameEl.className = 'profile-name';
-            nameEl.textContent = name;
-
-            if (isLoggedIn) {
-                const loggedInBadge = document.createElement('span');
-                loggedInBadge.className = 'badge badge-loggedin';
-                loggedInBadge.textContent = 'Logged in';
-                nameEl.appendChild(loggedInBadge);
-            }
-            if (isKids) {
-                const kidsBadge = document.createElement('span');
-                kidsBadge.className = 'badge badge-kids';
-                kidsBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Kids</span>';
-                nameEl.appendChild(kidsBadge);
-            }
-
-            const subEl = document.createElement('div');
-            subEl.className = 'profile-sub';
-            subEl.textContent = userData["Email"] || '';
-            textWrap.appendChild(nameEl);
-            textWrap.appendChild(subEl);
-
-            optionBtn.appendChild(img);
-            optionBtn.appendChild(textWrap);
-
-            optionBtn.addEventListener('click', () => {
-                document.getElementById('profilePickerOverlay').style.display = 'none';
-                goToNextStep(userData);
-            });
-
-            listEl.appendChild(optionBtn);
-        });
-
-        document.getElementById('profilePickerOverlay').style.display = 'flex';
-    }
-
-    document.getElementById('profilePickerCancel').addEventListener('click', () => {
-        document.getElementById('profilePickerOverlay').style.display = 'none';
-        document.getElementById('continueBtn').innerText = "Continue";
-        document.getElementById('continueBtn').disabled = false;
-    });
-
-    // 3. Handle Manual Form Submit (single-click: guarded against double-submit)
-    let isSubmitting = false;
+    // 4. Form Submit
     document.getElementById('continueBtn').addEventListener('click', async () => {
-        if (isSubmitting) return;
-
         let identifier = document.getElementById('identifier').value.trim();
         if(!identifier) return alert("Please enter email or mobile");
 
-        // Format identifier
         const isMobile = /^\+?\d+$/.test(identifier);
         if (!isMobile && !identifier.includes('@')) {
-            identifier += '@AAAAAA.com';
+            identifier += '@perplexity.com';
         }
 
-        isSubmitting = true;
-        const continueBtn = document.getElementById('continueBtn');
-        continueBtn.disabled = true;
-        continueBtn.innerText = "Checking...";
-
+        document.getElementById('continueBtn').innerText = "Checking...";
+        
         try {
-            // Check UARM Database using Capitalized fields
             let q;
             if (isMobile) {
                 q = query(collection(db, "UARM"), where("Phone Number", "==", identifier));
@@ -555,30 +302,25 @@
             }
 
             const querySnapshot = await getDocs(q);
-
+            
             if (!querySnapshot.empty) {
-                if (isMobile && querySnapshot.size > 1) {
-                    // Same phone number shared across multiple accounts (e.g. parental setup)
-                    showProfilePicker(querySnapshot.docs);
-                    continueBtn.innerText = "Continue";
-                    continueBtn.disabled = false;
-                    isSubmitting = false;
-                } else {
-                    const userData = querySnapshot.docs[0].data();
-                    await goToNextStep(userData);
+                const userData = querySnapshot.docs[0].data();
+                let redirectUrl = `2.html?session=${session}&Lotus=${userData["Lotus"]}&continue=${encodeURIComponent(continueUrl)}`;
+                if (provider) {
+                    redirectUrl += `&provider=${encodeURIComponent(provider)}`;
                 }
+                if (theme) {
+                    redirectUrl += `&theme=${theme}`;
+                }
+                window.location.href = redirectUrl;
             } else {
                 alert("Account not found in our database.");
-                continueBtn.innerText = "Continue";
-                continueBtn.disabled = false;
-                isSubmitting = false;
+                document.getElementById('continueBtn').innerText = "Continue";
             }
         } catch (error) {
             console.error("Form submission error:", error);
             alert("Database connection error. Please try again.");
-            continueBtn.innerText = "Continue";
-            continueBtn.disabled = false;
-            isSubmitting = false;
+            document.getElementById('continueBtn').innerText = "Continue";
         }
     });
 </script>
