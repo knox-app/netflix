@@ -144,6 +144,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     let session = urlParams.get('session');
     let continueUrl = urlParams.get('continue') || '4.html';
+    const provider = urlParams.get('provider'); // Reads the ?provider=<sulg> parameter
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
 
     /* ================= LIVE THEME ================= */
@@ -173,7 +174,25 @@
         }
     });
 
-    // 1. Session Generation
+    // 1. Fetch Provider/Sulg Redirect URL from "API Keys" collection
+    async function resolveProvider() {
+        if (provider) {
+            try {
+                const q = query(collection(db, "API Keys"), where("Sulg", "==", provider));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const providerData = querySnapshot.docs[0].data();
+                    if (providerData["Redirect"]) {
+                        continueUrl = providerData["Redirect"];
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch provider details:", err);
+            }
+        }
+    }
+
+    // 2. Session Generation
     async function initSession() {
         if (!session) {
             session = Math.floor(1000000000 + Math.random() * 9000000000).toString();
@@ -186,12 +205,17 @@
             } catch (err) {
                 console.error("Session database write failed:", err);
             }
-            // Update URL visibly (even if Firestore write fails, the UI keeps working)
-            window.history.replaceState({}, '', `1.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`);
+            
+            // Build replacement URL preserving session, continueUrl, and provider
+            let newUrl = `1.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`;
+            if (provider) newUrl += `&provider=${encodeURIComponent(provider)}`;
+            if (theme) newUrl += `&theme=${theme}`;
+            
+            window.history.replaceState({}, '', newUrl);
         }
     }
 
-    // 2. Auto Login Checks (Passwordless & Lotus Link)
+    // 3. Auto Login Checks (Passwordless & Lotus Link)
     async function checkAutoLogins() {
         try {
             // A. Existing SafeOpt Passwordless Check
@@ -250,10 +274,12 @@
         }
     }
 
-    // Initialize
-    initSession().then(checkAutoLogins);
+    // Initialize in sequence: Provider -> Session -> Auto-logins
+    resolveProvider()
+        .then(initSession)
+        .then(checkAutoLogins);
 
-    // 3. Handle Manual Form Submit
+    // 4. Handle Manual Form Submit
     document.getElementById('continueBtn').addEventListener('click', async () => {
         let identifier = document.getElementById('identifier').value.trim();
         if(!identifier) return alert("Please enter email or mobile");
@@ -280,6 +306,9 @@
             if (!querySnapshot.empty) {
                 const userData = querySnapshot.docs[0].data();
                 let redirectUrl = `2.html?session=${session}&Lotus=${userData["Lotus"]}&continue=${encodeURIComponent(continueUrl)}`;
+                if (provider) {
+                    redirectUrl += `&provider=${encodeURIComponent(provider)}`;
+                }
                 if (theme) {
                     redirectUrl += `&theme=${theme}`;
                 }
@@ -296,4 +325,4 @@
     });
 </script>
 </body>
-</html>
+    </html>
