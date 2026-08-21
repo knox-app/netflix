@@ -49,7 +49,7 @@
     video.fill-screen { object-fit: cover !important; }
     video.hidden-video { opacity: 0 !important; pointer-events: none; z-index: 0; }
 
-    /* YouTube Host */
+    /* Clean YouTube Frame Host */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
       background: #000; opacity: 0; z-index: 2;
@@ -101,7 +101,7 @@
     .seek-ripple.right { right: 15%; }
     .seek-ripple.show { opacity: 1; transform: translateY(-50%) scale(1.1); }
 
-    /* Skip Intro Button (Visible when controls awake or asleep) */
+    /* Skip Intro Button */
     .btn-skip-intro {
       position: absolute; bottom: 75px; right: 20px; z-index: 32;
       background: rgba(0, 0, 0, 0.85); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.4);
@@ -125,7 +125,6 @@
     .ctrl-title-wrap { display: flex; flex-direction: column; }
     .ctrl-title { font-size: 15px; font-weight: 700; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     
-    /* Subtitle visible ONLY in landscape/fullscreen mode */
     .ctrl-subtitle { font-size: 12px; color: var(--text-muted); font-weight: 500; display: none; }
     body.landscape-mode .ctrl-subtitle { display: block; }
 
@@ -171,8 +170,10 @@
       display: flex; align-items: center; gap: 6px; cursor: pointer; opacity: 0.9;
     }
     .action-btn:hover { opacity: 1; color: var(--accent-blue); }
+
+    /* Watch Next Visible in Landscape for All 3 Content Types */
     .action-btn-watch-next { display: none; }
-    body.landscape-mode .action-btn-watch-next { display: flex; }
+    body.landscape-mode .action-btn-watch-next { display: flex !important; }
 
     /* Go Live Button */
     .btn-go-live {
@@ -299,7 +300,7 @@
       color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
     }
 
-    /* Portrait Details Section & Vertical Episodes List (Screenshot 2) */
+    /* Portrait Details Section */
     .details-wrapper { padding: 16px; }
     .ch-title-head { font-size: 22px; font-weight: 800; color: #fff; }
     .ch-lang-sub { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
@@ -379,7 +380,7 @@
 
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
 
-      <!-- Unlock Button -->
+      <!-- Unlock Button when Locked -->
       <div class="lock-overlay-btn" id="unlockBtn" style="display: none;">
         🔓 Tap to Unlock Controls
       </div>
@@ -525,12 +526,11 @@
 
     </div>
 
-    <!-- Portrait Details Sections & Show Episodes (Screenshot 2) -->
+    <!-- Portrait Details Sections & Show Episodes -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Title</div>
       <div class="ch-lang-sub" id="chLangSub">हिंदी • Live Stream</div>
 
-      <!-- Portrait Vertical Episodes Section for Shows -->
       <div class="portrait-episodes-section" id="portraitEpisodesSection" style="display:none;">
         <div class="section-head">Episodes</div>
         <div class="seasons-scroll-row" id="portraitSeasonTabsRow"></div>
@@ -550,6 +550,9 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, onSnapshot, collection, query, where, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // DEFAULT SVG THUMBNAIL FALLBACK FOR MISSING IMAGES
+  const DEFAULT_THUMB = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='320'%20height='180'%20viewBox='0%200%20320%20180'%3E%3Crect%20width='100%25'%20height='100%25'%20fill='%23131722'/%3E%3Cpath%20d='M140%2070l50%2020-50%2020z'%20fill='%230072ef'/%3E%3C/svg%3E";
 
   // 1. Channel DB
   const channelConfig = {
@@ -591,12 +594,10 @@
   let activeVideoIndex = 1;
   let currentSpeed = 1;
 
-  // SHOWS STATE
   let showSeasons = {};
   let currentSeasonKey = "";
   let currentEpIndex = 0;
 
-  // SKIP INTRO STATE
   let skipperStartSec = -1;
   let skipperEndSec = -1;
 
@@ -617,8 +618,14 @@
   }
 
   function safeUrl(url) {
-    if (!url) return '';
+    if (!url) return DEFAULT_THUMB;
     return url.trim().replace(/^http:\/\//i, 'https://');
+  }
+
+  function getItemImage(item) {
+    if (!item) return DEFAULT_THUMB;
+    const img = item.Banner || item.imageUrl || item.Poster || item["Logo.png"] || item.Logo;
+    return safeUrl(img) || DEFAULT_THUMB;
   }
 
   function formatTime(sec) {
@@ -779,6 +786,7 @@
       const speedBtn = document.getElementById('speedBtn');
       const tabSpeed = document.getElementById('tabSpeed');
       const openEpisodesBtn = document.getElementById('openEpisodesBtn');
+      const nextEpBtn = document.getElementById('nextEpBtn');
       const drawerTabEpisodes = document.getElementById('drawerTabEpisodes');
       const portraitEpisodesSection = document.getElementById('portraitEpisodesSection');
 
@@ -786,6 +794,7 @@
         speedBtn.style.display = 'flex';
         tabSpeed.style.display = 'inline-block';
         openEpisodesBtn.style.display = 'flex';
+        nextEpBtn.style.display = 'flex';
         drawerTabEpisodes.style.display = 'inline-block';
         portraitEpisodesSection.style.display = 'block';
 
@@ -807,6 +816,7 @@
         speedBtn.style.display = 'flex';
         tabSpeed.style.display = 'inline-block';
         openEpisodesBtn.style.display = 'none';
+        nextEpBtn.style.display = 'none';
         drawerTabEpisodes.style.display = 'none';
         portraitEpisodesSection.style.display = 'none';
 
@@ -817,6 +827,7 @@
         speedBtn.style.setProperty('display', 'none', 'important');
         tabSpeed.style.setProperty('display', 'none', 'important');
         openEpisodesBtn.style.display = 'none';
+        nextEpBtn.style.display = 'none';
         drawerTabEpisodes.style.display = 'none';
         portraitEpisodesSection.style.display = 'none';
 
@@ -1120,7 +1131,9 @@
     document.querySelectorAll('#audioOptionsList .lang-item').forEach(item => {
       item.onclick = (e) => {
         e.stopPropagation();
-        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
+        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => {
+          i.querySelector('.lang-check').innerText = '';
+        });
         item.querySelector('.lang-check').innerText = '✓';
 
         const streamUrl = item.dataset.stream;
@@ -1175,13 +1188,13 @@
       }, 3500);
     };
 
-    // DOUBLE-TAP SEEK LEFT/RIGHT & SINGLE TAP WAKEUP/SLEEP
+    // DOUBLE-TAP SEEK & SINGLE TAP WAKEUP/SLEEP
     let lastTapTime = 0;
     let lastTapX = 0;
     let singleTapTimer = null;
 
     playerContainer.ontouchend = (e) => {
-      if (e.touches.length > 0) return; // ignore pinch
+      if (e.touches.length > 0) return;
       const now = new Date().getTime();
       const rect = playerContainer.getBoundingClientRect();
       const tapX = e.changedTouches[0].clientX - rect.left;
@@ -1203,11 +1216,9 @@
         e.preventDefault();
 
         if (tapX < width * 0.4) {
-          // Double Tap Left
           rewindBtn.click();
           showRipple('left');
         } else if (tapX > width * 0.6) {
-          // Double Tap Right
           forwardBtn.click();
           showRipple('right');
         }
@@ -1280,7 +1291,6 @@
       showControls();
     };
 
-    // SKIP INTRO BUTTON CLICK
     skipIntroBtn.onclick = (e) => {
       e.stopPropagation();
       if (skipperEndSec > 0) {
@@ -1296,12 +1306,11 @@
       }
     };
 
-    // PROGRESS BAR & SKIP INTRO TIMEFRAME CHECK
+    // PROGRESS BAR & TIMEUPDATE
     video.ontimeupdate = () => {
       saveCurrentResumePosition();
       const curTime = video.currentTime || 0;
 
-      // SKIP INTRO CHECK
       if (skipperStartSec >= 0 && skipperEndSec > skipperStartSec) {
         if (curTime >= skipperStartSec && curTime <= skipperEndSec) {
           skipIntroBtn.style.display = 'flex';
@@ -1384,16 +1393,11 @@
       showToast("Live Stream Synced");
     };
 
+    // PLAYBACK SPEED BUTTON OPENS SETTINGS MODAL ON SPEED TAB DIRECTLY
     speedBtn.onclick = (e) => {
       e.stopPropagation();
-      const speeds = [1, 1.25, 1.5, 2, 0.75];
-      let idx = speeds.indexOf(currentSpeed);
-      currentSpeed = speeds[(idx + 1) % speeds.length];
-
-      if (video) video.playbackRate = currentSpeed;
-      if (ytPlayerInstance && ytPlayerInstance.setPlaybackRate) ytPlayerInstance.setPlaybackRate(currentSpeed);
-      speedBtn.innerText = `⏱ Speed ${currentSpeed}x`;
-      showToast(`Speed: ${currentSpeed}x`);
+      settingsModal.classList.add('active');
+      tabSpeed.click();
     };
 
     lockBtn.onclick = (e) => {
@@ -1401,6 +1405,7 @@
       isScreenLocked = true;
       overlay.classList.remove('show');
       unlockBtn.style.display = 'flex';
+      showToast("Screen Locked");
     };
 
     unlockBtn.onclick = (e) => {
@@ -1408,11 +1413,12 @@
       isScreenLocked = false;
       unlockBtn.style.display = 'none';
       showControls();
+      showToast("Screen Unlocked");
     };
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    // SETTINGS MODAL OPTIONS CLICK HANDLERS
+    // SETTINGS MODAL OPTIONS HANDLERS
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const tabQuality = document.getElementById('tabQuality');
@@ -1617,7 +1623,7 @@
     cardsRow.innerHTML = epList.map((ep, idx) => `
       <div onclick="window.switchEpisodeInPlace('${sKey}', ${idx})" class="watch-card">
         <div class="watch-card-thumb-wrap">
-          <img class="banner-img" src="${safeUrl(ep.Banner || currentChannel.Banner || currentChannel.Poster || currentChannel["Logo.png"] || '')}" alt="${ep.Name}">
+          <img class="banner-img" src="${getItemImage(ep)}" alt="${ep.Name}">
           <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
         </div>
         <div class="watch-card-name">${ep.Name || `Episode ${idx+1}`}</div>
@@ -1626,7 +1632,6 @@
     `).join('');
   }
 
-  // PORTRAIT VERTICAL EPISODES LIST (Matching Screenshot 2)
   function renderPortraitShowSection() {
     renderSeasonPills();
     renderPortraitVerticalEpisodesList(currentSeasonKey);
@@ -1641,7 +1646,7 @@
     list.innerHTML = epList.map((ep, idx) => `
       <div class="ep-vertical-item" onclick="window.switchEpisodeInPlace('${sKey}', ${idx})">
         <div class="ep-thumb-wrap">
-          <img src="${safeUrl(ep.Banner || currentChannel.Banner || currentChannel.Poster || currentChannel["Logo.png"] || '')}" alt="${ep.Name}">
+          <img src="${getItemImage(ep)}" alt="${ep.Name}">
           <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
         </div>
         <div class="ep-info-col">
@@ -1659,7 +1664,7 @@
       cardsRow.innerHTML = window.allFirestoreChannels.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}', '${contentType}')" class="watch-card">
           <div class="watch-card-thumb-wrap">
-            <img class="banner-img" src="${safeUrl(c.Banner || c.imageUrl || c.Poster || c["Logo.png"] || '')}" alt="${c.Name}">
+            <img class="banner-img" src="${getItemImage(c)}" alt="${c.Name}">
             <img class="watch-card-logo-top-right" src="${safeUrl(c["Logo.png"] || c.Logo || c.Poster || '')}" alt="Logo">
             <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
@@ -1717,7 +1722,7 @@
 
       const renderPortraitCard = (c) => `
         <div onclick="window.switchChannelInPlace('${c.id}', '${colName === 'Movies' ? 'movie' : colName === 'Shows' ? 'show' : 'live'}')" class="card-item">
-          <img src="${safeUrl(c.Poster || c["Logo.png"] || c.Logo || c.Banner || '')}" class="card-thumb" alt="${c.Name}">
+          <img src="${getItemImage(c)}" class="card-thumb" alt="${c.Name}">
           <div class="card-name">${c.Name || 'Watch Item'}</div>
         </div>
       `;
