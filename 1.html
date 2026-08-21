@@ -183,17 +183,20 @@
     .action-btn-watch-next { display: none; }
     body.landscape-mode .action-btn-watch-next { display: inline-flex !important; }
 
-    /* Watch Next Little Glimpse in Fullscreen (Screenshot Match) */
+    /* Watch Next "Little Glimpse" Peek in Fullscreen Mode (Screenshot Match) */
     .watch-next-glimpse-peek {
-      display: none; position: absolute; bottom: -45px; left: 0; right: 0;
-      padding: 0 22px; gap: 12px; pointer-events: auto; opacity: 0.7; transition: opacity 0.2s;
+      display: none; position: absolute; bottom: 0; left: 18px; right: 18px;
+      height: 40px; z-index: 22; gap: 12px; pointer-events: auto; cursor: pointer;
+      overflow: hidden; opacity: 0.9;
     }
-    body.landscape-mode .controls-overlay.show ~ .watch-next-glimpse-peek,
     body.landscape-mode .watch-next-glimpse-peek { display: flex; }
+    
     .glimpse-card-thumb {
-      min-width: 110px; width: 110px; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.2); background: #111;
+      min-width: 100px; width: 100px; height: 50px; border-top-left-radius: 6px;
+      border-top-right-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.25);
+      background: #111; transition: transform 0.2s, opacity 0.2s; opacity: 0.85;
     }
+    .glimpse-card-thumb:hover { transform: translateY(-4px); opacity: 1; }
     .glimpse-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
     /* Go Live Button */
@@ -247,7 +250,7 @@
     .lang-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
     .lang-label { font-size: 15px; font-weight: 700; color: #fff; }
 
-    /* Watch Next Tray Overlay */
+    /* Watch Next / Episodes Tray Overlay */
     .watch-next-overlay {
       position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
@@ -419,19 +422,16 @@
             </button>
             <div class="ctrl-title-wrap">
               <div class="ctrl-title" id="overlayChTitle">Title</div>
-              <div class="ctrl-subtitle" id="overlayChSub" style="display:none;">S1 E1</div>
+              <div class="ctrl-subtitle" id="overlayChSub">S1 E1</div>
             </div>
           </div>
           <div class="ctrl-top-right">
-            <!-- Lock Button (Landscape Only) -->
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
-            <!-- Settings Gear Button -->
             <button class="icon-btn" id="settingsBtn" title="Settings">
               <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
-            <!-- Fullscreen Toggle Button -->
             <button class="icon-btn" id="fullscreenToggleBtn" title="Toggle Fullscreen">
               <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
@@ -458,7 +458,7 @@
         <div class="ctrl-bottom">
           <div class="timeline-row">
             <input type="range" id="progressBar" class="progress-bar" value="100" min="0" max="100">
-            <span class="time-val" id="timeDisplay">00:00:00</span>
+            <span class="time-val" id="timeDisplay">00:00 left</span>
           </div>
           
           <div class="action-bar-row">
@@ -499,7 +499,7 @@
 
       </div>
 
-      <!-- Watch Next Little Glimpse Peek in Fullscreen -->
+      <!-- Watch Next Little Glimpse Peek in Fullscreen (Screenshot Match) -->
       <div class="watch-next-glimpse-peek" id="watchNextGlimpsePeek"></div>
 
       <!-- Settings Drawer Modal -->
@@ -673,15 +673,20 @@
     return safeUrl(img) || DEFAULT_THUMB;
   }
 
-  function formatTime(sec) {
-    if (!sec || isNaN(sec) || !isFinite(sec)) return "00:00:00";
+  // FORMAT ONLY REMAINING TIME FOR MOVIES / SHOWS (e.g., 23m left or 1h 15m left)
+  function formatRemainingTime(sec) {
+    if (!sec || isNaN(sec) || !isFinite(sec) || sec <= 0) return "00:00 left";
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
     const s = Math.floor(sec % 60);
-    const hh = h > 0 ? String(h).padStart(2, '0') + ':' : '';
-    const mm = String(m).padStart(2, '0');
-    const ss = String(s).padStart(2, '0');
-    return `${hh}${mm}:${ss}`;
+
+    if (h > 0) {
+      return `${h}h ${m}m left`;
+    } else if (m > 0) {
+      return `${m}m left`;
+    } else {
+      return `${s}s left`;
+    }
   }
 
   function parseTimeToSeconds(str) {
@@ -1252,6 +1257,7 @@
     const watchNextOverlay = document.getElementById('watchNextOverlay');
     const speedBtn = document.getElementById('speedBtn');
     const skipIntroBtn = document.getElementById('skipIntroBtn');
+    const glimpsePeek = document.getElementById('watchNextGlimpsePeek');
 
     const showControls = () => {
       if (isScreenLocked) return;
@@ -1260,6 +1266,25 @@
       hideControlsTimer = setTimeout(() => {
         overlay.classList.remove('show');
       }, 3500);
+    };
+
+    // SWIPE UPWARD ON GLIMPSE PEEK OPENS WATCH NEXT TRAY
+    let peekStartY = 0;
+    glimpsePeek.ontouchstart = (e) => {
+      peekStartY = e.touches[0].clientY;
+    };
+    glimpsePeek.ontouchmove = (e) => {
+      if (!peekStartY) return;
+      const currentY = e.touches[0].clientY;
+      const diffY = currentY - peekStartY;
+      if (diffY < -20) {
+        watchNextOverlay.classList.add('show');
+        peekStartY = 0;
+      }
+    };
+    glimpsePeek.onclick = (e) => {
+      e.stopPropagation();
+      watchNextOverlay.classList.add('show');
     };
 
     let lastTapTime = 0;
@@ -1379,6 +1404,7 @@
       }
     };
 
+    // TIMELINE UPDATE (SHOW ONLY REMAINING TIME FOR MOVIES/SHOWS, STRICTLY "LIVE" FOR LIVE TV)
     video.ontimeupdate = () => {
       saveCurrentResumePosition();
       const curTime = video.currentTime || 0;
@@ -1417,11 +1443,14 @@
           }
         }
       } else {
+        // MOVIES AND SHOWS: SHOW ONLY REMAINING TIME (e.g. 23m left or 1h 15m left)
         if (video.duration && isFinite(video.duration)) {
           const percentage = (video.currentTime / video.duration) * 100;
           progressBar.value = percentage;
           progressBar.style.background = `linear-gradient(to right, #0072ef 0%, #0072ef ${percentage}%, rgba(255,255,255,0.25) ${percentage}%, rgba(255,255,255,0.25) 100%)`;
-          timeDisplay.innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+          
+          const remainingSec = Math.max(0, video.duration - video.currentTime);
+          timeDisplay.innerText = formatRemainingTime(remainingSec);
         }
         goLiveBtn.style.display = 'none';
       }
@@ -1625,6 +1654,9 @@
       }
     });
 
+    // ALWAYS DEFAULT TO VERTICAL MODE ON INITIAL PAGE LOAD
+    document.body.classList.remove('landscape-mode');
+
     const checkOrientation = () => {
       if (window.innerWidth > window.innerHeight) {
         document.body.classList.add('landscape-mode');
@@ -1636,7 +1668,6 @@
     };
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
-    checkOrientation();
 
     // WATCH NEXT & EPISODES TABS
     const drawerTabWatchNext = document.getElementById('drawerTabWatchNext');
@@ -1803,7 +1834,7 @@
     const peekBox = document.getElementById('watchNextGlimpsePeek');
     if (!peekBox) return;
 
-    peekBox.innerHTML = items.slice(0, 4).map(c => `
+    peekBox.innerHTML = items.slice(0, 5).map(c => `
       <div class="glimpse-card-thumb" onclick="window.switchChannelInPlace('${c.id}', '${contentType}')">
         <img src="${getItemImage(c)}" alt="${c.Name}">
       </div>
