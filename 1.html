@@ -75,7 +75,7 @@
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
 
-    /* Mobile Landscape Fullscreen Layout */
+    /* Landscape Fullscreen Mode */
     body.landscape-mode .top-nav, body.landscape-mode .details-wrapper { display: none !important; }
     body.landscape-mode .player-container {
       position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
@@ -113,9 +113,9 @@
     /* Controls Overlay */
     .controls-overlay {
       position: absolute; inset: 0; z-index: 25;
-      background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.85) 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 28%, transparent 68%, rgba(0,0,0,0.92) 100%);
       display: flex; flex-direction: column; justify-content: space-between;
-      padding: 14px 18px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none;
+      padding: 16px 22px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none;
     }
     .controls-overlay.show { opacity: 1; pointer-events: auto; }
 
@@ -124,20 +124,17 @@
     .ctrl-top-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
     .ctrl-title-wrap { display: flex; flex-direction: column; min-width: 0; flex: 1; }
     
-    /* Ellipsis for long titles */
     .ctrl-title {
-      font-size: 15px; font-weight: 700; color: #fff;
+      font-size: 16px; font-weight: 700; color: #fff;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
     }
     .ctrl-subtitle {
       font-size: 12px; color: var(--text-muted); font-weight: 500; display: none;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
     }
-    body.landscape-mode .ctrl-subtitle { display: block; }
 
-    .ctrl-top-right { display: flex; align-items: center; gap: 16px; flex-shrink: 0; margin-left: 10px; }
+    .ctrl-top-right { display: flex; align-items: center; gap: 18px; flex-shrink: 0; margin-left: 10px; }
 
-    /* Icon Buttons Alignment */
     .icon-btn {
       background: none; border: none; color: #fff; cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
@@ -145,27 +142,24 @@
     }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; display: block; }
 
-    /* STRICT PORTRAIT RULE: Hide Cast and Lock in vertical mode */
-    body:not(.landscape-mode) .btn-cast,
-    body:not(.landscape-mode) #lockBtn {
-      display: none !important;
-    }
+    /* Hide Lock button in Portrait Mode */
+    body:not(.landscape-mode) #lockBtn { display: none !important; }
 
-    /* Center Controls Alignment */
+    /* Center Controls */
     .ctrl-center {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      display: flex; align-items: center; gap: 45px;
+      display: flex; align-items: center; gap: 48px;
     }
-    .ctrl-center .icon-btn svg { width: 32px; height: 32px; }
-    .btn-main-play svg { width: 40px; height: 40px; fill: #fff; }
+    .ctrl-center .icon-btn svg { width: 34px; height: 34px; }
+    .btn-main-play svg { width: 44px; height: 44px; fill: #fff; }
 
     /* Bottom Timeline Controls */
-    .ctrl-bottom { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-    .timeline-row { display: flex; align-items: center; gap: 12px; }
+    .ctrl-bottom { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .timeline-row { display: flex; align-items: center; gap: 14px; }
 
     .progress-bar {
-      width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
-      background: var(--accent-blue); outline: none; cursor: pointer; border-radius: 4px;
+      width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
+      background: rgba(255, 255, 255, 0.3); outline: none; cursor: pointer; border-radius: 3px;
     }
     .progress-bar::-webkit-slider-thumb {
       -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
@@ -176,7 +170,7 @@
 
     .action-bar-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
     .action-group-left { display: flex; align-items: center; gap: 14px; }
-    .action-group-right { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+    .action-group-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 
     .action-btn {
       background: none; border: none; color: #fff; font-size: 13px; font-weight: 600;
@@ -188,6 +182,19 @@
 
     .action-btn-watch-next { display: none; }
     body.landscape-mode .action-btn-watch-next { display: inline-flex !important; }
+
+    /* Watch Next Little Glimpse in Fullscreen (Screenshot Match) */
+    .watch-next-glimpse-peek {
+      display: none; position: absolute; bottom: -45px; left: 0; right: 0;
+      padding: 0 22px; gap: 12px; pointer-events: auto; opacity: 0.7; transition: opacity 0.2s;
+    }
+    body.landscape-mode .controls-overlay.show ~ .watch-next-glimpse-peek,
+    body.landscape-mode .watch-next-glimpse-peek { display: flex; }
+    .glimpse-card-thumb {
+      min-width: 110px; width: 110px; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.2); background: #111;
+    }
+    .glimpse-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
     /* Go Live Button */
     .btn-go-live {
@@ -240,7 +247,7 @@
     .lang-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
     .lang-label { font-size: 15px; font-weight: 700; color: #fff; }
 
-    /* Watch Next / Episodes Tray Overlay */
+    /* Watch Next Tray Overlay */
     .watch-next-overlay {
       position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
@@ -412,19 +419,19 @@
             </button>
             <div class="ctrl-title-wrap">
               <div class="ctrl-title" id="overlayChTitle">Title</div>
-              <div class="ctrl-subtitle" id="overlayChSub">S1 E1</div>
+              <div class="ctrl-subtitle" id="overlayChSub" style="display:none;">S1 E1</div>
             </div>
           </div>
           <div class="ctrl-top-right">
-            <button class="icon-btn btn-cast" title="Cast">
-              <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.92-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-            </button>
+            <!-- Lock Button (Landscape Only) -->
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
+            <!-- Settings Gear Button -->
             <button class="icon-btn" id="settingsBtn" title="Settings">
               <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
             </button>
+            <!-- Fullscreen Toggle Button -->
             <button class="icon-btn" id="fullscreenToggleBtn" title="Toggle Fullscreen">
               <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
@@ -491,6 +498,9 @@
         </div>
 
       </div>
+
+      <!-- Watch Next Little Glimpse Peek in Fullscreen -->
+      <div class="watch-next-glimpse-peek" id="watchNextGlimpsePeek"></div>
 
       <!-- Settings Drawer Modal -->
       <div class="settings-modal" id="settingsModal">
@@ -849,14 +859,16 @@
       const nextEpBtn = document.getElementById('nextEpBtn');
       const drawerTabEpisodes = document.getElementById('drawerTabEpisodes');
       const portraitEpisodesSection = document.getElementById('portraitEpisodesSection');
+      const overlayChSub = document.getElementById('overlayChSub');
 
       if (contentType === 'show') {
-        speedBtn.style.display = 'flex';
+        speedBtn.style.display = 'inline-flex';
         tabSpeed.style.display = 'inline-block';
-        openEpisodesBtn.style.display = 'flex';
-        nextEpBtn.style.display = 'flex';
+        openEpisodesBtn.style.display = 'inline-flex';
+        nextEpBtn.style.display = 'inline-flex';
         drawerTabEpisodes.style.display = 'inline-block';
         portraitEpisodesSection.style.display = 'block';
+        overlayChSub.style.display = 'block';
 
         const seasonKeys = Object.keys(showSeasons);
         currentSeasonKey = reqSeason ? (seasonKeys.find(k => k.includes(reqSeason)) || seasonKeys[0]) : seasonKeys[0];
@@ -873,12 +885,13 @@
         renderPortraitShowSection();
 
       } else if (contentType === 'movie') {
-        speedBtn.style.display = 'flex';
+        speedBtn.style.display = 'inline-flex';
         tabSpeed.style.display = 'inline-block';
         openEpisodesBtn.style.display = 'none';
         nextEpBtn.style.display = 'none';
         drawerTabEpisodes.style.display = 'none';
         portraitEpisodesSection.style.display = 'none';
+        overlayChSub.style.display = 'none';
 
         document.getElementById('chTitle').innerText = currentChannel.Name || "Movie";
         document.getElementById('overlayChTitle').innerText = currentChannel.Name || "Movie";
@@ -890,6 +903,7 @@
         nextEpBtn.style.display = 'none';
         drawerTabEpisodes.style.display = 'none';
         portraitEpisodesSection.style.display = 'none';
+        overlayChSub.style.display = 'none';
 
         document.getElementById('chTitle').innerText = currentChannel.Name || "Live Channel";
         document.getElementById('overlayChTitle').innerText = currentChannel.Name || "Live Channel";
@@ -1574,7 +1588,6 @@
       }
     });
 
-    // ROCK-SOLID PINCH TO ZOOM GESTURE
     let initialPinchDist = 0;
     let isPinching = false;
 
@@ -1786,6 +1799,17 @@
     `).join('');
   }
 
+  function renderWatchNextPeekGlimpse(items) {
+    const peekBox = document.getElementById('watchNextGlimpsePeek');
+    if (!peekBox) return;
+
+    peekBox.innerHTML = items.slice(0, 4).map(c => `
+      <div class="glimpse-card-thumb" onclick="window.switchChannelInPlace('${c.id}', '${contentType}')">
+        <img src="${getItemImage(c)}" alt="${c.Name}">
+      </div>
+    `).join('');
+  }
+
   function populateWatchNextCards() {
     const cardsRow = document.getElementById('watchNextCards');
     if (window.allFirestoreChannels) {
@@ -1800,6 +1824,8 @@
           <div class="watch-card-sub">${c.Genres || c.Language || 'Video'}</div>
         </div>
       `).join('');
+
+      renderWatchNextPeekGlimpse(window.allFirestoreChannels);
     }
   }
 
