@@ -49,7 +49,7 @@
     video.fill-screen { object-fit: cover !important; }
     video.hidden-video { opacity: 0 !important; pointer-events: none; z-index: 0; }
 
-    /* Clean YouTube Frame Host */
+    /* Clean YouTube Frame Host Wrapper */
     #ytFrameHost {
       position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none;
       background: #000; opacity: 0; z-index: 2;
@@ -67,7 +67,7 @@
     }
     #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
 
-    /* JWPlayer Host */
+    /* JWPlayer Host Wrapper */
     #jwHost {
       position: absolute; inset: 0; display: none; width: 100%; height: 100%; z-index: 2;
     }
@@ -90,7 +90,7 @@
     }
     .toast-alert.show { opacity: 1; }
 
-    /* Double-Tap Seek Ripples */
+    /* Seek Ripples */
     .seek-ripple {
       position: absolute; top: 50%; transform: translateY(-50%);
       width: 90px; height: 90px; border-radius: 50%; background: rgba(255, 255, 255, 0.25);
@@ -162,16 +162,17 @@
     .time-val { font-size: 12px; font-weight: 700; color: #ffffff; white-space: nowrap; letter-spacing: 0.5px; }
 
     .action-bar-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .action-group-left { display: flex; align-items: center; gap: 12px; }
-    .action-group-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+    .action-group-left { display: flex; align-items: center; gap: 14px; }
+    .action-group-right { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 
     .action-btn {
       background: none; border: none; color: #fff; font-size: 13px; font-weight: 600;
       display: flex; align-items: center; gap: 6px; cursor: pointer; opacity: 0.9;
     }
+    .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
     .action-btn:hover { opacity: 1; color: var(--accent-blue); }
 
-    /* Watch Next Visible in Landscape for All 3 Content Types */
+    /* Watch Next Button Visible in Landscape for All Content Types */
     .action-btn-watch-next { display: none; }
     body.landscape-mode .action-btn-watch-next { display: flex !important; }
 
@@ -299,6 +300,7 @@
       border: 1px solid rgba(255,255,255,0.3); padding: 8px 14px; border-radius: 20px;
       color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
     }
+    .lock-overlay-btn svg { width: 16px; height: 16px; fill: currentColor; }
 
     /* Portrait Details Section */
     .details-wrapper { padding: 16px; }
@@ -368,7 +370,7 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- Primary & Secondary Video Elements -->
+      <!-- Primary & Secondary Videos -->
       <video id="videoPlayer1" playsinline crossorigin="anonymous"></video>
       <video id="videoPlayer2" class="hidden-video" playsinline crossorigin="anonymous"></video>
 
@@ -382,7 +384,8 @@
 
       <!-- Unlock Button when Locked -->
       <div class="lock-overlay-btn" id="unlockBtn" style="display: none;">
-        🔓 Tap to Unlock Controls
+        <svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>
+        Tap to Unlock Controls
       </div>
 
       <!-- Player Controls Overlay -->
@@ -440,16 +443,41 @@
           
           <div class="action-bar-row">
             <div class="action-group-left">
-              <button class="action-btn action-btn-watch-next" id="openWatchNextBtn">🧭 Watch Next</button>
-              <button class="action-btn" id="openEpisodesBtn" style="display:none;">📺 Episodes</button>
+              <!-- SEPARATE WATCH NEXT BUTTON WITH SVG COMPASS ICON -->
+              <button class="action-btn action-btn-watch-next" id="openWatchNextBtn">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13l6 5-6 5V7z"/></svg>
+                Watch Next
+              </button>
+              
+              <!-- SEPARATE EPISODES BUTTON WITH SVG LIST ICON -->
+              <button class="action-btn" id="openEpisodesBtn" style="display:none;">
+                <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+                Episodes
+              </button>
             </div>
 
             <div class="action-group-right">
               <button class="btn-go-live" id="goLiveBtn">
                 <div class="live-dot"></div> Go Live
               </button>
-              <button class="action-btn" id="speedBtn" style="display:none;">⏱ Speed 1x</button>
-              <button class="action-btn" id="nextEpBtn" style="display:none;">▷ Next Episode</button>
+              
+              <!-- SPEED BUTTON WITH SVG SPEEDOMETER ICON -->
+              <button class="action-btn" id="speedBtn" style="display:none;">
+                <svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 1 0 20.38 8.57zM10.5 12.5l4.5-3-1.5 4.5-3-1.5z"/></svg>
+                Speed 1x
+              </button>
+
+              <!-- RATE BUTTON WITH SVG HEART ICON -->
+              <button class="action-btn" id="rateBtn">
+                <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                Rate
+              </button>
+
+              <!-- NEXT EPISODE BUTTON WITH SVG SKIP ICON -->
+              <button class="action-btn" id="nextEpBtn" style="display:none;">
+                <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                Next Episode
+              </button>
             </div>
           </div>
         </div>
@@ -551,7 +579,6 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, onSnapshot, collection, query, where, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // DEFAULT SVG THUMBNAIL FALLBACK FOR MISSING IMAGES
   const DEFAULT_THUMB = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='320'%20height='180'%20viewBox='0%200%20320%20180'%3E%3Crect%20width='100%25'%20height='100%25'%20fill='%23131722'/%3E%3Cpath%20d='M140%2070l50%2020-50%2020z'%20fill='%230072ef'/%3E%3C/svg%3E";
 
   // 1. Channel DB
@@ -650,6 +677,7 @@
     return parseFloat(str) || -1;
   }
 
+  // PARSE SKIPPER FIELD WITHOUT CONFUSING IT WITH SEASONS/EPISODES
   function parseSkipper(data) {
     skipperStartSec = -1;
     skipperEndSec = -1;
@@ -742,6 +770,28 @@
     isFillScreen = false;
   }
 
+  function applyZoomState(fill) {
+    isFillScreen = fill;
+    const v1 = document.getElementById('videoPlayer1');
+    const v2 = document.getElementById('videoPlayer2');
+    const ytHost = document.getElementById('ytFrameHost');
+    const jwHost = document.getElementById('jwHost');
+
+    if (fill) {
+      v1.classList.add('fill-screen');
+      v2.classList.add('fill-screen');
+      ytHost.classList.add('fill-screen');
+      jwHost.classList.add('fill-screen');
+      showToast("Zoomed to Fill Screen");
+    } else {
+      v1.classList.remove('fill-screen');
+      v2.classList.remove('fill-screen');
+      ytHost.classList.remove('fill-screen');
+      jwHost.classList.remove('fill-screen');
+      showToast("Fit to Screen (Original)");
+    }
+  }
+
   function initApp(docId, type) {
     const loader = document.getElementById('loader');
     const userPill = document.getElementById('userPill');
@@ -766,9 +816,13 @@
       currentChannel = { id: snap.id, ...snap.data() };
       parseSkipper(currentChannel);
       
+      // STRICT FILTERING: EXCLUDE Skipper FROM BEING PARSED AS A SEASON OR EPISODE
       showSeasons = {};
       Object.keys(currentChannel).forEach(k => {
-        if (k.toLowerCase().includes('season') || k.toLowerCase().startsWith('s')) {
+        const lowerKey = k.toLowerCase().trim();
+        if (lowerKey.includes('skipper') || lowerKey.includes('intro')) return;
+
+        if (lowerKey.includes('season') || lowerKey.startsWith('s')) {
           if (Array.isArray(currentChannel[k])) {
             showSeasons[k] = currentChannel[k];
           }
@@ -1188,7 +1242,7 @@
       }, 3500);
     };
 
-    // DOUBLE-TAP SEEK & SINGLE TAP WAKEUP/SLEEP
+    // DOUBLE-TAP SEEK & SINGLE TAP CONTROLS WAKEUP/SLEEP
     let lastTapTime = 0;
     let lastTapX = 0;
     let singleTapTimer = null;
@@ -1393,13 +1447,14 @@
       showToast("Live Stream Synced");
     };
 
-    // PLAYBACK SPEED BUTTON OPENS SETTINGS MODAL ON SPEED TAB DIRECTLY
+    // PLAYBACK SPEED BUTTON OPENS SETTINGS MODAL ON PLAYBACK SPEED TAB DIRECTLY
     speedBtn.onclick = (e) => {
       e.stopPropagation();
       settingsModal.classList.add('active');
       tabSpeed.click();
     };
 
+    // LOCK SCREEN
     lockBtn.onclick = (e) => {
       e.stopPropagation();
       isScreenLocked = true;
@@ -1418,7 +1473,7 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    // SETTINGS MODAL OPTIONS HANDLERS
+    // SETTINGS DRAWER MODAL
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const tabQuality = document.getElementById('tabQuality');
@@ -1476,7 +1531,10 @@
         currentSpeed = parseFloat(item.dataset.speed);
         if (video) video.playbackRate = currentSpeed;
         if (ytPlayerInstance && ytPlayerInstance.setPlaybackRate) ytPlayerInstance.setPlaybackRate(currentSpeed);
-        speedBtn.innerText = `⏱ Speed ${currentSpeed}x`;
+        speedBtn.innerHTML = `
+          <svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 1 0 20.38 8.57zM10.5 12.5l4.5-3-1.5 4.5-3-1.5z"/></svg>
+          Speed ${currentSpeed}x
+        `;
         showToast(`Speed: ${currentSpeed}x`);
         setTimeout(() => settingsModal.classList.remove('active'), 250);
       };
@@ -1514,6 +1572,57 @@
         }
       }
     });
+
+    // ROCK-SOLID PINCH TO ZOOM GESTURE
+    let initialPinchDist = 0;
+    let isPinching = false;
+
+    playerContainer.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        isPinching = true;
+        initialPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    }, { passive: true });
+
+    playerContainer.addEventListener('touchmove', (e) => {
+      if (isPinching && e.touches.length === 2) {
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const diff = currentDist - initialPinchDist;
+
+        if (diff > 35 && !isFillScreen) {
+          applyZoomState(true);
+          initialPinchDist = currentDist;
+        } else if (diff < -35 && isFillScreen) {
+          applyZoomState(false);
+          initialPinchDist = currentDist;
+        }
+      }
+    }, { passive: true });
+
+    playerContainer.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        isPinching = false;
+      }
+    });
+
+    const checkOrientation = () => {
+      if (window.innerWidth > window.innerHeight) {
+        document.body.classList.add('landscape-mode');
+      } else {
+        document.body.classList.remove('landscape-mode');
+        watchNextOverlay.classList.remove('show');
+        settingsModal.classList.remove('active');
+      }
+    };
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
+    checkOrientation();
 
     // WATCH NEXT & EPISODES TABS
     const drawerTabWatchNext = document.getElementById('drawerTabWatchNext');
