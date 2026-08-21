@@ -80,6 +80,28 @@
       position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; aspect-ratio: auto;
     }
 
+    /* Double Tap Ripple Feedback Overlays */
+    .double-tap-ripple {
+      position: absolute; top: 0; bottom: 0; width: 38%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 13px; font-weight: 700;
+      opacity: 0; pointer-events: none; z-index: 22; transition: opacity 0.2s, transform 0.2s;
+    }
+    .double-tap-ripple.left { left: 0; border-top-right-radius: 50%; border-bottom-right-radius: 50%; }
+    .double-tap-ripple.right { right: 0; border-top-left-radius: 50%; border-bottom-left-radius: 50%; }
+    .double-tap-ripple.show { opacity: 1; transform: scale(1.05); }
+
+    /* SKIP INTRO BUTTON (Visible whether controls are wakedup or slept) */
+    .btn-skip-intro {
+      position: absolute; bottom: 60px; right: 18px; z-index: 28;
+      background: rgba(0, 0, 0, 0.85); color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.4); padding: 8px 18px; border-radius: 6px;
+      font-size: 13px; font-weight: 700; cursor: pointer; display: none;
+      align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px); transition: transform 0.15s, background 0.15s, color 0.15s;
+    }
+    .btn-skip-intro:hover { background: #ffffff; color: #000000; transform: scale(1.05); }
+
     /* Toast Alert */
     .toast-alert {
       position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
@@ -157,7 +179,7 @@
     }
     .btn-go-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live-red); }
 
-    /* Settings Drawer Modal */
+    /* Disney+ Hotstar Settings Drawer Modal */
     .settings-modal {
       position: absolute; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.94);
       backdrop-filter: blur(10px); display: none; flex-direction: column; padding: 20px 30px;
@@ -188,6 +210,7 @@
     .q-item { display: flex; align-items: center; gap: 14px; cursor: pointer; }
     .q-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
     .q-title { font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .q-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-left: 6px; }
 
     .two-col-layout { display: flex; gap: 40px; height: 100%; }
     .col-half { flex: 1; display: flex; flex-direction: column; }
@@ -198,13 +221,14 @@
     .lang-item { display: flex; align-items: center; gap: 12px; cursor: pointer; }
     .lang-check { width: 16px; color: var(--accent-blue); font-weight: bold; font-size: 16px; }
     .lang-label { font-size: 15px; font-weight: 700; color: #fff; }
+    .lang-sub { font-size: 12px; color: var(--text-muted); }
 
-    /* Watch Next / Episodes Tray Overlay (Screenshot 2) */
+    /* Watch Next Overlay Tray */
     .watch-next-overlay {
       position: absolute; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.95);
       display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
       opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      transform: translateY(0);
+      transform: translateY(0); touch-action: pan-x pan-y;
     }
     .watch-next-overlay.show { opacity: 1; pointer-events: auto; }
 
@@ -219,7 +243,6 @@
     }
     .drawer-tab-btn.active { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 4px; }
 
-    /* Season Tabs Filter Row */
     .seasons-scroll-row {
       display: flex; gap: 15px; overflow-x: auto; padding: 8px 0 14px; scrollbar-width: none;
     }
@@ -311,6 +334,19 @@
 
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Zoomed to Fill Screen</div>
+
+      <!-- Double Tap Ripple Overlays -->
+      <div class="double-tap-ripple left" id="rippleLeft">
+        <span style="font-size:20px; font-weight:bold;">« 10s</span>
+      </div>
+      <div class="double-tap-ripple right" id="rippleRight">
+        <span style="font-size:20px; font-weight:bold;">10s »</span>
+      </div>
+
+      <!-- SKIP INTRO BUTTON (Visible whether controls are awake or slept) -->
+      <button class="btn-skip-intro" id="skipIntroBtn">
+        <span>⏭</span> Skip Intro
+      </button>
 
       <!-- Access Denied Overlay -->
       <div class="access-denied-box" id="accessDeniedBox" style="display: none;">
@@ -415,7 +451,7 @@
           <div class="sheet-tabs">
             <button class="tab-btn active" id="tabQuality">Quality</button>
             <button class="tab-btn" id="tabAudio">Audio & Subtitles</button>
-            <button class="tab-btn" id="tabSpeed" style="display:none;">Playback Speed</button>
+            <button class="tab-btn" id="tabSpeed">Playback Speed</button>
           </div>
           <div class="sheet-actions">
             <a href="#">Report an Issue</a>
@@ -425,7 +461,7 @@
 
         <div class="tab-content-panel active" id="qualityPanel">
           <div class="quality-option-list" id="qualityOptionsList">
-            <div class="q-item" data-level="-1"><div class="q-check">✓</div><div class="q-title">Auto <span class="q-sub">Recommended</span></div></div>
+            <div class="q-item" data-level="-1"><div class="q-check">✓</div><div class="q-title">Auto <span class="q-sub">Recommended for best experience</span></div></div>
             <div class="q-item" data-level="1080"><div class="q-check"></div><div class="q-title">Full HD <span class="q-sub">Up to 1080p</span></div></div>
             <div class="q-item" data-level="720"><div class="q-check"></div><div class="q-title">HD <span class="q-sub">Up to 720p</span></div></div>
             <div class="q-item" data-level="360"><div class="q-check"></div><div class="q-title">Data Saver</div></div>
@@ -459,7 +495,7 @@
         </div>
       </div>
 
-      <!-- Watch Next / Episodes Tray Overlay (Screenshot 2) -->
+      <!-- Watch Next / Episodes Tray Overlay -->
       <div class="watch-next-overlay" id="watchNextOverlay">
         <div>
           <div class="watch-next-drag-handle"></div>
@@ -471,11 +507,9 @@
             <button class="icon-btn" id="closeWatchNextBtn" style="font-size:22px;">✕</button>
           </div>
 
-          <!-- Season Selector Tabs Row -->
           <div class="seasons-scroll-row" id="seasonsScrollRow" style="display:none;"></div>
         </div>
 
-        <!-- Cards Container -->
         <div class="watch-next-cards-row" id="watchNextCards"></div>
       </div>
 
@@ -530,8 +564,8 @@
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
-  let activePlayerType = null; // 'hls' | 'youtube' | 'jwplayer' | 'iframe'
-  let contentType = 'live'; // 'live' | 'movie' | 'show'
+  let activePlayerType = null;
+  let contentType = 'live';
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let isFillScreen = false;
@@ -540,10 +574,10 @@
   let activeVideoIndex = 1;
   let currentSpeed = 1;
 
-  // SHOWS & SERIES STATE
-  let showSeasons = {}; // { "Season 22": [{Name, Stream}], "Season 1": [...] }
+  let showSeasons = {};
   let currentSeasonKey = "";
   let currentEpIndex = 0;
+  let skipIntroRange = null; // { start: sec, end: sec }
 
   let channelDocUnsub = null;
   let collectionUnsub = null;
@@ -575,6 +609,21 @@
     const mm = String(m).padStart(2, '0');
     const ss = String(s).padStart(2, '0');
     return `${hh}${mm}:${ss}`;
+  }
+
+  // Parse Skipper String Range ("2:06-3:22")
+  function parseTimeRange(rangeStr) {
+    if (!rangeStr || typeof rangeStr !== 'string') return null;
+    const parts = rangeStr.split('-');
+    if (parts.length !== 2) return null;
+    
+    function toSec(tStr) {
+      const p = tStr.trim().split(':');
+      if (p.length === 2) return parseInt(p[0]) * 60 + parseInt(p[1]);
+      if (p.length === 3) return parseInt(p[0]) * 3600 + parseInt(p[1]) * 60 + parseInt(p[2]);
+      return parseInt(tStr.trim());
+    }
+    return { start: toSec(parts[0]), end: toSec(parts[1]) };
   }
 
   function extractYouTubeId(url) {
@@ -670,7 +719,16 @@
 
       currentChannel = { id: snap.id, ...snap.data() };
       
-      // DETERMINE CONTENT TYPE
+      // PARSE SKIP INTRO RANGE FROM FIRESTORE "Skipper" ARRAY
+      skipIntroRange = null;
+      if (Array.isArray(currentChannel.Skipper) && currentChannel.Skipper.length > 0) {
+        const firstSkip = currentChannel.Skipper[0];
+        const rangeVal = firstSkip["Skip Intro"] || firstSkip.skipIntro || firstSkip["Skip Recap"];
+        if (rangeVal) {
+          skipIntroRange = parseTimeRange(rangeVal);
+        }
+      }
+
       showSeasons = {};
       Object.keys(currentChannel).forEach(k => {
         if (k.toLowerCase().includes('season') || k.toLowerCase().startsWith('s')) {
@@ -688,9 +746,7 @@
         contentType = 'live';
       }
 
-      // UI ADJUSTMENTS PER CONTENT TYPE
       const speedBtn = document.getElementById('speedBtn');
-      const tabSpeed = document.getElementById('tabSpeed');
       const openEpisodesBtn = document.getElementById('openEpisodesBtn');
       const nextEpBtn = document.getElementById('nextEpBtn');
       const drawerTabEpisodes = document.getElementById('drawerTabEpisodes');
@@ -698,13 +754,11 @@
 
       if (contentType === 'show') {
         speedBtn.style.display = 'flex';
-        tabSpeed.style.display = 'inline-block';
         openEpisodesBtn.style.display = 'flex';
         nextEpBtn.style.display = 'flex';
         drawerTabEpisodes.style.display = 'inline-block';
         overlayChSub.style.display = 'block';
 
-        // Set Current Season & Episode
         const seasonKeys = Object.keys(showSeasons);
         currentSeasonKey = reqSeason ? (seasonKeys.find(k => k.includes(reqSeason)) || seasonKeys[0]) : seasonKeys[0];
         currentEpIndex = isNaN(reqEp) ? 0 : reqEp;
@@ -719,7 +773,6 @@
 
       } else if (contentType === 'movie') {
         speedBtn.style.display = 'flex';
-        tabSpeed.style.display = 'inline-block';
         openEpisodesBtn.style.display = 'none';
         nextEpBtn.style.display = 'none';
         drawerTabEpisodes.style.display = 'none';
@@ -730,7 +783,6 @@
         document.getElementById('chLangSub').innerText = `${currentChannel.Language || 'Hindi'} • Movie`;
       } else {
         speedBtn.style.setProperty('display', 'none', 'important');
-        tabSpeed.style.setProperty('display', 'none', 'important');
         openEpisodesBtn.style.display = 'none';
         nextEpBtn.style.display = 'none';
         drawerTabEpisodes.style.display = 'none';
@@ -907,6 +959,10 @@
             video.play().catch(() => {});
             checkResumePlayback();
           });
+
+          hlsInstance.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
+            populateSubtitleOptions(data.subtitleTracks);
+          });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = streamUrl;
           video.play().catch(() => {});
@@ -971,7 +1027,6 @@
     setupInteraction();
   }
 
-  // RESUME PLAYBACK FEATURE
   function checkResumePlayback() {
     if (contentType === 'live' || isStartFromBegins) return;
 
@@ -1037,7 +1092,9 @@
     document.querySelectorAll('#audioOptionsList .lang-item').forEach(item => {
       item.onclick = (e) => {
         e.stopPropagation();
-        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
+        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => {
+          i.querySelector('.lang-check').innerText = '';
+        });
         item.querySelector('.lang-check').innerText = '✓';
 
         const streamUrl = item.dataset.stream;
@@ -1049,11 +1106,80 @@
     });
   }
 
+  function populateSubtitleOptions(tracks) {
+    const list = document.getElementById('subtitlesOptionsList');
+    if (!tracks || tracks.length === 0) return;
+
+    list.innerHTML = `
+      <div class="lang-item" data-track="-1">
+        <div class="lang-check">✓</div>
+        <div><div class="lang-label">Off</div></div>
+      </div>
+    `;
+
+    tracks.forEach((track, index) => {
+      list.innerHTML += `
+        <div class="lang-item" data-track="${index}">
+          <div class="lang-check"></div>
+          <div><div class="lang-label">${track.name || track.lang || `Track ${index+1}`}</div></div>
+        </div>
+      `;
+    });
+
+    document.querySelectorAll('#subtitlesOptionsList .lang-item').forEach(item => {
+      item.onclick = (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('#subtitlesOptionsList .lang-item').forEach(i => {
+          i.querySelector('.lang-check').innerText = '';
+        });
+        item.querySelector('.lang-check').innerText = '✓';
+
+        const idx = parseInt(item.dataset.track);
+        if (hlsInstance) {
+          hlsInstance.subtitleTrack = idx;
+        }
+        setTimeout(() => document.getElementById('settingsModal').classList.remove('active'), 250);
+      };
+    });
+  }
+
   function showToast(msg) {
     const toast = document.getElementById('toastAlert');
     toast.innerText = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  function rewind10() {
+    const video = getActiveVideo();
+    if (activePlayerType === 'youtube' && ytPlayerInstance) {
+      const cur = ytPlayerInstance.getCurrentTime() || 0;
+      ytPlayerInstance.seekTo(Math.max(0, cur - 10), true);
+    } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+      const pos = jwPlayerInstance.getPosition() || 0;
+      jwPlayerInstance.seek(Math.max(0, pos - 10));
+    } else if (video) {
+      video.currentTime -= 10;
+    }
+  }
+
+  function forward10() {
+    const video = getActiveVideo();
+    if (activePlayerType === 'youtube' && ytPlayerInstance) {
+      const cur = ytPlayerInstance.getCurrentTime() || 0;
+      ytPlayerInstance.seekTo(cur + 10, true);
+    } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+      const pos = jwPlayerInstance.getPosition() || 0;
+      jwPlayerInstance.seek(pos + 10);
+    } else if (video) {
+      video.currentTime += 10;
+    }
+  }
+
+  function showRipple(side) {
+    const elem = document.getElementById(side === 'left' ? 'rippleLeft' : 'rippleRight');
+    elem.classList.add('show');
+    setTimeout(() => elem.classList.remove('show'), 350);
   }
 
   function setupInteraction() {
@@ -1076,6 +1202,7 @@
     const watchNextOverlay = document.getElementById('watchNextOverlay');
     const speedBtn = document.getElementById('speedBtn');
     const nextEpBtn = document.getElementById('nextEpBtn');
+    const skipIntroBtn = document.getElementById('skipIntroBtn');
 
     const showControls = () => {
       if (isScreenLocked) return;
@@ -1086,8 +1213,13 @@
       }, 3500);
     };
 
+    // DOUBLE TAP SEETING & CLICK TO WAKEUP/SLEEP
+    let tapTimer = null;
+    let lastTapTime = 0;
+
     playerContainer.onclick = (e) => {
       e.stopPropagation();
+
       try {
         if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
           jwPlayerInstance.setMute(false); jwPlayerInstance.setVolume(100);
@@ -1098,13 +1230,36 @@
         }
       } catch(err){}
 
-      if (isScreenLocked) return;
-      if (overlay.classList.contains('show')) {
-        overlay.classList.remove('show');
-        clearTimeout(hideControlsTimer);
+      const now = Date.now();
+      const rect = playerContainer.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const width = rect.width;
+
+      if (now - lastTapTime < 300) {
+        // DOUBLE TAP DETECTED
+        clearTimeout(tapTimer);
+        tapTimer = null;
+
+        if (clickX < width / 2) {
+          rewind10();
+          showRipple('left');
+        } else {
+          forward10();
+          showRipple('right');
+        }
       } else {
-        showControls();
+        // SINGLE TAP CANDIDATE
+        tapTimer = setTimeout(() => {
+          if (isScreenLocked) return;
+          if (overlay.classList.contains('show')) {
+            overlay.classList.remove('show');
+            clearTimeout(hideControlsTimer);
+          } else {
+            showControls();
+          }
+        }, 260);
       }
+      lastTapTime = now;
     };
 
     const togglePlay = (e) => {
@@ -1130,15 +1285,7 @@
 
     rewindBtn.onclick = (e) => {
       e.stopPropagation();
-      if (activePlayerType === 'youtube' && ytPlayerInstance) {
-        const cur = ytPlayerInstance.getCurrentTime() || 0;
-        ytPlayerInstance.seekTo(Math.max(0, cur - 10), true);
-      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
-        const pos = jwPlayerInstance.getPosition() || 0;
-        jwPlayerInstance.seek(Math.max(0, pos - 10));
-      } else {
-        video.currentTime -= 10;
-      }
+      rewind10();
       if (contentType === 'live') {
         isUserSeeking = true;
         goLiveBtn.style.display = 'flex';
@@ -1148,21 +1295,40 @@
 
     forwardBtn.onclick = (e) => {
       e.stopPropagation();
-      if (activePlayerType === 'youtube' && ytPlayerInstance) {
-        const cur = ytPlayerInstance.getCurrentTime() || 0;
-        ytPlayerInstance.seekTo(cur + 10, true);
-      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
-        const pos = jwPlayerInstance.getPosition() || 0;
-        jwPlayerInstance.seek(pos + 10);
-      } else {
-        video.currentTime += 10;
-      }
+      forward10();
       showControls();
+    };
+
+    // SKIP INTRO BUTTON CLICK ACTION
+    skipIntroBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (skipIntroRange) {
+        if (activePlayerType === 'youtube' && ytPlayerInstance) {
+          ytPlayerInstance.seekTo(skipIntroRange.end + 0.5, true);
+        } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+          jwPlayerInstance.seek(skipIntroRange.end + 0.5);
+        } else if (video) {
+          video.currentTime = skipIntroRange.end + 0.5;
+        }
+        skipIntroBtn.style.display = 'none';
+        showToast("Intro Skipped");
+      }
     };
 
     // PROGRESS BAR & TIMEUPDATE
     video.ontimeupdate = () => {
       saveCurrentResumePosition();
+
+      // SKIP INTRO VISIBILITY CHECK (Visible whether controls are wakedup or slept)
+      if (skipIntroRange) {
+        const cur = video.currentTime || 0;
+        if (cur >= skipIntroRange.start && cur < skipIntroRange.end) {
+          skipIntroBtn.style.display = 'flex';
+        } else {
+          skipIntroBtn.style.display = 'none';
+        }
+      }
+
       if (activePlayerType === 'youtube' || activePlayerType === 'jwplayer') return;
 
       if (contentType === 'live') {
@@ -1214,7 +1380,6 @@
       saveCurrentResumePosition();
     };
 
-    // NEXT EPISODE ACTION
     nextEpBtn.onclick = (e) => {
       e.stopPropagation();
       if (contentType !== 'show') return;
@@ -1228,7 +1393,7 @@
         if (nextSeasonIdx < seasonKeys.length) {
           switchEpisodeInPlace(seasonKeys[nextSeasonIdx], 0);
         } else {
-          showToast("Reached Last Episode of Show");
+          showToast("Reached Last Episode");
         }
       }
     };
@@ -1282,14 +1447,12 @@
 
     backBtn.onclick = (e) => { e.stopPropagation(); window.history.back(); };
 
-    // DRAWER & MODAL TABS
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 
     settingsBtn.onclick = (e) => { e.stopPropagation(); settingsModal.classList.add('active'); };
     closeSettingsBtn.onclick = (e) => { e.stopPropagation(); settingsModal.classList.remove('active'); };
 
-    // DRAWER TABS: WATCH NEXT vs EPISODES (Screenshot 2)
     const drawerTabWatchNext = document.getElementById('drawerTabWatchNext');
     const drawerTabEpisodes = document.getElementById('drawerTabEpisodes');
     const seasonsScrollRow = document.getElementById('seasonsScrollRow');
@@ -1350,19 +1513,6 @@
       }
     });
 
-    const checkOrientation = () => {
-      if (window.innerWidth > window.innerHeight) {
-        document.body.classList.add('landscape-mode');
-      } else {
-        document.body.classList.remove('landscape-mode');
-        watchNextOverlay.classList.remove('show');
-        settingsModal.classList.remove('active');
-      }
-    };
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
-    checkOrientation();
-
     document.getElementById('openWatchNextBtn').onclick = (e) => {
       e.stopPropagation();
       watchNextOverlay.classList.add('show');
@@ -1370,10 +1520,39 @@
     };
     document.getElementById('closeWatchNextBtn').onclick = () => watchNextOverlay.classList.remove('show');
 
+    // SWIPE-DOWN GESTURE TO CLOSE WATCH NEXT DRAWER
+    let touchStartY = 0;
+    let touchCurrentY = 0;
+
+    watchNextOverlay.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    watchNextOverlay.addEventListener('touchmove', (e) => {
+      touchCurrentY = e.touches[0].clientY;
+      let diffY = touchCurrentY - touchStartY;
+      if (diffY > 0) {
+        watchNextOverlay.style.transform = `translateY(${diffY}px)`;
+        watchNextOverlay.style.transition = 'none';
+      }
+    }, { passive: true });
+
+    watchNextOverlay.addEventListener('touchend', () => {
+      let diffY = touchCurrentY - touchStartY;
+      watchNextOverlay.style.transition = 'transform 0.3s ease';
+      if (diffY > 65) {
+        watchNextOverlay.classList.remove('show');
+        watchNextOverlay.style.transform = '';
+      } else {
+        watchNextOverlay.style.transform = 'translateY(0)';
+      }
+      touchStartY = 0;
+      touchCurrentY = 0;
+    });
+
     showControls();
   }
 
-  // SWITCH EPISODES IN-PLACE (Screenshot 2)
   function switchEpisodeInPlace(seasonKey, epIdx) {
     saveCurrentResumePosition();
     destroyActivePlayers();
