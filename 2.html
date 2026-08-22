@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Disney+ Hotstar</title>
+    <style>
+        :root {
+            --bg-color: #0c0d14;
+            --surface-color: #151722;
+            --sheet-bg: #181a24;
+            --text-primary: #ffffff;
+            --text-secondary: #8f98b2;
+            --accent-blue: #1f80e0;
+            --danger-red: #e50914;
+            --gradient-fab: linear-gradient(135deg, #1f80e0 0%, #a824e8 50%, #e5097f 100%);
+            --gradient-btn: linear-gradient(90deg, #1f80e0 0%, #a824e8 50%, #e5097f 100%);
+            --border-color: #2e344d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* App Top Bar */
+        .app-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            z-index: 50;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+        }
+
+        .app-bar h1 {
+            font-size: 19px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+        }
+
+        .action-link {
+            background: none;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #1f80e0;
+        }
+        .action-link.danger { color: var(--danger-red); }
+
+        .view-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 20px 40px;
+            max-width: 480px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* ================= CAROUSEL WITH FIXED CENTER RING ================= */
+        .carousel-outer-stage {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0 35px;
+        }
+
+        /* Fixed Centered Glowing Ring */
+        .fixed-selector-ring {
+            position: absolute;
+            width: 106px;
+            height: 106px;
+            border-radius: 50%;
+            border: 3.5px solid #ffffff;
+            box-shadow: 0 0 25px rgba(31, 128, 224, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.2);
+            pointer-events: none;
+            z-index: 10;
+            transition: box-shadow 0.4s ease;
+        }
+
+        .fixed-ambient-glow {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(168, 36, 232, 0.35) 0%, rgba(31, 128, 224, 0.15) 60%, transparent 80%);
+            filter: blur(16px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Horizontal Carousel Track */
+        .carousel-track {
+            display: flex;
+            align-items: center;
+            overflow-x: scroll;
+            scroll-snap-type: x mandatory;
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+            padding: 0 calc(50% - 48px);
+            scrollbar-width: none;
+            z-index: 5;
+            -webkit-overflow-scrolling: touch;
+        }
+        .carousel-track::-webkit-scrollbar { display: none; }
+
+        .avatar-node {
+            flex: 0 0 96px;
+            height: 96px;
+            border-radius: 50%;
+            scroll-snap-align: center;
+            scroll-snap-stop: always;
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+            opacity: 0.35;
+            transform: scale(0.78);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-node img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        .avatar-node.focused {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Input Form styling */
+        .input-box {
+            position: relative;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-top: 10px;
+            background: transparent;
+            transition: border-color 0.2s;
+        }
+        .input-box:focus-within { border-color: var(--accent-blue); }
+
+        .input-box label {
+            position: absolute;
+            top: -10px;
+            left: 14px;
+            background: var(--bg-color);
+            padding: 0 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .input-box input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Floating Gradient Check Button */
+        .fab-btn {
+            position: fixed;
+            bottom: 35px;
+            right: 24px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: var(--gradient-fab);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(229, 9, 127, 0.45);
+            transition: transform 0.15s ease;
+            z-index: 40;
+        }
+        .fab-btn:active { transform: scale(0.9); }
+
+        /* Configuration View */
+        .settings-avatar-head {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 15px 0 30px;
+        }
+
+        .settings-avatar-wrap {
+            position: relative;
+            width: 105px;
+            height: 105px;
+            border-radius: 50%;
+            margin-bottom: 12px;
+        }
+        .settings-avatar-wrap img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .settings-avatar-wrap .edit-badge {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gradient-fab);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg-color);
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+        }
+
+        .setting-row .title {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .setting-row .desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .rating-badge {
+            background: #202330;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Modern Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 26px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #2e344d;
+            transition: 0.25s;
+            border-radius: 26px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.25s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background: #1f80e0; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .btn-full {
+            background: var(--gradient-btn);
+            color: #ffffff;
+            border: none;
+            padding: 16px;
+            width: 100%;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 35px;
+            transition: opacity 0.2s;
+        }
+        .btn-full:active { opacity: 0.85; }
+
+        /* ================= EDIT PROFILES GRID (Screenshot 1) ================= */
+        .profiles-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px 20px;
+            margin-top: 40px;
+            justify-items: center;
+        }
+
+        .profile-grid-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            width: 110px;
+        }
+
+        .profile-bubble {
+            position: relative;
+            width: 95px;
+            height: 95px;
+            border-radius: 50%;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-bubble img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .profile-bubble .overlay-icon {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-bubble.add-bubble {
+            background: #1c1e29;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .profile-grid-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffffff;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        /* ================= RATING BOTTOM SHEET (Screenshot 4) ================= */
+        .sheet-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            display: none;
+            align-items: flex-end;
+        }
+
+        .sheet-container {
+            background: var(--sheet-bg);
+            width: 100%;
+            border-radius: 24px 24px 0 0;
+            padding: 24px 20px 35px;
+            max-height: 85vh;
+            animation: slideUp 0.28s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .rating-timeline {
+            position: relative;
+            margin-top: 25px;
+            padding-left: 8px;
+        }
+
+        .timeline-bar-bg {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            bottom: 25px;
+            width: 3px;
+            background: #2a2e42;
+            z-index: 1;
+        }
+
+        .timeline-bar-fill {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 3px;
+            background: var(--accent-blue);
+            z-index: 2;
+            transition: height 0.3s ease;
+            height: 0px;
+        }
+
+        .rating-entry {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 18px;
+            padding: 14px 0;
+            z-index: 3;
+            cursor: pointer;
+        }
+
+        .rating-entry.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .rating-check-circle {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #2a2e42;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--sheet-bg);
+            transition: background-color 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .rating-entry.active .rating-check-circle {
+            background: var(--accent-blue);
+        }
+
+        /* ================= PIN MODAL ================= */
+        .pin-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 150;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .pin-inputs {
+            display: flex;
+            gap: 12px;
+            margin: 25px 0 15px;
+        }
+
+        .pin-digit {
+            width: 52px;
+            height: 52px;
+            border: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            text-align: center;
+            font-size: 22px;
+            color: #fff;
+            outline: none;
+        }
+        .pin-digit:focus { border-color: var(--accent-blue); }
+    </style>
+</head>
+<body>
+
+    <!-- App Top Bar -->
+    <header class="app-bar" id="appBar">
+        <button class="icon-btn" id="navBackBtn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 id="appTitle">Create Profile</h1>
+        <button class="action-link" id="topRightAction" style="display: none;">Cancel</button>
+    </header>
+
+    <div class="view-container">
+
+        <!-- SCREEN 1: EDIT PROFILE LIST VIEW (?action=edit) -->
+        <section id="viewProfilesList" style="display: none;">
+            <div class="profiles-grid" id="profilesGridContainer"></div>
+        </section>
+
+        <!-- SCREEN 2: AVATAR & NAME CHOOSER (New / Edit single) -->
+        <section id="viewAvatarName">
+            <div class="carousel-outer-stage">
+                <div class="fixed-ambient-glow" id="ambientGlow"></div>
+                <div class="fixed-selector-ring"></div>
+                <div class="carousel-track" id="avatarCarousel"></div>
+            </div>
+
+            <div class="input-box">
+                <label id="inputLabel">Your Name</label>
+                <input type="text" id="nameField" placeholder="Enter profile name" autocomplete="off">
+            </div>
+
+            <button class="fab-btn" id="fabNextBtn">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+        </section>
+
+        <!-- SCREEN 3: PROFILE SETTINGS CONFIGURATION -->
+        <section id="viewSettings" style="display: none;">
+            <div class="settings-avatar-head">
+                <div class="settings-avatar-wrap" id="reselectAvatarBtn">
+                    <img id="settingsAvatarImg" src="" alt="">
+                    <div class="edit-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </div>
+                </div>
+                <h2 id="settingsProfileName" style="font-size: 20px; font-weight: 600;">Name</h2>
+            </div>
+
+            <div class="setting-row">
+                <div>
+                    <div class="title">Is this for Kids?</div>
+                    <div class="desc">Content rated U/A 7+ & below</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="kidsToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-row" id="openRatingSheetBtn">
+                <div>
+                    <div class="title">Select Content Rating</div>
+                    <div class="desc">You will see content rated up to</div>
+                </div>
+                <div class="rating-badge">
+                    <span id="currentRatingLabel">A</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div>
+                    <div class="title">Set a Parental Lock ?</div>
+                    <div class="desc">Restrict access to adult profiles with a PIN</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="parentalToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button class="btn-full" id="saveProfileBtn">Create Your Profile</button>
+        </section>
+
+    </div>
+
+    <!-- RATING BOTTOM SHEET (Screenshot 4) -->
+    <div class="sheet-backdrop" id="ratingSheetBackdrop">
+        <div class="sheet-container">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <img id="sheetAvatarIcon" src="" style="width: 44px; height: 44px; border-radius: 50%;">
+                    <div>
+                        <h3 style="font-size: 17px; font-weight: 600;">You will see all available content</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Only content of ratings selected will be discoverable</p>
+                    </div>
+                </div>
+                <button class="icon-btn" id="closeRatingSheet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="rating-timeline">
+                <div class="timeline-bar-bg"></div>
+                <div class="timeline-bar-fill" id="timelineBarFill"></div>
+
+                <div class="rating-entry active" data-rating="U" data-rank="1">
+                    <div class="rating-check-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div>
+                        <h4 style="font-size: 15px;">U</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Features titles rated U & below</p>
+                    </div>
+                </div>
+
+                <div class="rating-entry active" data-rating="U/A 7+" data-rank="2">
+                    <div class="rating-check-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div>
+                        <h4 style="font-size: 15px;">U/A 7+</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Features titles rated U/A 7+ & below</p>
+                    </div>
+                </div>
+
+                <div class="rating-entry active" data-rating="U/A 13+" data-rank="3">
+                    <div class="rating-check-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div>
+                        <h4 style="font-size: 15px;">U/A 13+</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Features titles rated U/A 13+ & below</p>
+                    </div>
+                </div>
+
+                <div class="rating-entry active" data-rating="U/A 16+" data-rank="4">
+                    <div class="rating-check-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div>
+                        <h4 style="font-size: 15px;">U/A 16+</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Features titles rated U/A 16+ & below</p>
+                    </div>
+                </div>
+
+                <div class="rating-entry active" data-rating="A" data-rank="5">
+                    <div class="rating-check-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div>
+                        <h4 style="font-size: 15px;">A</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Features titles rated A & below</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIN ENTER / VERIFY MODAL -->
+    <div class="pin-modal" id="pinModal">
+        <h3 id="pinModalTitle" style="font-size: 19px; margin-bottom: 6px;">Parental Lock</h3>
+        <p style="color: var(--text-secondary); font-size: 13px;" id="pinModalDesc">Please enter 4 digit PIN</p>
+        <div class="pin-inputs">
+            <input type="password" maxlength="1" class="pin-digit" inputmode="numeric">
+            <input type="password" maxlength="1" class="pin-digit" inputmode="numeric">
+            <input type="password" maxlength="1" class="pin-digit" inputmode="numeric">
+            <input type="password" maxlength="1" class="pin-digit" inputmode="numeric">
+        </div>
+        <button class="action-link" id="cancelPinBtn" style="color: #8f98b2; margin-top: 10px;">Cancel</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+            authDomain: "question-metabase.firebaseapp.com",
+            databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "question-metabase",
+            storageBucket: "question-metabase.firebasestorage.app",
+            messagingSenderId: "770698198753",
+            appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Colors palette for dynamic ambient glow
+        const glowGradients = [
+            'radial-gradient(circle, rgba(31,128,224,0.4) 0%, transparent 70%)',
+            'radial-gradient(circle, rgba(235,87,87,0.4) 0%, transparent 70%)',
+            'radial-gradient(circle, rgba(168,36,232,0.4) 0%, transparent 70%)',
+            'radial-gradient(circle, rgba(242,201,76,0.4) 0%, transparent 70%)',
+            'radial-gradient(circle, rgba(39,174,96,0.4) 0%, transparent 70%)'
+        ];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let action = urlParams.get('action') || (urlParams.get('acton') || 'new');
+        let session = urlParams.get('session');
+
+        let selectedAvatarIndex = 38; // Default 38.png
+        let userDocRef = null;
+        let currentUserData = null;
+        let activeEditProfileId = null;
+        let createdPin = null;
+
+        const triggerHaptic = () => { if (navigator.vibrate) navigator.vibrate(15); };
+        const getAvatarUrl = (id) => `https://img1.hotstarext.com/image/upload/,c_fill/v2/feature/profile/${id}.png`;
+
+        // 1. Session & Auth State Restoration
+        async function resolveAuth() {
+            let uarmDocId = localStorage.getItem('hotstar_uarm_doc_id');
+
+            if (session) {
+                const sessionSnap = await getDoc(doc(db, "ASPX Keys", session));
+                if (sessionSnap.exists()) {
+                    const sData = sessionSnap.data();
+                    uarmDocId = sData.uarmId;
+                    localStorage.setItem('hotstar_uarm_doc_id', uarmDocId);
+                }
+            }
+
+            if (!uarmDocId) {
+                window.location.href = "1.html";
+                return;
+            }
+
+            userDocRef = doc(db, "UARM", uarmDocId);
+            const userSnap = await getDoc(userDocRef);
+            if (userSnap.exists()) {
+                currentUserData = userSnap.data();
+                initAppFlow();
+            } else {
+                window.location.href = "1.html";
+            }
+        }
+
+        // 2. Setup Carousel with Center Snapping and Haptics
+        function initCarousel() {
+            const track = document.getElementById('avatarCarousel');
+            track.innerHTML = "";
+
+            for (let i = 1; i <= 38; i++) {
+                const node = document.createElement('div');
+                node.className = `avatar-node ${i === selectedAvatarIndex ? 'focused' : ''}`;
+                node.dataset.index = i;
+                node.innerHTML = `<img src="${getAvatarUrl(i)}" loading="lazy">`;
+                
+                node.addEventListener('click', () => {
+                    node.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                });
+
+                track.appendChild(node);
+            }
+
+            // Scroll listener to update center focused item
+            let scrollTimeout;
+            track.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    const trackRect = track.getBoundingClientRect();
+                    const centerX = trackRect.left + trackRect.width / 2;
+
+                    let closestNode = null;
+                    let minDistance = Infinity;
+
+                    document.querySelectorAll('.avatar-node').forEach(node => {
+                        const r = node.getBoundingClientRect();
+                        const nodeCenterX = r.left + r.width / 2;
+                        const dist = Math.abs(centerX - nodeCenterX);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestNode = node;
+                        }
+                    });
+
+                    if (closestNode) {
+                        const newIdx = parseInt(closestNode.dataset.index);
+                        if (newIdx !== selectedAvatarIndex) {
+                            selectedAvatarIndex = newIdx;
+                            document.querySelectorAll('.avatar-node').forEach(n => n.classList.remove('focused'));
+                            closestNode.classList.add('focused');
+                            triggerHaptic();
+                            // Update ambient background gradient
+                            document.getElementById('ambientGlow').style.background = glowGradients[selectedAvatarIndex % glowGradients.length];
+                        }
+                    }
+                }, 40);
+            });
+
+            // Focus on default 38
+            setTimeout(() => {
+                const defNode = track.querySelector(`[data-index="${selectedAvatarIndex}"]`);
+                if (defNode) defNode.scrollIntoView({ behavior: 'auto', inline: 'center' });
+            }, 100);
+        }
+
+        // 3. Routing & Flow Controller
+        function initAppFlow() {
+            initCarousel();
+
+            if (action === "edit") {
+                showEditProfilesList();
+            } else {
+                // New Profile Creation
+                document.getElementById('appTitle').innerText = "Create Profile";
+                document.getElementById('inputLabel').innerText = "Your Name";
+                document.getElementById('nameField').value = currentUserData["First Name"] || currentUserData["Name"] || "";
+                document.getElementById('viewAvatarName').style.display = "block";
+            }
+        }
+
+        // 4. Render Grid of Profiles (Screenshot 1)
+        function showEditProfilesList() {
+            document.getElementById('viewProfilesList').style.display = "block";
+            document.getElementById('viewAvatarName').style.display = "none";
+            document.getElementById('viewSettings').style.display = "none";
+            document.getElementById('fabNextBtn').style.display = "none";
+
+            document.getElementById('appTitle').innerText = "Edit Profile";
+            const rightBtn = document.getElementById('topRightAction');
+            rightBtn.innerText = "Cancel";
+            rightBtn.className = "action-link";
+            rightBtn.style.display = "block";
+            rightBtn.onclick = () => window.location.href = "https://abc.xyz";
+
+            const container = document.getElementById('profilesGridContainer');
+            container.innerHTML = "";
+
+            const profiles = currentUserData.Profiles || [];
+            profiles.forEach(p => {
+                const item = document.createElement('div');
+                item.className = "profile-grid-item";
+                item.innerHTML = `
+                    <div class="profile-bubble">
+                        <img src="${p.avatarUrl}">
+                        <div class="overlay-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        </div>
+                    </div>
+                    <div class="profile-grid-name">${p.name}</div>
+                `;
+                item.addEventListener('click', () => openSingleProfileEdit(p));
+                container.appendChild(item);
+            });
+
+            // Add Profile Bubble
+            const addItem = document.createElement('div');
+            addItem.className = "profile-grid-item";
+            addItem.innerHTML = `
+                <div class="profile-bubble add-bubble">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </div>
+                <div class="profile-grid-name">Add</div>
+            `;
+            addItem.addEventListener('click', () => {
+                action = "new";
+                activeEditProfileId = null;
+                document.getElementById('viewProfilesList').style.display = "none";
+                document.getElementById('viewAvatarName').style.display = "block";
+                document.getElementById('fabNextBtn').style.display = "flex";
+                document.getElementById('appTitle').innerText = "Create Profile";
+                document.getElementById('inputLabel').innerText = "Your Name";
+                document.getElementById('nameField').value = "";
+                rightBtn.style.display = "none";
+            });
+            container.appendChild(addItem);
+        }
+
+        // 5. Open Single Profile for Edit (Screenshot 2)
+        function openSingleProfileEdit(profile) {
+            activeEditProfileId = profile.id;
+            document.getElementById('viewProfilesList').style.display = "none";
+            document.getElementById('viewAvatarName').style.display = "block";
+            document.getElementById('fabNextBtn').style.display = "flex";
+
+            document.getElementById('appTitle').innerText = "Edit Profile";
+            document.getElementById('inputLabel').innerText = "Profile Name";
+            document.getElementById('nameField').value = profile.name;
+
+            selectedAvatarIndex = profile.avatarId || 38;
+            const defNode = document.querySelector(`.avatar-node[data-index="${selectedAvatarIndex}"]`);
+            if (defNode) defNode.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+
+            // Top Right Delete button logic
+            const deleteBtn = document.getElementById('topRightAction');
+            // Only allow deleting custom profiles (Cannot delete primary profile or Default Kids profile)
+            const isProtected = profile.isPrimary || profile.name.toLowerCase() === "kids";
+            if (!isProtected) {
+                deleteBtn.innerText = "Delete";
+                deleteBtn.className = "action-link danger";
+                deleteBtn.style.display = "block";
+                deleteBtn.onclick = () => requestProfileDeletion(profile);
+            } else {
+                deleteBtn.style.display = "none";
+            }
+        }
+
+        // 6. Next Fab -> Proceed to Settings View (Screenshot 2 / Config)
+        document.getElementById('fabNextBtn').addEventListener('click', () => {
+            const name = document.getElementById('nameField').value.trim();
+            if (!name) return alert("Please enter a name");
+
+            triggerHaptic();
+            document.getElementById('viewAvatarName').style.display = "none";
+            document.getElementById('fabNextBtn').style.display = "none";
+            document.getElementById('viewSettings').style.display = "block";
+
+            document.getElementById('settingsProfileName').innerText = name;
+            document.getElementById('settingsAvatarImg').src = getAvatarUrl(selectedAvatarIndex);
+            document.getElementById('sheetAvatarIcon').src = getAvatarUrl(selectedAvatarIndex);
+            document.getElementById('saveProfileBtn').innerText = activeEditProfileId ? "Save Changes" : "Create Your Profile";
+        });
+
+        document.getElementById('reselectAvatarBtn').addEventListener('click', () => {
+            document.getElementById('viewSettings').style.display = "none";
+            document.getElementById('viewAvatarName').style.display = "block";
+            document.getElementById('fabNextBtn').style.display = "flex";
+        });
+
+        // 7. Kids & Age Rating Constraints (Screenshot 4)
+        const kidsToggle = document.getElementById('kidsToggle');
+        kidsToggle.addEventListener('change', (e) => {
+            triggerHaptic();
+            if (e.target.checked) {
+                setRating("U/A 7+");
+            }
+        });
+
+        function setRating(rating) {
+            document.getElementById('currentRatingLabel').innerText = rating;
+            const rows = Array.from(document.querySelectorAll('.rating-entry'));
+            let targetRank = 5;
+
+            rows.forEach(r => {
+                if (r.dataset.rating === rating) targetRank = parseInt(r.dataset.rank);
+            });
+
+            rows.forEach(r => {
+                const rank = parseInt(r.dataset.rank);
+                if (rank <= targetRank) {
+                    r.classList.add('active');
+                } else {
+                    r.classList.remove('active');
+                }
+            });
+
+            // Adjust the dynamic blue connecting line height
+            const fillPct = ((targetRank - 1) / 4) * 80;
+            document.getElementById('timelineBarFill').style.height = `${fillPct}%`;
+        }
+
+        document.getElementById('openRatingSheetBtn').addEventListener('click', () => {
+            const isKids = kidsToggle.checked;
+            document.querySelectorAll('.rating-entry').forEach(r => {
+                const rank = parseInt(r.dataset.rank);
+                // If kids account, lock options above U/A 7+
+                if (isKids && rank > 2) {
+                    r.classList.add('disabled');
+                } else {
+                    r.classList.remove('disabled');
+                }
+            });
+            document.getElementById('ratingSheetBackdrop').style.display = "flex";
+        });
+
+        document.getElementById('closeRatingSheet').addEventListener('click', () => {
+            document.getElementById('ratingSheetBackdrop').style.display = "none";
+        });
+
+        document.querySelectorAll('.rating-entry').forEach(entry => {
+            entry.addEventListener('click', () => {
+                triggerHaptic();
+                setRating(entry.dataset.rating);
+                document.getElementById('ratingSheetBackdrop').style.display = "none";
+            });
+        });
+
+        // 8. Parental PIN Protection & Verification
+        const parentalToggle = document.getElementById('parentalToggle');
+        parentalToggle.addEventListener('change', (e) => {
+            triggerHaptic();
+            if (e.target.checked) {
+                openPinModal("Create Parental PIN", "Enter 4 digit PIN to protect profile", (pin) => {
+                    createdPin = pin;
+                });
+            } else {
+                createdPin = null;
+            }
+        });
+
+        function openPinModal(title, desc, onSuccess) {
+            const modal = document.getElementById('pinModal');
+            document.getElementById('pinModalTitle').innerText = title;
+            document.getElementById('pinModalDesc').innerText = desc;
+            modal.style.display = "flex";
+
+            const digits = document.querySelectorAll('.pin-digit');
+            digits.forEach((d, i) => {
+                d.value = "";
+                d.oninput = (e) => {
+                    if (e.target.value && i < digits.length - 1) digits[i + 1].focus();
+                    const fullPin = Array.from(digits).map(inp => inp.value).join('');
+                    if (fullPin.length === 4) {
+                        triggerHaptic();
+                        setTimeout(() => {
+                            modal.style.display = "none";
+                            onSuccess(fullPin);
+                        }, 200);
+                    }
+                };
+                d.onkeydown = (e) => {
+                    if (e.key === 'Backspace' && !e.target.value && i > 0) digits[i - 1].focus();
+                };
+            });
+            digits[0].focus();
+        }
+
+        document.getElementById('cancelPinBtn').addEventListener('click', () => {
+            document.getElementById('pinModal').style.display = "none";
+            if (!createdPin) parentalToggle.checked = false;
+        });
+
+        // 9. Deletion with Parental Verification Check
+        function requestProfileDeletion(profile) {
+            const performDelete = async () => {
+                if (confirm(`Are you sure you want to delete profile "${profile.name}"?`)) {
+                    triggerHaptic();
+                    let updatedProfiles = (currentUserData.Profiles || []).filter(p => p.id !== profile.id);
+                    await updateDoc(userDocRef, { Profiles: updatedProfiles });
+                    currentUserData.Profiles = updatedProfiles;
+                    showEditProfilesList();
+                }
+            };
+
+            if (profile.pin) {
+                openPinModal("Enter PIN", "This profile is protected. Enter PIN to delete.", (enteredPin) => {
+                    if (enteredPin === profile.pin) {
+                        performDelete();
+                    } else {
+                        alert("Incorrect PIN. Deletion aborted.");
+                    }
+                });
+            } else {
+                performDelete();
+            }
+        }
+
+        // 10. Save / Create Profile to Firestore
+        document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('saveProfileBtn');
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+
+            const name = document.getElementById('nameField').value.trim();
+            const isKids = kidsToggle.checked;
+            const contentRating = document.getElementById('currentRatingLabel').innerText;
+
+            let profiles = currentUserData.Profiles || [];
+
+            if (activeEditProfileId) {
+                // Update existing profile
+                profiles = profiles.map(p => {
+                    if (p.id === activeEditProfileId) {
+                        return {
+                            ...p,
+                            name,
+                            avatarId: selectedAvatarIndex,
+                            avatarUrl: getAvatarUrl(selectedAvatarIndex),
+                            isKids,
+                            contentRating: isKids ? "U/A 7+" : contentRating,
+                            pin: createdPin || p.pin || null
+                        };
+                    }
+                    return p;
+                });
+            } else {
+                // New Profile Creation
+                const newProfile = {
+                    id: 'prof_' + Date.now(),
+                    name,
+                    avatarId: selectedAvatarIndex,
+                    avatarUrl: getAvatarUrl(selectedAvatarIndex),
+                    isKids,
+                    contentRating: isKids ? "U/A 7+" : contentRating,
+                    pin: createdPin || null,
+                    isPrimary: profiles.length === 0
+                };
+
+                if (profiles.length === 0) {
+                    // First time: Automatically create Default Kids profile (19.png) as well
+                    const autoKids = {
+                        id: 'prof_kids_' + Date.now(),
+                        name: "Kids",
+                        avatarId: 19,
+                        avatarUrl: getAvatarUrl(19),
+                        isKids: true,
+                        contentRating: "U/A 7+",
+                        pin: null,
+                        isPrimary: false
+                    };
+                    profiles = [newProfile, autoKids];
+                } else {
+                    profiles.push(newProfile);
+                }
+            }
+
+            try {
+                await updateDoc(userDocRef, {
+                    Hotstar: true,
+                    Profiles: profiles,
+                    lastUpdated: new Date().toISOString()
+                });
+                window.location.href = "https://abc.xyz";
+            } catch (err) {
+                console.error(err);
+                alert("Failed to save profile.");
+                btn.disabled = false;
+                btn.innerText = "Create Your Profile";
+            }
+        });
+
+        // Top Left Back Button Controller
+        document.getElementById('navBackBtn').addEventListener('click', () => {
+            if (document.getElementById('viewSettings').style.display === "block") {
+                document.getElementById('viewSettings').style.display = "none";
+                document.getElementById('viewAvatarName').style.display = "block";
+                document.getElementById('fabNextBtn').style.display = "flex";
+            } else if (activeEditProfileId) {
+                showEditProfilesList();
+            } else {
+                window.history.back();
+            }
+        });
+
+        // Initialize App
+        setRating("A");
+        resolveAuth();
+    </script>
+</body>
+</html>
