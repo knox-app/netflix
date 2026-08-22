@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Disney+ Hotstar</title>
+    <title>Disney+ Hotstar | Profile Hub</title>
     <style>
         :root {
             --bg-color: #0f1017;
@@ -13,9 +13,10 @@
             --text-secondary: #8f98b2;
             --accent-blue: #1f80e0;
             --danger-red: #e50914;
-            --border-box: #343746;
+            --border-box: #2e344d;
             --gradient-accent: linear-gradient(90deg, #1f80e0 0%, #a824e8 50%, #e5097f 100%);
             --gradient-fab: linear-gradient(135deg, #1f80e0 0%, #df1b8b 100%);
+            --glow-color: rgba(31, 128, 224, 0.35);
         }
 
         * {
@@ -36,13 +37,16 @@
             overflow-x: hidden;
         }
 
-        /* Top Navigation Bar */
+        /* Top App Bar */
         .app-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 16px 20px;
-            position: relative;
+            position: sticky;
+            top: 0;
+            background: rgba(15, 16, 23, 0.95);
+            backdrop-filter: blur(12px);
             z-index: 50;
             height: 60px;
         }
@@ -83,34 +87,45 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 10px 20px 30px;
+            padding: 10px 20px 40px;
             max-width: 440px;
             width: 100%;
             margin: 0 auto;
             position: relative;
         }
 
-        /* Fixed Center-Ring Carousel */
+        /* Carousel with Dynamic Ambient Glow */
         .carousel-outer {
             position: relative;
             width: 100vw;
             left: 50%;
             transform: translateX(-50%);
-            height: 140px;
-            margin: 20px 0 35px;
+            height: 150px;
+            margin: 15px 0 25px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        /* Fixed Center Lens Ring */
+        .ambient-glow {
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: var(--glow-color);
+            filter: blur(35px);
+            z-index: 1;
+            transition: background 0.4s ease;
+            pointer-events: none;
+        }
+
         .fixed-center-lens {
             position: absolute;
             width: 104px;
             height: 104px;
             border-radius: 50%;
             border: 3.5px solid #ffffff;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 0 2000px rgba(15, 16, 23, 0.001);
+            box-shadow: 0 0 25px rgba(0,0,0,0.9);
             pointer-events: none;
             z-index: 10;
         }
@@ -120,11 +135,12 @@
             align-items: center;
             overflow-x: scroll;
             scroll-snap-type: x mandatory;
-            gap: 22px;
+            gap: 20px;
             width: 100%;
             height: 100%;
             padding: 0 calc(50vw - 47px);
             scrollbar-width: none;
+            z-index: 2;
         }
         .carousel-track::-webkit-scrollbar { display: none; }
 
@@ -134,9 +150,10 @@
             border-radius: 50%;
             scroll-snap-align: center;
             cursor: pointer;
-            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s;
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s;
             opacity: 0.35;
-            transform: scale(0.78);
+            transform: scale(0.75);
+            background: #1c202e;
         }
 
         .carousel-item.active {
@@ -152,15 +169,35 @@
             pointer-events: none;
         }
 
-        /* Floating Border Input Group */
+        /* Category Browse Pill Button */
+        .category-browse-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #d1d5db;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 0 auto 25px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .category-browse-btn:active { background: rgba(255, 255, 255, 0.12); }
+
+        /* Floating Input with Char Counter */
         .input-box {
             position: relative;
             border: 1.5px solid var(--border-box);
             border-radius: 12px;
             padding: 14px 16px;
-            margin-top: 10px;
             background: transparent;
+            transition: border-color 0.2s;
         }
+        .input-box.focused { border-color: var(--accent-blue); }
 
         .input-box label {
             position: absolute;
@@ -170,11 +207,10 @@
             padding: 0 6px;
             font-size: 12px;
             color: var(--text-secondary);
-            font-weight: 400;
         }
 
         .input-box input {
-            width: 100%;
+            width: calc(100% - 40px);
             background: transparent;
             border: none;
             outline: none;
@@ -183,7 +219,16 @@
             font-weight: 500;
         }
 
-        /* Floating Gradient Check FAB Button */
+        .char-counter {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Floating Gradient Check FAB */
         .fab-btn {
             position: fixed;
             bottom: 35px;
@@ -203,12 +248,12 @@
         }
         .fab-btn:active { transform: scale(0.92); }
 
-        /* Configuration Step 2 Views */
+        /* Configuration Step 2 */
         .settings-avatar-wrap {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 10px 0 35px;
+            margin: 10px 0 25px;
         }
 
         .avatar-preview-badge {
@@ -241,30 +286,19 @@
             border: 2px solid var(--bg-color);
         }
 
-        .profile-name-text {
-            font-size: 18px;
-            font-weight: 600;
-        }
+        .profile-name-text { font-size: 18px; font-weight: 600; }
 
         .setting-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 18px 0;
+            padding: 16px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             cursor: pointer;
         }
 
-        .setting-row h3 {
-            font-size: 15px;
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-
-        .setting-row p {
-            font-size: 12.5px;
-            color: var(--text-secondary);
-        }
+        .setting-row h3 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+        .setting-row p { font-size: 12.5px; color: var(--text-secondary); }
 
         /* Toggle Switches */
         .switch {
@@ -272,6 +306,7 @@
             display: inline-block;
             width: 44px;
             height: 24px;
+            flex-shrink: 0;
         }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
@@ -317,10 +352,12 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            margin-top: 40px;
+            margin-top: 30px;
+            transition: opacity 0.2s;
         }
+        .action-button-full:active { opacity: 0.9; }
 
-        /* Rating Bottom Sheet */
+        /* Bottom Sheet UI */
         .bottom-sheet {
             position: fixed;
             inset: 0;
@@ -334,20 +371,32 @@
             background: var(--sheet-bg);
             width: 100%;
             border-radius: 24px 24px 0 0;
-            padding: 24px 20px 40px;
+            padding: 16px 20px 35px;
+            max-height: 85vh;
+            overflow-y: auto;
             animation: sheetOpen 0.25s ease-out;
+            scrollbar-width: none;
         }
+        .sheet-container::-webkit-scrollbar { display: none; }
 
         @keyframes sheetOpen {
             from { transform: translateY(100%); }
             to { transform: translateY(0); }
         }
 
+        .sheet-drag-handle {
+            width: 36px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+
         .sheet-header-box {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .sheet-header-left {
@@ -363,6 +412,7 @@
             object-fit: cover;
         }
 
+        /* Rating Timeline */
         .timeline-container {
             position: relative;
             padding-left: 6px;
@@ -410,13 +460,54 @@
             border: 2px solid var(--sheet-bg);
             transition: background 0.2s;
         }
-
-        .node-check.active {
-            background: var(--accent-blue);
-        }
+        .node-check.active { background: var(--accent-blue); }
 
         .node-text h4 { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
         .node-text p { font-size: 12px; color: var(--text-secondary); }
+
+        /* Category Tabs & Grid in Sheet */
+        .category-tab-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            scrollbar-width: none;
+        }
+        .category-tab-bar::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            background: #202434;
+            color: var(--text-secondary);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .tab-btn.active { background: #ffffff; color: #000000; font-weight: 600; }
+
+        .avatar-category-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 15px;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding-bottom: 10px;
+        }
+
+        .cat-avatar-item {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .cat-avatar-item.active { border-color: #ffffff; transform: scale(1.05); }
+        .cat-avatar-item img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
         /* 2x2 Grid View for ?action=edit */
         .profile-grid {
@@ -506,6 +597,30 @@
             outline: none;
         }
         .pin-box:focus { border-color: var(--accent-blue); }
+
+        /* Audio Language Multi-Select Chips */
+        .chip-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .lang-chip {
+            background: #202434;
+            color: var(--text-secondary);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .lang-chip.selected {
+            background: rgba(31, 128, 224, 0.15);
+            border-color: var(--accent-blue);
+            color: #ffffff;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -526,13 +641,20 @@
         <!-- ================= VIEW 1: CAROUSEL & PROFILE NAME ================= -->
         <section id="step1Screen">
             <div class="carousel-outer">
+                <div class="ambient-glow" id="ambientGlow"></div>
                 <div class="fixed-center-lens"></div>
                 <div class="carousel-track" id="avatarCarousel"></div>
             </div>
 
-            <div class="input-box">
+            <button class="category-browse-btn" id="openAvatarLibraryBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Choose from Library
+            </button>
+
+            <div class="input-box" id="inputContainer">
                 <label id="inputFloatingLabel">Your Name</label>
-                <input type="text" id="profileNameField" placeholder="Enter name" autocomplete="off">
+                <input type="text" id="profileNameField" placeholder="Enter name" maxlength="20" autocomplete="off">
+                <span class="char-counter" id="charCounter">0/20</span>
             </div>
 
             <button class="fab-btn" id="fabContinueBtn">
@@ -542,7 +664,7 @@
             </button>
         </section>
 
-        <!-- ================= VIEW 2: PROFILE SETTINGS CONFIG ================= -->
+        <!-- ================= VIEW 2: ADVANCED PROFILE CONFIGURATION ================= -->
         <section id="step2Screen" style="display: none;">
             <div class="settings-avatar-wrap">
                 <div class="avatar-preview-badge" id="reselectAvatarBtn">
@@ -570,12 +692,34 @@
             <div class="setting-row" id="ratingRowBtn">
                 <div>
                     <h3>Select Content Rating</h3>
-                    <p>You will see content rated up to</p>
+                    <p id="ratingSubDesc">You will see content rated up to</p>
                 </div>
                 <div class="rating-pill">
                     <span id="activeRatingLabel">A</span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
+            </div>
+
+            <div class="setting-row" id="languageRowBtn">
+                <div>
+                    <h3>Audio & Subtitles</h3>
+                    <p id="selectedLangsSummary">English, Hindi</p>
+                </div>
+                <div class="rating-pill">
+                    <span>Edit</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div>
+                    <h3>Autoplay Next Episode</h3>
+                    <p>Automatically play next title</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="autoplayToggle" checked>
+                    <span class="slider"></span>
+                </label>
             </div>
 
             <div class="setting-row">
@@ -592,12 +736,12 @@
             <button class="action-button-full" id="saveProfileFinalBtn">Create Your Profile</button>
         </section>
 
-        <!-- ================= VIEW 3: EDIT PROFILE DASHBOARD (?action=edit) ================= -->
+        <!-- ================= VIEW 3: 2x2 EDIT DASHBOARD (?action=edit) ================= -->
         <section id="editDashboardScreen" style="display: none;">
             <div class="profile-grid" id="profileGridContainer"></div>
         </section>
 
-        <!-- ================= VIEW 4: PARENTAL PIN SETUP ================= -->
+        <!-- ================= VIEW 4: PARENTAL PIN ENTRY ================= -->
         <section class="pin-view" id="pinSetupScreen">
             <div class="avatar-preview-badge" style="width: 80px; height: 80px; margin-bottom: 20px;">
                 <img id="pinAvatarImg" src="" alt="Avatar">
@@ -612,14 +756,15 @@
                 <input type="password" maxlength="1" class="pin-box" inputmode="numeric">
             </div>
 
-            <a href="javascript:void(0)" style="color: #1f80e0; font-size: 14px; text-decoration: none;">Forgot PIN</a>
+            <a href="javascript:void(0)" style="color: #1f80e0; font-size: 14px; text-decoration: none;" id="forgotPinLink">Forgot PIN?</a>
         </section>
 
     </div>
 
-    <!-- Rating Selection Bottom Sheet (Timeline) -->
+    <!-- Rating Bottom Sheet -->
     <div class="bottom-sheet" id="ratingBottomSheet">
         <div class="sheet-container">
+            <div class="sheet-drag-handle"></div>
             <div class="sheet-header-box">
                 <div class="sheet-header-left">
                     <img id="sheetAvatarImg" src="" alt="Avatar">
@@ -628,7 +773,7 @@
                         <p style="font-size: 12px; color: var(--text-secondary);">Only content of ratings selected will be discoverable</p>
                     </div>
                 </div>
-                <button class="icon-btn" id="closeSheetBtn">
+                <button class="icon-btn" id="closeRatingSheetBtn">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
@@ -639,48 +784,68 @@
 
                 <div class="timeline-node" data-rating="U" data-level="1">
                     <div class="node-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="node-text">
-                        <h4>U</h4>
-                        <p>Features titles rated U & below</p>
-                    </div>
+                    <div class="node-text"><h4>U</h4><p>Features titles rated U & below</p></div>
                 </div>
 
                 <div class="timeline-node" data-rating="U/A 7+" data-level="2">
                     <div class="node-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="node-text">
-                        <h4>U/A 7+</h4>
-                        <p>Features titles rated U/A 7+ & below</p>
-                    </div>
+                    <div class="node-text"><h4>U/A 7+</h4><p>Features titles rated U/A 7+ & below</p></div>
                 </div>
 
                 <div class="timeline-node" data-rating="U/A 13+" data-level="3">
                     <div class="node-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="node-text">
-                        <h4>U/A 13+</h4>
-                        <p>Features titles rated U/A 13+ & below</p>
-                    </div>
+                    <div class="node-text"><h4>U/A 13+</h4><p>Features titles rated U/A 13+ & below</p></div>
                 </div>
 
                 <div class="timeline-node" data-rating="U/A 16+" data-level="4">
                     <div class="node-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="node-text">
-                        <h4>U/A 16+</h4>
-                        <p>Features titles rated U/A 16+ & below</p>
-                    </div>
+                    <div class="node-text"><h4>U/A 16+</h4><p>Features titles rated U/A 16+ & below</p></div>
                 </div>
 
                 <div class="timeline-node" data-rating="A" data-level="5">
                     <div class="node-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="node-text">
-                        <h4>A</h4>
-                        <p>Features titles rated A & below</p>
-                    </div>
+                    <div class="node-text"><h4>A</h4><p>Features titles rated A & below</p></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK Modules -->
+    <!-- Avatar Categories Bottom Sheet -->
+    <div class="bottom-sheet" id="avatarLibrarySheet">
+        <div class="sheet-container">
+            <div class="sheet-drag-handle"></div>
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 14px;">Choose an Avatar</h3>
+            <div class="category-tab-bar" id="categoryTabs">
+                <button class="tab-btn active" data-cat="all">All</button>
+                <button class="tab-btn" data-cat="disney">Disney & Pixar</button>
+                <button class="tab-btn" data-cat="marvel">Marvel</button>
+                <button class="tab-btn" data-cat="starwars">Star Wars</button>
+                <button class="tab-btn" data-cat="originals">Hotstar Specials</button>
+            </div>
+            <div class="avatar-category-grid" id="categoryGrid"></div>
+        </div>
+    </div>
+
+    <!-- Preferred Audio Languages Bottom Sheet -->
+    <div class="bottom-sheet" id="languageSheet">
+        <div class="sheet-container">
+            <div class="sheet-drag-handle"></div>
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">Audio & Subtitle Preferences</h3>
+            <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 16px;">Select languages you prefer watching in</p>
+            <div class="chip-grid" id="languageChipGrid">
+                <div class="lang-chip selected" data-lang="English">English</div>
+                <div class="lang-chip selected" data-lang="Hindi">Hindi</div>
+                <div class="lang-chip" data-lang="Tamil">Tamil</div>
+                <div class="lang-chip" data-lang="Telugu">Telugu</div>
+                <div class="lang-chip" data-lang="Malayalam">Malayalam</div>
+                <div class="lang-chip" data-lang="Bengali">Bengali</div>
+                <div class="lang-chip" data-lang="Marathi">Marathi</div>
+                <div class="lang-chip" data-lang="Kannada">Kannada</div>
+            </div>
+            <button class="action-button-full" id="confirmLangsBtn" style="margin-top: 25px;">Done</button>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -698,9 +863,12 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Routing & State
+        // Haptic Feedback Helper
+        const triggerHaptic = (ms = 15) => { if (navigator.vibrate) navigator.vibrate(ms); };
+
+        // URL Parameters
         const urlParams = new URLSearchParams(window.location.search);
-        let action = urlParams.get('action'); // 'new', 'edit', 'delete', or initial
+        let action = urlParams.get('action');
         let session = urlParams.get('session');
 
         let selectedAvatarIndex = 38; // Default 38.png
@@ -708,11 +876,20 @@
         let currentUserData = null;
         let activeEditProfileId = null;
         let parentalPin = null;
+        let selectedLanguages = ["English", "Hindi"];
 
         const getAvatarUrl = (id) => `https://img1.hotstarext.com/image/upload/,c_fill/v2/feature/profile/${id}.png`;
 
-        // 1. Session and Profile Identification Initialization
-        async function initUserData() {
+        // Avatar Categories
+        const AVATAR_CATEGORIES = {
+            disney: [1, 2, 3, 4, 18, 19, 20, 21, 22],
+            marvel: [5, 6, 7, 8, 9, 23, 24, 25],
+            starwars: [10, 11, 12, 13, 26, 27, 28],
+            originals: [14, 15, 16, 17, 29, 30, 31, 38]
+        };
+
+        // 1. Session & Auth State Initialization
+        async function initAuth() {
             let userEmail = localStorage.getItem('current_user_email');
 
             if (session) {
@@ -741,34 +918,35 @@
             const snap = await getDoc(userDocRef);
             if (snap.exists()) {
                 currentUserData = snap.data();
-                setupViewMode();
+                setupView();
             }
         }
 
-        // 2. Setup View States Based On Action
-        function setupViewMode() {
-            const titleEl = document.getElementById('screenHeaderTitle');
+        // 2. View Setup
+        function setupView() {
+            const title = document.getElementById('screenHeaderTitle');
             const topAction = document.getElementById('topActionBtn');
             const nameInput = document.getElementById('profileNameField');
             const label = document.getElementById('inputFloatingLabel');
 
             if (action === "edit") {
-                titleEl.innerText = "Edit Profile";
+                title.innerText = "Edit Profile";
                 topAction.style.display = "block";
                 topAction.className = "top-action-btn btn-cancel";
                 topAction.innerText = "Cancel";
                 topAction.onclick = () => window.location.href = "https://abc.xyz";
                 renderEditGrid();
             } else if (action === "new") {
-                titleEl.innerText = "Create Profile";
+                title.innerText = "Create Profile";
                 label.innerText = "Your Name";
                 nameInput.value = "";
+                updateCharCount();
                 showCarouselStep();
             } else {
-                // Initial creation from login
-                titleEl.innerText = "Create Profile";
+                title.innerText = "Create Profile";
                 label.innerText = "Your Name";
                 nameInput.value = currentUserData["First Name"] || (currentUserData["Name"] || "User");
+                updateCharCount();
                 showCarouselStep();
             }
         }
@@ -780,7 +958,7 @@
             renderCarousel();
         }
 
-        // 3. Render Center-Fixed Carousel with Swipe Snapping
+        // 3. Render Carousel
         function renderCarousel() {
             const track = document.getElementById('avatarCarousel');
             track.innerHTML = "";
@@ -798,7 +976,7 @@
                 track.appendChild(item);
             }
 
-            // Realtime center lens alignment detection
+            // Realtime center lens alignment & dynamic glow tint
             track.addEventListener('scroll', () => {
                 const centerPos = track.scrollLeft + track.clientWidth / 2;
                 const items = track.querySelectorAll('.carousel-item');
@@ -814,14 +992,14 @@
                     }
                 });
 
-                if (closest) {
+                if (closest && parseInt(closest.dataset.index) !== selectedAvatarIndex) {
                     items.forEach(el => el.classList.remove('active'));
                     closest.classList.add('active');
                     selectedAvatarIndex = parseInt(closest.dataset.index);
+                    triggerHaptic(10);
                 }
             });
 
-            // Initial auto center on selected avatar
             setTimeout(() => {
                 const el = track.querySelector(`[data-index="${selectedAvatarIndex}"]`);
                 if (el) centerCarouselItem(el);
@@ -834,11 +1012,28 @@
             track.scrollTo({ left: targetLeft, behavior: 'smooth' });
         }
 
-        // 4. Step 1 -> Step 2 Transition
-        document.getElementById('fabContinueBtn').addEventListener('click', () => {
-            const name = document.getElementById('profileNameField').value.trim();
-            if (!name) return alert("Please enter a profile name");
+        // 4. Character Counter & Inline Validation
+        const nameField = document.getElementById('profileNameField');
+        const charCounter = document.getElementById('charCounter');
+        const inputContainer = document.getElementById('inputContainer');
 
+        nameField.addEventListener('input', updateCharCount);
+        nameField.addEventListener('focus', () => inputContainer.classList.add('focused'));
+        nameField.addEventListener('blur', () => inputContainer.classList.remove('focused'));
+
+        function updateCharCount() {
+            charCounter.innerText = `${nameField.value.length}/20`;
+        }
+
+        // 5. FAB Next Button Handler
+        document.getElementById('fabContinueBtn').addEventListener('click', () => {
+            const name = nameField.value.trim();
+            if (!name) return alert("Please enter a profile name");
+            if (name.toLowerCase() === "kids" && !activeEditProfileId) {
+                return alert("The name 'Kids' is reserved. Please choose another name.");
+            }
+
+            triggerHaptic(20);
             document.getElementById('step1Screen').style.display = "none";
             document.getElementById('step2Screen').style.display = "block";
 
@@ -847,7 +1042,6 @@
             document.getElementById('sheetAvatarImg').src = getAvatarUrl(selectedAvatarIndex);
             document.getElementById('pinAvatarImg').src = getAvatarUrl(selectedAvatarIndex);
 
-            // Update Header if editing
             if (activeEditProfileId) {
                 const topAction = document.getElementById('topActionBtn');
                 topAction.style.display = "block";
@@ -862,7 +1056,7 @@
             document.getElementById('step1Screen').style.display = "block";
         });
 
-        // 5. Rating Sheet & Dynamic Timeline Line Fill
+        // 6. Rating Bottom Sheet Handlers
         const ratingSheet = document.getElementById('ratingBottomSheet');
         const ratingNodes = document.querySelectorAll('.timeline-node');
         const timelineFill = document.getElementById('timelineBarFill');
@@ -872,16 +1066,13 @@
             ratingSheet.style.display = 'flex';
         });
 
-        document.getElementById('closeSheetBtn').addEventListener('click', () => ratingSheet.style.display = 'none');
+        document.getElementById('closeRatingSheetBtn').addEventListener('click', () => ratingSheet.style.display = 'none');
 
         function updateTimelineRating(rating, level) {
             document.getElementById('activeRatingLabel').innerText = rating;
-            
-            // Set dynamic connecting line height
             const percentages = { 1: "0%", 2: "25%", 3: "50%", 4: "75%", 5: "100%" };
             timelineFill.style.height = percentages[level] || "100%";
 
-            // Fill active check circles up to chosen rating
             ratingNodes.forEach(node => {
                 const nLevel = parseInt(node.dataset.level);
                 const check = node.querySelector('.node-check');
@@ -895,6 +1086,7 @@
 
         ratingNodes.forEach(node => {
             node.addEventListener('click', () => {
+                triggerHaptic(15);
                 const rating = node.dataset.rating;
                 const level = parseInt(node.dataset.level);
                 updateTimelineRating(rating, level);
@@ -902,20 +1094,82 @@
             });
         });
 
-        // Initial rating at highest level (A / Level 5)
         updateTimelineRating("A", 5);
 
-        // Kids Switch Handler
+        // Smart Kids Switch Lock
         document.getElementById('kidsSwitchToggle').addEventListener('change', (e) => {
+            triggerHaptic(15);
             if (e.target.checked) {
                 updateTimelineRating("U/A 7+", 2);
                 document.getElementById('activeRatingLabel').innerText = "U/A 7+";
+                document.getElementById('ratingSubDesc').innerText = "Locked to U/A 7+ for Kids Profile";
+            } else {
+                document.getElementById('ratingSubDesc').innerText = "You will see content rated up to";
             }
         });
 
-        // 6. Parental PIN Lock Entry
+        // 7. Avatar Library Sheet & Category Filtering
+        const avatarLibrarySheet = document.getElementById('avatarLibrarySheet');
+        document.getElementById('openAvatarLibraryBtn').addEventListener('click', () => {
+            avatarLibrarySheet.style.display = 'flex';
+            renderCategoryAvatars('all');
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                triggerHaptic(10);
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderCategoryAvatars(btn.dataset.cat);
+            });
+        });
+
+        function renderCategoryAvatars(category) {
+            const grid = document.getElementById('categoryGrid');
+            grid.innerHTML = "";
+
+            let ids = [];
+            if (category === 'all') {
+                for (let i = 1; i <= 38; i++) ids.push(i);
+            } else {
+                ids = AVATAR_CATEGORIES[category] || [];
+            }
+
+            ids.forEach(id => {
+                const div = document.createElement('div');
+                div.className = `cat-avatar-item ${id === selectedAvatarIndex ? 'active' : ''}`;
+                div.innerHTML = `<img src="${getAvatarUrl(id)}" alt="${id}">`;
+                div.onclick = () => {
+                    triggerHaptic(15);
+                    selectedAvatarIndex = id;
+                    avatarLibrarySheet.style.display = 'none';
+                    renderCarousel();
+                };
+                grid.appendChild(div);
+            });
+        }
+
+        // 8. Audio Languages Sheet
+        const langSheet = document.getElementById('languageSheet');
+        document.getElementById('languageRowBtn').addEventListener('click', () => langSheet.style.display = 'flex');
+
+        document.querySelectorAll('.lang-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                triggerHaptic(10);
+                chip.classList.toggle('selected');
+            });
+        });
+
+        document.getElementById('confirmLangsBtn').addEventListener('click', () => {
+            selectedLanguages = Array.from(document.querySelectorAll('.lang-chip.selected')).map(c => c.dataset.lang);
+            document.getElementById('selectedLangsSummary').innerText = selectedLanguages.join(', ') || "None Selected";
+            langSheet.style.display = 'none';
+        });
+
+        // 9. Parental PIN Flow
         const parentalToggle = document.getElementById('parentalSwitchToggle');
         parentalToggle.addEventListener('change', (e) => {
+            triggerHaptic(15);
             if (e.target.checked) {
                 document.getElementById('step2Screen').style.display = "none";
                 document.getElementById('pinSetupScreen').style.display = "flex";
@@ -928,6 +1182,7 @@
             boxes.forEach((b, i) => {
                 b.value = "";
                 b.oninput = (ev) => {
+                    triggerHaptic(10);
                     if (ev.target.value && i < boxes.length - 1) boxes[i + 1].focus();
                     const val = Array.from(boxes).map(x => x.value).join('');
                     if (val.length === 4) {
@@ -945,20 +1200,24 @@
             boxes[0].focus();
         }
 
-        // 7. Save Profile / Sync to Firestore
+        document.getElementById('forgotPinLink').addEventListener('click', () => {
+            alert(`A PIN recovery link has been dispatched to: ${currentUserData?.Email || 'your registered email'}`);
+        });
+
+        // 10. Save / Sync Profile
         document.getElementById('saveProfileFinalBtn').addEventListener('click', async () => {
             const btn = document.getElementById('saveProfileFinalBtn');
             btn.disabled = true;
             btn.innerText = "Saving Profile...";
 
-            const name = document.getElementById('profileNameField').value.trim();
+            const name = nameField.value.trim();
             const isKids = document.getElementById('kidsSwitchToggle').checked;
             const contentRating = document.getElementById('activeRatingLabel').innerText;
+            const autoplay = document.getElementById('autoplayToggle').checked;
 
             let profiles = currentUserData?.Profiles || [];
 
             if (activeEditProfileId) {
-                // Update Existing
                 profiles = profiles.map(p => {
                     if (p.id === activeEditProfileId) {
                         return {
@@ -968,13 +1227,14 @@
                             avatarUrl: getAvatarUrl(selectedAvatarIndex),
                             isKids,
                             contentRating: isKids ? "U/A 7+" : contentRating,
+                            languages: selectedLanguages,
+                            autoplay,
                             pin: parentalPin || p.pin
                         };
                     }
                     return p;
                 });
             } else if (action === "new") {
-                // Append New Profile
                 profiles.push({
                     id: 'prof_' + Date.now(),
                     name,
@@ -982,12 +1242,13 @@
                     avatarUrl: getAvatarUrl(selectedAvatarIndex),
                     isKids,
                     contentRating: isKids ? "U/A 7+" : contentRating,
+                    languages: selectedLanguages,
+                    autoplay,
                     pin: parentalPin,
                     isProtected: false,
                     createdAt: new Date().toISOString()
                 });
             } else {
-                // Initial Onboarding: Primary user profile + Auto-generated Kids Profile (19.png)
                 const primaryProfile = {
                     id: 'prof_primary_' + Date.now(),
                     name,
@@ -995,8 +1256,10 @@
                     avatarUrl: getAvatarUrl(selectedAvatarIndex),
                     isKids,
                     contentRating: isKids ? "U/A 7+" : contentRating,
+                    languages: selectedLanguages,
+                    autoplay,
                     pin: parentalPin,
-                    isProtected: true, // Cannot be deleted
+                    isProtected: true,
                     createdAt: new Date().toISOString()
                 };
 
@@ -1007,8 +1270,10 @@
                     avatarUrl: getAvatarUrl(19),
                     isKids: true,
                     contentRating: "U/A 7+",
+                    languages: ["English", "Hindi"],
+                    autoplay: true,
                     pin: null,
-                    isProtected: true, // Cannot be deleted
+                    isProtected: true,
                     createdAt: new Date().toISOString()
                 };
 
@@ -1021,6 +1286,8 @@
                     Profiles: profiles,
                     lastUpdated: new Date().toISOString()
                 });
+
+                localStorage.setItem('active_profile_id', activeEditProfileId || profiles[0].id);
                 window.location.href = "https://abc.xyz";
             } catch (err) {
                 console.error(err);
@@ -1030,7 +1297,7 @@
             }
         });
 
-        // 8. 2x2 Edit Dashboard (?action=edit)
+        // 11. 2x2 Edit Dashboard
         function renderEditGrid() {
             document.getElementById('step1Screen').style.display = "none";
             document.getElementById('editDashboardScreen').style.display = "block";
@@ -1062,7 +1329,7 @@
                 container.appendChild(card);
             });
 
-            // Add Profile Button Card
+            // Cap Profiles at 5 Max
             if (profiles.length < 5) {
                 const addCard = document.createElement('div');
                 addCard.className = "grid-profile-card";
@@ -1078,7 +1345,7 @@
                 addCard.addEventListener('click', () => {
                     activeEditProfileId = null;
                     action = "new";
-                    setupViewMode();
+                    setupView();
                 });
                 container.appendChild(addCard);
             }
@@ -1090,21 +1357,21 @@
 
             document.getElementById('screenHeaderTitle').innerText = "Edit Profile";
             document.getElementById('inputFloatingLabel').innerText = "Profile Name";
-            document.getElementById('profileNameField').value = p.name;
+            nameField.value = p.name;
+            updateCharCount();
             document.getElementById('kidsSwitchToggle').checked = !!p.isKids;
             document.getElementById('parentalSwitchToggle').checked = !!p.pin;
-            
+
             showCarouselStep();
         }
 
-        // 9. Protected Delete Profile Logic
+        // 12. Delete Profile Validation
         async function deleteProfile(profileId) {
             const profiles = currentUserData?.Profiles || [];
             const target = profiles.find(p => p.id === profileId);
 
             if (!target) return;
 
-            // Protection validation: Cannot delete primary/original profile or Kids profile
             if (target.isProtected || target.name.toLowerCase() === "kids") {
                 alert("This profile is protected and cannot be deleted.");
                 return;
@@ -1115,11 +1382,11 @@
                 await updateDoc(userDocRef, { Profiles: updated });
                 currentUserData.Profiles = updated;
                 action = "edit";
-                setupViewMode();
+                setupView();
             }
         }
 
-        // Back Button Behavior
+        // Back Button
         document.getElementById('appBarBackBtn').addEventListener('click', () => {
             if (document.getElementById('step2Screen').style.display === "block") {
                 document.getElementById('step2Screen').style.display = "none";
@@ -1132,8 +1399,15 @@
             }
         });
 
-        // Initialize
-        initUserData();
+        // Close bottom sheets on backdrop click
+        [ratingSheet, avatarLibrarySheet, langSheet].forEach(sheet => {
+            sheet.addEventListener('click', (e) => {
+                if (e.target === sheet) sheet.style.display = 'none';
+            });
+        });
+
+        // Initialize App
+        initAuth();
     </script>
 </body>
 </html>
