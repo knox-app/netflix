@@ -40,7 +40,7 @@
       user-select: none;
     }
 
-    /* Top Bar (Portrait Only) */
+    /* Top Navigation (Portrait Only) */
     .top-nav {
       display: flex;
       align-items: center;
@@ -80,18 +80,25 @@
       z-index: 99999;
     }
 
-    /* Video Engines */
-    video {
+    /* Seamless Dual Video Buffers (Zero Delay Switch) */
+    .media-layer {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       object-fit: contain;
-      z-index: 1;
       background: #000;
-      transition: object-fit 0.25s ease;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), object-fit 0.25s ease;
+      z-index: 1;
     }
-    video.fill-screen { object-fit: cover !important; }
+    .media-layer.active-layer {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      z-index: 2 !important;
+    }
+    .media-layer.fill-screen { object-fit: cover !important; }
 
     #ytFrameHost {
       position: absolute;
@@ -99,7 +106,7 @@
       display: none;
       overflow: hidden;
       pointer-events: none;
-      z-index: 2;
+      z-index: 3;
       background: #000;
     }
     #ytFrameHost iframe {
@@ -119,11 +126,46 @@
       display: none;
       width: 100%;
       height: 100%;
-      z-index: 2;
+      z-index: 3;
     }
     #jwHost.fill-screen { transform: scale(1.18); }
 
-    iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
+    iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 3; }
+
+    /* Pre-Roll Badge & Skip */
+    .preroll-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 35;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    .preroll-badge .ad-dot { width: 6px; height: 6px; border-radius: 50%; background: #ffaa00; }
+
+    .skip-ad-btn {
+      position: absolute;
+      bottom: 45px;
+      right: 16px;
+      z-index: 35;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+    }
 
     /* Double-Tap Seek Ripples */
     .tap-ripple-zone {
@@ -230,11 +272,8 @@
       margin-left: auto;
     }
 
-    /* In vertical mode hide title and lock inside player container */
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
     body:not(.landscape-mode) #lockBtn { display: none !important; }
-    
-    /* In vertical mode hide drawer buttons from overlay */
     body:not(.landscape-mode) #btnWatchNext,
     body:not(.landscape-mode) #btnEpisodes,
     body:not(.landscape-mode) #btnPreviously {
@@ -626,14 +665,11 @@
       font-size: 13px;
     }
 
-    /* ==============================================================
-       PORTRAIT DETAILS SECTION (Matching Screenshots 1 & 2)
-       ============================================================== */
+    /* Portrait Details Section (Elemental / Hotstar layout) */
     .details-wrapper { padding: 18px 16px; }
-    .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.2; }
+    .ch-title-head { font-size: 22px; font-weight: 800; color: #fff; line-height: 1.2; }
     .ch-lang-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
 
-    /* Action bar below title: Watchlist, Share (Screenshots 1 & 2) */
     .meta-actions-bar {
       display: flex;
       gap: 32px;
@@ -655,7 +691,7 @@
 
     .section-head { font-size: 17px; font-weight: 800; margin: 18px 0 12px; color: #fff; letter-spacing: 0.3px; }
 
-    /* Vertical Episodes List (Screenshot 1 & 2) */
+    /* Vertical Episodes List */
     .episodes-vertical-wrap { display: none; margin-bottom: 24px; }
     .ep-seasons-row {
       display: flex;
@@ -689,11 +725,7 @@
       background: #fff;
     }
 
-    .episodes-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+    .episodes-list { display: flex; flex-direction: column; gap: 16px; }
 
     .ep-item-card {
       display: flex;
@@ -702,7 +734,6 @@
       align-items: center;
       text-decoration: none;
       color: #fff;
-      position: relative;
     }
     .ep-thumb-box {
       position: relative;
@@ -739,12 +770,7 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .ep-item-meta {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      margin-top: 4px;
-      font-weight: 500;
-    }
+    .ep-item-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
 
     .view-more-btn {
       display: flex;
@@ -763,7 +789,7 @@
       cursor: pointer;
     }
 
-    /* "More Like This" Vertical Posters (Screenshot 2) */
+    /* "More Like This" Vertical Posters */
     .vertical-posters-scroll {
       display: flex;
       gap: 12px;
@@ -820,6 +846,13 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
+      <!-- Pre-Roll / Pre-Screen Ad Badge -->
+      <div class="preroll-badge" id="prerollBadge">
+        <div class="ad-dot"></div>
+        <span id="prerollText">Intro • 10s</span>
+      </div>
+      <button class="skip-ad-btn" id="skipAdBtn">Skip Intro ›</button>
+
       <!-- Double Tap Seek Feedback -->
       <div class="tap-ripple-zone tap-ripple-left" id="rippleLeft">
         <div class="tap-ripple-pill">◀◀ 10s</div>
@@ -836,8 +869,10 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- Video Engines -->
-      <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
+      <!-- Seamless Dual-Engine Players (Buffer A & Buffer B) -->
+      <video id="videoEngineA" class="media-layer active-layer" playsinline crossorigin="anonymous"></video>
+      <video id="videoEngineB" class="media-layer" playsinline crossorigin="anonymous"></video>
+
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
@@ -1006,26 +1041,28 @@
 
     </div>
 
-    <!-- ==============================================================
-         PORTRAIT DETAILS SECTION (Screenshots 1 & 2)
-         ============================================================== -->
+    <!-- Portrait Details Section (Elemental layout matching Screenshot) -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Title</div>
-      <div class="ch-lang-sub" id="chLangSub">Video</div>
+      <div class="ch-lang-sub" id="chLangSub">2023 • 1h 41m • 2 Languages</div>
 
-      <!-- Action items row: Watchlist, Share -->
+      <!-- Action Items Row: Watchlist, Share, Rate -->
       <div class="meta-actions-bar">
         <div class="meta-action-item" id="actionWatchlist">
-          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          Watchlist
+          <svg id="watchlistIcon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span id="watchlistText">Watchlist</span>
         </div>
         <div class="meta-action-item" id="actionShare">
           <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
-          Share
+          <span>Share</span>
+        </div>
+        <div class="meta-action-item" id="actionRate">
+          <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span>Rate</span>
         </div>
       </div>
 
-      <!-- TV SHOW EPISODES (Rendered in vertical mode as per Screenshots 1 & 2) -->
+      <!-- TV SHOW EPISODES (Rendered in vertical mode) -->
       <div class="episodes-vertical-wrap" id="episodesVerticalWrap">
         <div class="section-head" style="margin-bottom:6px;">Episodes</div>
         <div class="ep-seasons-row" id="verticalSeasonsRow"></div>
@@ -1045,7 +1082,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, doc, onSnapshot, collection, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, collection, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const channelConfig = {
     apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
@@ -1074,6 +1111,7 @@
 
   const YOUTUBE_API_KEY = channelConfig.apiKey;
 
+  // Runtime State
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
@@ -1086,6 +1124,14 @@
   let currentChannel = null;
   let isUserSeeking = false;
   let currentSpeed = 1;
+  let isCatchUpPlaying = false;
+  let isMainInWatchlist = false;
+
+  // Pre-roll / Pre-Screen Zero Delay Queue
+  let activeBufferIndex = 'A'; // 'A' or 'B'
+  let preScreenQueue = [];
+  let currentPreScreenIndex = 0;
+  let mainStreamPayload = null;
 
   let showDocData = null;
   let currentSeasonKey = null;
@@ -1180,12 +1226,18 @@
       try { hlsInstance.destroy(); } catch(e){}
       hlsInstance = null;
     }
-    const nativeVid = document.getElementById('nativeVideoPlayer');
-    if (nativeVid) {
-      nativeVid.pause();
-      nativeVid.removeAttribute('src');
-      nativeVid.load();
-    }
+    ['videoEngineA', 'videoEngineB'].forEach(id => {
+      const v = document.getElementById(id);
+      if (v) {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+        v.classList.remove('active-layer');
+      }
+    });
+    document.getElementById('videoEngineA').classList.add('active-layer');
+    activeBufferIndex = 'A';
+
     if (ytPlayerInstance) {
       try { ytPlayerInstance.stopVideo(); ytPlayerInstance.destroy(); } catch(e){}
       ytPlayerInstance = null;
@@ -1211,7 +1263,7 @@
     }
   }
 
-  // Automatic Firestore Detection
+  // Automatic Firestore Mode & Collection Detection
   async function autoDetectAndInitContent(docId) {
     const collectionsToCheck = ["Shows", "Movies", "Live TV"];
     let detectedCollection = null;
@@ -1269,16 +1321,24 @@
         userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
       }
 
+      // Check Watchlist status
+      initWatchlistButton(docId, activeUser);
+
       if (contentType === 'show') {
         renderVerticalEpisodesSection();
-        playShowEpisode();
+        preparePreScreensAndPlay(currentChannel);
       } else {
         const titleText = currentChannel.Name || currentChannel.Title || "Title";
         document.getElementById('overlayTitle').innerText = titleText;
         document.getElementById('chTitle').innerText = titleText;
-        document.getElementById('chLangSub').innerText = currentChannel.Genres || currentChannel.Language || (contentType === 'live' ? "Live TV" : "Video");
+
+        const year = currentChannel.Year || currentChannel.ReleaseYear || "2024";
+        const dur = currentChannel.Duration || (contentType === 'live' ? "Live TV" : "1h 45m");
+        const langs = currentChannel.Language ? `${currentChannel.Language}` : "Hindi";
+        document.getElementById('chLangSub').innerText = `${year} • ${dur} • ${langs}`;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
-        startStreamPlayback(currentChannel);
+        
+        preparePreScreensAndPlay(currentChannel);
       }
       
       setupAudioOptions(currentChannel);
@@ -1317,7 +1377,6 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
-      // Live TV
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
       btnPreviously.style.display = 'flex';
@@ -1341,7 +1400,6 @@
     }
   }
 
-  // Vertical Episodes UI (Screenshots 1 & 2)
   function renderVerticalEpisodesSection() {
     const wrap = document.getElementById('episodesVerticalWrap');
     const seasonsRow = document.getElementById('verticalSeasonsRow');
@@ -1411,29 +1469,118 @@
     const epTitle = ep.Name || `Episode ${currentEpisodeIdx + 1}`;
     const seasonNumber = currentSeasonKey.replace(/\D/g, '') || '1';
 
-    // Update details (Screenshots 1 & 2)
     document.getElementById('chTitle').innerText = showDocData.Name || "TV Show";
-    document.getElementById('chLangSub').innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} ${epTitle}`;
+    document.getElementById('chLangSub').innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} • ${epTitle}`;
     
     document.getElementById('overlayTitle').innerText = showDocData.Name || "TV Show";
     const subLabel = document.getElementById('overlaySubtitle');
     subLabel.style.display = 'block';
     subLabel.innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} ${epTitle}`;
 
-    startStreamPlayback({ 
+    preparePreScreensAndPlay({ 
       id: `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}`,
       Stream: ep.Stream, 
       mpd: ep.mpd || ep.MPD, 
+      "Pre-Cast": ep["Pre-Cast"] || showDocData["Pre-Cast"] || showDocData["Pre-Screens"],
       Studio: showDocData.Studio, 
       Partner: showDocData.Partner 
     });
   }
 
-  // Stream Player Initializer (Handles YouTube & Streams consistently)
+  // ==============================================================
+  // PRE-SCREENS / PRE-CAST DUAL BUFFER ZERO DELAY ENGINE
+  // ==============================================================
+  async function preparePreScreensAndPlay(channelData) {
+    mainStreamPayload = channelData;
+    isCatchUpPlaying = false;
+    const preCastList = channelData["Pre-Cast"] || channelData["Pre-Screens"] || channelData.PreCast || [];
+
+    if (Array.isArray(preCastList) && preCastList.length > 0 && actionParam !== 'starting') {
+      preScreenQueue = [];
+      for (const item of preCastList) {
+        if (typeof item === 'string') {
+          if (item.startsWith('http')) {
+            preScreenQueue.push(item);
+          } else {
+            // Resolve from Src_keys collection if key
+            try {
+              const srcDoc = await getDoc(doc(channelDb, "Src_keys", item));
+              if (srcDoc.exists() && srcDoc.data().Stream) {
+                preScreenQueue.push(srcDoc.data().Stream);
+              }
+            } catch(e){}
+          }
+        }
+      }
+
+      if (preScreenQueue.length > 0) {
+        currentPreScreenIndex = 0;
+        playPreScreenAt(0);
+        return;
+      }
+    }
+
+    // No pre-screens: directly play feature stream
+    startStreamPlayback(mainStreamPayload);
+  }
+
+  function playPreScreenAt(index) {
+    const badge = document.getElementById('prerollBadge');
+    const badgeText = document.getElementById('prerollText');
+    const skipBtn = document.getElementById('skipAdBtn');
+
+    badge.style.display = 'flex';
+    badgeText.innerText = `Intro ${index + 1}/${preScreenQueue.length}`;
+    skipBtn.style.display = 'block';
+
+    const currentUrl = preScreenQueue[index];
+    const nextUrl = (index + 1 < preScreenQueue.length) ? preScreenQueue[index + 1] : safeUrl(mainStreamPayload?.Stream || '');
+
+    // Play on current active buffer
+    const currentVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
+    const nextVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineB' : 'videoEngineA');
+
+    currentVideo.src = safeUrl(currentUrl);
+    currentVideo.play().catch(() => {});
+
+    // Pre-buffer next video in background for 0.1s instant switch
+    if (nextUrl && (nextUrl.endsWith('.mp4') || nextUrl.includes('.m3u8'))) {
+      nextVideo.src = safeUrl(nextUrl);
+      nextVideo.load();
+    }
+
+    currentVideo.onended = () => {
+      if (index + 1 < preScreenQueue.length) {
+        // Swap video buffers smoothly
+        currentVideo.classList.remove('active-layer');
+        nextVideo.classList.add('active-layer');
+        activeBufferIndex = activeBufferIndex === 'A' ? 'B' : 'A';
+        currentPreScreenIndex++;
+        playPreScreenAt(currentPreScreenIndex);
+      } else {
+        finishPreScreens();
+      }
+    };
+
+    skipBtn.onclick = (e) => {
+      e.stopPropagation();
+      finishPreScreens();
+    };
+  }
+
+  function finishPreScreens() {
+    document.getElementById('prerollBadge').style.display = 'none';
+    document.getElementById('skipAdBtn').style.display = 'none';
+    startStreamPlayback(mainStreamPayload);
+  }
+
+  // ==============================================================
+  // STREAM ENGINE (YouTube / DASH / HLS / MP4)
+  // ==============================================================
   function startStreamPlayback(data) {
     destroyPlayers();
 
-    const video = document.getElementById('nativeVideoPlayer');
+    const currentVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const overlay = document.getElementById('controlsOverlay');
@@ -1445,7 +1592,7 @@
     const streamUrl = safeUrl(data.Stream || '');
     const mpdObj = data.mpd || data.MPD || null;
     const resumeKey = data.id || currentDocId;
-    const savedTime = getSavedProgress(resumeKey);
+    const savedTime = isCatchUpPlaying ? 0 : getSavedProgress(resumeKey);
 
     let mpdFile = null;
     let keyId = null;
@@ -1461,17 +1608,17 @@
       key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
     }
 
-    // 1. DASH .mpd with DRM
+    // 1. DASH .mpd
     if (mpdFile) {
       playDashMPD(mpdFile, keyId, key, savedTime);
       return;
     }
 
-    // 2. YouTube (Fixed Live Text bug & duration sync)
+    // 2. YouTube
     const ytId = extractYouTubeId(streamUrl);
     if (ytId) {
       activePlayerType = 'youtube';
-      video.style.display = 'none';
+      currentVideo.style.display = 'none';
       iframe.style.display = 'none';
       ytHost.style.display = 'block';
       overlay.style.display = 'flex';
@@ -1495,7 +1642,7 @@
         events: {
           onReady: (e) => {
             e.target.playVideo();
-            if (savedTime > 0 && contentType !== 'live') {
+            if (savedTime > 0 && contentType !== 'live' && !isCatchUpPlaying) {
               e.target.seekTo(savedTime, true);
             }
           },
@@ -1509,17 +1656,22 @@
               playIcon.style.display = 'block';
               pauseIcon.style.display = 'none';
             }
+
+            // Return to live when catch-up video ends
+            if (e.data === YT.PlayerState.ENDED && isCatchUpPlaying) {
+              showToast("Catch-up ended. Returning to Live...");
+              returnToLiveBroadcast();
+            }
           }
         }
       });
 
-      // Synchronize YouTube timeline continuously
       ytUpdateInterval = setInterval(() => {
         if (!ytPlayerInstance || typeof ytPlayerInstance.getCurrentTime !== 'function') return;
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         const dur = ytPlayerInstance.getDuration() || 0;
 
-        if (contentType === 'movie' || contentType === 'show') {
+        if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying) {
           if (dur > 0) {
             const percent = (cur / dur) * 100;
             timelineFill.style.width = `${percent}%`;
@@ -1528,7 +1680,7 @@
 
             const rem = Math.max(0, dur - cur);
             timeDisplay.innerText = formatTime(rem);
-            saveProgress(resumeKey, cur);
+            if (!isCatchUpPlaying) saveProgress(resumeKey, cur);
           }
         } else {
           timelineFill.style.width = '100%';
@@ -1542,35 +1694,43 @@
       return;
     }
 
-    // 3. HLS (.m3u8) or direct .mp4
+    // 3. HLS .m3u8 or MP4
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
       ytHost.style.display = 'none';
-      video.style.display = 'block';
+      currentVideo.style.display = 'block';
       overlay.style.display = 'flex';
 
       const applyResume = () => {
-        if (savedTime > 0 && contentType !== 'live') {
-          video.currentTime = savedTime;
+        if (savedTime > 0 && contentType !== 'live' && !isCatchUpPlaying) {
+          currentVideo.currentTime = savedTime;
           showToast(`Resumed from ${formatTime(savedTime)}`);
         }
-        video.play().catch(() => {});
+        currentVideo.play().catch(() => {});
       };
 
       if (streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
-        video.src = streamUrl;
-        video.onloadedmetadata = applyResume;
+        currentVideo.src = streamUrl;
+        currentVideo.onloadedmetadata = applyResume;
       } else if (Hls.isSupported()) {
         hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8 });
         hlsInstance.loadSource(streamUrl);
-        hlsInstance.attachMedia(video);
+        hlsInstance.attachMedia(currentVideo);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, applyResume);
         hlsInstance.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (e, d) => setupSubtitleOptions(d.subtitleTracks));
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = streamUrl;
-        video.onloadedmetadata = applyResume;
+      } else if (currentVideo.canPlayType('application/vnd.apple.mpegurl')) {
+        currentVideo.src = streamUrl;
+        currentVideo.onloadedmetadata = applyResume;
       }
+
+      currentVideo.onended = () => {
+        if (isCatchUpPlaying) {
+          showToast("Catch-up finished. Back to Live Stream...");
+          returnToLiveBroadcast();
+        }
+      };
+
       setupInteractions();
       return;
     }
@@ -1578,7 +1738,7 @@
     // 4. Fallback iframe
     if (streamUrl) {
       activePlayerType = 'iframe';
-      video.style.display = 'none';
+      currentVideo.style.display = 'none';
       ytHost.style.display = 'none';
       overlay.style.display = 'none';
       iframe.style.display = 'block';
@@ -1589,9 +1749,16 @@
     showToast("No playable stream URL found.");
   }
 
+  function returnToLiveBroadcast() {
+    isCatchUpPlaying = false;
+    configureUIForContentType();
+    document.getElementById('overlayTitle').innerText = currentChannel.Name || "Live TV";
+    startStreamPlayback(currentChannel);
+  }
+
   function playDashMPD(mpdUrl, keyId, key, savedTime) {
     activePlayerType = 'jwplayer';
-    const video = document.getElementById('nativeVideoPlayer');
+    const video = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const jwHost = document.getElementById('jwHost');
@@ -1631,13 +1798,13 @@
     });
 
     jwPlayerInstance.on('ready', () => {
-      if (savedTime > 0 && contentType !== 'live') {
+      if (savedTime > 0 && contentType !== 'live' && !isCatchUpPlaying) {
         jwPlayerInstance.seek(savedTime);
       }
     });
 
     jwPlayerInstance.on('time', (e) => {
-      if (contentType === 'movie' || contentType === 'show') {
+      if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying) {
         if (e.duration > 0) {
           const percent = (e.position / e.duration) * 100;
           timelineFill.style.width = `${percent}%`;
@@ -1645,9 +1812,13 @@
           progressBarInput.value = percent;
           const rem = Math.max(0, e.duration - e.position);
           timeDisplay.innerText = formatTime(rem);
-          saveProgress(currentDocId, e.position);
+          if (!isCatchUpPlaying) saveProgress(currentDocId, e.position);
         }
       }
+    });
+
+    jwPlayerInstance.on('complete', () => {
+      if (isCatchUpPlaying) returnToLiveBroadcast();
     });
 
     jwPlayerInstance.on('play', () => {
@@ -1721,9 +1892,11 @@
     });
   }
 
-  // Interactivity, Double Tap Seeking & Pinch Gestures
+  // ==============================================================
+  // INTERACTION / GESTURES / WATCHLIST / SHARE ENGINE
+  // ==============================================================
   function setupInteractions() {
-    const video = document.getElementById('nativeVideoPlayer');
+    const video = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
     const playBtn = document.getElementById('playBtn');
@@ -1752,7 +1925,7 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
-      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay') || e.target.closest('.skip-ad-btn')) {
         showControls();
         return;
       }
@@ -1805,7 +1978,7 @@
       showControls();
     }
 
-    // Pinch-to-Zoom Gesture
+    // Pinch to Fill Screen
     let initialDistance = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -1829,13 +2002,15 @@
         
         if (currentDistance - initialDistance > 45 && !isFillScreen) {
           isFillScreen = true;
-          video.classList.add('fill-screen');
+          document.getElementById('videoEngineA').classList.add('fill-screen');
+          document.getElementById('videoEngineB').classList.add('fill-screen');
           document.getElementById('ytFrameHost').classList.add('fill-screen');
           document.getElementById('jwHost').classList.add('fill-screen');
           showToast("Zoomed to Fill Screen");
         } else if (initialDistance - currentDistance > 45 && isFillScreen) {
           isFillScreen = false;
-          video.classList.remove('fill-screen');
+          document.getElementById('videoEngineA').classList.remove('fill-screen');
+          document.getElementById('videoEngineB').classList.remove('fill-screen');
           document.getElementById('ytFrameHost').classList.remove('fill-screen');
           document.getElementById('jwHost').classList.remove('fill-screen');
           showToast("Original Aspect Ratio");
@@ -1889,7 +2064,7 @@
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube') return;
 
-      if (contentType === 'movie' || contentType === 'show') {
+      if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying) {
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
           const percent = (video.currentTime / video.duration) * 100;
           timelineFill.style.width = `${percent}%`;
@@ -1899,10 +2074,12 @@
           const remainingSecs = Math.max(0, video.duration - video.currentTime);
           timeDisplay.innerText = formatTime(remainingSecs);
 
-          const currentKey = (contentType === 'show' && showDocData) 
-            ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
-            : currentDocId;
-          saveProgress(currentKey, video.currentTime);
+          if (!isCatchUpPlaying) {
+            const currentKey = (contentType === 'show' && showDocData) 
+              ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
+              : currentDocId;
+            saveProgress(currentKey, video.currentTime);
+          }
         }
         goLiveBtn.style.display = 'none';
       } else {
@@ -1912,17 +2089,6 @@
           progressBarInput.value = 100;
           timeDisplay.innerText = "LIVE";
           goLiveBtn.style.display = 'none';
-        } else if (video.duration && isFinite(video.duration)) {
-          const percent = (video.currentTime / video.duration) * 100;
-          timelineFill.style.width = `${percent}%`;
-          thumbIndicator.style.left = `${percent}%`;
-          progressBarInput.value = percent;
-          timeDisplay.innerText = formatTime(video.currentTime);
-          if (video.duration - video.currentTime > 10) {
-            goLiveBtn.style.display = 'flex';
-          } else {
-            isUserSeeking = false;
-          }
         }
       }
     };
@@ -1933,7 +2099,7 @@
       timelineFill.style.width = `${val}%`;
       thumbIndicator.style.left = `${val}%`;
 
-      if (contentType === 'live') {
+      if (contentType === 'live' && !isCatchUpPlaying) {
         isUserSeeking = true;
         goLiveBtn.style.display = 'flex';
       }
@@ -1950,7 +2116,7 @@
     goLiveBtn.onclick = (e) => {
       e.stopPropagation();
       isUserSeeking = false;
-      if (video.duration) video.currentTime = video.duration - 1;
+      returnToLiveBroadcast();
       goLiveBtn.style.display = 'none';
       timeDisplay.innerText = "LIVE";
     };
@@ -2043,6 +2209,19 @@
     document.getElementById('drawerTabPreviously').onclick = () => openDrawer('previously');
     document.getElementById('closeDrawerBtn').onclick = () => document.getElementById('drawerOverlay').classList.remove('show');
 
+    // Action items: Share & Watchlist
+    document.getElementById('actionShare').onclick = () => {
+      const shareUrl = `${window.location.origin}${window.location.pathname}?watch=${currentDocId}&via=share`;
+      if (navigator.share) {
+        navigator.share({ title: currentChannel?.Name || "Watch Video", url: shareUrl }).catch(()=>{});
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        showToast("Share link copied to clipboard!");
+      }
+    };
+
+    document.getElementById('actionRate').onclick = () => showToast("Thanks for rating!");
+
     setupSwipeToCloseDrawer();
     showControls();
   }
@@ -2094,6 +2273,61 @@
     });
   }
 
+  // ==============================================================
+  // WATCHLIST SYNC TO FIRESTORE DATABASE
+  // ==============================================================
+  async function initWatchlistButton(docId, user) {
+    const watchlistBtn = document.getElementById('actionWatchlist');
+    const watchlistText = document.getElementById('watchlistText');
+    const watchlistIcon = document.getElementById('watchlistIcon');
+
+    let savedList = [];
+    try {
+      savedList = JSON.parse(localStorage.getItem('user_watchlist') || '[]');
+    } catch(e){}
+
+    isMainInWatchlist = savedList.includes(docId);
+    updateWatchlistUI();
+
+    watchlistBtn.onclick = async () => {
+      isMainInWatchlist = !isMainInWatchlist;
+      if (isMainInWatchlist) {
+        savedList.push(docId);
+        showToast("Added to Watchlist");
+      } else {
+        savedList = savedList.filter(id => id !== docId);
+        showToast("Removed from Watchlist");
+      }
+      localStorage.setItem('user_watchlist', JSON.stringify(savedList));
+      updateWatchlistUI();
+
+      // Sync with Firestore User document
+      if (user && (user.Email || user.Lotus)) {
+        try {
+          const userDocRef = doc(authDb, "UARM", user.Lotus || user.Email);
+          await updateDoc(userDocRef, {
+            Watchlist: isMainInWatchlist ? arrayUnion(docId) : arrayRemove(docId)
+          }).catch(async () => {
+            await setDoc(userDocRef, { Watchlist: [docId] }, { merge: true });
+          });
+        } catch(err){}
+      }
+    };
+
+    function updateWatchlistUI() {
+      if (isMainInWatchlist) {
+        watchlistText.innerText = "Added";
+        watchlistIcon.innerHTML = `<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>`;
+      } else {
+        watchlistText.innerText = "Watchlist";
+        watchlistIcon.innerHTML = `<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>`;
+      }
+    }
+  }
+
+  // ==============================================================
+  // DRAWERS & FILTERED YOUTUBE CATCH-UP (NO SHORTS / NO LIVES)
+  // ==============================================================
   function openDrawer(type) {
     const drawer = document.getElementById('drawerOverlay');
     const tabWN = document.getElementById('drawerTabWatchNext');
@@ -2163,45 +2397,56 @@
     renderVerticalEpisodesSection();
   };
 
+  // Filter out shorts and ongoing lives; only standard broadcasts
   async function fetchPreviouslyFromYouTube() {
     const cardsRow = document.getElementById('drawerCardsRow');
-    cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Loading previous broadcasts...</div>';
+    cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Loading today\'s broadcasts...</div>';
 
     const prevUrlField = currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl || "";
-    let queryParam = currentChannel?.Name || currentChannel?.Partner || 'Live TV News';
+    let queryParam = currentChannel?.Name || 'Aaj Tak';
     
     if (prevUrlField && prevUrlField.includes('@')) {
       queryParam = prevUrlField.split('@')[1];
     }
 
-    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(queryParam)}&key=${YOUTUBE_API_KEY}`;
+    // Search query excluding shorts & lives
+    const today = new Date().toISOString().split('T')[0];
+    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=medium&eventType=completed&maxResults=12&q=${encodeURIComponent(queryParam)}&key=${YOUTUBE_API_KEY}`;
 
     try {
       const res = await fetch(endpoint);
       const data = await res.json();
 
       if (data.items && data.items.length > 0) {
-        cardsRow.innerHTML = data.items.map(item => `
-          <div onclick="window.playYouTubePreviously('${item.id.videoId}', '${item.snippet.title.replace(/'/g, "\\'")}')" class="watch-card">
+        // Filter out any video with #shorts in title
+        const regularVideos = data.items.filter(item => {
+          const title = item.snippet.title.toLowerCase();
+          return !title.includes('#shorts') && !title.includes('#short') && !title.includes('shorts');
+        });
+
+        cardsRow.innerHTML = regularVideos.map(item => `
+          <div onclick="window.playCatchUpBroadcast('${item.id.videoId}', '${item.snippet.title.replace(/'/g, "\\'")}')" class="watch-card">
             <div class="watch-card-thumb-wrap">
               <img src="${item.snippet.thumbnails.medium.url}" alt="${item.snippet.title}">
               <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
             </div>
             <div class="watch-card-name">${item.snippet.title}</div>
-            <div class="watch-card-sub">Earlier Broadcast</div>
+            <div class="watch-card-sub">Recorded Video</div>
           </div>
         `).join('');
       } else {
         cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">No earlier broadcasts found today.</div>';
       }
     } catch(err) {
-      cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Catch-up unavailable.</div>';
+      cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Catch-up unavailable right now.</div>';
     }
   }
 
-  window.playYouTubePreviously = function(videoId, title) {
+  window.playCatchUpBroadcast = function(videoId, title) {
+    isCatchUpPlaying = true;
     document.getElementById('drawerOverlay').classList.remove('show');
     document.getElementById('overlayTitle').innerText = title;
+    document.getElementById('goLiveBtn').style.display = 'flex';
     startStreamPlayback({ Stream: `https://www.youtube.com/watch?v=${videoId}` });
   };
 
@@ -2235,7 +2480,6 @@
       let recommended = items.filter(c => targetGenre && (c.Genres || '').toLowerCase().includes(targetGenre));
       if (recommended.length === 0) recommended = items;
 
-      // Render vertical poster cards (Screenshot 2)
       recGrid.innerHTML = recommended.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="poster-card">
           <img src="${safeUrl(c.Poster || c["Logo.png"] || c.Logo || c.Banner || '')}" class="poster-thumb" alt="${c.Name}">
