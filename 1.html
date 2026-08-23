@@ -14,12 +14,14 @@
 
   <style>
     :root {
-      --bg-dark: #000000;
+      --bg-dark: #0f1015;
+      --player-bg: #000000;
       --accent-blue: #0072ef;
       --live-red: #e50914;
       --text-main: #ffffff;
-      --text-muted: #9aa0a6;
-      --border-color: #20232c;
+      --text-muted: #8f98b2;
+      --border-color: #1e2230;
+      --card-bg: #161822;
     }
 
     * {
@@ -228,11 +230,11 @@
       margin-left: auto;
     }
 
-    /* IN VERTICAL MODE: Hide overlay top-left title & lock icon */
+    /* In vertical mode hide title and lock inside player container */
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
     body:not(.landscape-mode) #lockBtn { display: none !important; }
     
-    /* IN VERTICAL MODE: Hide bottom drawer trigger buttons from video overlay */
+    /* In vertical mode hide drawer buttons from overlay */
     body:not(.landscape-mode) #btnWatchNext,
     body:not(.landscape-mode) #btnEpisodes,
     body:not(.landscape-mode) #btnPreviously {
@@ -370,7 +372,6 @@
     }
     .btn-go-live .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--live-red); }
 
-    /* Lock Button Overlay */
     .lock-overlay-btn {
       position: absolute;
       top: 16px;
@@ -455,7 +456,7 @@
     .lang-check { width: 18px; color: var(--accent-blue); font-weight: bold; font-size: 15px; }
     .lang-label { font-size: 14px; font-weight: 600; color: #fff; }
 
-    /* Swipeable Drawer */
+    /* Swipeable Landscape Drawer */
     .drawer-overlay {
       position: absolute;
       inset: 0;
@@ -625,32 +626,178 @@
       font-size: 13px;
     }
 
-    /* Portrait Details Section */
-    .details-wrapper { padding: 16px; }
-    .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; }
-    .ch-lang-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    /* ==============================================================
+       PORTRAIT DETAILS SECTION (Matching Screenshots 1 & 2)
+       ============================================================== */
+    .details-wrapper { padding: 18px 16px; }
+    .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.2; }
+    .ch-lang-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
 
-    .section-head { font-size: 15px; font-weight: 700; margin: 20px 0 10px; color: #fff; }
-    .channel-scroll-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
-    .channel-scroll-row::-webkit-scrollbar { display: none; }
-
-    .card-item {
-      min-width: 140px;
-      width: 140px;
-      background: #10121a;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 8px;
-      text-decoration: none;
-      color: #fff;
+    /* Action bar below title: Watchlist, Share (Screenshots 1 & 2) */
+    .meta-actions-bar {
+      display: flex;
+      gap: 32px;
+      margin: 18px 0 22px;
+    }
+    .meta-action-item {
       display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
+      gap: 6px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      opacity: 0.85;
+    }
+    .meta-action-item:hover { opacity: 1; }
+    .meta-action-item svg { width: 22px; height: 22px; fill: currentColor; }
+
+    .section-head { font-size: 17px; font-weight: 800; margin: 18px 0 12px; color: #fff; letter-spacing: 0.3px; }
+
+    /* Vertical Episodes List (Screenshot 1 & 2) */
+    .episodes-vertical-wrap { display: none; margin-bottom: 24px; }
+    .ep-seasons-row {
+      display: flex;
+      gap: 20px;
+      margin: 12px 0 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .ep-seasons-row::-webkit-scrollbar { display: none; }
+    .ep-season-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+      padding-bottom: 6px;
+    }
+    .ep-season-tab.active { color: #fff; }
+    .ep-season-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: #fff;
+    }
+
+    .episodes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .ep-item-card {
+      display: flex;
+      gap: 14px;
+      cursor: pointer;
+      align-items: center;
+      text-decoration: none;
+      color: #fff;
+      position: relative;
+    }
+    .ep-thumb-box {
+      position: relative;
+      width: 125px;
+      min-width: 125px;
+      aspect-ratio: 16/9;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #151821;
+    }
+    .ep-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
+    .ep-play-icon {
+      position: absolute;
+      bottom: 6px;
+      left: 6px;
+      width: 20px;
+      height: 20px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ep-play-icon svg { width: 9px; height: 9px; fill: #fff; margin-left: 1px; }
+
+    .ep-info-box { flex: 1; min-width: 0; }
+    .ep-item-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #fff;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ep-item-meta {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .view-more-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 140px;
+      margin: 14px auto 8px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      background: #1c202e;
+      border: 1px solid var(--border-color);
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 700;
       cursor: pointer;
     }
-    .card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #000; border-radius: 4px; margin-bottom: 6px; }
-    .card-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+
+    /* "More Like This" Vertical Posters (Screenshot 2) */
+    .vertical-posters-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .vertical-posters-scroll::-webkit-scrollbar { display: none; }
+
+    .poster-card {
+      min-width: 110px;
+      width: 110px;
+      text-decoration: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+    .poster-thumb {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #151821;
+      border: 1px solid var(--border-color);
+    }
+    .poster-name {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     .loader-box { text-align: center; padding: 60px; color: var(--accent-blue); font-weight: 600; font-size: 15px; }
   </style>
@@ -838,7 +985,7 @@
         </div>
       </div>
 
-      <!-- Drawer Overlay for Episodes / Watch Next / Previously -->
+      <!-- Landscape Drawer Overlay -->
       <div class="drawer-overlay" id="drawerOverlay">
         <div>
           <div class="drawer-drag-area" id="drawerDragHandle">
@@ -859,16 +1006,38 @@
 
     </div>
 
-    <!-- Portrait Details Section -->
+    <!-- ==============================================================
+         PORTRAIT DETAILS SECTION (Screenshots 1 & 2)
+         ============================================================== -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Title</div>
-      <div class="ch-lang-sub" id="chLangSub">Live TV</div>
+      <div class="ch-lang-sub" id="chLangSub">Video</div>
 
-      <div class="section-head" id="sec1Heading">Live Channels</div>
-      <div class="channel-scroll-row" id="recommendationsGrid"></div>
+      <!-- Action items row: Watchlist, Share -->
+      <div class="meta-actions-bar">
+        <div class="meta-action-item" id="actionWatchlist">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Watchlist
+        </div>
+        <div class="meta-action-item" id="actionShare">
+          <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+          Share
+        </div>
+      </div>
 
-      <div class="section-head" id="sec2Heading">More Titles</div>
-      <div class="channel-scroll-row" id="partnerGrid"></div>
+      <!-- TV SHOW EPISODES (Rendered in vertical mode as per Screenshots 1 & 2) -->
+      <div class="episodes-vertical-wrap" id="episodesVerticalWrap">
+        <div class="section-head" style="margin-bottom:6px;">Episodes</div>
+        <div class="ep-seasons-row" id="verticalSeasonsRow"></div>
+        <div class="episodes-list" id="verticalEpisodesList"></div>
+        <button class="view-more-btn" id="viewMoreEpBtn" style="display:none;">
+          <span>⌄ View More</span>
+        </button>
+      </div>
+
+      <!-- MORE LIKE THIS (Recommendations) -->
+      <div class="section-head" id="sec1Heading">More Like This</div>
+      <div class="vertical-posters-scroll" id="recommendationsGrid"></div>
     </div>
 
   </div>
@@ -876,7 +1045,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, doc, onSnapshot, collection, query, where, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, collection, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const channelConfig = {
     apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
@@ -908,6 +1077,7 @@
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
+  let ytUpdateInterval = null;
   let activePlayerType = null;
   let contentType = 'live'; // 'live', 'movie', 'show'
   let hideControlsTimer = null;
@@ -920,6 +1090,7 @@
   let showDocData = null;
   let currentSeasonKey = null;
   let currentEpisodeIdx = 0;
+  let showAllEpisodesVertical = false;
 
   let channelDocUnsub = null;
   let collectionUnsub = null;
@@ -953,7 +1124,7 @@
   }
 
   function formatTime(seconds) {
-    if (!seconds || isNaN(seconds) || !isFinite(seconds)) return "00:00:00";
+    if (!seconds || isNaN(seconds) || !isFinite(seconds) || seconds < 0) return "00:00:00";
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
@@ -1001,6 +1172,10 @@
   }
 
   function destroyPlayers() {
+    if (ytUpdateInterval) {
+      clearInterval(ytUpdateInterval);
+      ytUpdateInterval = null;
+    }
     if (hlsInstance) {
       try { hlsInstance.destroy(); } catch(e){}
       hlsInstance = null;
@@ -1036,9 +1211,9 @@
     }
   }
 
-  // Auto-Detects Live TV, Shows, or Movies from Firestore
+  // Automatic Firestore Detection
   async function autoDetectAndInitContent(docId) {
-    const collectionsToCheck = ["Live TV", "Shows", "Movies"];
+    const collectionsToCheck = ["Shows", "Movies", "Live TV"];
     let detectedCollection = null;
 
     for (const colName of collectionsToCheck) {
@@ -1073,10 +1248,9 @@
       currentChannel = { id: snap.id, ...snap.data() };
       showDocData = currentChannel;
 
-      // Reliable content type assignment
-      if (targetCol === "Shows") {
+      const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
+      if (targetCol === "Shows" || seasonKeys.length > 0) {
         contentType = 'show';
-        const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
         setupShowSeasons(seasonKeys);
       } else if (targetCol === "Movies") {
         contentType = 'movie';
@@ -1085,11 +1259,6 @@
       }
 
       configureUIForContentType();
-
-      const titleText = currentChannel.Name || currentChannel.Title || "Live TV";
-      document.getElementById('overlayTitle').innerText = titleText;
-      document.getElementById('chTitle').innerText = titleText;
-      document.getElementById('chLangSub').innerText = currentChannel.Genres || currentChannel.Language || (contentType === 'live' ? "Live TV" : "Video");
 
       loader.style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
@@ -1100,23 +1269,19 @@
         userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
       }
 
-      const studioName = currentChannel.Studio || currentChannel.Partner || "";
-      let isAuth = true;
-      if (activeUser) {
-        isAuth = await verifyUserPlan(activeUser, studioName);
-      }
-
-      if (isAuth) {
-        document.getElementById('accessDeniedBox').style.display = 'none';
-        if (contentType === 'show') {
-          playShowEpisode();
-        } else {
-          startStreamPlayback(currentChannel);
-        }
-        setupAudioOptions(currentChannel);
+      if (contentType === 'show') {
+        renderVerticalEpisodesSection();
+        playShowEpisode();
       } else {
-        showDenied("Subscription Required", `Your plan does not include '${studioName || 'this channel'}'.`, "Upgrade Plan", "1 (3).html");
+        const titleText = currentChannel.Name || currentChannel.Title || "Title";
+        document.getElementById('overlayTitle').innerText = titleText;
+        document.getElementById('chTitle').innerText = titleText;
+        document.getElementById('chLangSub').innerText = currentChannel.Genres || currentChannel.Language || (contentType === 'live' ? "Live TV" : "Video");
+        document.getElementById('episodesVerticalWrap').style.display = 'none';
+        startStreamPlayback(currentChannel);
       }
+      
+      setupAudioOptions(currentChannel);
     });
 
     listenToRecommendations(docId, targetCol);
@@ -1170,9 +1335,72 @@
 
   function setupShowSeasons(seasonKeys) {
     if (!seasonKeys || seasonKeys.length === 0) return;
-    currentSeasonKey = seasonKeys[0];
-    currentEpisodeIdx = 0;
+    if (!currentSeasonKey || !seasonKeys.includes(currentSeasonKey)) {
+      currentSeasonKey = seasonKeys[0];
+      currentEpisodeIdx = 0;
+    }
   }
+
+  // Vertical Episodes UI (Screenshots 1 & 2)
+  function renderVerticalEpisodesSection() {
+    const wrap = document.getElementById('episodesVerticalWrap');
+    const seasonsRow = document.getElementById('verticalSeasonsRow');
+    const epListEl = document.getElementById('verticalEpisodesList');
+    const viewMoreBtn = document.getElementById('viewMoreEpBtn');
+
+    if (!showDocData) {
+      wrap.style.display = 'none';
+      return;
+    }
+
+    const seasonKeys = Object.keys(showDocData).filter(k => k.toLowerCase().startsWith('season'));
+    if (seasonKeys.length === 0) {
+      wrap.style.display = 'none';
+      return;
+    }
+
+    wrap.style.display = 'block';
+    seasonsRow.innerHTML = seasonKeys.map(sKey => `
+      <button class="ep-season-tab ${sKey === currentSeasonKey ? 'active' : ''}" onclick="window.selectVerticalSeason('${sKey}')">
+        ${sKey}
+      </button>
+    `).join('');
+
+    const epList = showDocData[currentSeasonKey] || [];
+    const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
+    const limit = showAllEpisodesVertical ? epList.length : 3;
+
+    epListEl.innerHTML = epList.slice(0, limit).map((ep, idx) => `
+      <div onclick="window.selectEpisode(${idx})" class="ep-item-card">
+        <div class="ep-thumb-box">
+          <img src="${safeUrl(showDocData.Banner || showDocData.Poster || showDocData["Logo.png"] || '')}" alt="${ep.Name}">
+          <div class="ep-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+        </div>
+        <div class="ep-info-box">
+          <div class="ep-item-title">${ep.Name || `Episode ${idx + 1}`}</div>
+          <div class="ep-item-meta">S${seasonNum} E${idx + 1} • ${ep.Duration || '23m'}</div>
+        </div>
+      </div>
+    `).join('');
+
+    if (epList.length > 3) {
+      viewMoreBtn.style.display = 'flex';
+      viewMoreBtn.innerHTML = `<span>${showAllEpisodesVertical ? '⌃ View Less' : '⌄ View More'}</span>`;
+      viewMoreBtn.onclick = () => {
+        showAllEpisodesVertical = !showAllEpisodesVertical;
+        renderVerticalEpisodesSection();
+      };
+    } else {
+      viewMoreBtn.style.display = 'none';
+    }
+  }
+
+  window.selectVerticalSeason = function(sKey) {
+    currentSeasonKey = sKey;
+    currentEpisodeIdx = 0;
+    renderVerticalEpisodesSection();
+    playShowEpisode();
+  };
 
   function playShowEpisode() {
     if (!showDocData || !currentSeasonKey) return;
@@ -1183,8 +1411,9 @@
     const epTitle = ep.Name || `Episode ${currentEpisodeIdx + 1}`;
     const seasonNumber = currentSeasonKey.replace(/\D/g, '') || '1';
 
+    // Update details (Screenshots 1 & 2)
     document.getElementById('chTitle').innerText = showDocData.Name || "TV Show";
-    document.getElementById('chLangSub').innerText = `${currentSeasonKey} E${currentEpisodeIdx + 1} • ${epTitle}`;
+    document.getElementById('chLangSub').innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} ${epTitle}`;
     
     document.getElementById('overlayTitle').innerText = showDocData.Name || "TV Show";
     const subLabel = document.getElementById('overlaySubtitle');
@@ -1200,51 +1429,7 @@
     });
   }
 
-  async function verifyUserPlan(activeUser, studioRaw) {
-    try {
-      const q = activeUser.Lotus 
-        ? query(collection(authDb, "UARM"), where("Lotus", "==", activeUser.Lotus)) 
-        : query(collection(authDb, "UARM"), where("Email", "==", activeUser.Email));
-      
-      const uarmSnap = await getDocs(q);
-      let userPlans = [];
-      if (!uarmSnap.empty) {
-        userPlans = uarmSnap.docs[0].data().Plans || [];
-      } else {
-        userPlans = activeUser.Plans || [];
-      }
-
-      if (!Array.isArray(userPlans) || userPlans.length === 0) return true;
-
-      const studioName = (studioRaw || "").trim().toLowerCase();
-      if (!studioName) return true;
-
-      for (const planId of userPlans) {
-        const planSnap = await getDoc(doc(authDb, "Plans & Subscriptions", planId));
-        if (planSnap.exists()) {
-          const studios = planSnap.data().Studio || [];
-          if (studios.some(s => s.toLowerCase() === studioName || studioName.includes(s.toLowerCase()))) {
-            return true;
-          }
-        }
-      }
-    } catch (err) {
-      return true;
-    }
-    return true;
-  }
-
-  function showDenied(title, desc, btnTxt, btnUrl) {
-    destroyPlayers();
-    const box = document.getElementById('accessDeniedBox');
-    document.getElementById('deniedTitle').innerText = title;
-    document.getElementById('deniedDesc').innerText = desc;
-    const btn = document.getElementById('deniedBtn');
-    btn.innerText = btnTxt;
-    btn.href = btnUrl;
-    box.style.display = 'flex';
-  }
-
+  // Stream Player Initializer (Handles YouTube & Streams consistently)
   function startStreamPlayback(data) {
     destroyPlayers();
 
@@ -1252,6 +1437,10 @@
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const overlay = document.getElementById('controlsOverlay');
+    const timelineFill = document.getElementById('timelineFill');
+    const thumbIndicator = document.getElementById('thumbIndicator');
+    const progressBarInput = document.getElementById('progressBarInput');
+    const timeDisplay = document.getElementById('timeDisplay');
 
     const streamUrl = safeUrl(data.Stream || '');
     const mpdObj = data.mpd || data.MPD || null;
@@ -1272,11 +1461,13 @@
       key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
     }
 
+    // 1. DASH .mpd with DRM
     if (mpdFile) {
       playDashMPD(mpdFile, keyId, key, savedTime);
       return;
     }
 
+    // 2. YouTube (Fixed Live Text bug & duration sync)
     const ytId = extractYouTubeId(streamUrl);
     if (ytId) {
       activePlayerType = 'youtube';
@@ -1302,7 +1493,12 @@
           playsinline: 1
         },
         events: {
-          onReady: (e) => e.target.playVideo(),
+          onReady: (e) => {
+            e.target.playVideo();
+            if (savedTime > 0 && contentType !== 'live') {
+              e.target.seekTo(savedTime, true);
+            }
+          },
           onStateChange: (e) => {
             const playIcon = document.getElementById('playIcon');
             const pauseIcon = document.getElementById('pauseIcon');
@@ -1316,10 +1512,37 @@
           }
         }
       });
+
+      // Synchronize YouTube timeline continuously
+      ytUpdateInterval = setInterval(() => {
+        if (!ytPlayerInstance || typeof ytPlayerInstance.getCurrentTime !== 'function') return;
+        const cur = ytPlayerInstance.getCurrentTime() || 0;
+        const dur = ytPlayerInstance.getDuration() || 0;
+
+        if (contentType === 'movie' || contentType === 'show') {
+          if (dur > 0) {
+            const percent = (cur / dur) * 100;
+            timelineFill.style.width = `${percent}%`;
+            thumbIndicator.style.left = `${percent}%`;
+            progressBarInput.value = percent;
+
+            const rem = Math.max(0, dur - cur);
+            timeDisplay.innerText = formatTime(rem);
+            saveProgress(resumeKey, cur);
+          }
+        } else {
+          timelineFill.style.width = '100%';
+          thumbIndicator.style.left = '100%';
+          progressBarInput.value = 100;
+          timeDisplay.innerText = 'LIVE';
+        }
+      }, 500);
+
       setupInteractions();
       return;
     }
 
+    // 3. HLS (.m3u8) or direct .mp4
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
@@ -1352,6 +1575,7 @@
       return;
     }
 
+    // 4. Fallback iframe
     if (streamUrl) {
       activePlayerType = 'iframe';
       video.style.display = 'none';
@@ -1372,6 +1596,10 @@
     const ytHost = document.getElementById('ytFrameHost');
     const jwHost = document.getElementById('jwHost');
     const overlay = document.getElementById('controlsOverlay');
+    const timelineFill = document.getElementById('timelineFill');
+    const thumbIndicator = document.getElementById('thumbIndicator');
+    const progressBarInput = document.getElementById('progressBarInput');
+    const timeDisplay = document.getElementById('timeDisplay');
 
     video.style.display = 'none';
     iframe.style.display = 'none';
@@ -1405,6 +1633,20 @@
     jwPlayerInstance.on('ready', () => {
       if (savedTime > 0 && contentType !== 'live') {
         jwPlayerInstance.seek(savedTime);
+      }
+    });
+
+    jwPlayerInstance.on('time', (e) => {
+      if (contentType === 'movie' || contentType === 'show') {
+        if (e.duration > 0) {
+          const percent = (e.position / e.duration) * 100;
+          timelineFill.style.width = `${percent}%`;
+          thumbIndicator.style.left = `${percent}%`;
+          progressBarInput.value = percent;
+          const rem = Math.max(0, e.duration - e.position);
+          timeDisplay.innerText = formatTime(rem);
+          saveProgress(currentDocId, e.position);
+        }
       }
     });
 
@@ -1479,7 +1721,7 @@
     });
   }
 
-  // Reliable Interaction and Wakeup Management
+  // Interactivity, Double Tap Seeking & Pinch Gestures
   function setupInteractions() {
     const video = document.getElementById('nativeVideoPlayer');
     const overlay = document.getElementById('controlsOverlay');
@@ -1510,7 +1752,6 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
-      // Ignore interactions on inner buttons or timeline
       if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
         return;
@@ -1637,6 +1878,7 @@
         if (Array.isArray(epList) && currentEpisodeIdx + 1 < epList.length) {
           currentEpisodeIdx++;
           playShowEpisode();
+          renderVerticalEpisodesSection();
           showToast(`Playing Episode ${currentEpisodeIdx + 1}`);
         } else {
           showToast("End of season reached");
@@ -1644,8 +1886,9 @@
       }
     };
 
-    // Resilient Video Progress Handler (No 00:00:00 Jump)
     video.ontimeupdate = () => {
+      if (activePlayerType === 'youtube') return;
+
       if (contentType === 'movie' || contentType === 'show') {
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
           const percent = (video.currentTime / video.duration) * 100;
@@ -1663,7 +1906,6 @@
         }
         goLiveBtn.style.display = 'none';
       } else {
-        // Live stream timeline lock
         if (!isUserSeeking) {
           timelineFill.style.width = '100%';
           thumbIndicator.style.left = '100%';
@@ -1918,13 +2160,13 @@
     currentEpisodeIdx = idx;
     document.getElementById('drawerOverlay').classList.remove('show');
     playShowEpisode();
+    renderVerticalEpisodesSection();
   };
 
   async function fetchPreviouslyFromYouTube() {
     const cardsRow = document.getElementById('drawerCardsRow');
     cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Loading previous broadcasts...</div>';
 
-    // Directly use "Previously Url" field if configured in Firestore (Screenshot)
     const prevUrlField = currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl || "";
     let queryParam = currentChannel?.Name || currentChannel?.Partner || 'Live TV News';
     
@@ -1974,17 +2216,16 @@
     autoDetectAndInitContent(newId);
   };
 
+  // Recommendations Loader ("More Like This")
   function listenToRecommendations(excludeId, colName) {
     if (collectionUnsub) collectionUnsub();
 
     const recGrid = document.getElementById('recommendationsGrid');
-    const partnerGrid = document.getElementById('partnerGrid');
     const drawerCardsRow = document.getElementById('drawerCardsRow');
     const sec1Heading = document.getElementById('sec1Heading');
-    const sec2Heading = document.getElementById('sec2Heading');
 
     const fetchCol = (colName === 'Shows') ? 'Shows' : (colName === 'Movies' ? 'Movies' : 'Live TV');
-    sec1Heading.innerText = fetchCol === 'Shows' ? 'More Shows' : (fetchCol === 'Movies' ? 'More Movies' : 'Live Channels');
+    sec1Heading.innerText = "More Like This";
 
     collectionUnsub = onSnapshot(collection(channelDb, fetchCol), (snap) => {
       let items = [];
@@ -1994,21 +2235,13 @@
       let recommended = items.filter(c => targetGenre && (c.Genres || '').toLowerCase().includes(targetGenre));
       if (recommended.length === 0) recommended = items;
 
-      const studioRaw = currentChannel?.Studio || currentChannel?.Partner || '';
-      let partnerItems = items.filter(c => studioRaw && (c.Studio || c.Partner || '').toLowerCase().includes(studioRaw.toLowerCase()));
-      if (partnerItems.length === 0) partnerItems = items;
-
-      sec2Heading.innerText = studioRaw ? `More from ${studioRaw}` : "More Channels";
-
-      const renderCard = (c) => `
-        <div onclick="window.switchChannelInPlace('${c.id}')" class="card-item">
-          <img src="${safeUrl(c["Logo.png"] || c.Logo || c.Poster || c.Banner || '')}" class="card-thumb" alt="${c.Name}">
-          <div class="card-name">${c.Name || 'Channel'}</div>
+      // Render vertical poster cards (Screenshot 2)
+      recGrid.innerHTML = recommended.map(c => `
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="poster-card">
+          <img src="${safeUrl(c.Poster || c["Logo.png"] || c.Logo || c.Banner || '')}" class="poster-thumb" alt="${c.Name}">
+          <div class="poster-name">${c.Name || 'Title'}</div>
         </div>
-      `;
-
-      recGrid.innerHTML = recommended.map(renderCard).join('');
-      partnerGrid.innerHTML = partnerItems.map(renderCard).join('');
+      `).join('');
 
       drawerCardsRow.innerHTML = items.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
