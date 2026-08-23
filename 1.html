@@ -132,6 +132,26 @@
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 3; }
 
+    /* Tap to Unmute Overlay */
+    .unmute-pill-btn {
+      position: absolute;
+      bottom: 50px;
+      left: 18px;
+      z-index: 45;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 7px 15px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
     /* Unskippable Pre-Cast Badge */
     .preroll-badge {
       position: absolute;
@@ -831,6 +851,11 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
+      <!-- Unmute pill button when policy blocks unmuted autoplay -->
+      <div class="unmute-pill-btn" id="unmutePillBtn">
+        🔊 Tap to Unmute
+      </div>
+
       <!-- Unskippable Pre-Roll Ad / Pre-Cast Badge -->
       <div class="preroll-badge" id="prerollBadge">
         <div class="ad-dot"></div>
@@ -854,8 +879,8 @@
       </div>
 
       <!-- Dual Buffers for Zero Latency Switch -->
-      <video id="videoEngineA" class="media-layer active-layer" playsinline crossorigin="anonymous"></video>
-      <video id="videoEngineB" class="media-layer" playsinline crossorigin="anonymous"></video>
+      <video id="videoEngineA" class="media-layer active-layer" playsinline webkit-playsinline crossorigin="anonymous" autoplay></video>
+      <video id="videoEngineB" class="media-layer" playsinline webkit-playsinline crossorigin="anonymous"></video>
 
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
@@ -1110,6 +1135,9 @@
   let isCatchUpPlaying = false;
   let isMainInWatchlist = false;
 
+  // Autoplay & Global Sound Management
+  let isAudioUnlocked = false;
+
   // Pre-Cast Engine (Unskippable, supports YouTube, HLS, MP4)
   let activeBufferIndex = 'A';
   let preScreenQueue = [];
@@ -1128,6 +1156,68 @@
   const urlParams = new URLSearchParams(window.location.search);
   const currentDocId = urlParams.get('watch');
   const actionParam = urlParams.get('action');
+
+  // ==============================================================
+  // UNIVERSAL AUTOPLAY & AUDIO UNLOCK ENGINE
+  // ==============================================================
+  async function attemptAutoplay(mediaElement) {
+    if (!mediaElement) return;
+
+    mediaElement.muted = !isAudioUnlocked;
+    mediaElement.volume = 1.0;
+
+    try {
+      // 1. Try unmuted playback first
+      await mediaElement.play();
+      if (!mediaElement.muted) {
+        isAudioUnlocked = true;
+        document.getElementById('unmutePillBtn').style.display = 'none';
+      }
+    } catch (unmutedErr) {
+      // 2. If blocked by browser policy, fallback to muted autoplay and prompt user
+      try {
+        mediaElement.muted = true;
+        await mediaElement.play();
+        if (!isAudioUnlocked) {
+          document.getElementById('unmutePillBtn').style.display = 'flex';
+        }
+      } catch (mutedErr) {
+        console.warn("Autoplay was prevented completely:", mutedErr);
+      }
+    }
+  }
+
+  function unlockAudioGlobally() {
+    isAudioUnlocked = true;
+    document.getElementById('unmutePillBtn').style.display = 'none';
+
+    ['videoEngineA', 'videoEngineB'].forEach(id => {
+      const v = document.getElementById(id);
+      if (v) {
+        v.muted = false;
+        v.volume = 1.0;
+      }
+    });
+
+    if (ytPlayerInstance && ytPlayerInstance.unMute) {
+      ytPlayerInstance.unMute();
+      ytPlayerInstance.setVolume(100);
+    }
+    if (jwPlayerInstance && jwPlayerInstance.setMute) {
+      jwPlayerInstance.setMute(false);
+      jwPlayerInstance.setVolume(100);
+    }
+  }
+
+  // First interaction anywhere automatically enables full sound
+  window.addEventListener('pointerdown', () => {
+    if (!isAudioUnlocked) unlockAudioGlobally();
+  }, { once: true });
+
+  document.getElementById('unmutePillBtn').onclick = (e) => {
+    e.stopPropagation();
+    unlockAudioGlobally();
+  };
 
   function checkOrientation() {
     const isLandscape = window.innerWidth > window.innerHeight;
@@ -1471,7 +1561,7 @@
   }
 
   // ==============================================================
-  // PRE-CAST (PRE-ROLL) SEAMLESS DUAL ENGINE (Unskippable)
+  // PRE-CAST (PRE-ROLL) SEAMLESS DUAL ENGINE
   // ==============================================================
   async function preparePreCastAndStart(channelData) {
     mainStreamPayload = channelData;
@@ -1503,7 +1593,6 @@
       }
     }
 
-    // No pre-cast available in Firebase doc: start main video immediately
     isPreCastActive = false;
     document.getElementById('prerollBadge').style.display = 'none';
     startStreamPlayback(mainStreamPayload);
@@ -1516,7 +1605,7 @@
 
     badge.style.display = 'flex';
     badgeText.innerText = `Ad ${idx + 1} of ${preScreenQueue.length}`;
-    overlay.classList.remove('show'); // Hide main controls during unskippable ad
+    overlay.classList.remove('show');
 
     const currentUrl = preScreenQueue[idx];
     const ytId = extractYouTubeId(currentUrl);
@@ -1544,7 +1633,10 @@
           playsinline: 1
         },
         events: {
-          onReady: (e) => e.target.playVideo(),
+          onReady: (e) => {
+            if (!isAudioUnlocked) e.target.mute();
+            e.target.playVideo();
+          },
           onStateChange: (e) => {
             if (e.data === YT.PlayerState.ENDED) {
               advancePreCast();
@@ -1566,17 +1658,16 @@
         hlsInstance = new Hls();
         hlsInstance.loadSource(safeUrl(currentUrl));
         hlsInstance.attachMedia(currentVideo);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => currentVideo.play().catch(()=>{}));
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => attemptAutoplay(currentVideo));
       } else {
         currentVideo.src = safeUrl(currentUrl);
-        currentVideo.play().catch(()=>{});
+        attemptAutoplay(currentVideo);
       }
     } else {
       currentVideo.src = safeUrl(currentUrl);
-      currentVideo.play().catch(()=>{});
+      attemptAutoplay(currentVideo);
     }
 
-    // Preload next pre-roll or main feature in background
     const nextUrl = (idx + 1 < preScreenQueue.length) ? preScreenQueue[idx + 1] : safeUrl(mainStreamPayload?.Stream || '');
     if (nextUrl && (nextUrl.endsWith('.mp4') || nextUrl.includes('.m3u8')) && !extractYouTubeId(nextUrl)) {
       nextVideo.src = safeUrl(nextUrl);
@@ -1594,7 +1685,6 @@
       activeBufferIndex = activeBufferIndex === 'A' ? 'B' : 'A';
       playPreCastIndex(currentPreScreenIndex);
     } else {
-      // Pre-Cast finished completely: launch main stream
       isPreCastActive = false;
       document.getElementById('prerollBadge').style.display = 'none';
       startStreamPlayback(mainStreamPayload);
@@ -1666,6 +1756,7 @@
         },
         events: {
           onReady: (e) => {
+            if (!isAudioUnlocked) e.target.mute();
             e.target.playVideo();
             if (savedTime > 0 && contentType !== 'live' && !isCatchUpPlaying) {
               e.target.seekTo(savedTime, true);
@@ -1730,7 +1821,7 @@
           currentVideo.currentTime = savedTime;
           showToast(`Resumed from ${formatTime(savedTime)}`);
         }
-        currentVideo.play().catch(() => {});
+        attemptAutoplay(currentVideo);
       };
 
       if (streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
@@ -1811,7 +1902,7 @@
         drm: drmConfig
       }],
       autostart: true,
-      mute: false,
+      mute: !isAudioUnlocked,
       volume: 100,
       width: "100%",
       height: "100%",
@@ -1947,9 +2038,10 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
-      if (isPreCastActive) return; // Prevent controls during pre-cast
+      if (!isAudioUnlocked) unlockAudioGlobally();
+      if (isPreCastActive) return;
 
-      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay') || e.target.closest('.unmute-pill-btn')) {
         showControls();
         return;
       }
@@ -2235,7 +2327,6 @@
     document.getElementById('drawerTabPreviously').onclick = () => openDrawer('previously');
     document.getElementById('closeDrawerBtn').onclick = () => document.getElementById('drawerOverlay').classList.remove('show');
 
-    // Action items
     document.getElementById('actionShare').onclick = () => {
       const shareUrl = `${window.location.origin}${window.location.pathname}?watch=${currentDocId}&via=share`;
       if (navigator.share) {
@@ -2482,6 +2573,7 @@
     autoDetectAndInitContent(newId);
   };
 
+  // Recommendations Loader ("More Like This")
   function listenToRecommendations(excludeId, colName) {
     if (collectionUnsub) collectionUnsub();
 
