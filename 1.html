@@ -131,7 +131,7 @@
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
 
-    /* Double-Tap Seek Ripples */
+    /* Double-Tap Seek Feedback */
     .tap-ripple-zone {
       position: absolute;
       top: 0;
@@ -164,10 +164,10 @@
       top: 15%;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(18, 20, 26, 0.9);
+      background: rgba(18, 20, 26, 0.92);
       border: 1px solid rgba(255,255,255,0.15);
       color: #fff;
-      padding: 7px 16px;
+      padding: 7px 18px;
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
@@ -244,7 +244,6 @@
       display: none !important;
     }
 
-    /* Icon Buttons */
     .icon-btn {
       background: none;
       border: none;
@@ -258,7 +257,7 @@
       outline: none;
     }
     .icon-btn:active { background: rgba(255,255,255,0.15); }
-    .icon-btn svg { width: 24px; height: 24px; fill: #ffffff; }
+    .icon-btn svg { width: 22px; height: 22px; fill: #ffffff; }
 
     /* Center Controls */
     .ctrl-center {
@@ -351,27 +350,28 @@
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
       cursor: pointer;
       opacity: 0.92;
       padding: 4px 6px;
       border-radius: 6px;
+      outline: none;
     }
     .action-btn:active { opacity: 1; background: rgba(255,255,255,0.12); }
-    .action-btn svg { width: 22px; height: 22px; fill: #ffffff; }
+    .action-btn svg { width: 20px; height: 20px; fill: #ffffff; display: block; }
 
     .btn-go-live {
-      background: rgba(229, 9, 20, 0.2);
+      background: rgba(229, 9, 20, 0.25);
       color: var(--live-red);
       border: 1px solid var(--live-red);
       font-size: 11px;
       font-weight: 800;
-      padding: 4px 10px;
+      padding: 4px 9px;
       border-radius: 12px;
       cursor: pointer;
       display: none;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       text-transform: uppercase;
     }
     .btn-go-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live-red); }
@@ -631,6 +631,7 @@
     .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.2; }
     .ch-lang-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
 
+    /* Action bar below title */
     .meta-actions-bar {
       display: flex;
       gap: 32px;
@@ -650,7 +651,7 @@
     .meta-action-item:active { opacity: 1; }
     .meta-action-item svg { width: 22px; height: 22px; fill: #ffffff; }
 
-    .section-head { font-size: 17px; font-weight: 800; margin: 18px 0 12px; color: #fff; letter-spacing: 0.3px; }
+    .section-head { font-size: 17px; font-weight: 800; margin: 20px 0 12px; color: #fff; letter-spacing: 0.3px; }
 
     /* Vertical Episodes List */
     .episodes-vertical-wrap { display: none; margin-bottom: 24px; }
@@ -756,26 +757,26 @@
       cursor: pointer;
     }
 
-    /* Landscape (16:9) Recommendations in Vertical Mode */
+    /* Landscape Aspect-Ratio Recommendation Cards in Vertical Mode */
     .landscape-cards-scroll {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       overflow-x: auto;
-      padding-bottom: 14px;
+      padding-bottom: 12px;
       scrollbar-width: none;
     }
     .landscape-cards-scroll::-webkit-scrollbar { display: none; }
 
-    .landscape-card {
-      min-width: 175px;
-      width: 175px;
+    .landscape-rec-card {
+      min-width: 170px;
+      width: 170px;
       text-decoration: none;
       color: #fff;
       cursor: pointer;
       display: flex;
       flex-direction: column;
     }
-    .landscape-thumb-wrap {
+    .rec-thumb-wrap {
       position: relative;
       width: 100%;
       aspect-ratio: 16/9;
@@ -784,8 +785,19 @@
       background: #151821;
       border: 1px solid var(--border-color);
     }
-    .landscape-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
-    .landscape-name {
+    .rec-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .rec-logo-top {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      background: rgba(0,0,0,0.6);
+      border-radius: 4px;
+      padding: 2px;
+    }
+    .landscape-rec-card .rec-name {
       font-size: 13px;
       font-weight: 600;
       margin-top: 6px;
@@ -793,7 +805,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .landscape-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .landscape-rec-card .rec-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
 
     .loader-box { text-align: center; padding: 60px; color: var(--accent-blue); font-weight: 600; font-size: 15px; }
   </style>
@@ -904,10 +920,10 @@
                 Watch Next
               </button>
 
-              <!-- Transparent Custom Episode SVG Icon -->
+              <!-- Clean Transparent White Episode Icon -->
               <button class="action-btn" id="btnEpisodes" style="display:none;">
-                <svg viewBox="0 0 528 560" style="width:22px; height:22px; fill:#ffffff;">
-                  <g transform="translate(0,560) scale(0.1,-0.1)" fill="#ffffff">
+                <svg viewBox="0 0 528 560">
+                  <g transform="translate(0,560) scale(0.1,-0.1)" fill="#ffffff" stroke="none">
                     <path d="M3990 4602 c58 -18 120 -37 137 -43 49 -15 152 -78 211 -128 100 -85 174 -215 198 -351 7 -41 20 -111 29 -155 34 -173 43 -959 14 -1210 -16 -138 -58 -332 -84 -391 -31 -70 -76 -135 -147 -211 -61 -65 -64 -72 -72 -170 -12 -130 -93 -288 -207 -402 -101 -101 -191 -156 -334 -205 l-120 -41 -855 0 -855 0 -107 37 c-159 55 -222 92 -327 192 -142 137 -228 319 -231 493 0 14 -32 59 -81 114 -109 124 -144 197 -179 373 -42 208 -50 329 -50 761 0 447 8 568 50 769 30 151 58 219 122 307 75 104 223 201 360 238 41 11 88 25 104 31 16 7 56 15 89 20 33 4 548 7 1145 6 l1085 -1 105 -33z M1875 4289 c-148 -8 -295 -30 -368 -55 -53 -19 -133 -89 -157 -138 -74 -154 -96 -1079 -34 -1491 26 -176 67 -238 198 -305 70 -36 98 -44 168 -51 113 -11 2029 -10 2151 0 79 8 109 15 160 41 88 46 120 72 156 128 40 63 47 88 69 247 26 196 25 1040 -2 1235 -10 74 -25 151 -32 170 -17 39 -105 134 -144 155 -55 28 -227 55 -420 65 -225 11 -1522 11 -1745 -1z M1658 1909 c-56 -22 -42 -66 52 -152 49 -46 75 -61 143 -84 l82 -28 825 0 825 0 85 29 c74 25 94 37 153 95 74 71 89 103 63 129 -20 20 -51 20 -371 5 -427 -21 -1417 -15 -1760 11 -39 3 -82 1 -97 -5z"/>
                   </g>
                 </svg>
@@ -925,10 +941,10 @@
                 <div class="live-dot"></div> Go Live
               </button>
 
-              <!-- Transparent Custom Playback Speed SVG Icon -->
+              <!-- Clean Transparent White Playback Speed Icon -->
               <button class="action-btn" id="speedBtn" style="display:none;">
-                <svg viewBox="0 0 640 816" style="width:20px; height:20px; fill:#ffffff;">
-                  <g transform="translate(0,816) scale(0.1,-0.1)" fill="#ffffff">
+                <svg viewBox="0 0 640 816">
+                  <g transform="translate(0,816) scale(0.1,-0.1)" fill="#ffffff" stroke="none">
                     <path d="M3730 6105 c52 -8 136 -20 185 -26 57 -7 115 -22 156 -40 37 -16 91 -34 120 -40 30 -6 74 -24 99 -39 25 -15 63 -33 85 -40 22 -7 54 -23 70 -35 17 -12 53 -34 82 -48 28 -15 54 -31 58 -37 3 -6 24 -19 45 -30 39 -20 112 -76 165 -127 17 -16 44 -39 62 -51 45 -32 247 -261 272 -310 7 -15 24 -38 36 -52 13 -14 31 -41 40 -60 10 -19 28 -50 42 -67 13 -18 31 -52 39 -75 8 -24 26 -59 39 -78 13 -19 29 -60 36 -90 6 -30 24 -80 39 -111 21 -40 33 -88 45 -174 9 -65 19 -123 21 -127 3 -5 12 -66 19 -136 16 -138 11 -216 -24 -432 -11 -63 -22 -137 -26 -165 -4 -27 -17 -70 -30 -95 -13 -26 -31 -74 -40 -109 -9 -34 -29 -83 -44 -109 -16 -26 -32 -58 -36 -72 -9 -32 -73 -136 -151 -248 -138 -197 -330 -381 -534 -514 -108 -71 -322 -181 -375 -194 -16 -4 -68 -22 -115 -40 -47 -17 -121 -37 -165 -44 -44 -6 -105 -18 -135 -25 -145 -37 -484 -37 -653 -1 -85 19 -127 44 -155 94 -32 58 -29 109 11 168 27 41 41 52 86 67 52 17 62 17 210 2 334 -36 649 18 928 158 250 126 484 326 619 529 25 37 50 71 56 74 6 4 23 35 39 69 16 35 39 79 53 99 13 19 27 52 31 73 3 21 22 72 40 114 32 70 36 89 51 265 14 162 15 213 4 354 -14 200 -23 248 -55 315 -13 29 -29 74 -35 101 -6 27 -22 66 -36 86 -13 21 -35 62 -48 90 -14 29 -47 85 -75 123 -28 39 -62 86 -75 105 -66 96 -305 313 -396 360 -19 10 -52 32 -74 49 -21 17 -55 35 -75 41 -20 5 -54 22 -75 36 -21 15 -69 35 -105 45 -36 9 -94 29 -127 43 -53 22 -93 28 -270 43 -184 15 -228 15 -370 3 -230 -19 -260 -11 -314 83 -37 65 -38 91 -1 149 37 58 69 75 179 95 200 35 367 38 552 8z m-1152 -322 c71 -57 89 -139 46 -211 -8 -15 -78 -78 -154 -141 -91 -75 -176 -158 -251 -243 -110 -127 -150 -158 -216 -172 -90 -20 -203 64 -203 151 0 115 369 501 595 622 75 41 127 39 183 -6z m699 -1033 c43 -17 101 -45 128 -63 28 -19 84 -53 125 -77 79 -45 177 -105 270 -163 30 -19 99 -60 153 -91 68 -40 108 -72 132 -103 45 -59 46 -95 3 -159 -37 -55 -39 -56 -463 -302 -71 -41 -157 -91 -190 -111 -94 -55 -207 -110 -241 -117 -38 -7 -102 23 -133 62 -40 51 -42 80 -39 576 l3 477 30 31 c35 37 91 69 122 70 12 0 57 -14 100 -30z m-1486 -101 c81 -41 89 -83 67 -320 -9 -100 -9 -166 2 -316 15 -215 11 -243 -45 -292 -46 -40 -103 -55 -155 -41 -46 12 -95 51 -115 90 -23 44 -55 278 -55 399 0 109 22 311 41 384 29 109 149 153 260 96z m287 -1333 c21 -15 80 -73 129 -129 88 -100 157 -166 313 -299 105 -90 123 -118 118 -191 -6 -86 -57 -143 -136 -154 -50 -7 -87 7 -167 61 -206 140 -445 385 -515 531 -20 41 -21 52 -11 85 35 117 170 165 269 96z"/>
                   </g>
                 </svg>
@@ -1021,7 +1037,7 @@
       <div class="ch-title-head" id="chTitle">Title</div>
       <div class="ch-lang-sub" id="chLangSub">Video</div>
 
-      <!-- Action items: Watchlist, Share -->
+      <!-- Action items row: Watchlist, Share -->
       <div class="meta-actions-bar">
         <div class="meta-action-item" id="actionWatchlist">
           <svg id="watchlistIcon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -1043,7 +1059,7 @@
         </button>
       </div>
 
-      <!-- Landscape Recommendations / More Like This -->
+      <!-- Landscape Format Recommendations -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="landscape-cards-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1053,7 +1069,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, doc, onSnapshot, collection, getDoc, getDocs, setDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, collection, getDoc, getDocs, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const channelConfig = {
     apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
@@ -1093,7 +1109,7 @@
   let isFillScreen = false;
   let currentChannel = null;
   let isUserSeeking = false;
-  let isCatchUpPlaying = false;
+  let isPlayingCatchup = false;
   let currentSpeed = 1;
 
   let showDocData = null;
@@ -1165,7 +1181,7 @@
     const toast = document.getElementById('toastAlert');
     toast.innerText = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+    setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
   function getSavedProgress(key) {
@@ -1246,9 +1262,7 @@
     const userPill = document.getElementById('userPill');
 
     let activeUser = null;
-    try {
-      activeUser = JSON.parse(localStorage.getItem('active_user')) || JSON.parse(localStorage.getItem('user')) || JSON.parse(localStorage.getItem('userData'));
-    } catch(e){}
+    try { activeUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
 
     if (channelDocUnsub) channelDocUnsub();
 
@@ -1276,10 +1290,10 @@
       loader.style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
 
-      if (activeUser && (activeUser.Email || activeUser.Lotus || activeUser.uid)) {
-        userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email || 'Active User'}`;
-      } else {
+      if (!activeUser || (!activeUser.Email && !activeUser.Lotus && !activeUser.id)) {
         userPill.innerText = "Guest Mode";
+      } else {
+        userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email || 'User'}`;
       }
 
       initWatchlistAndShare(activeUser);
@@ -1353,15 +1367,18 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
-      // Live TV: Completely remove Speed button & drawer tab
+      // Live TV
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
-      btnPreviously.style.display = 'flex';
       speedBtn.style.display = 'none';
       tabSpeed.style.display = 'none';
       drawerTabEpisodes.style.display = 'none';
-      drawerTabPreviously.style.display = 'inline-block';
       overlaySubtitle.style.display = 'none';
+
+      // Check if Previously Url exists in document
+      const hasPrev = Boolean(currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl);
+      btnPreviously.style.display = hasPrev ? 'flex' : 'none';
+      drawerTabPreviously.style.display = hasPrev ? 'inline-block' : 'none';
 
       timelineFill.style.width = '100%';
       thumbIndicator.style.left = '100%';
@@ -1370,7 +1387,7 @@
     }
   }
 
-  // Reliable Watchlist Setup
+  // Reliable Watchlist and Firestore Persistence
   async function initWatchlistAndShare(activeUser) {
     const watchlistBtn = document.getElementById('actionWatchlist');
     const watchlistIcon = document.getElementById('watchlistIcon');
@@ -1380,26 +1397,26 @@
     let inWatchlist = false;
     let userDocRef = null;
 
-    // Check Local / Stored Watchlist cache
-    try {
-      const localWL = JSON.parse(localStorage.getItem('local_watchlist') || '[]');
-      inWatchlist = localWL.includes(currentChannel.id);
-      updateWatchlistUI(inWatchlist);
-    } catch(e){}
-
     if (activeUser) {
       try {
         const uarmCol = collection(authDb, "UARM");
-        const queryTerm = activeUser.Lotus || activeUser.Email || activeUser.uid;
+        let snap = null;
+        if (activeUser.Lotus) {
+          snap = await getDocs(query(uarmCol, where("Lotus", "==", activeUser.Lotus)));
+        } else if (activeUser.Email) {
+          snap = await getDocs(query(uarmCol, where("Email", "==", activeUser.Email)));
+        }
         
-        if (queryTerm) {
-          const q = activeUser.Lotus 
-            ? query(uarmCol, where("Lotus", "==", activeUser.Lotus)) 
-            : query(uarmCol, where("Email", "==", activeUser.Email));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            userDocRef = snap.docs[0].ref;
-            const list = snap.docs[0].data().Watchlist || [];
+        if (snap && !snap.empty) {
+          userDocRef = snap.docs[0].ref;
+          const list = snap.docs[0].data().Watchlist || [];
+          inWatchlist = list.includes(currentChannel.id);
+          updateWatchlistUI(inWatchlist);
+        } else if (activeUser.id) {
+          userDocRef = doc(authDb, "UARM", activeUser.id);
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            const list = docSnap.data().Watchlist || [];
             inWatchlist = list.includes(currentChannel.id);
             updateWatchlistUI(inWatchlist);
           }
@@ -1418,29 +1435,23 @@
     }
 
     watchlistBtn.onclick = async () => {
+      if (!userDocRef) {
+        // Fallback local memory save if doc reference is disconnected
+        inWatchlist = !inWatchlist;
+        updateWatchlistUI(inWatchlist);
+        showToast(inWatchlist ? "Added to Watchlist" : "Removed from Watchlist");
+        return;
+      }
       inWatchlist = !inWatchlist;
       updateWatchlistUI(inWatchlist);
-
-      // Save locally
       try {
-        let localWL = JSON.parse(localStorage.getItem('local_watchlist') || '[]');
-        if (inWatchlist) {
-          if (!localWL.includes(currentChannel.id)) localWL.push(currentChannel.id);
-        } else {
-          localWL = localWL.filter(id => id !== currentChannel.id);
-        }
-        localStorage.setItem('local_watchlist', JSON.stringify(localWL));
-      } catch(e){}
-
-      // Save to Firestore UARM if ref exists
-      if (userDocRef) {
-        try {
-          await updateDoc(userDocRef, {
-            Watchlist: inWatchlist ? arrayUnion(currentChannel.id) : arrayRemove(currentChannel.id)
-          });
-        } catch(e){}
+        await updateDoc(userDocRef, {
+          Watchlist: inWatchlist ? arrayUnion(currentChannel.id) : arrayRemove(currentChannel.id)
+        });
+        showToast(inWatchlist ? "Added to Watchlist" : "Removed from Watchlist");
+      } catch (err) {
+        showToast("Saved locally");
       }
-      showToast(inWatchlist ? "Added to Watchlist" : "Removed from Watchlist");
     };
 
     shareBtn.onclick = async () => {
@@ -1510,8 +1521,7 @@
     if (epList.length > 3) {
       viewMoreBtn.style.display = 'flex';
       viewMoreTxt.innerText = showAllEpisodesVertical ? '⌃ View Less' : '⌄ View More';
-      viewMoreBtn.onclick = (e) => {
-        e.stopPropagation();
+      viewMoreBtn.onclick = () => {
         showAllEpisodesVertical = !showAllEpisodesVertical;
         renderVerticalEpisodesSection();
       };
@@ -1572,10 +1582,8 @@
     const resumeKey = data.id || currentDocId;
     const savedTime = getSavedProgress(resumeKey);
 
-    // If regular stream resumed
-    if (!isCatchUpPlaying) {
-      goLiveBtn.style.display = 'none';
-    } else {
+    // Show Go Live button during catch-up playback
+    if (isPlayingCatchup) {
       goLiveBtn.style.display = 'flex';
     }
 
@@ -1635,13 +1643,14 @@
             if (e.data === YT.PlayerState.PLAYING) {
               playIcon.style.display = 'none';
               pauseIcon.style.display = 'block';
+            } else if (e.data === YT.PlayerState.ENDED) {
+              // When Catch-up ends, return back to main live stream automatically
+              if (isPlayingCatchup) {
+                returnToMainLive();
+              }
             } else {
               playIcon.style.display = 'block';
               pauseIcon.style.display = 'none';
-            }
-            // Auto back to main live broadcast when Catch-Up ends
-            if (e.data === YT.PlayerState.ENDED && isCatchUpPlaying) {
-              returnToMainLive();
             }
           }
         }
@@ -1652,7 +1661,7 @@
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         const dur = ytPlayerInstance.getDuration() || 0;
 
-        if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying) {
+        if (contentType === 'movie' || contentType === 'show' || isPlayingCatchup) {
           if (dur > 0) {
             const percent = (cur / dur) * 100;
             timelineFill.style.width = `${percent}%`;
@@ -1661,7 +1670,7 @@
 
             const rem = Math.max(0, dur - cur);
             timeDisplay.innerText = formatTime(rem);
-            if (!isCatchUpPlaying) saveProgress(resumeKey, cur);
+            if (!isPlayingCatchup) saveProgress(resumeKey, cur);
           }
         } else {
           timelineFill.style.width = '100%';
@@ -1768,7 +1777,7 @@
     });
 
     jwPlayerInstance.on('time', (e) => {
-      if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying) {
+      if (contentType === 'movie' || contentType === 'show') {
         if (e.duration > 0) {
           const percent = (e.position / e.duration) * 100;
           timelineFill.style.width = `${percent}%`;
@@ -1776,13 +1785,9 @@
           progressBarInput.value = percent;
           const rem = Math.max(0, e.duration - e.position);
           timeDisplay.innerText = formatTime(rem);
-          if (!isCatchUpPlaying) saveProgress(currentDocId, e.position);
+          saveProgress(currentDocId, e.position);
         }
       }
-    });
-
-    jwPlayerInstance.on('complete', () => {
-      if (isCatchUpPlaying) returnToMainLive();
     });
 
     jwPlayerInstance.on('play', () => {
@@ -1854,6 +1859,14 @@
         document.getElementById('settingsModal').classList.remove('active');
       };
     });
+  }
+
+  function returnToMainLive() {
+    isPlayingCatchup = false;
+    document.getElementById('goLiveBtn').style.display = 'none';
+    document.getElementById('overlayTitle').innerText = currentChannel.Name || "Live TV";
+    startStreamPlayback(currentChannel);
+    showToast("Returned to Live Stream");
   }
 
   // Interactivity, Gestures, Seeking
@@ -2024,7 +2037,7 @@
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube') return;
 
-      if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying) {
+      if (contentType === 'movie' || contentType === 'show' || isPlayingCatchup) {
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
           const percent = (video.currentTime / video.duration) * 100;
           timelineFill.style.width = `${percent}%`;
@@ -2037,7 +2050,7 @@
           const currentKey = (contentType === 'show' && showDocData) 
             ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
             : currentDocId;
-          if (!isCatchUpPlaying) saveProgress(currentKey, video.currentTime);
+          if (!isPlayingCatchup) saveProgress(currentKey, video.currentTime);
         }
       } else {
         if (!isUserSeeking) {
@@ -2067,7 +2080,7 @@
       timelineFill.style.width = `${val}%`;
       thumbIndicator.style.left = `${val}%`;
 
-      if (contentType === 'live' && !isCatchUpPlaying) {
+      if (contentType === 'live' && !isPlayingCatchup) {
         isUserSeeking = true;
         goLiveBtn.style.display = 'flex';
       }
@@ -2083,7 +2096,14 @@
 
     goLiveBtn.onclick = (e) => {
       e.stopPropagation();
-      returnToMainLive();
+      if (isPlayingCatchup) {
+        returnToMainLive();
+      } else {
+        isUserSeeking = false;
+        if (video.duration) video.currentTime = video.duration - 1;
+        goLiveBtn.style.display = 'none';
+        timeDisplay.innerText = "LIVE";
+      }
     };
 
     speedBtn.onclick = (e) => {
@@ -2149,8 +2169,8 @@
         if (ytPlayerInstance && ytPlayerInstance.setPlaybackRate) ytPlayerInstance.setPlaybackRate(currentSpeed);
         
         speedBtn.innerHTML = `
-          <svg viewBox="0 0 640 816" style="width:20px; height:20px; fill:#ffffff;">
-            <g transform="translate(0,816) scale(0.1,-0.1)" fill="#ffffff">
+          <svg viewBox="0 0 640 816">
+            <g transform="translate(0,816) scale(0.1,-0.1)" fill="#ffffff" stroke="none">
               <path d="M3730 6105 c52 -8 136 -20 185 -26 57 -7 115 -22 156 -40 37 -16 91 -34 120 -40 30 -6 74 -24 99 -39 25 -15 63 -33 85 -40 22 -7 54 -23 70 -35 17 -12 53 -34 82 -48 28 -15 54 -31 58 -37 3 -6 24 -19 45 -30 39 -20 112 -76 165 -127 17 -16 44 -39 62 -51 45 -32 247 -261 272 -310 7 -15 24 -38 36 -52 13 -14 31 -41 40 -60 10 -19 28 -50 42 -67 13 -18 31 -52 39 -75 8 -24 26 -59 39 -78 13 -19 29 -60 36 -90 6 -30 24 -80 39 -111 21 -40 33 -88 45 -174 9 -65 19 -123 21 -127 3 -5 12 -66 19 -136 16 -138 11 -216 -24 -432 -11 -63 -22 -137 -26 -165 -4 -27 -17 -70 -30 -95 -13 -26 -31 -74 -40 -109 -9 -34 -29 -83 -44 -109 -16 -26 -32 -58 -36 -72 -9 -32 -73 -136 -151 -248 -138 -197 -330 -381 -534 -514 -108 -71 -322 -181 -375 -194 -16 -4 -68 -22 -115 -40 -47 -17 -121 -37 -165 -44 -44 -6 -105 -18 -135 -25 -145 -37 -484 -37 -653 -1 -85 19 -127 44 -155 94 -32 58 -29 109 11 168 27 41 41 52 86 67 52 17 62 17 210 2 334 -36 649 18 928 158 250 126 484 326 619 529 25 37 50 71 56 74 6 4 23 35 39 69 16 35 39 79 53 99 13 19 27 52 31 73 3 21 22 72 40 114 32 70 36 89 51 265 14 162 15 213 4 354 -14 200 -23 248 -55 315 -13 29 -29 74 -35 101 -6 27 -22 66 -36 86 -13 21 -35 62 -48 90 -14 29 -47 85 -75 123 -28 39 -62 86 -75 105 -66 96 -305 313 -396 360 -19 10 -52 32 -74 49 -21 17 -55 35 -75 41 -20 5 -54 22 -75 36 -21 15 -69 35 -105 45 -36 9 -94 29 -127 43 -53 22 -93 28 -270 43 -184 15 -228 15 -370 3 -230 -19 -260 -11 -314 83 -37 65 -38 91 -1 149 37 58 69 75 179 95 200 35 367 38 552 8z m-1152 -322 c71 -57 89 -139 46 -211 -8 -15 -78 -78 -154 -141 -91 -75 -176 -158 -251 -243 -110 -127 -150 -158 -216 -172 -90 -20 -203 64 -203 151 0 115 369 501 595 622 75 41 127 39 183 -6z m699 -1033 c43 -17 101 -45 128 -63 28 -19 84 -53 125 -77 79 -45 177 -105 270 -163 30 -19 99 -60 153 -91 68 -40 108 -72 132 -103 45 -59 46 -95 3 -159 -37 -55 -39 -56 -463 -302 -71 -41 -157 -91 -190 -111 -94 -55 -207 -110 -241 -117 -38 -7 -102 23 -133 62 -40 51 -42 80 -39 576 l3 477 30 31 c35 37 91 69 122 70 12 0 57 -14 100 -30z m-1486 -101 c81 -41 89 -83 67 -320 -9 -100 -9 -166 2 -316 15 -215 11 -243 -45 -292 -46 -40 -103 -55 -155 -41 -46 12 -95 51 -115 90 -23 44 -55 278 -55 399 0 109 22 311 41 384 29 109 149 153 260 96z m287 -1333 c21 -15 80 -73 129 -129 88 -100 157 -166 313 -299 105 -90 123 -118 118 -191 -6 -86 -57 -143 -136 -154 -50 -7 -87 7 -167 61 -206 140 -445 385 -515 531 -20 41 -21 52 -11 85 35 117 170 165 269 96z"/>
             </g>
           </svg>
@@ -2304,30 +2324,29 @@
     renderVerticalEpisodesSection();
   };
 
-  // Reliable "Previously" Catch-up Fetcher
+  // YouTube Data API Catch-Up for "Previously" (Today's broadcasts)
   async function fetchPreviouslyFromYouTube() {
     const cardsRow = document.getElementById('drawerCardsRow');
     cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Loading today\'s broadcasts...</div>';
 
-    const prevUrlField = currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl || "";
+    const prevUrlField = currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl;
     
-    if (!prevUrlField || !prevUrlField.trim()) {
+    if (!prevUrlField) {
       cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">No Previous Content Available for This Broadcast</div>';
       return;
     }
 
-    let queryParam = currentChannel.Name || 'News';
+    let queryParam = currentChannel?.Name || 'News';
     if (prevUrlField.includes('@')) {
       queryParam = prevUrlField.split('@')[1].replace(/\/.*$/, '');
     }
 
-    // Get today's ISO string (Midnight start of today)
+    // Filter strictly for videos uploaded today (exclude shorts/live streams)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const publishedAfter = today.toISOString();
+    const publishedAfterISO = today.toISOString();
 
-    // YouTube API query: regular videos, published today, long duration (no shorts/lives)
-    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=medium&eventType=completed&publishedAfter=${encodeURIComponent(publishedAfter)}&maxResults=15&q=${encodeURIComponent(queryParam)}&key=${YOUTUBE_API_KEY}`;
+    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=medium&eventType=completed&publishedAfter=${publishedAfterISO}&maxResults=10&q=${encodeURIComponent(queryParam)}&key=${YOUTUBE_API_KEY}`;
 
     try {
       const res = await fetch(endpoint);
@@ -2337,11 +2356,11 @@
         cardsRow.innerHTML = data.items.map(item => `
           <div onclick="window.playYouTubePreviously('${item.id.videoId}', '${item.snippet.title.replace(/'/g, "\\'")}')" class="watch-card">
             <div class="watch-card-thumb-wrap">
-              <img src="${item.snippet.thumbnails.medium ? item.snippet.thumbnails.medium.url : item.snippet.thumbnails.default.url}" alt="${item.snippet.title}">
+              <img src="${item.snippet.thumbnails.medium.url}" alt="${item.snippet.title}">
               <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
             </div>
             <div class="watch-card-name">${item.snippet.title}</div>
-            <div class="watch-card-sub">Today's Broadcast</div>
+            <div class="watch-card-sub">Earlier Today</div>
           </div>
         `).join('');
       } else {
@@ -2353,34 +2372,25 @@
   }
 
   window.playYouTubePreviously = function(videoId, title) {
-    isCatchUpPlaying = true;
     document.getElementById('drawerOverlay').classList.remove('show');
-    document.getElementById('overlayTitle').innerText = `${title} (Catch-Up)`;
+    document.getElementById('overlayTitle').innerText = `${title} (Catch-up)`;
+    isPlayingCatchup = true;
     startStreamPlayback({ Stream: `https://www.youtube.com/watch?v=${videoId}` });
   };
-
-  function returnToMainLive() {
-    isCatchUpPlaying = false;
-    isUserSeeking = false;
-    document.getElementById('goLiveBtn').style.display = 'none';
-    document.getElementById('overlayTitle').innerText = currentChannel.Name || 'Live TV';
-    startStreamPlayback(currentChannel);
-    showToast("Back to Live Broadcast");
-  }
 
   function renderWatchNextDrawer() {
     listenToRecommendations(currentChannel?.id, contentType === 'show' ? 'Shows' : (contentType === 'movie' ? 'Movies' : 'Live TV'));
   }
 
   window.switchChannelInPlace = function(newId) {
-    isCatchUpPlaying = false;
     destroyPlayers();
+    isPlayingCatchup = false;
     document.getElementById('drawerOverlay').classList.remove('show');
     window.history.pushState({}, '', `1.html?watch=${newId}`);
     autoDetectAndInitContent(newId);
   };
 
-  // Recommendations in Landscape Style (16:9)
+  // Landscape-Format Recommendations Loader (Portrait Mode)
   function listenToRecommendations(excludeId, colName) {
     if (collectionUnsub) collectionUnsub();
 
@@ -2399,14 +2409,15 @@
       let recommended = items.filter(c => targetGenre && (c.Genres || '').toLowerCase().includes(targetGenre));
       if (recommended.length === 0) recommended = items;
 
-      // Landscape Recommendation Cards
+      // Render 16:9 Landscape cards in portrait view
       recGrid.innerHTML = recommended.map(c => `
-        <div onclick="window.switchChannelInPlace('${c.id}')" class="landscape-card">
-          <div class="landscape-thumb-wrap">
-            <img src="${safeUrl(c.Banner || c["Logo.png"] || c.Poster || c.Logo || '')}" alt="${c.Name}">
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="landscape-rec-card">
+          <div class="rec-thumb-wrap">
+            <img src="${safeUrl(c.Banner || c.Poster || c["Logo.png"] || c.Logo || '')}" alt="${c.Name}">
+            <img class="rec-logo-top" src="${safeUrl(c["Logo.png"] || c.Logo || c.Poster || '')}" alt="Logo">
           </div>
-          <div class="landscape-name">${c.Name || 'Title'}</div>
-          <div class="landscape-sub">${c.Genres || c.Language || (fetchCol === 'Live TV' ? 'Live TV' : 'Video')}</div>
+          <div class="rec-name">${c.Name || 'Title'}</div>
+          <div class="rec-sub">${c.Genres || c.Language || (fetchCol === 'Live TV' ? 'Live TV' : 'Video')}</div>
         </div>
       `).join('');
 
