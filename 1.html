@@ -80,7 +80,7 @@
       z-index: 99999;
     }
 
-    /* Seamless Dual Video Buffers (Zero Delay Switch) */
+    /* Seamless Dual Video Buffers */
     .media-layer {
       position: absolute;
       inset: 0;
@@ -90,7 +90,7 @@
       background: #000;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), object-fit 0.25s ease;
+      transition: opacity 0.2s ease, object-fit 0.25s ease;
       z-index: 1;
     }
     .media-layer.active-layer {
@@ -132,40 +132,25 @@
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 3; }
 
-    /* Pre-Roll Badge & Skip */
+    /* Unskippable Pre-Cast Badge */
     .preroll-badge {
       position: absolute;
       top: 14px;
       left: 14px;
-      z-index: 35;
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(255,255,255,0.2);
+      z-index: 45;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(255,255,255,0.25);
       color: #fff;
-      padding: 6px 12px;
-      border-radius: 14px;
-      font-size: 11px;
+      padding: 6px 14px;
+      border-radius: 16px;
+      font-size: 11.5px;
       font-weight: 700;
       display: none;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
+      pointer-events: none;
     }
     .preroll-badge .ad-dot { width: 6px; height: 6px; border-radius: 50%; background: #ffaa00; }
-
-    .skip-ad-btn {
-      position: absolute;
-      bottom: 45px;
-      right: 16px;
-      z-index: 35;
-      background: rgba(0, 0, 0, 0.85);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: #fff;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      display: none;
-    }
 
     /* Double-Tap Seek Ripples */
     .tap-ripple-zone {
@@ -665,7 +650,7 @@
       font-size: 13px;
     }
 
-    /* Portrait Details Section (Elemental / Hotstar layout) */
+    /* Portrait Details Section */
     .details-wrapper { padding: 18px 16px; }
     .ch-title-head { font-size: 22px; font-weight: 800; color: #fff; line-height: 1.2; }
     .ch-lang-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
@@ -846,12 +831,11 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- Pre-Roll / Pre-Screen Ad Badge -->
+      <!-- Unskippable Pre-Roll Ad / Pre-Cast Badge -->
       <div class="preroll-badge" id="prerollBadge">
         <div class="ad-dot"></div>
-        <span id="prerollText">Intro • 10s</span>
+        <span id="prerollText">Ad 1 of 1</span>
       </div>
-      <button class="skip-ad-btn" id="skipAdBtn">Skip Intro ›</button>
 
       <!-- Double Tap Seek Feedback -->
       <div class="tap-ripple-zone tap-ripple-left" id="rippleLeft">
@@ -869,7 +853,7 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- Seamless Dual-Engine Players (Buffer A & Buffer B) -->
+      <!-- Dual Buffers for Zero Latency Switch -->
       <video id="videoEngineA" class="media-layer active-layer" playsinline crossorigin="anonymous"></video>
       <video id="videoEngineB" class="media-layer" playsinline crossorigin="anonymous"></video>
 
@@ -1041,12 +1025,11 @@
 
     </div>
 
-    <!-- Portrait Details Section (Elemental layout matching Screenshot) -->
+    <!-- Portrait Details Section -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Title</div>
-      <div class="ch-lang-sub" id="chLangSub">2023 • 1h 41m • 2 Languages</div>
+      <div class="ch-lang-sub" id="chLangSub">2024 • Live TV</div>
 
-      <!-- Action Items Row: Watchlist, Share, Rate -->
       <div class="meta-actions-bar">
         <div class="meta-action-item" id="actionWatchlist">
           <svg id="watchlistIcon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -1062,7 +1045,7 @@
         </div>
       </div>
 
-      <!-- TV SHOW EPISODES (Rendered in vertical mode) -->
+      <!-- TV SHOW EPISODES (Vertical View) -->
       <div class="episodes-vertical-wrap" id="episodesVerticalWrap">
         <div class="section-head" style="margin-bottom:6px;">Episodes</div>
         <div class="ep-seasons-row" id="verticalSeasonsRow"></div>
@@ -1127,10 +1110,11 @@
   let isCatchUpPlaying = false;
   let isMainInWatchlist = false;
 
-  // Pre-roll / Pre-Screen Zero Delay Queue
-  let activeBufferIndex = 'A'; // 'A' or 'B'
+  // Pre-Cast Engine (Unskippable, supports YouTube, HLS, MP4)
+  let activeBufferIndex = 'A';
   let preScreenQueue = [];
   let currentPreScreenIndex = 0;
+  let isPreCastActive = false;
   let mainStreamPayload = null;
 
   let showDocData = null;
@@ -1263,9 +1247,9 @@
     }
   }
 
-  // Automatic Firestore Mode & Collection Detection
+  // Auto-Detects Live TV, Shows, or Movies from Firestore
   async function autoDetectAndInitContent(docId) {
-    const collectionsToCheck = ["Shows", "Movies", "Live TV"];
+    const collectionsToCheck = ["Live TV", "Shows", "Movies"];
     let detectedCollection = null;
 
     for (const colName of collectionsToCheck) {
@@ -1321,12 +1305,11 @@
         userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
       }
 
-      // Check Watchlist status
       initWatchlistButton(docId, activeUser);
 
       if (contentType === 'show') {
         renderVerticalEpisodesSection();
-        preparePreScreensAndPlay(currentChannel);
+        preparePreCastAndStart(currentChannel);
       } else {
         const titleText = currentChannel.Name || currentChannel.Title || "Title";
         document.getElementById('overlayTitle').innerText = titleText;
@@ -1338,7 +1321,7 @@
         document.getElementById('chLangSub').innerText = `${year} • ${dur} • ${langs}`;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
         
-        preparePreScreensAndPlay(currentChannel);
+        preparePreCastAndStart(currentChannel);
       }
       
       setupAudioOptions(currentChannel);
@@ -1477,7 +1460,7 @@
     subLabel.style.display = 'block';
     subLabel.innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} ${epTitle}`;
 
-    preparePreScreensAndPlay({ 
+    preparePreCastAndStart({ 
       id: `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}`,
       Stream: ep.Stream, 
       mpd: ep.mpd || ep.MPD, 
@@ -1488,9 +1471,9 @@
   }
 
   // ==============================================================
-  // PRE-SCREENS / PRE-CAST DUAL BUFFER ZERO DELAY ENGINE
+  // PRE-CAST (PRE-ROLL) SEAMLESS DUAL ENGINE (Unskippable)
   // ==============================================================
-  async function preparePreScreensAndPlay(channelData) {
+  async function preparePreCastAndStart(channelData) {
     mainStreamPayload = channelData;
     isCatchUpPlaying = false;
     const preCastList = channelData["Pre-Cast"] || channelData["Pre-Screens"] || channelData.PreCast || [];
@@ -1502,7 +1485,6 @@
           if (item.startsWith('http')) {
             preScreenQueue.push(item);
           } else {
-            // Resolve from Src_keys collection if key
             try {
               const srcDoc = await getDoc(doc(channelDb, "Src_keys", item));
               if (srcDoc.exists() && srcDoc.data().Stream) {
@@ -1514,68 +1496,113 @@
       }
 
       if (preScreenQueue.length > 0) {
+        isPreCastActive = true;
         currentPreScreenIndex = 0;
-        playPreScreenAt(0);
+        playPreCastIndex(0);
         return;
       }
     }
 
-    // No pre-screens: directly play feature stream
+    // No pre-cast available in Firebase doc: start main video immediately
+    isPreCastActive = false;
+    document.getElementById('prerollBadge').style.display = 'none';
     startStreamPlayback(mainStreamPayload);
   }
 
-  function playPreScreenAt(index) {
+  function playPreCastIndex(idx) {
     const badge = document.getElementById('prerollBadge');
     const badgeText = document.getElementById('prerollText');
-    const skipBtn = document.getElementById('skipAdBtn');
+    const overlay = document.getElementById('controlsOverlay');
 
     badge.style.display = 'flex';
-    badgeText.innerText = `Intro ${index + 1}/${preScreenQueue.length}`;
-    skipBtn.style.display = 'block';
+    badgeText.innerText = `Ad ${idx + 1} of ${preScreenQueue.length}`;
+    overlay.classList.remove('show'); // Hide main controls during unskippable ad
 
-    const currentUrl = preScreenQueue[index];
-    const nextUrl = (index + 1 < preScreenQueue.length) ? preScreenQueue[index + 1] : safeUrl(mainStreamPayload?.Stream || '');
+    const currentUrl = preScreenQueue[idx];
+    const ytId = extractYouTubeId(currentUrl);
 
-    // Play on current active buffer
+    destroyPlayers();
+
+    // 1. YouTube Pre-Cast Video
+    if (ytId) {
+      const ytHost = document.getElementById('ytFrameHost');
+      ytHost.style.display = 'block';
+
+      const div = document.createElement('div');
+      div.id = 'ytActualPlayer';
+      ytHost.appendChild(div);
+
+      ytPlayerInstance = new YT.Player('ytActualPlayer', {
+        videoId: ytId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          modestbranding: 1,
+          rel: 0,
+          fs: 0,
+          playsinline: 1
+        },
+        events: {
+          onReady: (e) => e.target.playVideo(),
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.ENDED) {
+              advancePreCast();
+            }
+          }
+        }
+      });
+      return;
+    }
+
+    // 2. Direct HLS or MP4 Pre-Cast Video
     const currentVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
     const nextVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineB' : 'videoEngineA');
+    currentVideo.style.display = 'block';
+    currentVideo.classList.add('active-layer');
 
-    currentVideo.src = safeUrl(currentUrl);
-    currentVideo.play().catch(() => {});
+    if (currentUrl.includes('.m3u8')) {
+      if (Hls.isSupported()) {
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(safeUrl(currentUrl));
+        hlsInstance.attachMedia(currentVideo);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => currentVideo.play().catch(()=>{}));
+      } else {
+        currentVideo.src = safeUrl(currentUrl);
+        currentVideo.play().catch(()=>{});
+      }
+    } else {
+      currentVideo.src = safeUrl(currentUrl);
+      currentVideo.play().catch(()=>{});
+    }
 
-    // Pre-buffer next video in background for 0.1s instant switch
-    if (nextUrl && (nextUrl.endsWith('.mp4') || nextUrl.includes('.m3u8'))) {
+    // Preload next pre-roll or main feature in background
+    const nextUrl = (idx + 1 < preScreenQueue.length) ? preScreenQueue[idx + 1] : safeUrl(mainStreamPayload?.Stream || '');
+    if (nextUrl && (nextUrl.endsWith('.mp4') || nextUrl.includes('.m3u8')) && !extractYouTubeId(nextUrl)) {
       nextVideo.src = safeUrl(nextUrl);
       nextVideo.load();
     }
 
     currentVideo.onended = () => {
-      if (index + 1 < preScreenQueue.length) {
-        // Swap video buffers smoothly
-        currentVideo.classList.remove('active-layer');
-        nextVideo.classList.add('active-layer');
-        activeBufferIndex = activeBufferIndex === 'A' ? 'B' : 'A';
-        currentPreScreenIndex++;
-        playPreScreenAt(currentPreScreenIndex);
-      } else {
-        finishPreScreens();
-      }
-    };
-
-    skipBtn.onclick = (e) => {
-      e.stopPropagation();
-      finishPreScreens();
+      advancePreCast();
     };
   }
 
-  function finishPreScreens() {
-    document.getElementById('prerollBadge').style.display = 'none';
-    document.getElementById('skipAdBtn').style.display = 'none';
-    startStreamPlayback(mainStreamPayload);
+  function advancePreCast() {
+    if (currentPreScreenIndex + 1 < preScreenQueue.length) {
+      currentPreScreenIndex++;
+      activeBufferIndex = activeBufferIndex === 'A' ? 'B' : 'A';
+      playPreCastIndex(currentPreScreenIndex);
+    } else {
+      // Pre-Cast finished completely: launch main stream
+      isPreCastActive = false;
+      document.getElementById('prerollBadge').style.display = 'none';
+      startStreamPlayback(mainStreamPayload);
+    }
   }
 
   // ==============================================================
-  // STREAM ENGINE (YouTube / DASH / HLS / MP4)
+  // MAIN STREAM PLAYER
   // ==============================================================
   function startStreamPlayback(data) {
     destroyPlayers();
@@ -1608,13 +1635,11 @@
       key = mpdObj ? (mpdObj.Key || mpdObj.key) : null;
     }
 
-    // 1. DASH .mpd
     if (mpdFile) {
       playDashMPD(mpdFile, keyId, key, savedTime);
       return;
     }
 
-    // 2. YouTube
     const ytId = extractYouTubeId(streamUrl);
     if (ytId) {
       activePlayerType = 'youtube';
@@ -1657,9 +1682,8 @@
               pauseIcon.style.display = 'none';
             }
 
-            // Return to live when catch-up video ends
             if (e.data === YT.PlayerState.ENDED && isCatchUpPlaying) {
-              showToast("Catch-up ended. Returning to Live...");
+              showToast("Returning to Live stream...");
               returnToLiveBroadcast();
             }
           }
@@ -1694,7 +1718,6 @@
       return;
     }
 
-    // 3. HLS .m3u8 or MP4
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
@@ -1735,7 +1758,6 @@
       return;
     }
 
-    // 4. Fallback iframe
     if (streamUrl) {
       activePlayerType = 'iframe';
       currentVideo.style.display = 'none';
@@ -1893,7 +1915,7 @@
   }
 
   // ==============================================================
-  // INTERACTION / GESTURES / WATCHLIST / SHARE ENGINE
+  // CONTROLS & GESTURES
   // ==============================================================
   function setupInteractions() {
     const video = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
@@ -1915,7 +1937,7 @@
     const btnNextEpisode = document.getElementById('btnNextEpisode');
 
     const showControls = () => {
-      if (isScreenLocked) return;
+      if (isScreenLocked || isPreCastActive) return;
       overlay.classList.add('show');
       clearTimeout(hideControlsTimer);
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
@@ -1925,7 +1947,9 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
-      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay') || e.target.closest('.skip-ad-btn')) {
+      if (isPreCastActive) return; // Prevent controls during pre-cast
+
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
         return;
       }
@@ -1966,6 +1990,7 @@
     }
 
     function performSeek(sec) {
+      if (isPreCastActive) return;
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         ytPlayerInstance.seekTo(Math.max(0, cur + sec), true);
@@ -2062,7 +2087,7 @@
     };
 
     video.ontimeupdate = () => {
-      if (activePlayerType === 'youtube') return;
+      if (activePlayerType === 'youtube' || isPreCastActive) return;
 
       if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying) {
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
@@ -2095,6 +2120,7 @@
 
     progressBarInput.oninput = (e) => {
       e.stopPropagation();
+      if (isPreCastActive) return;
       const val = parseFloat(progressBarInput.value);
       timelineFill.style.width = `${val}%`;
       thumbIndicator.style.left = `${val}%`;
@@ -2209,7 +2235,7 @@
     document.getElementById('drawerTabPreviously').onclick = () => openDrawer('previously');
     document.getElementById('closeDrawerBtn').onclick = () => document.getElementById('drawerOverlay').classList.remove('show');
 
-    // Action items: Share & Watchlist
+    // Action items
     document.getElementById('actionShare').onclick = () => {
       const shareUrl = `${window.location.origin}${window.location.pathname}?watch=${currentDocId}&via=share`;
       if (navigator.share) {
@@ -2274,7 +2300,7 @@
   }
 
   // ==============================================================
-  // WATCHLIST SYNC TO FIRESTORE DATABASE
+  // WATCHLIST SYNC
   // ==============================================================
   async function initWatchlistButton(docId, user) {
     const watchlistBtn = document.getElementById('actionWatchlist');
@@ -2301,7 +2327,6 @@
       localStorage.setItem('user_watchlist', JSON.stringify(savedList));
       updateWatchlistUI();
 
-      // Sync with Firestore User document
       if (user && (user.Email || user.Lotus)) {
         try {
           const userDocRef = doc(authDb, "UARM", user.Lotus || user.Email);
@@ -2326,7 +2351,7 @@
   }
 
   // ==============================================================
-  // DRAWERS & FILTERED YOUTUBE CATCH-UP (NO SHORTS / NO LIVES)
+  // DRAWERS & FILTERED YOUTUBE CATCH-UP
   // ==============================================================
   function openDrawer(type) {
     const drawer = document.getElementById('drawerOverlay');
@@ -2397,7 +2422,6 @@
     renderVerticalEpisodesSection();
   };
 
-  // Filter out shorts and ongoing lives; only standard broadcasts
   async function fetchPreviouslyFromYouTube() {
     const cardsRow = document.getElementById('drawerCardsRow');
     cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Loading today\'s broadcasts...</div>';
@@ -2409,8 +2433,6 @@
       queryParam = prevUrlField.split('@')[1];
     }
 
-    // Search query excluding shorts & lives
-    const today = new Date().toISOString().split('T')[0];
     const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=medium&eventType=completed&maxResults=12&q=${encodeURIComponent(queryParam)}&key=${YOUTUBE_API_KEY}`;
 
     try {
@@ -2418,7 +2440,6 @@
       const data = await res.json();
 
       if (data.items && data.items.length > 0) {
-        // Filter out any video with #shorts in title
         const regularVideos = data.items.filter(item => {
           const title = item.snippet.title.toLowerCase();
           return !title.includes('#shorts') && !title.includes('#short') && !title.includes('shorts');
@@ -2461,7 +2482,6 @@
     autoDetectAndInitContent(newId);
   };
 
-  // Recommendations Loader ("More Like This")
   function listenToRecommendations(excludeId, colName) {
     if (collectionUnsub) collectionUnsub();
 
