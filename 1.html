@@ -80,7 +80,7 @@
       z-index: 99999;
     }
 
-    /* Seamless Dual Video Buffers */
+    /* Seamless Dual Video Layers */
     .media-layer {
       position: absolute;
       inset: 0;
@@ -90,7 +90,7 @@
       background: #000;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.2s ease, object-fit 0.25s ease;
+      transition: opacity 0.25s ease, object-fit 0.25s ease;
       z-index: 1;
     }
     .media-layer.active-layer {
@@ -132,7 +132,7 @@
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 3; }
 
-    /* Tap to Unmute Overlay */
+    /* Unmute Pill */
     .unmute-pill-btn {
       position: absolute;
       bottom: 50px;
@@ -152,7 +152,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
-    /* Unskippable Pre-Cast Badge */
+    /* Pre-Cast Badge */
     .preroll-badge {
       position: absolute;
       top: 14px;
@@ -851,12 +851,12 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- Unmute pill button when policy blocks unmuted autoplay -->
+      <!-- Unmute Pill Button -->
       <div class="unmute-pill-btn" id="unmutePillBtn">
         🔊 Tap to Unmute
       </div>
 
-      <!-- Unskippable Pre-Roll Ad / Pre-Cast Badge -->
+      <!-- Pre-Cast Badge -->
       <div class="preroll-badge" id="prerollBadge">
         <div class="ad-dot"></div>
         <span id="prerollText">Ad 1 of 1</span>
@@ -879,7 +879,7 @@
       </div>
 
       <!-- Dual Buffers for Zero Latency Switch -->
-      <video id="videoEngineA" class="media-layer active-layer" playsinline webkit-playsinline crossorigin="anonymous" autoplay></video>
+      <video id="videoEngineA" class="media-layer active-layer" playsinline webkit-playsinline crossorigin="anonymous"></video>
       <video id="videoEngineB" class="media-layer" playsinline webkit-playsinline crossorigin="anonymous"></video>
 
       <div id="ytFrameHost"></div>
@@ -891,7 +891,7 @@
         🔓 Tap to Unlock Controls
       </div>
 
-      <!-- Controls Overlay -->
+      <!-- Controls Overlay (Now fully functional in pre-cast too) -->
       <div class="controls-overlay" id="controlsOverlay">
         
         <!-- Top Bar -->
@@ -1121,6 +1121,7 @@
 
   // Runtime State
   let hlsInstance = null;
+  let bgHlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
   let ytUpdateInterval = null;
@@ -1135,10 +1136,10 @@
   let isCatchUpPlaying = false;
   let isMainInWatchlist = false;
 
-  // Autoplay & Global Sound Management
-  let isAudioUnlocked = false;
+  // Autoplay & Global Audio Unlock
+  let isAudioUnlocked = true;
 
-  // Pre-Cast Engine (Unskippable, supports YouTube, HLS, MP4)
+  // Pre-Cast Engine & Dual Buffer Simultaneous Engine
   let activeBufferIndex = 'A';
   let preScreenQueue = [];
   let currentPreScreenIndex = 0;
@@ -1158,7 +1159,7 @@
   const actionParam = urlParams.get('action');
 
   // ==============================================================
-  // UNIVERSAL AUTOPLAY & AUDIO UNLOCK ENGINE
+  // AUDIO & AUTOPLAY HANDLER
   // ==============================================================
   async function attemptAutoplay(mediaElement) {
     if (!mediaElement) return;
@@ -1167,22 +1168,17 @@
     mediaElement.volume = 1.0;
 
     try {
-      // 1. Try unmuted playback first
       await mediaElement.play();
       if (!mediaElement.muted) {
-        isAudioUnlocked = true;
         document.getElementById('unmutePillBtn').style.display = 'none';
       }
     } catch (unmutedErr) {
-      // 2. If blocked by browser policy, fallback to muted autoplay and prompt user
       try {
         mediaElement.muted = true;
         await mediaElement.play();
-        if (!isAudioUnlocked) {
-          document.getElementById('unmutePillBtn').style.display = 'flex';
-        }
+        document.getElementById('unmutePillBtn').style.display = 'flex';
       } catch (mutedErr) {
-        console.warn("Autoplay was prevented completely:", mutedErr);
+        console.warn("Autoplay blocked by browser:", mutedErr);
       }
     }
   }
@@ -1209,7 +1205,6 @@
     }
   }
 
-  // First interaction anywhere automatically enables full sound
   window.addEventListener('pointerdown', () => {
     if (!isAudioUnlocked) unlockAudioGlobally();
   }, { once: true });
@@ -1299,6 +1294,10 @@
     if (hlsInstance) {
       try { hlsInstance.destroy(); } catch(e){}
       hlsInstance = null;
+    }
+    if (bgHlsInstance) {
+      try { bgHlsInstance.destroy(); } catch(e){}
+      bgHlsInstance = null;
     }
     ['videoEngineA', 'videoEngineB'].forEach(id => {
       const v = document.getElementById(id);
@@ -1561,7 +1560,7 @@
   }
 
   // ==============================================================
-  // PRE-CAST (PRE-ROLL) SEAMLESS DUAL ENGINE
+  // PRE-CAST (PRE-ROLL) SIMULTANEOUS LIVE-PREFETCH ENGINE
   // ==============================================================
   async function preparePreCastAndStart(channelData) {
     mainStreamPayload = channelData;
@@ -1601,18 +1600,16 @@
   function playPreCastIndex(idx) {
     const badge = document.getElementById('prerollBadge');
     const badgeText = document.getElementById('prerollText');
-    const overlay = document.getElementById('controlsOverlay');
 
     badge.style.display = 'flex';
     badgeText.innerText = `Ad ${idx + 1} of ${preScreenQueue.length}`;
-    overlay.classList.remove('show');
 
     const currentUrl = preScreenQueue[idx];
     const ytId = extractYouTubeId(currentUrl);
 
     destroyPlayers();
 
-    // 1. YouTube Pre-Cast Video
+    // 1. YouTube Pre-Cast
     if (ytId) {
       const ytHost = document.getElementById('ytFrameHost');
       ytHost.style.display = 'block';
@@ -1634,7 +1631,8 @@
         },
         events: {
           onReady: (e) => {
-            if (!isAudioUnlocked) e.target.mute();
+            e.target.unMute();
+            e.target.setVolume(100);
             e.target.playVideo();
           },
           onStateChange: (e) => {
@@ -1644,18 +1642,20 @@
           }
         }
       });
+      setupInteractions();
       return;
     }
 
-    // 2. Direct HLS or MP4 Pre-Cast Video
+    // 2. Direct HLS or MP4 Pre-Cast (Simultaneous Live Stream Loading)
     const currentVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
-    const nextVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineB' : 'videoEngineA');
+    const backgroundVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineB' : 'videoEngineA');
+
     currentVideo.style.display = 'block';
     currentVideo.classList.add('active-layer');
 
     if (currentUrl.includes('.m3u8')) {
       if (Hls.isSupported()) {
-        hlsInstance = new Hls();
+        hlsInstance = new Hls({ liveSyncDurationCount: 3 });
         hlsInstance.loadSource(safeUrl(currentUrl));
         hlsInstance.attachMedia(currentVideo);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => attemptAutoplay(currentVideo));
@@ -1668,15 +1668,28 @@
       attemptAutoplay(currentVideo);
     }
 
-    const nextUrl = (idx + 1 < preScreenQueue.length) ? preScreenQueue[idx + 1] : safeUrl(mainStreamPayload?.Stream || '');
-    if (nextUrl && (nextUrl.endsWith('.mp4') || nextUrl.includes('.m3u8')) && !extractYouTubeId(nextUrl)) {
-      nextVideo.src = safeUrl(nextUrl);
-      nextVideo.load();
+    // SIMULTANEOUS LIVE STREAM BACKGROUND WARM-UP (Zero second live pause)
+    const liveStreamUrl = safeUrl(mainStreamPayload?.Stream || '');
+    if (liveStreamUrl && (liveStreamUrl.includes('.m3u8') || liveStreamUrl.endsWith('.mp4'))) {
+      backgroundVideo.style.display = 'block';
+      backgroundVideo.muted = true; // Muted in background while precast plays
+
+      if (liveStreamUrl.includes('.m3u8') && Hls.isSupported()) {
+        bgHlsInstance = new Hls({ liveSyncDurationCount: 3 });
+        bgHlsInstance.loadSource(liveStreamUrl);
+        bgHlsInstance.attachMedia(backgroundVideo);
+        bgHlsInstance.on(Hls.Events.MANIFEST_PARSED, () => backgroundVideo.play().catch(()=>{}));
+      } else {
+        backgroundVideo.src = liveStreamUrl;
+        backgroundVideo.play().catch(()=>{});
+      }
     }
 
     currentVideo.onended = () => {
       advancePreCast();
     };
+
+    setupInteractions();
   }
 
   function advancePreCast() {
@@ -1685,9 +1698,29 @@
       activeBufferIndex = activeBufferIndex === 'A' ? 'B' : 'A';
       playPreCastIndex(currentPreScreenIndex);
     } else {
+      // PRECAST FINISHED -> UNMUTE & SWAP LIVE STREAM INSTANTLY WITH 0.0s LATENCY
       isPreCastActive = false;
       document.getElementById('prerollBadge').style.display = 'none';
-      startStreamPlayback(mainStreamPayload);
+
+      const currentVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
+      const liveVideo = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineB' : 'videoEngineA');
+
+      if (liveVideo.src || bgHlsInstance) {
+        currentVideo.pause();
+        currentVideo.classList.remove('active-layer');
+
+        liveVideo.classList.add('active-layer');
+        liveVideo.muted = false;
+        liveVideo.volume = 1.0;
+        liveVideo.play().catch(()=>{});
+
+        activeBufferIndex = activeBufferIndex === 'A' ? 'B' : 'A';
+        hlsInstance = bgHlsInstance;
+        bgHlsInstance = null;
+        setupInteractions();
+      } else {
+        startStreamPlayback(mainStreamPayload);
+      }
     }
   }
 
@@ -1756,7 +1789,8 @@
         },
         events: {
           onReady: (e) => {
-            if (!isAudioUnlocked) e.target.mute();
+            e.target.unMute();
+            e.target.setVolume(100);
             e.target.playVideo();
             if (savedTime > 0 && contentType !== 'live' && !isCatchUpPlaying) {
               e.target.seekTo(savedTime, true);
@@ -2006,7 +2040,7 @@
   }
 
   // ==============================================================
-  // CONTROLS & GESTURES
+  // CONTROLS & GESTURES (Pre-cast & Stream)
   // ==============================================================
   function setupInteractions() {
     const video = document.getElementById(activeBufferIndex === 'A' ? 'videoEngineA' : 'videoEngineB');
@@ -2028,7 +2062,7 @@
     const btnNextEpisode = document.getElementById('btnNextEpisode');
 
     const showControls = () => {
-      if (isScreenLocked || isPreCastActive) return;
+      if (isScreenLocked) return;
       overlay.classList.add('show');
       clearTimeout(hideControlsTimer);
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
@@ -2039,7 +2073,6 @@
 
     playerContainer.onpointerdown = (e) => {
       if (!isAudioUnlocked) unlockAudioGlobally();
-      if (isPreCastActive) return;
 
       if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay') || e.target.closest('.unmute-pill-btn')) {
         showControls();
@@ -2082,7 +2115,6 @@
     }
 
     function performSeek(sec) {
-      if (isPreCastActive) return;
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         ytPlayerInstance.seekTo(Math.max(0, cur + sec), true);
@@ -2179,9 +2211,9 @@
     };
 
     video.ontimeupdate = () => {
-      if (activePlayerType === 'youtube' || isPreCastActive) return;
+      if (activePlayerType === 'youtube') return;
 
-      if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying) {
+      if (contentType === 'movie' || contentType === 'show' || isCatchUpPlaying || isPreCastActive) {
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
           const percent = (video.currentTime / video.duration) * 100;
           timelineFill.style.width = `${percent}%`;
@@ -2191,7 +2223,7 @@
           const remainingSecs = Math.max(0, video.duration - video.currentTime);
           timeDisplay.innerText = formatTime(remainingSecs);
 
-          if (!isCatchUpPlaying) {
+          if (!isCatchUpPlaying && !isPreCastActive) {
             const currentKey = (contentType === 'show' && showDocData) 
               ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
               : currentDocId;
@@ -2212,12 +2244,11 @@
 
     progressBarInput.oninput = (e) => {
       e.stopPropagation();
-      if (isPreCastActive) return;
       const val = parseFloat(progressBarInput.value);
       timelineFill.style.width = `${val}%`;
       thumbIndicator.style.left = `${val}%`;
 
-      if (contentType === 'live' && !isCatchUpPlaying) {
+      if (contentType === 'live' && !isCatchUpPlaying && !isPreCastActive) {
         isUserSeeking = true;
         goLiveBtn.style.display = 'flex';
       }
@@ -2573,7 +2604,7 @@
     autoDetectAndInitContent(newId);
   };
 
-  // Recommendations Loader ("More Like This")
+  // Recommendations Loader
   function listenToRecommendations(excludeId, colName) {
     if (collectionUnsub) collectionUnsub();
 
