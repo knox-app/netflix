@@ -123,26 +123,6 @@
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
 
-    /* Skip Intro Button */
-    .btn-skip-intro {
-      position: absolute;
-      bottom: 60px;
-      right: 20px;
-      z-index: 35;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      display: none;
-      backdrop-filter: blur(8px);
-      transition: background 0.2s;
-    }
-    .btn-skip-intro:hover { background: rgba(255, 255, 255, 0.2); }
-
     /* Double-Tap Seek Ripples */
     .tap-ripple-zone {
       position: absolute;
@@ -201,7 +181,7 @@
       justify-content: space-between;
       padding: 16px 20px;
       opacity: 0;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.22s ease-in-out;
       pointer-events: none;
     }
     .controls-overlay.show { opacity: 1; pointer-events: auto; }
@@ -211,6 +191,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      pointer-events: auto;
     }
     .ctrl-top-left {
       display: flex;
@@ -247,10 +228,16 @@
       margin-left: auto;
     }
 
-    /* Vertical (Portrait) Mode: Hide Top Title & Lock; Hide Bottom Action Buttons in Video overlay */
+    /* IN VERTICAL MODE: Hide overlay top-left title & lock icon */
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
     body:not(.landscape-mode) #lockBtn { display: none !important; }
-    body:not(.landscape-mode) .action-bar-row { display: none !important; }
+    
+    /* IN VERTICAL MODE: Hide bottom drawer trigger buttons from video overlay */
+    body:not(.landscape-mode) #btnWatchNext,
+    body:not(.landscape-mode) #btnEpisodes,
+    body:not(.landscape-mode) #btnPreviously {
+      display: none !important;
+    }
 
     .icon-btn {
       background: none;
@@ -276,6 +263,7 @@
       display: flex;
       align-items: center;
       gap: 48px;
+      pointer-events: auto;
     }
     .ctrl-center .icon-btn svg { width: 34px; height: 34px; }
     .btn-main-play svg { width: 44px; height: 44px; fill: #ffffff; }
@@ -286,6 +274,7 @@
       flex-direction: column;
       gap: 8px;
       width: 100%;
+      pointer-events: auto;
     }
 
     .timeline-container {
@@ -381,7 +370,7 @@
     }
     .btn-go-live .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--live-red); }
 
-    /* Lock Screen Button Overlay */
+    /* Lock Button Overlay */
     .lock-overlay-btn {
       position: absolute;
       top: 16px;
@@ -673,7 +662,7 @@
   <div class="user-pill" id="userPill">Checking user...</div>
 </div>
 
-<div id="loader" class="loader-box">Connecting stream...</div>
+<div id="loader" class="loader-box">Loading stream...</div>
 
 <div id="appContent" style="display: none;">
   <div class="main-wrapper">
@@ -684,10 +673,7 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- Skip Intro Button (Shows / Series) -->
-      <button class="btn-skip-intro" id="btnSkipIntro">Skip Intro ⏭</button>
-
-      <!-- Double Tap Seek Feedback (Movies/Shows Only) -->
+      <!-- Double Tap Seek Feedback -->
       <div class="tap-ripple-zone tap-ripple-left" id="rippleLeft">
         <div class="tap-ripple-pill">◀◀ 10s</div>
       </div>
@@ -917,8 +903,7 @@
   const authApp = initializeApp(authConfig, "authApp");
   const authDb = getFirestore(authApp);
 
-  // YouTube Data API v3 Key
-  const YOUTUBE_API_KEY = "AIzaSyB9esPb8otx99iGcttUGPEbn1Vm0h14l-w";
+  const YOUTUBE_API_KEY = channelConfig.apiKey;
 
   let hlsInstance = null;
   let ytPlayerInstance = null;
@@ -931,7 +916,6 @@
   let currentChannel = null;
   let isUserSeeking = false;
   let currentSpeed = 1;
-  let isPlayingCatchup = false;
 
   let showDocData = null;
   let currentSeasonKey = null;
@@ -960,7 +944,7 @@
   if (!currentDocId) {
     document.getElementById('loader').innerText = "URL Parameter Missing (?watch=DOCUMENT_ID)";
   } else {
-    autoDetectAndInit(currentDocId);
+    autoDetectAndInitContent(currentDocId);
   }
 
   function safeUrl(url) {
@@ -1052,25 +1036,23 @@
     }
   }
 
-  // Auto-detect whether document belongs to Live TV, Shows, or Movies
-  async function autoDetectAndInit(docId) {
-    let resolvedCollection = "Live TV";
+  // Auto-Detects Live TV, Shows, or Movies from Firestore
+  async function autoDetectAndInitContent(docId) {
+    const collectionsToCheck = ["Live TV", "Shows", "Movies"];
+    let detectedCollection = null;
 
-    const [liveSnap, showSnap, movieSnap] = await Promise.all([
-      getDoc(doc(channelDb, "Live TV", docId)),
-      getDoc(doc(channelDb, "Shows", docId)),
-      getDoc(doc(channelDb, "Movies", docId))
-    ]);
-
-    if (liveSnap.exists()) {
-      resolvedCollection = "Live TV";
-    } else if (showSnap.exists()) {
-      resolvedCollection = "Shows";
-    } else if (movieSnap.exists()) {
-      resolvedCollection = "Movies";
+    for (const colName of collectionsToCheck) {
+      try {
+        const snap = await getDoc(doc(channelDb, colName, docId));
+        if (snap.exists()) {
+          detectedCollection = colName;
+          break;
+        }
+      } catch (err) {}
     }
 
-    startListeningDoc(docId, resolvedCollection);
+    if (!detectedCollection) detectedCollection = "Live TV";
+    startListeningDoc(docId, detectedCollection);
   }
 
   function startListeningDoc(docId, targetCol) {
@@ -1090,9 +1072,8 @@
 
       currentChannel = { id: snap.id, ...snap.data() };
       showDocData = currentChannel;
-      isPlayingCatchup = false;
 
-      // STABLE AUTO-DETECTED CONTENT TYPE
+      // Reliable content type assignment
       if (targetCol === "Shows") {
         contentType = 'show';
         const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
@@ -1105,7 +1086,7 @@
 
       configureUIForContentType();
 
-      const titleText = currentChannel.Name || currentChannel.Title || "Hotstar Stream";
+      const titleText = currentChannel.Name || currentChannel.Title || "Live TV";
       document.getElementById('overlayTitle').innerText = titleText;
       document.getElementById('chTitle').innerText = titleText;
       document.getElementById('chLangSub').innerText = currentChannel.Genres || currentChannel.Language || (contentType === 'live' ? "Live TV" : "Video");
@@ -1347,7 +1328,7 @@
       overlay.style.display = 'flex';
 
       const applyResume = () => {
-        if (savedTime > 0 && contentType !== 'live' && !isPlayingCatchup) {
+        if (savedTime > 0 && contentType !== 'live') {
           video.currentTime = savedTime;
           showToast(`Resumed from ${formatTime(savedTime)}`);
         }
@@ -1422,7 +1403,7 @@
     });
 
     jwPlayerInstance.on('ready', () => {
-      if (savedTime > 0 && contentType !== 'live' && !isPlayingCatchup) {
+      if (savedTime > 0 && contentType !== 'live') {
         jwPlayerInstance.seek(savedTime);
       }
     });
@@ -1448,7 +1429,9 @@
     list.innerHTML += `
       <div class="lang-item" data-stream="${safeUrl(ch.Stream)}">
         <div class="lang-check">✓</div>
-        <div><div class="lang-label">${defaultLang}</div></div>
+        <div>
+          <div class="lang-label">${defaultLang}</div>
+        </div>
       </div>
     `;
 
@@ -1496,6 +1479,7 @@
     });
   }
 
+  // Reliable Interaction and Wakeup Management
   function setupInteractions() {
     const video = document.getElementById('nativeVideoPlayer');
     const overlay = document.getElementById('controlsOverlay');
@@ -1514,7 +1498,6 @@
     const goLiveBtn = document.getElementById('goLiveBtn');
     const speedBtn = document.getElementById('speedBtn');
     const btnNextEpisode = document.getElementById('btnNextEpisode');
-    const btnSkipIntro = document.getElementById('btnSkipIntro');
 
     const showControls = () => {
       if (isScreenLocked) return;
@@ -1526,14 +1509,19 @@
     let lastTapTime = 0;
     let lastTapX = 0;
 
-    // Single Tap to wake/sleep controls; Double Tap only in Movies/Shows
-    playerContainer.addEventListener('click', (e) => {
+    playerContainer.onpointerdown = (e) => {
+      // Ignore interactions on inner buttons or timeline
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
+        showControls();
+        return;
+      }
+
       const now = Date.now();
       const rect = playerContainer.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const width = rect.width;
 
-      if (contentType !== 'live' && !isPlayingCatchup && (now - lastTapTime < 320 && Math.abs(clickX - lastTapX) < 120)) {
+      if (now - lastTapTime < 320 && Math.abs(clickX - lastTapX) < 120) {
         if (clickX < width * 0.45) {
           triggerSeekRipple('left');
           performSeek(-10);
@@ -1555,7 +1543,7 @@
       } else {
         showControls();
       }
-    });
+    };
 
     function triggerSeekRipple(direction) {
       const el = document.getElementById(direction === 'left' ? 'rippleLeft' : 'rippleRight');
@@ -1575,14 +1563,6 @@
       }
       showControls();
     }
-
-    // Skip Intro handler (For Shows / Series)
-    btnSkipIntro.onclick = (e) => {
-      e.stopPropagation();
-      if (video) video.currentTime = 90;
-      btnSkipIntro.style.display = 'none';
-      showToast("Intro Skipped");
-    };
 
     // Pinch-to-Zoom Gesture
     let initialDistance = 0;
@@ -1664,10 +1644,10 @@
       }
     };
 
-    // Timeline and Progress Update
+    // Resilient Video Progress Handler (No 00:00:00 Jump)
     video.ontimeupdate = () => {
-      if (contentType === 'movie' || contentType === 'show' || isPlayingCatchup) {
-        if (video.duration && isFinite(video.duration)) {
+      if (contentType === 'movie' || contentType === 'show') {
+        if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
           const percent = (video.currentTime / video.duration) * 100;
           timelineFill.style.width = `${percent}%`;
           thumbIndicator.style.left = `${percent}%`;
@@ -1676,27 +1656,14 @@
           const remainingSecs = Math.max(0, video.duration - video.currentTime);
           timeDisplay.innerText = formatTime(remainingSecs);
 
-          // Show Skip Intro in first 90s for Shows
-          if (contentType === 'show' && video.currentTime > 5 && video.currentTime < 90) {
-            btnSkipIntro.style.display = 'block';
-          } else {
-            btnSkipIntro.style.display = 'none';
-          }
-
-          if (!isPlayingCatchup) {
-            const currentKey = (contentType === 'show' && showDocData) 
-              ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
-              : currentDocId;
-            saveProgress(currentKey, video.currentTime);
-          }
+          const currentKey = (contentType === 'show' && showDocData) 
+            ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
+            : currentDocId;
+          saveProgress(currentKey, video.currentTime);
         }
-        if (isPlayingCatchup) {
-          goLiveBtn.style.display = 'flex';
-        } else {
-          goLiveBtn.style.display = 'none';
-        }
+        goLiveBtn.style.display = 'none';
       } else {
-        // STRICT LIVE TV: 100% steady bar
+        // Live stream timeline lock
         if (!isUserSeeking) {
           timelineFill.style.width = '100%';
           thumbIndicator.style.left = '100%';
@@ -1724,7 +1691,7 @@
       timelineFill.style.width = `${val}%`;
       thumbIndicator.style.left = `${val}%`;
 
-      if (contentType === 'live' && !isPlayingCatchup) {
+      if (contentType === 'live') {
         isUserSeeking = true;
         goLiveBtn.style.display = 'flex';
       }
@@ -1741,11 +1708,9 @@
     goLiveBtn.onclick = (e) => {
       e.stopPropagation();
       isUserSeeking = false;
-      isPlayingCatchup = false;
+      if (video.duration) video.currentTime = video.duration - 1;
       goLiveBtn.style.display = 'none';
       timeDisplay.innerText = "LIVE";
-      document.getElementById('overlayTitle').innerText = currentChannel.Name || "Live TV";
-      startStreamPlayback(currentChannel);
     };
 
     speedBtn.onclick = (e) => {
@@ -1955,24 +1920,19 @@
     playShowEpisode();
   };
 
-  // YouTube Data API v3 Catch-up: Resolves Channel ID / Handle
   async function fetchPreviouslyFromYouTube() {
     const cardsRow = document.getElementById('drawerCardsRow');
     cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Loading previous broadcasts...</div>';
 
-    const previouslyUrl = currentChannel?.["Previously Url"] || currentChannel?.Previously || '';
-    let searchQuery = currentChannel?.Name || 'News';
-
-    if (previouslyUrl) {
-      if (previouslyUrl.includes('@')) {
-        const handle = previouslyUrl.split('@')[1].split('/')[0];
-        searchQuery = handle;
-      } else {
-        searchQuery = previouslyUrl;
-      }
+    // Directly use "Previously Url" field if configured in Firestore (Screenshot)
+    const prevUrlField = currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl || "";
+    let queryParam = currentChannel?.Name || currentChannel?.Partner || 'Live TV News';
+    
+    if (prevUrlField && prevUrlField.includes('@')) {
+      queryParam = prevUrlField.split('@')[1];
     }
 
-    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(searchQuery)}&key=${YOUTUBE_API_KEY}`;
+    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(queryParam)}&key=${YOUTUBE_API_KEY}`;
 
     try {
       const res = await fetch(endpoint);
@@ -1998,10 +1958,8 @@
   }
 
   window.playYouTubePreviously = function(videoId, title) {
-    isPlayingCatchup = true;
     document.getElementById('drawerOverlay').classList.remove('show');
     document.getElementById('overlayTitle').innerText = title;
-    document.getElementById('goLiveBtn').style.display = 'flex';
     startStreamPlayback({ Stream: `https://www.youtube.com/watch?v=${videoId}` });
   };
 
@@ -2009,11 +1967,11 @@
     listenToRecommendations(currentChannel?.id, contentType === 'show' ? 'Shows' : (contentType === 'movie' ? 'Movies' : 'Live TV'));
   }
 
-  window.switchChannelInPlace = function(newId, colType) {
+  window.switchChannelInPlace = function(newId) {
     destroyPlayers();
     document.getElementById('drawerOverlay').classList.remove('show');
     window.history.pushState({}, '', `1.html?watch=${newId}`);
-    autoDetectAndInit(newId);
+    autoDetectAndInitContent(newId);
   };
 
   function listenToRecommendations(excludeId, colName) {
@@ -2043,8 +2001,8 @@
       sec2Heading.innerText = studioRaw ? `More from ${studioRaw}` : "More Channels";
 
       const renderCard = (c) => `
-        <div onclick="window.switchChannelInPlace('${c.id}', '${fetchCol}')" class="card-item">
-          <img src="${safeUrl(c.Poster || c["Logo.png"] || c.Logo || c.Banner || '')}" class="card-thumb" alt="${c.Name}">
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="card-item">
+          <img src="${safeUrl(c["Logo.png"] || c.Logo || c.Poster || c.Banner || '')}" class="card-thumb" alt="${c.Name}">
           <div class="card-name">${c.Name || 'Channel'}</div>
         </div>
       `;
@@ -2053,9 +2011,9 @@
       partnerGrid.innerHTML = partnerItems.map(renderCard).join('');
 
       drawerCardsRow.innerHTML = items.map(c => `
-        <div onclick="window.switchChannelInPlace('${c.id}', '${fetchCol}')" class="watch-card">
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
           <div class="watch-card-thumb-wrap">
-            <img src="${safeUrl(c.Banner || c.Poster || c["Logo.png"] || '')}" alt="${c.Name}">
+            <img src="${safeUrl(c.Banner || c["Logo.png"] || c.Poster || c.Logo || '')}" alt="${c.Name}">
             <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="watch-card-name">${c.Name || 'Title'}</div>
