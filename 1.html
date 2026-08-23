@@ -15,20 +15,29 @@
   <style>
     :root {
       --bg-dark: #0f1015;
+      --player-bg: #000000;
       --accent-blue: #0072ef;
       --live-red: #e50914;
       --text-main: #ffffff;
       --text-muted: #8f98b2;
       --border-color: #1e2230;
+      --card-bg: #161822;
     }
 
-    * {
+    *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-      -webkit-tap-highlight-color: transparent;
+      -webkit-tap-highlight-color: transparent !important;
       outline: none !important;
+      user-select: none;
+    }
+
+    button:focus, button:active, div:focus, div:active, a:focus, a:active {
+      outline: none !important;
+      background-image: none !important;
+      -webkit-tap-highlight-color: transparent !important;
     }
 
     body {
@@ -36,7 +45,6 @@
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
-      user-select: none;
     }
 
     /* Top Bar (Portrait Only) */
@@ -157,17 +165,18 @@
       top: 15%;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(18, 20, 26, 0.9);
+      background: rgba(18, 20, 26, 0.92);
       border: 1px solid rgba(255,255,255,0.15);
       color: #fff;
-      padding: 7px 16px;
+      padding: 8px 18px;
       border-radius: 20px;
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 600;
       z-index: 45;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.25s;
+      white-space: nowrap;
     }
     .toast-alert.show { opacity: 1; }
 
@@ -229,7 +238,6 @@
       margin-left: auto;
     }
 
-    /* Vertical Mode Hiding */
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
     body:not(.landscape-mode) #lockBtn { display: none !important; }
     body:not(.landscape-mode) #btnWatchNext,
@@ -238,12 +246,9 @@
       display: none !important;
     }
 
-    /* Clean Buttons (No sticky focus circles) */
     .icon-btn {
-      background: none !important;
-      border: none !important;
-      outline: none !important;
-      box-shadow: none !important;
+      background: none;
+      border: none;
       color: #fff;
       cursor: pointer;
       display: flex;
@@ -251,13 +256,9 @@
       justify-content: center;
       padding: 6px;
       border-radius: 50%;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.2s;
     }
-    .icon-btn:active {
-      transform: scale(0.88);
-      opacity: 0.8;
-    }
+    .icon-btn:active { opacity: 0.7; }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
     /* Center Controls */
@@ -344,10 +345,8 @@
       padding-top: 2px;
     }
     .action-btn {
-      background: none !important;
-      border: none !important;
-      outline: none !important;
-      box-shadow: none !important;
+      background: none;
+      border: none;
       color: #ffffff;
       font-size: 13px;
       font-weight: 600;
@@ -358,10 +357,9 @@
       opacity: 0.92;
       padding: 4px 6px;
       border-radius: 6px;
-      transition: transform 0.15s ease, opacity 0.15s ease;
     }
-    .action-btn:active { transform: scale(0.92); opacity: 0.75; }
-    .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
+    .action-btn:active { opacity: 0.7; }
+    .action-btn svg { width: 17px; height: 17px; fill: currentColor; }
 
     .btn-go-live {
       background: rgba(229, 9, 20, 0.2);
@@ -463,7 +461,7 @@
     .lang-check { width: 18px; color: var(--accent-blue); font-weight: bold; font-size: 15px; }
     .lang-label { font-size: 14px; font-weight: 600; color: #fff; }
 
-    /* Full-Area Swipeable Landscape Drawer */
+    /* Full-Area Swipe-Down Dismissible Drawer */
     .drawer-overlay {
       position: absolute;
       inset: 0;
@@ -488,6 +486,7 @@
     .drawer-drag-area {
       width: 100%;
       padding: 4px 0 10px;
+      cursor: grab;
     }
     .drawer-drag-handle {
       width: 44px;
@@ -638,10 +637,10 @@
     .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.2; }
     .ch-lang-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
 
-    /* Metadata Action Icons */
+    /* Action bar below title */
     .meta-actions-bar {
       display: flex;
-      gap: 32px;
+      gap: 36px;
       margin: 18px 0 22px;
     }
     .meta-action-item {
@@ -654,9 +653,9 @@
       font-weight: 600;
       cursor: pointer;
       opacity: 0.85;
-      transition: transform 0.15s ease, opacity 0.15s ease;
+      transition: opacity 0.2s, transform 0.1s;
     }
-    .meta-action-item:active { transform: scale(0.9); opacity: 1; }
+    .meta-action-item:active { opacity: 1; transform: scale(0.96); }
     .meta-action-item svg { width: 22px; height: 22px; fill: currentColor; }
 
     .section-head { font-size: 17px; font-weight: 800; margin: 18px 0 12px; color: #fff; letter-spacing: 0.3px; }
@@ -913,14 +912,15 @@
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
                 Watch Next
               </button>
-
-              <!-- Accurate Episodes Icon (Screenshot) -->
+              <!-- Custom User Provided Episode Icon -->
               <button class="action-btn" id="btnEpisodes" style="display:none;">
-                <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zm-7-2l5-4-5-4v8z"/></svg>
+                <svg viewBox="0 0 528 560" style="width:17px; height:17px;">
+                  <g transform="translate(0.000000,560.000000) scale(0.100000,-0.100000)" fill="white">
+                    <path d="M0 2800 l0 -2800 2640 0 2640 0 0 2800 0 2800 -2640 0 -2640 0 0 -2800z m3990 1802 c58 -18 120 -37 137 -43 49 -15 152 -78 211 -128 100 -85 174 -215 198 -351 7 -41 20 -111 29 -155 34 -173 43 -959 14 -1210 -16 -138 -58 -332 -84 -391 -31 -70 -76 -135 -147 -211 -61 -65 -64 -72 -72 -170 -12 -130 -93 -288 -207 -402 -101 -101 -191 -156 -334 -205 l-120 -41 -855 0 -855 0 -107 37 c-159 55 -222 92 -327 192 -142 137 -228 319 -231 493 0 14 -32 59 -81 114 -109 124 -144 197 -179 373 -42 208 -50 329 -50 761 0 447 8 568 50 769 30 151 58 219 122 307 75 104 223 201 360 238 41 11 88 25 104 31 16 7 56 15 89 20 33 4 548 7 1145 6 l1085 -1 105 -33z M1875 4289 c-148 -8 -295 -30 -368 -55 -53 -19 -133 -89 -157 -138 -74 -154 -96 -1079 -34 -1491 26 -176 67 -238 198 -305 70 -36 98 -44 168 -51 113 -11 2029 -10 2151 0 79 8 109 15 160 41 88 46 120 72 156 128 40 63 47 88 69 247 26 196 25 1040 -2 1235 -10 74 -25 151 -32 170 -17 39 -105 134 -144 155 -55 28 -227 55 -420 65 -225 11 -1522 11 -1745 -1z M1658 1909 c-56 -22 -42 -66 52 -152 49 -46 75 -61 143 -84 l82 -28 825 0 825 0 85 29 c74 25 94 37 153 95 74 71 89 103 63 129 -20 20 -51 20 -371 5 -427 -21 -1417 -15 -1760 11 -39 3 -82 1 -97 -5z"/>
+                  </g>
+                </svg>
                 Episodes
               </button>
-
-              <!-- Previously / Catch-up -->
               <button class="action-btn" id="btnPreviously" style="display:none;">
                 <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
                 Previously
@@ -931,13 +931,15 @@
               <button class="btn-go-live" id="goLiveBtn">
                 <div class="live-dot"></div> Go Live
               </button>
-
-              <!-- Accurate Playback Speed Icon (Screenshot) -->
+              <!-- Custom User Provided Playback Speed Icon -->
               <button class="action-btn" id="speedBtn" style="display:none;">
-                <svg viewBox="0 0 24 24"><path d="M10 8v8l6-4-6-4zm11.5 4c0 5.25-4.25 9.5-9.5 9.5S2.5 17.25 2.5 12 6.75 2.5 12 2.5c2.42 0 4.63.91 6.32 2.41l-1.43 1.43C15.54 5.23 13.86 4.5 12 4.5c-4.14 0-7.5 3.36-7.5 7.5s3.36 7.5 7.5 7.5 7.5-3.36 7.5-7.5h2z"/></svg>
+                <svg viewBox="0 0 640 816" style="width:17px; height:17px;">
+                  <g transform="translate(0.000000,816.000000) scale(0.100000,-0.100000)" fill="white">
+                    <path d="M0 4080 l0 -4080 3200 0 3200 0 0 4080 0 4080 -3200 0 -3200 0 0 -4080z m3730 2025 c52 -8 136 -20 185 -26 57 -7 115 -22 156 -40 37 -16 91 -34 120 -40 30 -6 74 -24 99 -39 25 -15 63 -33 85 -40 22 -7 54 -23 70 -35 17 -12 53 -34 82 -48 28 -15 54 -31 58 -37 3 -6 24 -19 45 -30 39 -20 112 -76 165 -127 17 -16 44 -39 62 -51 45 -32 247 -261 272 -310 7 -15 24 -38 36 -52 13 -14 31 -41 40 -60 10 -19 28 -50 42 -67 13 -18 31 -52 39 -75 8 -24 26 -59 39 -78 13 -19 29 -60 36 -90 6 -30 24 -80 39 -111 21 -40 33 -88 45 -174 9 -65 19 -123 21 -127 3 -5 12 -66 19 -136 16 -138 11 -216 -24 -432 -11 -63 -22 -137 -26 -165 -4 -27 -17 -70 -30 -95 -13 -26 -31 -74 -40 -109 -9 -34 -29 -83 -44 -109 -16 -26 -32 -58 -36 -72 -9 -32 -73 -136 -151 -248 -138 -197 -330 -381 -534 -514 -108 -71 -322 -181 -375 -194 -16 -4 -68 -22 -115 -40 -47 -17 -121 -37 -165 -44 -44 -6 -105 -18 -135 -25 -145 -37 -484 -37 -653 -1 -85 19 -127 44 -155 94 -32 58 -29 109 11 168 27 41 41 52 86 67 52 17 62 17 210 2 334 -36 649 18 928 158 250 126 484 326 619 529 25 37 50 71 56 74 6 4 23 35 39 69 16 35 39 79 53 99 13 19 27 52 31 73 3 21 22 72 40 114 32 70 36 89 51 265 14 162 15 213 4 354 -14 200 -23 248 -55 315 -13 29 -29 74 -35 101 -6 27 -22 66 -36 86 -13 21 -35 62 -48 90 -14 29 -47 85 -75 123 -28 39 -62 86 -75 105 -66 96 -305 313 -396 360 -19 10 -52 32 -74 49 -21 17 -55 35 -75 41 -20 5 -54 22 -75 36 -21 15 -69 35 -105 45 -36 9 -94 29 -127 43 -53 22 -93 28 -270 43 -184 15 -228 15 -370 3 -230 -19 -260 -11 -314 83 -37 65 -38 91 -1 149 37 58 69 75 179 95 200 35 367 38 552 8z m-1152 -322 c71 -57 89 -139 46 -211 -8 -15 -78 -78 -154 -141 -91 -75 -176 -158 -251 -243 -110 -127 -150 -158 -216 -172 -90 -20 -203 64 -203 151 0 115 369 501 595 622 75 41 127 39 183 -6z m699 -1033 c43 -17 101 -45 128 -63 28 -19 84 -53 125 -77 79 -45 177 -105 270 -163 30 -19 99 -60 153 -91 68 -40 108 -72 132 -103 45 -59 46 -95 3 -159 -37 -55 -39 -56 -463 -302 -71 -41 -157 -91 -190 -111 -94 -55 -207 -110 -241 -117 -38 -7 -102 23 -133 62 -40 51 -42 80 -39 576 l3 477 30 31 c35 37 91 69 122 70 12 0 57 -14 100 -30z m-1486 -101 c81 -41 89 -83 67 -320 -9 -100 -9 -166 2 -316 15 -215 11 -243 -45 -292 -46 -40 -103 -55 -155 -41 -46 12 -95 51 -115 90 -23 44 -55 278 -55 399 0 109 22 311 41 384 29 109 149 153 260 96z m287 -1333 c21 -15 80 -73 129 -129 88 -100 157 -166 313 -299 105 -90 123 -118 118 -191 -6 -86 -57 -143 -136 -154 -50 -7 -87 7 -167 61 -206 140 -445 385 -515 531 -20 41 -21 52 -11 85 35 117 170 165 269 96z"/>
+                  </g>
+                </svg>
                 Speed 1x
               </button>
-
               <button class="action-btn" id="btnNextEpisode" style="display:none;">
                 <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
                 Next Episode
@@ -998,7 +1000,7 @@
         </div>
       </div>
 
-      <!-- Landscape Drawer Overlay -->
+      <!-- Full-Area Swipe Downward Drawer Overlay -->
       <div class="drawer-overlay" id="drawerOverlay">
         <div>
           <div class="drawer-drag-area">
@@ -1036,7 +1038,7 @@
         </div>
       </div>
 
-      <!-- TV SHOW EPISODES -->
+      <!-- TV SHOW EPISODES (Vertical Mode) -->
       <div class="episodes-vertical-wrap" id="episodesVerticalWrap">
         <div class="section-head" style="margin-bottom:6px;">Episodes</div>
         <div class="ep-seasons-row" id="verticalSeasonsRow"></div>
@@ -1046,7 +1048,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS -->
+      <!-- MORE LIKE THIS (Recommendations) -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="vertical-posters-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1106,12 +1108,12 @@
   let channelDocUnsub = null;
   let collectionUnsub = null;
 
-  // URL Parameters
+  // URL Parameters Parsing: e.g., ?watch=Doraemon&season=17&ep=1
   const urlParams = new URLSearchParams(window.location.search);
   const currentDocId = urlParams.get('watch');
-  const seasonParam = urlParams.get('season');
-  const epParam = urlParams.get('ep');
   const actionParam = urlParams.get('action');
+  const paramSeason = urlParams.get('season');
+  const paramEp = urlParams.get('ep');
 
   function checkOrientation() {
     const isLandscape = window.innerWidth > window.innerHeight;
@@ -1167,7 +1169,7 @@
     const toast = document.getElementById('toastAlert');
     toast.innerText = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+    setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
   function getSavedProgress(key) {
@@ -1225,7 +1227,6 @@
     }
   }
 
-  // Automatic Firestore Detection
   async function autoDetectAndInitContent(docId) {
     const collectionsToCheck = ["Shows", "Movies", "Live TV"];
     let detectedCollection = null;
@@ -1273,6 +1274,7 @@
       }
 
       configureUIForContentType();
+      setupWatchlistAndShare(activeUser);
 
       loader.style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
@@ -1296,7 +1298,6 @@
       }
       
       setupAudioOptions(currentChannel);
-      setupWatchlistAndShare(activeUser);
     });
 
     listenToRecommendations(docId, targetCol);
@@ -1332,7 +1333,7 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
-      // Live TV
+      // Live TV: Completely remove Playback Speed & Episodes
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
       btnPreviously.style.display = 'flex';
@@ -1348,90 +1349,99 @@
     }
   }
 
-  // Direct Episode Parameter Router (?watch=...&season=17&ep=1)
+  // URL ?watch=Doraemon&season=17&ep=1 or Array Direct Match
   function setupShowSeasons(seasonKeys) {
     if (!seasonKeys || seasonKeys.length === 0) return;
-
-    if (seasonParam) {
-      const match = seasonKeys.find(k => k.toLowerCase() === seasonParam.toLowerCase() || k.replace(/\D/g, '') === seasonParam.toString());
-      currentSeasonKey = match || seasonKeys[0];
-    } else if (!currentSeasonKey || !seasonKeys.includes(currentSeasonKey)) {
+    
+    if (paramSeason) {
+      const formattedSeason = paramSeason.toLowerCase().startsWith('season') ? paramSeason : `Season ${paramSeason}`;
+      const matched = seasonKeys.find(k => k.toLowerCase() === formattedSeason.toLowerCase() || k.replace(/\D/g,'') === paramSeason);
+      currentSeasonKey = matched || seasonKeys[0];
+    } else {
       currentSeasonKey = seasonKeys[0];
     }
 
-    if (epParam) {
-      const parsed = parseInt(epParam);
-      // Maps human episode 1 -> array index 0
-      currentEpisodeIdx = !isNaN(parsed) && parsed > 0 ? parsed - 1 : 0;
+    if (paramEp !== null && paramEp !== undefined) {
+      const epNum = parseInt(paramEp);
+      // If user supplies ep=1, target index 0. If ep=0, target index 0.
+      currentEpisodeIdx = Math.max(0, epNum > 0 ? epNum - 1 : 0);
     } else {
       currentEpisodeIdx = 0;
     }
   }
 
-  // Watchlist Firestore Storage & Share Link
-  async function setupWatchlistAndShare(activeUser) {
+  // Firestore Watchlist and Web Share API
+  function setupWatchlistAndShare(activeUser) {
     const watchlistBtn = document.getElementById('actionWatchlist');
-    const watchlistIcon = document.getElementById('watchlistIcon');
     const watchlistLabel = document.getElementById('watchlistLabel');
+    const watchlistIcon = document.getElementById('watchlistIcon');
     const shareBtn = document.getElementById('actionShare');
 
-    let userDocRef = null;
-    let isInWatchlist = false;
-
-    if (activeUser) {
-      try {
-        const q = activeUser.Lotus 
-          ? doc(authDb, "UARM", activeUser.Lotus) 
-          : (activeUser.Email ? doc(authDb, "UARM", activeUser.Email) : null);
-        if (q) userDocRef = q;
-
-        const uDoc = await getDoc(userDocRef);
-        if (uDoc.exists()) {
-          const list = uDoc.data().Watchlist || [];
-          isInWatchlist = list.includes(currentDocId);
-        }
-      } catch(e){}
+    let inWatchlist = false;
+    if (activeUser && Array.isArray(activeUser.Watchlist)) {
+      inWatchlist = activeUser.Watchlist.includes(currentDocId);
     }
 
-    function updateWatchlistUI(inList) {
-      if (inList) {
-        watchlistIcon.innerHTML = `<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>`;
-        watchlistLabel.innerText = "In Watchlist";
+    const updateWatchlistUI = () => {
+      if (inWatchlist) {
+        watchlistLabel.innerText = "Added";
+        watchlistIcon.innerHTML = '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
       } else {
-        watchlistIcon.innerHTML = `<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>`;
         watchlistLabel.innerText = "Watchlist";
+        watchlistIcon.innerHTML = '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
       }
-    }
-    updateWatchlistUI(isInWatchlist);
+    };
+    updateWatchlistUI();
 
-    watchlistBtn.onclick = async () => {
-      if (!activeUser || !userDocRef) {
-        showToast("Please sign in to save Watchlist");
+    watchlistBtn.onclick = async (e) => {
+      e.stopPropagation();
+      if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
+        showToast("Please sign in to save to Watchlist");
         return;
       }
-      isInWatchlist = !isInWatchlist;
-      updateWatchlistUI(isInWatchlist);
       try {
-        await updateDoc(userDocRef, {
-          Watchlist: isInWatchlist ? arrayUnion(currentDocId) : arrayRemove(currentDocId)
-        });
-        showToast(isInWatchlist ? "Added to Watchlist" : "Removed from Watchlist");
-      } catch(e) {
-        showToast("Watchlist updated locally");
+        const userDocId = activeUser.id || activeUser.Lotus || activeUser.Email;
+        const userRef = doc(authDb, "UARM", userDocId);
+
+        if (inWatchlist) {
+          await updateDoc(userRef, { Watchlist: arrayRemove(currentDocId) }).catch(() => {});
+          inWatchlist = false;
+          showToast("Removed from Watchlist");
+        } else {
+          await updateDoc(userRef, { Watchlist: arrayUnion(currentDocId) }).catch(() => {});
+          inWatchlist = true;
+          showToast("Added to Watchlist");
+        }
+
+        if (!activeUser.Watchlist) activeUser.Watchlist = [];
+        if (inWatchlist) activeUser.Watchlist.push(currentDocId);
+        else activeUser.Watchlist = activeUser.Watchlist.filter(id => id !== currentDocId);
+        localStorage.setItem('active_user', JSON.stringify(activeUser));
+        updateWatchlistUI();
+      } catch(err) {
+        showToast("Updated Watchlist");
       }
     };
 
-    shareBtn.onclick = () => {
+    shareBtn.onclick = (e) => {
+      e.stopPropagation();
       let shareUrl = `${window.location.origin}${window.location.pathname}?watch=${encodeURIComponent(currentDocId)}&via=share`;
-      if (contentType === 'show') {
-        const sNum = currentSeasonKey.replace(/\D/g, '');
-        shareUrl += `&season=${sNum}&ep=${currentEpisodeIdx + 1}`;
+      if (contentType === 'show' && currentSeasonKey) {
+        shareUrl += `&season=${encodeURIComponent(currentSeasonKey.replace(/\D/g,''))}&ep=${currentEpisodeIdx + 1}`;
       }
+
       if (navigator.share) {
-        navigator.share({ title: document.title, url: shareUrl }).catch(() => {});
+        navigator.share({
+          title: currentChannel?.Name || "Hotstar Video",
+          text: `Watch ${currentChannel?.Name || 'this video'} on Hotstar!`,
+          url: shareUrl
+        }).catch(() => {});
       } else {
-        navigator.clipboard.writeText(shareUrl);
-        showToast("Link copied: " + shareUrl);
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast("Share link copied to clipboard!");
+        }).catch(() => {
+          showToast("Link: " + shareUrl);
+        });
       }
     };
   }
@@ -1506,7 +1516,7 @@
     const seasonNumber = currentSeasonKey.replace(/\D/g, '') || '1';
 
     document.getElementById('chTitle').innerText = showDocData.Name || "TV Show";
-    document.getElementById('chLangSub').innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} ${epTitle}`;
+    document.getElementById('chLangSub').innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} • ${epTitle}`;
     
     document.getElementById('overlayTitle').innerText = showDocData.Name || "TV Show";
     const subLabel = document.getElementById('overlaySubtitle');
@@ -1522,7 +1532,6 @@
     });
   }
 
-  // Stream Player Initializer
   function startStreamPlayback(data) {
     destroyPlayers();
 
@@ -1559,7 +1568,6 @@
       return;
     }
 
-    // YouTube Stream Player
     const ytId = extractYouTubeId(streamUrl);
     if (ytId) {
       activePlayerType = 'youtube';
@@ -1633,7 +1641,6 @@
       return;
     }
 
-    // HLS / MP4
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
@@ -2106,7 +2113,11 @@
         if (video) video.playbackRate = currentSpeed;
         if (ytPlayerInstance && ytPlayerInstance.setPlaybackRate) ytPlayerInstance.setPlaybackRate(currentSpeed);
         speedBtn.innerHTML = `
-          <svg viewBox="0 0 24 24"><path d="M10 8v8l6-4-6-4zm11.5 4c0 5.25-4.25 9.5-9.5 9.5S2.5 17.25 2.5 12 6.75 2.5 12 2.5c2.42 0 4.63.91 6.32 2.41l-1.43 1.43C15.54 5.23 13.86 4.5 12 4.5c-4.14 0-7.5 3.36-7.5 7.5s3.36 7.5 7.5 7.5 7.5-3.36 7.5-7.5h2z"/></svg>
+          <svg viewBox="0 0 640 816" style="width:17px; height:17px;">
+            <g transform="translate(0.000000,816.000000) scale(0.100000,-0.100000)" fill="white">
+              <path d="M0 4080 l0 -4080 3200 0 3200 0 0 4080 0 4080 -3200 0 -3200 0 0 -4080z m3730 2025 c52 -8 136 -20 185 -26 57 -7 115 -22 156 -40 37 -16 91 -34 120 -40 30 -6 74 -24 99 -39 25 -15 63 -33 85 -40 22 -7 54 -23 70 -35 17 -12 53 -34 82 -48 28 -15 54 -31 58 -37 3 -6 24 -19 45 -30 39 -20 112 -76 165 -127 17 -16 44 -39 62 -51 45 -32 247 -261 272 -310 7 -15 24 -38 36 -52 13 -14 31 -41 40 -60 10 -19 28 -50 42 -67 13 -18 31 -52 39 -75 8 -24 26 -59 39 -78 13 -19 29 -60 36 -90 6 -30 24 -80 39 -111 21 -40 33 -88 45 -174 9 -65 19 -123 21 -127 3 -5 12 -66 19 -136 16 -138 11 -216 -24 -432 -11 -63 -22 -137 -26 -165 -4 -27 -17 -70 -30 -95 -13 -26 -31 -74 -40 -109 -9 -34 -29 -83 -44 -109 -16 -26 -32 -58 -36 -72 -9 -32 -73 -136 -151 -248 -138 -197 -330 -381 -534 -514 -108 -71 -322 -181 -375 -194 -16 -4 -68 -22 -115 -40 -47 -17 -121 -37 -165 -44 -44 -6 -105 -18 -135 -25 -145 -37 -484 -37 -653 -1 -85 19 -127 44 -155 94 -32 58 -29 109 11 168 27 41 41 52 86 67 52 17 62 17 210 2 334 -36 649 18 928 158 250 126 484 326 619 529 25 37 50 71 56 74 6 4 23 35 39 69 16 35 39 79 53 99 13 19 27 52 31 73 3 21 22 72 40 114 32 70 36 89 51 265 14 162 15 213 4 354 -14 200 -23 248 -55 315 -13 29 -29 74 -35 101 -6 27 -22 66 -36 86 -13 21 -35 62 -48 90 -14 29 -47 85 -75 123 -28 39 -62 86 -75 105 -66 96 -305 313 -396 360 -19 10 -52 32 -74 49 -21 17 -55 35 -75 41 -20 5 -54 22 -75 36 -21 15 -69 35 -105 45 -36 9 -94 29 -127 43 -53 22 -93 28 -270 43 -184 15 -228 15 -370 3 -230 -19 -260 -11 -314 83 -37 65 -38 91 -1 149 37 58 69 75 179 95 200 35 367 38 552 8z m-1152 -322 c71 -57 89 -139 46 -211 -8 -15 -78 -78 -154 -141 -91 -75 -176 -158 -251 -243 -110 -127 -150 -158 -216 -172 -90 -20 -203 64 -203 151 0 115 369 501 595 622 75 41 127 39 183 -6z m699 -1033 c43 -17 101 -45 128 -63 28 -19 84 -53 125 -77 79 -45 177 -105 270 -163 30 -19 99 -60 153 -91 68 -40 108 -72 132 -103 45 -59 46 -95 3 -159 -37 -55 -39 -56 -463 -302 -71 -41 -157 -91 -190 -111 -94 -55 -207 -110 -241 -117 -38 -7 -102 23 -133 62 -40 51 -42 80 -39 576 l3 477 30 31 c35 37 91 69 122 70 12 0 57 -14 100 -30z m-1486 -101 c81 -41 89 -83 67 -320 -9 -100 -9 -166 2 -316 15 -215 11 -243 -45 -292 -46 -40 -103 -55 -155 -41 -46 12 -95 51 -115 90 -23 44 -55 278 -55 399 0 109 22 311 41 384 29 109 149 153 260 96z m287 -1333 c21 -15 80 -73 129 -129 88 -100 157 -166 313 -299 105 -90 123 -118 118 -191 -6 -86 -57 -143 -136 -154 -50 -7 -87 7 -167 61 -206 140 -445 385 -515 531 -20 41 -21 52 -11 85 35 117 170 165 269 96z"/>
+            </g>
+          </svg>
           Speed ${currentSpeed}x
         `;
         showToast(`Speed: ${currentSpeed}x`);
@@ -2132,7 +2143,7 @@
     document.getElementById('drawerTabPreviously').onclick = () => openDrawer('previously');
     document.getElementById('closeDrawerBtn').onclick = () => document.getElementById('drawerOverlay').classList.remove('show');
 
-    setupFullAreaSwipeToClose();
+    setupSwipeToCloseDrawer();
     showControls();
   }
 
@@ -2152,41 +2163,48 @@
     }
   }
 
-  // Full-Area Swipe Down to Close Drawer (Except inner card scrolls)
-  function setupFullAreaSwipeToClose() {
+  // Smooth Full-Area Drawer Swipe-Down Gesture
+  function setupSwipeToCloseDrawer() {
     const drawer = document.getElementById('drawerOverlay');
     let startY = 0;
+    let startX = 0;
     let currentY = 0;
-    let isDragging = false;
+    let isTracking = false;
 
     drawer.addEventListener('touchstart', (e) => {
-      if (e.target.closest('.cards-scroll-row') || e.target.closest('.seasons-scroll-bar')) {
-        isDragging = false;
+      // Don't intercept touches if user is interacting with inner horizontal scroll cards
+      if (e.target.closest('.watch-card') || e.target.closest('.cards-scroll-row')) {
+        isTracking = false;
         return;
       }
-      isDragging = true;
       startY = e.touches[0].pageY;
+      startX = e.touches[0].pageX;
+      isTracking = true;
       drawer.style.transition = 'none';
     }, { passive: true });
 
     drawer.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
+      if (!isTracking) return;
       currentY = e.touches[0].pageY;
-      const diff = currentY - startY;
-      if (diff > 0) {
-        drawer.style.transform = `translateY(${diff}px)`;
+      const currentX = e.touches[0].pageX;
+      const diffY = currentY - startY;
+      const diffX = Math.abs(currentX - startX);
+
+      // Only follow vertical downward drags
+      if (diffY > 0 && diffY > diffX) {
+        drawer.style.transform = `translateY(${diffY}px)`;
       }
     }, { passive: true });
 
     drawer.addEventListener('touchend', () => {
-      if (!isDragging) return;
+      if (!isTracking) return;
+      isTracking = false;
       drawer.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease';
-      if (currentY - startY > 60) {
+      if (currentY - startY > 70) {
         drawer.classList.remove('show');
       } else {
         drawer.style.transform = 'translateY(0%)';
       }
-      isDragging = false;
       startY = 0;
       currentY = 0;
     });
