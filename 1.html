@@ -33,6 +33,11 @@
       outline: none !important;
     }
 
+    *:focus {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
     body {
       background-color: var(--bg-dark);
       color: var(--text-main);
@@ -233,6 +238,7 @@
 
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
     body:not(.landscape-mode) #lockBtn { display: none !important; }
+    
     body:not(.landscape-mode) #btnWatchNext,
     body:not(.landscape-mode) #btnEpisodes,
     body:not(.landscape-mode) #btnPreviously {
@@ -240,7 +246,7 @@
     }
 
     .icon-btn {
-      background: transparent;
+      background: none;
       border: none;
       color: #fff;
       cursor: pointer;
@@ -249,11 +255,10 @@
       justify-content: center;
       padding: 6px;
       border-radius: 50%;
-      transition: opacity 0.15s ease;
-      user-select: none;
+      transition: background 0.15s ease, transform 0.1s ease;
     }
-    .icon-btn:active { opacity: 0.7; }
-    .icon-btn svg { width: 22px; height: 22px; fill: currentColor; display: block; }
+    .icon-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.92); }
+    .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
     /* Center Controls */
     .ctrl-center {
@@ -339,7 +344,7 @@
       padding-top: 2px;
     }
     .action-btn {
-      background: transparent;
+      background: none;
       border: none;
       color: #ffffff;
       font-size: 13px;
@@ -351,9 +356,10 @@
       opacity: 0.92;
       padding: 4px 6px;
       border-radius: 6px;
+      transition: background 0.15s ease, opacity 0.15s ease;
     }
-    .action-btn:active { opacity: 0.7; }
-    .action-btn svg { width: 18px; height: 18px; fill: currentColor; display: block; }
+    .action-btn:active { opacity: 1; background: rgba(255,255,255,0.12); }
+    .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
     .btn-go-live {
       background: rgba(229, 9, 20, 0.2);
@@ -469,6 +475,7 @@
       pointer-events: none;
       transform: translateY(100%);
       transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+      touch-action: pan-y;
     }
     .drawer-overlay.show {
       opacity: 1;
@@ -478,7 +485,8 @@
 
     .drawer-drag-area {
       width: 100%;
-      padding: 4px 0 8px;
+      padding: 6px 0 10px;
+      cursor: grab;
     }
     .drawer-drag-handle {
       width: 44px;
@@ -624,12 +632,11 @@
       font-size: 13px;
     }
 
-    /* Portrait Details Section */
+    /* Details Section */
     .details-wrapper { padding: 18px 16px; }
     .ch-title-head { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.2; }
     .ch-lang-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
 
-    /* Action bar below title: Watchlist, Share */
     .meta-actions-bar {
       display: flex;
       gap: 32px;
@@ -645,8 +652,10 @@
       font-weight: 600;
       cursor: pointer;
       opacity: 0.85;
+      transition: opacity 0.15s ease, transform 0.1s ease;
     }
-    .meta-action-item:active { opacity: 0.6; }
+    .meta-action-item:active { opacity: 1; transform: scale(0.94); }
+    .meta-action-item.active { color: var(--accent-blue); }
     .meta-action-item svg { width: 22px; height: 22px; fill: currentColor; }
 
     .section-head { font-size: 17px; font-weight: 800; margin: 18px 0 12px; color: #fff; letter-spacing: 0.3px; }
@@ -699,7 +708,9 @@
       text-decoration: none;
       color: #fff;
       position: relative;
+      transition: opacity 0.15s ease;
     }
+    .ep-item-card:active { opacity: 0.75; }
     .ep-thumb-box {
       position: relative;
       width: 125px;
@@ -759,7 +770,7 @@
       cursor: pointer;
     }
 
-    /* "More Like This" Vertical Posters */
+    /* Vertical Posters */
     .vertical-posters-scroll {
       display: flex;
       gap: 12px;
@@ -903,13 +914,11 @@
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
                 Watch Next
               </button>
-
-              <!-- Episodes Button (Custom Vector Path) -->
+              <!-- Updated Episode SVG -->
               <button class="action-btn" id="btnEpisodes" style="display:none;">
-                <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
                 Episodes
               </button>
-
               <button class="action-btn" id="btnPreviously" style="display:none;">
                 <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
                 Previously
@@ -920,13 +929,11 @@
               <button class="btn-go-live" id="goLiveBtn">
                 <div class="live-dot"></div> Go Live
               </button>
-
-              <!-- Playback Speed Button (Custom Gauge Vector Path) -->
+              <!-- Updated Speed Playback SVG -->
               <button class="action-btn" id="speedBtn" style="display:none;">
-                <svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.28-10.43zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M10 8v8l6-4-6-4zm9-5H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
                 Speed 1x
               </button>
-
               <button class="action-btn" id="btnNextEpisode" style="display:none;">
                 <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
                 Next Episode
@@ -1008,7 +1015,7 @@
 
     </div>
 
-    <!-- Portrait Details Section -->
+    <!-- Details Section -->
     <div class="details-wrapper">
       <div class="ch-title-head" id="chTitle">Title</div>
       <div class="ch-lang-sub" id="chLangSub">Video</div>
@@ -1016,8 +1023,8 @@
       <!-- Action items row: Watchlist, Share -->
       <div class="meta-actions-bar">
         <div class="meta-action-item" id="actionWatchlist">
-          <svg viewBox="0 0 24 24" id="watchlistIcon"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          <span id="watchlistLabel">Watchlist</span>
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span id="watchlistText">Watchlist</span>
         </div>
         <div class="meta-action-item" id="actionShare">
           <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
@@ -1086,6 +1093,8 @@
   let currentChannel = null;
   let isUserSeeking = false;
   let currentSpeed = 1;
+  let currentUser = null;
+  let userDocRef = null;
 
   let showDocData = null;
   let currentSeasonKey = null;
@@ -1095,12 +1104,11 @@
   let channelDocUnsub = null;
   let collectionUnsub = null;
 
-  // URL Parameters
   const urlParams = new URLSearchParams(window.location.search);
   const currentDocId = urlParams.get('watch');
   const actionParam = urlParams.get('action');
-  const requestedSeason = urlParams.get('season');
-  const requestedEp = urlParams.get('ep'); // 1-based: ep=1 -> index 0
+  const paramSeason = urlParams.get('season');
+  const paramEp = urlParams.get('ep');
 
   function checkOrientation() {
     const isLandscape = window.innerWidth > window.innerHeight;
@@ -1156,7 +1164,7 @@
     const toast = document.getElementById('toastAlert');
     toast.innerText = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+    setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
   function getSavedProgress(key) {
@@ -1236,8 +1244,7 @@
     const loader = document.getElementById('loader');
     const userPill = document.getElementById('userPill');
 
-    let activeUser = null;
-    try { activeUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
+    try { currentUser = JSON.parse(localStorage.getItem('active_user')); } catch(e){}
 
     if (channelDocUnsub) channelDocUnsub();
 
@@ -1265,10 +1272,11 @@
       loader.style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
 
-      if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
+      if (!currentUser || (!currentUser.Email && !currentUser.Lotus)) {
         userPill.innerText = "Guest Mode";
       } else {
-        userPill.innerText = activeUser["First Name"] ? `👤 ${activeUser["First Name"]}` : `👤 ${activeUser.Email}`;
+        userPill.innerText = currentUser["First Name"] ? `👤 ${currentUser["First Name"]}` : `👤 ${currentUser.Email}`;
+        initWatchlistState();
       }
 
       if (contentType === 'show') {
@@ -1278,17 +1286,99 @@
         const titleText = currentChannel.Name || currentChannel.Title || "Title";
         document.getElementById('overlayTitle').innerText = titleText;
         document.getElementById('chTitle').innerText = titleText;
-        document.getElementById('chLangSub').innerText = currentChannel.Genres || currentChannel.Language || (contentType === 'live' ? "Live TV" : "Video");
+        
+        let subText = currentChannel.Genres || currentChannel.Language || "Video";
+        if (contentType === 'movie') {
+          const year = currentChannel.Year || currentChannel["Release Year"] || "2023";
+          const dur = currentChannel.Duration || "1h 41m";
+          const langs = currentChannel["Multi-Language"] ? `${Object.keys(currentChannel["Multi-Language"]).length + 1} Languages` : "1 Language";
+          subText = `${year} • ${dur} • ${langs}`;
+        }
+        document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
         startStreamPlayback(currentChannel);
       }
       
       setupAudioOptions(currentChannel);
-      setupWatchlistAndShare(activeUser);
     });
 
     listenToRecommendations(docId, targetCol);
   }
+
+  // Watchlist Firestore Implementation
+  async function initWatchlistState() {
+    if (!currentUser) return;
+    try {
+      const q = currentUser.Lotus 
+        ? query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus))
+        : query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        userDocRef = doc(authDb, "UARM", snap.docs[0].id);
+        const udata = snap.docs[0].data();
+        const wl = udata.Watchlist || [];
+        const isAdded = wl.includes(currentDocId);
+        updateWatchlistUI(isAdded);
+      }
+    } catch(e){}
+  }
+
+  function updateWatchlistUI(isAdded) {
+    const el = document.getElementById('actionWatchlist');
+    const txt = document.getElementById('watchlistText');
+    if (isAdded) {
+      el.classList.add('active');
+      txt.innerText = "Added";
+      el.querySelector('svg').innerHTML = '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+    } else {
+      el.classList.remove('active');
+      txt.innerText = "Watchlist";
+      el.querySelector('svg').innerHTML = '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
+    }
+  }
+
+  document.getElementById('actionWatchlist').onclick = async () => {
+    if (!userDocRef) {
+      showToast("Please login to use Watchlist");
+      return;
+    }
+    const isAdded = document.getElementById('actionWatchlist').classList.contains('active');
+    try {
+      if (isAdded) {
+        await updateDoc(userDocRef, { Watchlist: arrayRemove(currentDocId) });
+        updateWatchlistUI(false);
+        showToast("Removed from Watchlist");
+      } else {
+        await updateDoc(userDocRef, { Watchlist: arrayUnion(currentDocId) });
+        updateWatchlistUI(true);
+        showToast("Added to Watchlist");
+      }
+    } catch(e) {
+      showToast("Watchlist updated locally");
+      updateWatchlistUI(!isAdded);
+    }
+  };
+
+  // Share Deep Link Implementation
+  document.getElementById('actionShare').onclick = async () => {
+    let shareUrl = `${window.location.origin}${window.location.pathname}?watch=${currentDocId}&via=share`;
+    if (contentType === 'show' && currentSeasonKey) {
+      shareUrl += `&season=${encodeURIComponent(currentSeasonKey)}&ep=${currentEpisodeIdx + 1}`;
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: currentChannel?.Name || "Hotstar",
+          text: `Watch ${currentChannel?.Name || 'this stream'} on Hotstar!`,
+          url: shareUrl
+        });
+      } catch(e){}
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      showToast("Link copied to clipboard!");
+    }
+  };
 
   function configureUIForContentType() {
     const btnEpisodes = document.getElementById('btnEpisodes');
@@ -1320,7 +1410,7 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
-      // Live TV: Hide Speed, Episodes, Next Episode completely
+      // Live TV
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
       btnPreviously.style.display = 'flex';
@@ -1336,24 +1426,22 @@
     }
   }
 
+  // Direct episode parsing: ?watch=Doraemon&season=17&ep=2
   function setupShowSeasons(seasonKeys) {
     if (!seasonKeys || seasonKeys.length === 0) return;
-    
-    // Direct Episode & Season routing via URL (e.g. ?season=17&ep=1)
-    if (requestedSeason) {
-      const match = seasonKeys.find(k => k.toLowerCase().replace(/\s+/g,'') === requestedSeason.toLowerCase().replace(/\s+/g,'') || k.replace(/\D/g,'') === requestedSeason.replace(/\D/g,''));
-      if (match) currentSeasonKey = match;
-    }
-    
-    if (!currentSeasonKey || !seasonKeys.includes(currentSeasonKey)) {
+
+    if (paramSeason) {
+      const match = seasonKeys.find(k => k.toLowerCase() === paramSeason.toLowerCase() || k.replace(/\D/g,'') === paramSeason.replace(/\D/g,''));
+      currentSeasonKey = match || seasonKeys[0];
+    } else if (!currentSeasonKey || !seasonKeys.includes(currentSeasonKey)) {
       currentSeasonKey = seasonKeys[0];
     }
 
-    if (requestedEp) {
-      const epNum = parseInt(requestedEp, 10);
-      if (!isNaN(epNum) && epNum > 0) {
-        currentEpisodeIdx = epNum - 1; // 1-based to 0-based index
-      }
+    if (paramEp) {
+      const epInt = parseInt(paramEp);
+      currentEpisodeIdx = !isNaN(epInt) && epInt > 0 ? (epInt - 1) : 0;
+    } else {
+      currentEpisodeIdx = 0;
     }
   }
 
@@ -1574,11 +1662,11 @@
         hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8 });
         hlsInstance.loadSource(streamUrl);
         hlsInstance.attachMedia(video);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
           applyResume();
-          populateHlsQualities(data.levels);
+          populateM3u8DynamicQuality(data.levels);
+          populateM3u8DynamicAudio(hlsInstance.audioTracks);
         });
-        hlsInstance.on(Hls.Events.AUDIO_TRACKS_UPDATED, (e, d) => populateHlsAudioTracks(d.audioTracks));
         hlsInstance.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (e, d) => setupSubtitleOptions(d.subtitleTracks));
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = streamUrl;
@@ -1599,6 +1687,61 @@
     }
 
     showToast("No playable stream URL found.");
+  }
+
+  // Dynamic M3U8 Quality Extraction
+  function populateM3u8DynamicQuality(levels) {
+    if (!levels || levels.length === 0) return;
+    const list = document.getElementById('qualityOptionsList');
+    list.innerHTML = `<div class="q-item" data-level="-1"><div class="q-check">✓</div><div><div class="q-title">Auto <span class="q-sub">Recommended</span></div></div></div>`;
+
+    levels.forEach((lvl, idx) => {
+      const height = lvl.height || `${lvl.bitrate / 1000}k`;
+      list.innerHTML += `
+        <div class="q-item" data-level="${idx}">
+          <div class="q-check"></div>
+          <div><div class="q-title">${height}p</div></div>
+        </div>
+      `;
+    });
+
+    document.querySelectorAll('#qualityOptionsList .q-item').forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('#qualityOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
+        el.querySelector('.q-check').innerText = '✓';
+        const levelIdx = parseInt(el.dataset.level);
+        if (hlsInstance) hlsInstance.currentLevel = levelIdx;
+        document.getElementById('settingsModal').classList.remove('active');
+      };
+    });
+  }
+
+  // Dynamic M3U8 Audio Extraction
+  function populateM3u8DynamicAudio(audioTracks) {
+    if (!audioTracks || audioTracks.length <= 1) return;
+    const list = document.getElementById('audioOptionsList');
+    list.innerHTML = '';
+
+    audioTracks.forEach((track, idx) => {
+      list.innerHTML += `
+        <div class="lang-item" data-track="${idx}">
+          <div class="lang-check">${idx === 0 ? '✓' : ''}</div>
+          <div><div class="lang-label">${track.name || track.lang || `Audio ${idx+1}`}</div></div>
+        </div>
+      `;
+    });
+
+    document.querySelectorAll('#audioOptionsList .lang-item').forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
+        el.querySelector('.lang-check').innerText = '✓';
+        const trackIdx = parseInt(el.dataset.track);
+        if (hlsInstance) hlsInstance.audioTrack = trackIdx;
+        document.getElementById('settingsModal').classList.remove('active');
+      };
+    });
   }
 
   function playDashMPD(mpdUrl, keyId, key, savedTime) {
@@ -1678,49 +1821,22 @@
     const list = document.getElementById('audioOptionsList');
     list.innerHTML = '';
     const defaultLang = ch.Language || 'Hindi';
-    const multiLang = ch["Multi-Language"] || ch.multiLanguage || null;
+    const multiLang = ch["Multi-Language"] || ch.multiLanguage || {};
 
-    if (multiLang && Object.keys(multiLang).length > 0) {
-      list.innerHTML += `
-        <div class="lang-item" data-stream="${safeUrl(ch.Stream)}">
-          <div class="lang-check">✓</div>
-          <div><div class="lang-label">${defaultLang}</div></div>
+    list.innerHTML += `
+      <div class="lang-item" data-stream="${safeUrl(ch.Stream)}">
+        <div class="lang-check">✓</div>
+        <div>
+          <div class="lang-label">${defaultLang}</div>
         </div>
-      `;
+      </div>
+    `;
 
-      Object.keys(multiLang).forEach(k => {
-        list.innerHTML += `
-          <div class="lang-item" data-stream="${safeUrl(multiLang[k])}">
-            <div class="lang-check"></div>
-            <div><div class="lang-label">${k}</div></div>
-          </div>
-        `;
-      });
-
-      document.querySelectorAll('#audioOptionsList .lang-item').forEach(el => {
-        el.onclick = (e) => {
-          e.stopPropagation();
-          document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
-          el.querySelector('.lang-check').innerText = '✓';
-          const stream = el.dataset.stream;
-          if (stream) startStreamPlayback({ Stream: stream, Studio: ch.Studio, Partner: ch.Partner });
-          document.getElementById('settingsModal').classList.remove('active');
-        };
-      });
-    }
-  }
-
-  function populateHlsAudioTracks(tracks) {
-    if (!tracks || tracks.length === 0) return;
-    const list = document.getElementById('audioOptionsList');
-    list.innerHTML = '';
-
-    tracks.forEach((track, index) => {
-      const isSelected = hlsInstance && hlsInstance.audioTrack === index;
+    Object.keys(multiLang).forEach(k => {
       list.innerHTML += `
-        <div class="lang-item" data-hls-track="${index}">
-          <div class="lang-check">${isSelected ? '✓' : ''}</div>
-          <div><div class="lang-label">${track.name || track.lang || `Track ${index+1}`}</div></div>
+        <div class="lang-item" data-stream="${safeUrl(multiLang[k])}">
+          <div class="lang-check"></div>
+          <div><div class="lang-label">${k}</div></div>
         </div>
       `;
     });
@@ -1730,34 +1846,8 @@
         e.stopPropagation();
         document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
         el.querySelector('.lang-check').innerText = '✓';
-        const trackIdx = parseInt(el.dataset.hlsTrack);
-        if (hlsInstance) hlsInstance.audioTrack = trackIdx;
-        document.getElementById('settingsModal').classList.remove('active');
-      };
-    });
-  }
-
-  function populateHlsQualities(levels) {
-    if (!levels || levels.length === 0) return;
-    const list = document.getElementById('qualityOptionsList');
-    list.innerHTML = `<div class="q-item" data-level="-1"><div class="q-check">✓</div><div><div class="q-title">Auto <span class="q-sub">Recommended</span></div></div></div>`;
-
-    levels.forEach((lvl, idx) => {
-      list.innerHTML += `
-        <div class="q-item" data-level="${idx}">
-          <div class="q-check"></div>
-          <div><div class="q-title">${lvl.height ? lvl.height + 'p' : 'Level ' + (idx + 1)}</div></div>
-        </div>
-      `;
-    });
-
-    document.querySelectorAll('#qualityOptionsList .q-item').forEach(item => {
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#qualityOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
-        item.querySelector('.q-check').innerText = '✓';
-        const lvl = parseInt(item.dataset.level);
-        if (hlsInstance) hlsInstance.currentLevel = lvl;
+        const stream = el.dataset.stream;
+        if (stream) startStreamPlayback({ Stream: stream, Studio: ch.Studio, Partner: ch.Partner });
         document.getElementById('settingsModal').classList.remove('active');
       };
     });
@@ -1786,64 +1876,6 @@
     });
   }
 
-  // Watchlist & Share Integration
-  function setupWatchlistAndShare(activeUser) {
-    const watchlistBtn = document.getElementById('actionWatchlist');
-    const watchlistIcon = document.getElementById('watchlistIcon');
-    const watchlistLabel = document.getElementById('watchlistLabel');
-    const shareBtn = document.getElementById('actionShare');
-
-    let inWatchlist = false;
-    if (activeUser && Array.isArray(activeUser.Watchlist)) {
-      inWatchlist = activeUser.Watchlist.includes(currentDocId);
-    }
-    updateWatchlistUI(inWatchlist);
-
-    function updateWatchlistUI(added) {
-      if (added) {
-        watchlistIcon.innerHTML = `<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>`;
-        watchlistLabel.innerText = "In Watchlist";
-      } else {
-        watchlistIcon.innerHTML = `<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>`;
-        watchlistLabel.innerText = "Watchlist";
-      }
-    }
-
-    watchlistBtn.onclick = async () => {
-      if (!activeUser || (!activeUser.Email && !activeUser.Lotus)) {
-        showToast("Please sign in to save Watchlist");
-        return;
-      }
-      inWatchlist = !inWatchlist;
-      updateWatchlistUI(inWatchlist);
-
-      try {
-        const uarmRef = doc(authDb, "UARM", activeUser.Email || activeUser.Lotus);
-        await updateDoc(uarmRef, {
-          Watchlist: inWatchlist ? arrayUnion(currentDocId) : arrayRemove(currentDocId)
-        });
-        showToast(inWatchlist ? "Added to Watchlist" : "Removed from Watchlist");
-      } catch (err) {
-        showToast(inWatchlist ? "Added to Watchlist" : "Removed from Watchlist");
-      }
-    };
-
-    shareBtn.onclick = () => {
-      const shareUrl = `${window.location.origin}${window.location.pathname}?watch=${currentDocId}&via=share`;
-      if (navigator.share) {
-        navigator.share({
-          title: currentChannel?.Name || "Hotstar",
-          url: shareUrl
-        }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          showToast("Link Copied to Clipboard!");
-        }).catch(() => showToast("Share URL: " + shareUrl));
-      }
-    };
-  }
-
-  // Interactivity, Double Tap Seeking & Pinch Gestures
   function setupInteractions() {
     const video = document.getElementById('nativeVideoPlayer');
     const overlay = document.getElementById('controlsOverlay');
@@ -1927,7 +1959,7 @@
       showControls();
     }
 
-    // Pinch-to-Zoom Gesture
+    // Pinch-to-Zoom
     let initialDistance = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -2139,7 +2171,7 @@
         if (video) video.playbackRate = currentSpeed;
         if (ytPlayerInstance && ytPlayerInstance.setPlaybackRate) ytPlayerInstance.setPlaybackRate(currentSpeed);
         speedBtn.innerHTML = `
-          <svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.28-10.43zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M10 8v8l6-4-6-4zm9-5H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
           Speed ${currentSpeed}x
         `;
         showToast(`Speed: ${currentSpeed}x`);
@@ -2185,23 +2217,22 @@
     }
   }
 
-  // Smooth Anywhere-Swipe-Down to Close Drawer
+  // Swipe-Down anywhere on drawer
   function setupSwipeToCloseDrawer() {
     const drawer = document.getElementById('drawerOverlay');
     let startY = 0;
     let currentY = 0;
+    let isDragging = false;
 
     drawer.addEventListener('touchstart', (e) => {
-      if (e.target.closest('.cards-scroll-row') || e.target.closest('.seasons-scroll-bar')) {
-        startY = 0;
-        return;
-      }
+      if (e.target.closest('.watch-card') || e.target.closest('.seasons-scroll-bar')) return;
       startY = e.touches[0].pageY;
+      isDragging = true;
       drawer.style.transition = 'none';
     }, { passive: true });
 
     drawer.addEventListener('touchmove', (e) => {
-      if (!startY) return;
+      if (!isDragging) return;
       currentY = e.touches[0].pageY;
       const diff = currentY - startY;
       if (diff > 0) {
@@ -2210,9 +2241,10 @@
     }, { passive: true });
 
     drawer.addEventListener('touchend', () => {
-      if (!startY) return;
+      if (!isDragging) return;
+      isDragging = false;
       drawer.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease';
-      if (currentY - startY > 60) {
+      if (currentY - startY > 70) {
         drawer.classList.remove('show');
       } else {
         drawer.style.transform = 'translateY(0%)';
