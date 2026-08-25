@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio Hub</title>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background-color: #0f1017;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* FULL STRETCHED HERO BANNER (Hotstar Fullscreen Style) */
+    .hero-banner-container {
+      position: relative;
+      width: 100vw;
+      height: 85vh; /* Stretches across the full screen height */
+      min-height: 500px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #0f1017;
+    }
+
+    .hero-banner-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* Stretches edge-to-edge without distortion */
+      object-position: center center;
+      z-index: 1;
+    }
+
+    /* Hotstar Fade Overlays (Top subtle + Bottom smooth fade) */
+    .hero-banner-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: linear-gradient(
+        180deg, 
+        rgba(15, 16, 23, 0.1) 0%, 
+        rgba(15, 16, 23, 0.25) 40%, 
+        rgba(15, 16, 23, 0.75) 75%, 
+        #0f1017 100%
+      );
+    }
+
+    .hero-logo {
+      position: relative;
+      z-index: 3;
+      max-width: 380px;
+      max-height: 180px;
+      width: 50vw;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.85));
+    }
+
+    .hero-title-text {
+      position: relative;
+      z-index: 3;
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.9);
+    }
+
+    /* Main Container Floating Seamlessly Over Stretched Banner */
+    .main-content {
+      position: relative;
+      z-index: 4;
+      padding: 0 4vw 60px 4vw;
+      margin-top: -120px; /* Pulls rows smoothly over the bottom fade */
+    }
+
+    /* Sub-Studio Grid (16:9 Tiles) */
+    .sub-studios-container {
+      margin-bottom: 40px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #e1e6f0;
+      margin-bottom: 14px;
+      letter-spacing: 0.3px;
+    }
+
+    .sub-studio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .studio-tile {
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(145deg, #1b1d29, #131520);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .studio-tile:hover {
+      transform: scale(1.05);
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.7);
+    }
+
+    .studio-tile-text {
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+
+    /* Horizontal Content Rows */
+    .content-row {
+      margin-bottom: 40px;
+    }
+
+    .scroll-container {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding: 10px 4px;
+      scrollbar-width: none;
+    }
+
+    .scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* 16:9 Aspect Ratio Content Cards */
+    .content-card {
+      flex: 0 0 calc(20% - 13px);
+      min-width: 200px;
+      aspect-ratio: 16 / 9;
+      background-color: #1a1c29;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .content-card:hover {
+      transform: scale(1.06);
+      border-color: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.85);
+      z-index: 10;
+    }
+
+    .content-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      padding: 12px;
+      color: #8c93a8;
+      font-size: 0.9rem;
+      background: linear-gradient(135deg, #1b1d2a, #11131c);
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    /* Loading Spinner */
+    .loader {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-size: 1.2rem;
+      color: #8c93a8;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loader" class="loader">Loading studio content...</div>
+
+  <div id="app" style="display: none;">
+    <!-- FULL STRETCHED HERO BANNER -->
+    <header class="hero-banner-container" id="heroBannerContainer">
+      <img id="heroBannerImg" class="hero-banner-img" src="" alt="Banner Background" style="display: none;" />
+      <div class="hero-banner-overlay"></div>
+      <img id="heroLogo" class="hero-logo" src="" alt="Studio Logo" style="display: none;" />
+      <h1 id="heroTitle" class="hero-title-text" style="display: none;"></h1>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Sub-Studios Navigation -->
+      <section class="sub-studios-container" id="subStudioSection" style="display: none;">
+        <h2 class="section-title">Studios</h2>
+        <div class="sub-studio-grid" id="subStudioGrid"></div>
+      </section>
+
+      <!-- Dynamic Sections Ordered by S1, S2, S3... -->
+      <div id="sectionsContainer"></div>
+    </main>
+  </div>
+
+  <script>
+    // 1. Firebase Initialization
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+      measurementId: "G-Y87B8VRQ1N"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    // 2. Parse URL Params
+    const urlParams = new URLSearchParams(window.location.search);
+    const studioParam = urlParams.get('studio') || 'disney-plus';
+    const subParam = urlParams.get('sub');
+
+    // Document to fetch
+    const activeDocId = subParam || studioParam;
+    const cache = {};
+
+    // 3. Robust Resolver for Shows / Movies
+    async function resolveShowOrMovie(rawId) {
+      if (cache[rawId]) return cache[rawId];
+
+      const possibleIds = [
+        rawId,
+        rawId.toLowerCase(),
+        rawId.replace(/^doremon/i, 'doraemon'),
+        rawId.replace(/^doraemon/i, 'doremon')
+      ];
+
+      for (const id of possibleIds) {
+        try {
+          // Check Movies collection
+          let snap = await db.collection('Movies').doc(id).get();
+          if (snap.exists) {
+            cache[rawId] = snap.data();
+            return cache[rawId];
+          }
+
+          // Check Shows collection
+          snap = await db.collection('Shows').doc(id).get();
+          if (snap.exists) {
+            cache[rawId] = snap.data();
+            return cache[rawId];
+          }
+        } catch (e) {
+          console.warn(`Error fetching ${id}:`, e);
+        }
+      }
+
+      cache[rawId] = null;
+      return null;
+    }
+
+    // 4. Main Page Loader
+    async function loadStudioData() {
+      try {
+        let docSnap = await db.collection('Partners').doc(activeDocId).get();
+        let parentSnap = null;
+
+        // If sub-studio, also get parent for fallback
+        if (subParam && activeDocId !== studioParam) {
+          parentSnap = await db.collection('Partners').doc(studioParam).get();
+        }
+
+        if (!docSnap.exists) {
+          document.getElementById('loader').innerText = `No data found for: ${activeDocId}`;
+          return;
+        }
+
+        const data = docSnap.data();
+        const parentData = parentSnap && parentSnap.exists ? parentSnap.data() : null;
+
+        await renderPage(data, parentData);
+      } catch (error) {
+        console.error("Firestore Error:", error);
+        document.getElementById('loader').innerText = "Failed to load data.";
+      }
+    }
+
+    async function renderPage(data, parentData) {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+
+      // 1. Setup Stretched Hero Banner & Logo
+      const bannerImg = document.getElementById('heroBannerImg');
+      const heroLogo = document.getElementById('heroLogo');
+      const heroTitle = document.getElementById('heroTitle');
+
+      // Reads 'Banner' (from your updated screenshot) or 'Background.jpg'
+      const bgUrl = data['Banner'] || data['Background.jpg'] || data['Background'] || data['Tile'] ||
+                    (parentData && (parentData['Banner'] || parentData['Background.jpg'] || parentData['Background']));
+
+      // Reads 'Logo' or 'Logo.png'
+      const logoUrl = data['Logo'] || data['Logo.png'] || 
+                      (parentData && (parentData['Logo'] || parentData['Logo.png']));
+
+      const studioName = data['Name'] || data['Title'] || activeDocId.replace(/-/g, ' ');
+
+      if (bgUrl) {
+        bannerImg.src = bgUrl;
+        bannerImg.style.display = 'block';
+      }
+
+      if (logoUrl) {
+        heroLogo.src = logoUrl;
+        heroLogo.style.display = 'block';
+      } else {
+        heroTitle.textContent = studioName;
+        heroTitle.style.display = 'block';
+      }
+
+      // 2. Render Sub-Studio Grid (If present on document)
+      if (!subParam && data['Sub-Studio'] && Array.isArray(data['Sub-Studio'])) {
+        renderSubStudios(data['Sub-Studio']);
+      }
+
+      // 3. Render S1., S2., S3... Sections
+      await renderOrderedSections(data);
+    }
+
+    function renderSubStudios(subList) {
+      const section = document.getElementById('subStudioSection');
+      const grid = document.getElementById('subStudioGrid');
+      grid.innerHTML = '';
+
+      subList.forEach(sub => {
+        const tile = document.createElement('a');
+        tile.className = 'studio-tile';
+        tile.href = `1.html?studio=${encodeURIComponent(studioParam)}&sub=${encodeURIComponent(sub)}`;
+        tile.innerHTML = `<span class="studio-tile-text">${sub.replace(/-/g, ' ')}</span>`;
+        grid.appendChild(tile);
+      });
+
+      section.style.display = 'block';
+    }
+
+    async function renderOrderedSections(data) {
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = '';
+
+      let sections = [];
+      Object.keys(data).forEach(key => {
+        if (/^S\d+\./i.test(key.trim())) {
+          sections.push({
+            key: key,
+            title: key.replace(/^S\d+\.\s*/i, ''),
+            items: Array.isArray(data[key]) ? data[key] : Object.values(data[key] || {})
+          });
+        }
+      });
+
+      // Sort numerically by S1, S2, S3...
+      sections.sort((a, b) => {
+        const numA = parseInt(a.key.match(/^S(\d+)\./i)?.[1] || 9999);
+        const numB = parseInt(b.key.match(/^S(\d+)\./i)?.[1] || 9999);
+        return numA - numB;
+      });
+
+      // Render each row and resolve 16:9 cards
+      for (const sec of sections) {
+        const row = document.createElement('div');
+        row.className = 'content-row';
+
+        const rowTitle = document.createElement('h2');
+        rowTitle.className = 'section-title';
+        rowTitle.textContent = sec.title;
+        row.appendChild(rowTitle);
+
+        const scrollContainer = document.createElement('div');
+        scrollContainer.className = 'scroll-container';
+
+        for (const item of sec.items) {
+          const card = document.createElement('div');
+          card.className = 'content-card';
+
+          if (typeof item === 'string' && (item.startsWith('http://') || item.startsWith('https://'))) {
+            card.innerHTML = `<img src="${item}" alt="${sec.title}" loading="lazy" />`;
+          } else if (typeof item === 'string') {
+            const itemDoc = await resolveShowOrMovie(item);
+
+            const posterImg = itemDoc ? (
+              itemDoc.Banner || 
+              itemDoc['Background.jpg'] || 
+              itemDoc.Tile || 
+              itemDoc?.['Multi-Language']?.Poster || 
+              itemDoc.Poster || 
+              itemDoc.Image || 
+              itemDoc.Thumbnail
+            ) : null;
+
+            const displayName = itemDoc?.['Multi-Language']?.Name || itemDoc?.Name || itemDoc?.Title || item.replace(/-/g, ' ');
+
+            if (posterImg) {
+              card.innerHTML = `<img src="${posterImg}" alt="${displayName}" title="${displayName}" loading="lazy" />`;
+            } else {
+              card.innerHTML = `<div class="card-placeholder"><span>${displayName}</span></div>`;
+            }
+          }
+
+          scrollContainer.appendChild(card);
+        }
+
+        row.appendChild(scrollContainer);
+        container.appendChild(row);
+      }
+    }
+
+    // Load initial data
+    loadStudioData();
+  </script>
+</body>
+</html>
