@@ -205,7 +205,7 @@
       text-transform: capitalize;
     }
 
-    /* MOBILE RESPONSIVE OPTIMIZATION */
+    /* MOBILE RESPONSIVE */
     @media (max-width: 768px) {
       .hero-banner-container {
         height: 65vh;
@@ -224,7 +224,6 @@
         margin-top: -90px;
       }
 
-      /* Shift S1, S2 sections further up over the hero fade on mobile */
       .main-content {
         padding: 0 4vw 40px 4vw;
         margin-top: -180px; 
@@ -266,7 +265,6 @@
         margin-top: -100px;
       }
 
-      /* Extra lift for smaller mobile screens */
       .main-content {
         margin-top: -160px;
       }
@@ -290,7 +288,7 @@
 </head>
 <body>
 
-  <div id="loader" class="loader">Loading studio content...</div>
+  <div id="loader" class="loader">Loading real-time studio content...</div>
 
   <div id="app" style="display: none;">
     <!-- FULL STRETCHED HERO BANNER -->
@@ -331,12 +329,12 @@
     }
     const db = firebase.firestore();
 
-    // 2. Parse URL Params (?studio=disney-plus&sub=disney OR ?studio=disney)
+    // 2. Parse URL Parameters
     const urlParams = new URLSearchParams(window.location.search);
     const studioParam = urlParams.get('studio') || 'disney-plus';
     const subParam = urlParams.get('sub');
 
-    // Target Document ID
+    // Document to listen to
     const activeDocId = subParam || studioParam;
     const cache = {};
 
@@ -375,37 +373,39 @@
       return null;
     }
 
-    // 4. Main Page Loader
-    async function loadStudioData() {
-      try {
-        let docSnap = await db.collection('Partners').doc(activeDocId).get();
-        let parentSnap = null;
+    // 4. REAL-TIME FIRESTORE LISTENER
+    function initRealtimeListener() {
+      let parentData = null;
 
-        // If sub-studio, check parent for fallback banner/logo
-        if (subParam && activeDocId !== studioParam) {
-          parentSnap = await db.collection('Partners').doc(studioParam).get();
-        }
+      // If viewing sub-studio, listen to parent for banner/logo fallback
+      if (subParam && activeDocId !== studioParam) {
+        db.collection('Partners').doc(studioParam).onSnapshot(parentSnap => {
+          parentData = parentSnap.exists ? parentSnap.data() : null;
+        });
+      }
 
+      // Real-time snapshot listener on the active studio document
+      db.collection('Partners').doc(activeDocId).onSnapshot(docSnap => {
         if (!docSnap.exists) {
+          document.getElementById('loader').style.display = 'flex';
           document.getElementById('loader').innerText = `No data found for: ${activeDocId}`;
+          document.getElementById('app').style.display = 'none';
           return;
         }
 
         const data = docSnap.data();
-        const parentData = parentSnap && parentSnap.exists ? parentSnap.data() : null;
-
-        await renderPage(data, parentData);
-      } catch (error) {
-        console.error("Firestore Error:", error);
-        document.getElementById('loader').innerText = "Failed to load studio data.";
-      }
+        renderPage(data, parentData);
+      }, error => {
+        console.error("Firestore Real-time Error:", error);
+        document.getElementById('loader').innerText = "Real-time sync error.";
+      });
     }
 
     async function renderPage(data, parentData) {
       document.getElementById('loader').style.display = 'none';
       document.getElementById('app').style.display = 'block';
 
-      // 1. Setup Stretched Hero Banner & Big Logo
+      // 1. Setup Hero Banner & Big Logo
       const bannerImg = document.getElementById('heroBannerImg');
       const heroLogo = document.getElementById('heroLogo');
       const heroTitle = document.getElementById('heroTitle');
@@ -421,12 +421,16 @@
       if (bgUrl) {
         bannerImg.src = bgUrl;
         bannerImg.style.display = 'block';
+      } else {
+        bannerImg.style.display = 'none';
       }
 
       if (logoUrl) {
         heroLogo.src = logoUrl;
         heroLogo.style.display = 'block';
+        heroTitle.style.display = 'none';
       } else {
+        heroLogo.style.display = 'none';
         heroTitle.textContent = studioName;
         heroTitle.style.display = 'block';
       }
@@ -434,6 +438,8 @@
       // 2. Render Sub-Studio Grid (If present on document)
       if (!subParam && data['Sub-Studio'] && Array.isArray(data['Sub-Studio'])) {
         renderSubStudios(data['Sub-Studio']);
+      } else {
+        document.getElementById('subStudioSection').style.display = 'none';
       }
 
       // 3. Render S1., S2., S3... Sections in 16:9 Aspect Ratio
@@ -478,7 +484,7 @@
         return numA - numB;
       });
 
-      // Render 16:9 horizontal cards
+      // Render horizontal 16:9 cards
       for (const sec of sections) {
         const row = document.createElement('div');
         row.className = 'content-row';
@@ -527,8 +533,8 @@
       }
     }
 
-    // Load initial data
-    loadStudioData();
+    // Start Real-Time Firestore Listener
+    initRealtimeListener();
   </script>
 </body>
 </html>
