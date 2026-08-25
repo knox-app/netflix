@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hotstar Studio Hub</title>
+  <title>Studio Hub</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -24,7 +24,7 @@
       overflow-x: hidden;
     }
 
-    /* EXACT HOTSTAR HERO HEADER */
+    /* FULL STRETCHED HERO BANNER */
     .hero-banner-container {
       position: relative;
       width: 100vw;
@@ -49,7 +49,7 @@
       z-index: 1;
     }
 
-    /* Hotstar Dark Gradient Fade Overlay */
+    /* Hotstar Dark Gradient Fade */
     .hero-banner-overlay {
       position: absolute;
       inset: 0;
@@ -57,8 +57,8 @@
       background: linear-gradient(
         180deg, 
         rgba(15, 16, 23, 0.05) 0%, 
-        rgba(15, 16, 23, 0.2) 30%, 
-        rgba(15, 16, 23, 0.6) 65%, 
+        rgba(15, 16, 23, 0.25) 30%, 
+        rgba(15, 16, 23, 0.65) 65%, 
         rgba(15, 16, 23, 0.95) 90%, 
         #0f1017 100%
       );
@@ -70,7 +70,7 @@
       max-width: 440px;
       max-height: 200px;
       width: 45vw;
-      margin-top: -60px; /* Aligns logo slightly higher like Hotstar UI */
+      margin-top: -60px;
       object-fit: contain;
       filter: drop-shadow(0 8px 25px rgba(0, 0, 0, 0.7));
     }
@@ -91,10 +91,10 @@
       position: relative;
       z-index: 4;
       padding: 0 3.5vw 60px 3.5vw;
-      margin-top: -140px; /* Pulls first row directly over the bottom fade */
+      margin-top: -120px;
     }
 
-    /* Sub-Studio Grid (16:9 Tiles) */
+    /* Sub-Studio Grid (16:9) */
     .sub-studios-container {
       margin-bottom: 40px;
     }
@@ -144,12 +144,12 @@
 
     /* Horizontal Content Rows */
     .content-row {
-      margin-bottom: 45px;
+      margin-bottom: 40px;
     }
 
     .scroll-container {
       display: flex;
-      gap: 14px;
+      gap: 16px;
       overflow-x: auto;
       scroll-behavior: smooth;
       padding: 10px 4px;
@@ -160,13 +160,13 @@
       display: none;
     }
 
-    /* HOTSTAR POSTER CARDS (Aspect Ratio ~ 3:4 / 2:3) */
+    /* HORIZONTAL 16:9 CONTENT CARDS */
     .content-card {
-      flex: 0 0 calc(14.28% - 12px); /* 7 posters visible on standard desktop */
-      min-width: 155px;
-      aspect-ratio: 3 / 4.2;
+      flex: 0 0 calc(20% - 13px);
+      min-width: 210px;
+      aspect-ratio: 16 / 9;
       background-color: #1a1c29;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       overflow: hidden;
       position: relative;
@@ -176,7 +176,7 @@
     }
 
     .content-card:hover {
-      transform: scale(1.08);
+      transform: scale(1.06);
       border-color: rgba(255, 255, 255, 0.85);
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9);
       z-index: 10;
@@ -230,7 +230,7 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Sub-Studios Navigation (e.g. Disney, Marvel, Pixar, Star Wars) -->
+      <!-- Sub-Studios Navigation -->
       <section class="sub-studios-container" id="subStudioSection" style="display: none;">
         <h2 class="section-title">Studios</h2>
         <div class="sub-studio-grid" id="subStudioGrid"></div>
@@ -263,7 +263,7 @@
     const studioParam = urlParams.get('studio') || 'disney-plus';
     const subParam = urlParams.get('sub');
 
-    // Document to fetch
+    // Target Document ID
     const activeDocId = subParam || studioParam;
     const cache = {};
 
@@ -363,7 +363,7 @@
         renderSubStudios(data['Sub-Studio']);
       }
 
-      // 3. Render S1., S2., S3... Sections
+      // 3. Render S1., S2., S3... Sections in 16:9 Aspect Ratio
       await renderOrderedSections(data);
     }
 
@@ -405,7 +405,7 @@
         return numA - numB;
       });
 
-      // Render portrait poster cards
+      // Render 16:9 horizontal cards
       for (const sec of sections) {
         const row = document.createElement('div');
         row.className = 'content-row';
@@ -427,15 +427,15 @@
           } else if (typeof item === 'string') {
             const itemDoc = await resolveShowOrMovie(item);
 
-            // Prioritize vertical Poster over landscape Banner/Tile
+            // Prioritize horizontal 16:9 Banner & Tile images
             const posterImg = itemDoc ? (
+              itemDoc.Banner || 
+              itemDoc['Background.jpg'] || 
+              itemDoc.Tile || 
+              itemDoc.Thumbnail || 
               itemDoc?.['Multi-Language']?.Poster || 
               itemDoc.Poster || 
-              itemDoc.Thumbnail || 
-              itemDoc.Image || 
-              itemDoc.Tile || 
-              itemDoc.Banner || 
-              itemDoc['Background.jpg']
+              itemDoc.Image
             ) : null;
 
             const displayName = itemDoc?.['Multi-Language']?.Name || itemDoc?.Name || itemDoc?.Title || item.replace(/-/g, ' ');
