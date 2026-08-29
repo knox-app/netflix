@@ -753,7 +753,7 @@
       font-weight: 500;
     }
 
-    /* Updated View More Button with Animated SVG Chevron */
+    /* Animated Chevron View More Button */
     .view-more-btn {
       display: flex;
       align-items: center;
@@ -775,7 +775,7 @@
     .view-more-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.25s ease; }
     .view-more-btn.expanded svg { transform: rotate(180deg); }
 
-    /* Horizontal 16:9 Banner Recommendation Cards */
+    /* Horizontal 16:9 Banner Recommendation Cards (Poster.h priority) */
     .horizontal-banners-scroll {
       display: flex;
       gap: 14px;
@@ -869,7 +869,7 @@
         <a class="btn-login" id="deniedBtn" href="1 (3).html">Sign In</a>
       </div>
 
-      <!-- Video Engines -->
+      <!-- Video Engines (.mkv, .mp4, .m3u8) -->
       <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
@@ -982,7 +982,7 @@
           </div>
         </div>
 
-        <!-- Tiered Quality Settings Panel -->
+        <!-- Quality Panel -->
         <div class="tab-content-panel active" id="qualityPanel">
           <div class="quality-option-list" id="qualityOptionsList">
             <div class="q-item" data-tier="auto">
@@ -1004,6 +1004,7 @@
           </div>
         </div>
 
+        <!-- Audio & Subtitles Panel -->
         <div class="tab-content-panel" id="audioPanel">
           <div class="two-col-layout">
             <div class="col-half">
@@ -1020,6 +1021,7 @@
           </div>
         </div>
 
+        <!-- Speed Panel -->
         <div class="tab-content-panel" id="speedPanel">
           <div class="quality-option-list" id="speedOptionsList">
             <div class="q-item" data-speed="1"><div class="q-check">✓</div><div class="q-title">Normal (1x)</div></div>
@@ -1080,7 +1082,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS (Horizontal 16:9 Banner Cards) -->
+      <!-- MORE LIKE THIS (Horizontal 16:9 Banner Cards with Poster.h Priority) -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1171,6 +1173,11 @@
   function safeUrl(url) {
     if (!url) return '';
     return url.trim().replace(/^http:\/\//i, 'https://');
+  }
+
+  function getPosterH(c) {
+    if (!c) return '';
+    return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.Poster || c["Logo.png"] || c.Logo || '');
   }
 
   function formatTime(seconds) {
@@ -1283,7 +1290,6 @@
     const loader = document.getElementById('loader');
     const userPill = document.getElementById('userPill');
 
-    // Robust user auth parsing
     try {
       const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
       currentUser = stored ? JSON.parse(stored) : null;
@@ -1348,7 +1354,7 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  // Reliable Watchlist State Initialization
+  // Watchlist
   async function initWatchlistState() {
     if (!currentUser) return;
     try {
@@ -1380,7 +1386,7 @@
         }
       }
     } catch(e) {
-      console.warn("Watchlist fetch error:", e);
+      console.warn("Watchlist error:", e);
     }
   }
 
@@ -1477,7 +1483,6 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
-      // Live TV Scenario
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
       btnPreviously.style.display = hasPreviously ? 'flex' : 'none';
@@ -1542,7 +1547,7 @@
     epListEl.innerHTML = epList.slice(0, limit).map((ep, idx) => `
       <div onclick="window.selectEpisode(${idx})" class="ep-item-card">
         <div class="ep-thumb-box">
-          <img src="${safeUrl(showDocData.Banner || showDocData.Poster || showDocData["Logo.png"] || '')}" alt="${ep.Name}">
+          <img src="${getPosterH(showDocData)}" alt="${ep.Name}">
           <div class="ep-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
         </div>
         <div class="ep-info-box">
@@ -1598,6 +1603,7 @@
     });
   }
 
+  // Stream Player Engine (Handles .mkv, .m3u8, .mpd, .mp4, youtube)
   function startStreamPlayback(data) {
     destroyPlayers();
 
@@ -1707,7 +1713,8 @@
       return;
     }
 
-    if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
+    // Handles .mkv, .m3u8, .mp4, web streams
+    if (streamUrl.includes('.mkv') || streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
       ytHost.style.display = 'none';
@@ -1722,9 +1729,13 @@
         video.play().catch(() => {});
       };
 
-      if (streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
+      // Native MKV / MP4 parsing
+      if (streamUrl.includes('.mkv') || streamUrl.endsWith('.mp4') || streamUrl.includes('cloudinary')) {
         video.src = streamUrl;
-        video.onloadedmetadata = applyResume;
+        video.onloadedmetadata = () => {
+          applyResume();
+          detectMkvAudioAndSubtitles(video);
+        };
       } else if (Hls.isSupported()) {
         hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8 });
         hlsInstance.loadSource(streamUrl);
@@ -1756,7 +1767,69 @@
     showToast("No playable stream URL found.");
   }
 
-  // Tiered Quality Handler (Data Saver, HD, Full HD/4K, Auto)
+  // Detect embedded tracks in .mkv containers
+  function detectMkvAudioAndSubtitles(videoEl) {
+    if (!videoEl) return;
+    
+    // Check Audio Tracks
+    if (videoEl.audioTracks && videoEl.audioTracks.length > 1) {
+      const audioList = document.getElementById('audioOptionsList');
+      audioList.innerHTML = '';
+      for (let i = 0; i < videoEl.audioTracks.length; i++) {
+        const track = videoEl.audioTracks[i];
+        audioList.innerHTML += `
+          <div class="lang-item" data-mkv-audio="${i}">
+            <div class="lang-check">${track.enabled ? '✓' : ''}</div>
+            <div><div class="lang-label">${track.label || track.language || `Audio ${i+1}`}</div></div>
+          </div>
+        `;
+      }
+
+      document.querySelectorAll('#audioOptionsList .lang-item').forEach(el => {
+        el.onclick = (e) => {
+          e.stopPropagation();
+          const tIdx = parseInt(el.dataset.mkvAudio);
+          for (let i = 0; i < videoEl.audioTracks.length; i++) {
+            videoEl.audioTracks[i].enabled = (i === tIdx);
+          }
+          document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
+          el.querySelector('.lang-check').innerText = '✓';
+          document.getElementById('settingsModal').classList.remove('active');
+        };
+      });
+    }
+
+    // Check Subtitle Text Tracks
+    if (videoEl.textTracks && videoEl.textTracks.length > 0) {
+      const subList = document.getElementById('subtitlesOptionsList');
+      subList.innerHTML = `<div class="lang-item" data-mkv-sub="-1"><div class="lang-check">✓</div><div><div class="lang-label">Off</div></div></div>`;
+      
+      for (let i = 0; i < videoEl.textTracks.length; i++) {
+        const track = videoEl.textTracks[i];
+        subList.innerHTML += `
+          <div class="lang-item" data-mkv-sub="${i}">
+            <div class="lang-check">${track.mode === 'showing' ? '✓' : ''}</div>
+            <div><div class="lang-label">${track.label || track.language || `Subtitle ${i+1}`}</div></div>
+          </div>
+        `;
+      }
+
+      document.querySelectorAll('#subtitlesOptionsList .lang-item').forEach(el => {
+        el.onclick = (e) => {
+          e.stopPropagation();
+          const sIdx = parseInt(el.dataset.mkvSub);
+          for (let i = 0; i < videoEl.textTracks.length; i++) {
+            videoEl.textTracks[i].mode = (i === sIdx) ? 'showing' : 'disabled';
+          }
+          document.querySelectorAll('#subtitlesOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
+          el.querySelector('.lang-check').innerText = '✓';
+          document.getElementById('settingsModal').classList.remove('active');
+        };
+      });
+    }
+  }
+
+  // Tiered Quality
   document.querySelectorAll('#qualityOptionsList .q-item').forEach(item => {
     item.onclick = (e) => {
       e.stopPropagation();
@@ -1781,11 +1854,10 @@
       return;
     }
 
-    // Match best available level
     let matchedIdx = -1;
     if (tier === 'fhd') {
       matchedIdx = availableHlsLevels.reduce((best, lvl, idx) => (lvl.height >= 1080 && (best === -1 || lvl.height > availableHlsLevels[best].height)) ? idx : best, -1);
-      if (matchedIdx === -1) matchedIdx = availableHlsLevels.length - 1; // Fallback highest
+      if (matchedIdx === -1) matchedIdx = availableHlsLevels.length - 1;
       showToast("Quality: Full HD / 4K");
     } else if (tier === 'hd') {
       matchedIdx = availableHlsLevels.reduce((best, lvl, idx) => (lvl.height >= 480 && lvl.height <= 720) ? idx : best, -1);
@@ -1793,7 +1865,7 @@
       showToast("Quality: HD");
     } else if (tier === 'saver') {
       matchedIdx = availableHlsLevels.reduce((best, lvl, idx) => (lvl.height <= 360 && (best === -1 || lvl.height < availableHlsLevels[best].height)) ? idx : best, -1);
-      if (matchedIdx === -1) matchedIdx = 0; // Fallback lowest
+      if (matchedIdx === -1) matchedIdx = 0;
       showToast("Quality: Data Saver");
     }
 
@@ -1960,7 +2032,7 @@
     });
   }
 
-  // Interactivity & Touch Gestures
+  // Interactivity, Touch Gestures
   function setupInteractions() {
     const video = document.getElementById('nativeVideoPlayer');
     const overlay = document.getElementById('controlsOverlay');
@@ -1990,7 +2062,6 @@
     let lastTapTime = 0;
     let lastTapX = 0;
 
-    // Double-tap to seek (DISABLED IN LIVE TV ONLY)
     playerContainer.onpointerdown = (e) => {
       if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
@@ -2303,7 +2374,7 @@
     }
   }
 
-  // Swipe-Down Anywhere to Dismiss Drawer
+  // Swipe-Down to Dismiss Drawer
   function setupSwipeToCloseDrawer() {
     const drawer = document.getElementById('drawerOverlay');
     let startY = 0;
@@ -2388,7 +2459,7 @@
     cardsRow.innerHTML = epList.map((ep, idx) => `
       <div onclick="window.selectEpisode(${idx})" class="watch-card">
         <div class="watch-card-thumb-wrap">
-          <img src="${safeUrl(showDocData.Banner || showDocData.Poster || showDocData["Logo.png"] || '')}" alt="${ep.Name}">
+          <img src="${getPosterH(showDocData)}" alt="${ep.Name}">
           <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
         </div>
         <div class="watch-card-name">${ep.Name || `Episode ${idx + 1}`}</div>
@@ -2409,7 +2480,6 @@
     renderVerticalEpisodesSection();
   };
 
-  // Fixed YouTube Query Logic for "Previously"
   async function fetchPreviouslyFromYouTube() {
     const cardsRow = document.getElementById('drawerCardsRow');
     cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Loading previous broadcasts...</div>';
@@ -2467,7 +2537,7 @@
     autoDetectAndInitContent(newId);
   };
 
-  // Recommendations: 16:9 Banner Layout in Portrait Mode
+  // Recommendations: Prioritizes Poster.h (falls back to Banner/Logo)
   function listenToRecommendations(excludeId, colName) {
     if (collectionUnsub) collectionUnsub();
 
@@ -2486,11 +2556,11 @@
       let recommended = items.filter(c => targetGenre && (c.Genres || '').toLowerCase().includes(targetGenre));
       if (recommended.length === 0) recommended = items;
 
-      // 16:9 Horizontal Banner Rendering for Portrait Mode
+      // 16:9 Horizontal Banner Rendering with Poster.h Priority
       recGrid.innerHTML = recommended.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="banner-card">
           <div class="banner-thumb-box">
-            <img class="main-thumb" src="${safeUrl(c.Banner || c["Logo.png"] || c.Poster || c.Logo || '')}" alt="${c.Name}">
+            <img class="main-thumb" src="${getPosterH(c)}" alt="${c.Name}">
             <img class="banner-logo-badge" src="${safeUrl(c["Logo.png"] || c.Logo || c.Poster || '')}" alt="Logo">
           </div>
           <div class="banner-title">${c.Name || 'Title'}</div>
@@ -2501,7 +2571,7 @@
       drawerCardsRow.innerHTML = items.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
           <div class="watch-card-thumb-wrap">
-            <img src="${safeUrl(c.Banner || c["Logo.png"] || c.Poster || c.Logo || '')}" alt="${c.Name}">
+            <img src="${getPosterH(c)}" alt="${c.Name}">
             <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="watch-card-name">${c.Name || 'Title'}</div>
