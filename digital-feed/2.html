@@ -9,7 +9,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-    .tv-player-wrapper {
+    .tv-container {
       position: relative;
       width: 100vw;
       height: 100vh;
@@ -19,7 +19,7 @@
       align-items: center;
     }
 
-    /* Dual Video Players for Gapless Switching */
+    /* Video Engines (Dual for zero-gap switching) */
     .video-engine {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -29,162 +29,187 @@
     .video-engine.hidden { opacity: 0; pointer-events: none; z-index: 1; }
     .video-engine.active { opacity: 1; z-index: 2; }
 
-    /* REAL TV OVERLAY (LEFT SIDE ONLY - NO LOGO) */
-    .tv-broadcast-left {
+    /* ==================================================== */
+    /* 1. REAL TV BROADCAST OVERLAYS (PERMANENT ON STREAM) */
+    /* ==================================================== */
+    
+    /* TOP-LEFT: "अब" AND "आगे" TV WATERMARK */
+    .tv-watermark-left {
       position: absolute;
-      bottom: 75px;
+      top: 20px;
       left: 20px;
       z-index: 15;
+      pointer-events: none;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      pointer-events: none;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+      gap: 5px;
     }
 
-    .tv-line {
+    .tv-tag {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
       color: #ffffff;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      padding: 4px 12px;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      padding: 4px 10px;
       border-radius: 4px;
-      border-left: 3px solid #e50914;
-      max-width: 80vw;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      max-width: 75vw;
     }
+    .tv-tag.now { border-left: 3px solid #e50914; }
+    .tv-tag.next { border-left: 3px solid #ff9900; color: #dddddd; font-size: 12px; }
 
-    .tv-line.next-line {
-      border-left: 3px solid #888888;
-      background: rgba(0, 0, 0, 0.35);
-      font-size: 12px;
-      color: #cccccc;
+    .lbl-hi { font-weight: 900; font-size: 12px; letter-spacing: 0.5px; }
+    .lbl-hi.now-lbl { color: #e50914; }
+    .lbl-hi.next-lbl { color: #ff9900; }
+    .tv-title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* TOP-RIGHT: CHANNEL LOGO / WATERMARK */
+    .tv-watermark-right {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 15;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.85;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
     }
+    .tv-logo-img { height: 35px; width: auto; object-fit: contain; }
+    .tv-logo-fallback {
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 1.5px;
+      background: rgba(0,0,0,0.4);
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .hd-badge { background: #e50914; color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 2px; margin-left: 4px; vertical-align: middle; }
 
-    .lbl-now { color: #e50914; font-weight: 800; font-size: 11px; letter-spacing: 1px; }
-    .lbl-next { color: #aaaaaa; font-weight: 800; font-size: 10px; letter-spacing: 1px; }
-    .txt-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* Custom Player Controls Overlay */
+    /* ==================================================== */
+    /* 2. PLAYER CONTROLS & FULLSCREEN BUTTON */
+    /* ==================================================== */
+    
     .controls-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       z-index: 10;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 15px;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 25%, transparent 75%, rgba(0,0,0,0.85) 100%);
+      justify-content: flex-end;
+      padding: 15px 20px;
+      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 40%);
       transition: opacity 0.3s ease;
       opacity: 1;
     }
     .controls-overlay.hide-ui { opacity: 0; pointer-events: none; }
 
-    /* Top Bar: Live Badge ONLY (No Logo) */
-    .top-bar { display: flex; align-items: center; }
-    .live-pill {
-      background: #e50914; color: #fff;
-      padding: 4px 10px; font-weight: bold; font-size: 11px;
-      border-radius: 4px; letter-spacing: 1.5px;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .live-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: pulse 1s infinite alternate; }
-    @keyframes pulse { from { opacity: 0.2; } to { opacity: 1; } }
-
-    /* Bottom Player Bar */
     .bottom-controls { display: flex; flex-direction: column; gap: 8px; width: 100%; }
     
     .progress-track {
-      width: 100%; height: 4px; background: rgba(255,255,255,0.2);
+      width: 100%; height: 4px; background: rgba(255,255,255,0.25);
       border-radius: 2px; overflow: hidden;
     }
     .progress-fill { height: 100%; background: #e50914; width: 0%; transition: width 0.2s linear; }
 
-    .ctrl-row { display: flex; justify-content: space-between; align-items: center; }
+    .ctrl-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
     .ctrl-group { display: flex; align-items: center; gap: 12px; }
     
     .ctrl-btn {
-      background: none; border: none; color: white;
-      font-size: 18px; cursor: pointer; padding: 6px;
-      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: white; font-size: 15px; cursor: pointer; padding: 8px 14px;
+      border-radius: 6px; display: flex; align-items: center; gap: 6px;
+      font-weight: 600; backdrop-filter: blur(4px);
     }
+    .ctrl-btn:hover { background: rgba(255,255,255,0.25); }
+
+    .fullscreen-btn { background: #e50914; border: none; font-weight: bold; }
+    .fullscreen-btn:hover { background: #b80710; }
 
     .time-display { font-size: 12px; color: #ddd; font-family: monospace; }
 
-    /* Tap-to-Start Overlay */
+    /* Initial Play Screen */
     .start-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.9);
       color: white; z-index: 100;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
       cursor: pointer; text-align: center; padding: 20px;
     }
     .start-btn {
       background: #e50914; color: white; border: none;
-      padding: 14px 32px; font-size: 16px; font-weight: bold;
+      padding: 16px 36px; font-size: 18px; font-weight: bold;
       border-radius: 30px; margin-top: 15px; cursor: pointer;
-      box-shadow: 0 4px 15px rgba(229,9,20,0.5);
-    }
-
-    @media (max-width: 600px) {
-      .tv-broadcast-left { bottom: 65px; left: 12px; }
-      .tv-line { font-size: 12px; padding: 3px 8px; }
-      .tv-line.next-line { font-size: 11px; }
+      box-shadow: 0 4px 20px rgba(229,9,20,0.5);
     }
   </style>
 </head>
 <body>
 
-<div class="tv-player-wrapper" id="playerWrapper" onclick="handleUserTap()">
+<div class="tv-container" id="playerWrapper" onclick="handleUserTap()">
 
-  <!-- Initial Autoplay Unmute Screen -->
+  <!-- Initial Tap-to-Watch Overlay -->
   <div class="start-overlay" id="startOverlay" onclick="startStream(event)">
-    <h2>LIVE DIGITAL BROADCAST</h2>
-    <p style="color: #aaa; font-size: 13px; margin-top: 6px;">Tap to watch live with sound</p>
-    <button class="start-btn">▶ JOIN STREAM</button>
+    <h2>LIVE TV BROADCAST</h2>
+    <p style="color: #aaa; font-size: 13px; margin-top: 6px;">Tap to open stream with sound</p>
+    <button class="start-btn">▶ WATCH LIVE</button>
   </div>
 
   <!-- Dual Video Engines -->
   <video id="playerA" class="video-engine active" playsinline webkit-playsinline></video>
   <video id="playerB" class="video-engine hidden" playsinline webkit-playsinline></video>
 
-  <!-- TV BROADCAST TEXT OVERLAY (LEFT SIDE ONLY) -->
-  <div class="tv-broadcast-left">
-    <div class="tv-line">
-      <span class="lbl-now">NOW:</span>
-      <span class="txt-title" id="txtNow">Loading...</span>
+  <!-- ========================================================= -->
+  <!-- 1. TOP-LEFT BROADCAST TEXT: "अब" & "आगे" -->
+  <!-- ========================================================= -->
+  <div class="tv-watermark-left">
+    <div class="tv-tag now">
+      <span class="lbl-hi now-lbl">अब:</span>
+      <span class="tv-title-text" id="txtNow">Loading...</span>
     </div>
-    <div class="tv-line next-line">
-      <span class="lbl-next">NEXT:</span>
-      <span class="txt-title" id="txtNext">Loading...</span>
+    <div class="tv-tag next">
+      <span class="lbl-hi next-lbl">आगे:</span>
+      <span class="tv-title-text" id="txtNext">Loading...</span>
     </div>
   </div>
 
-  <!-- CUSTOM CONTROLS OVERLAY -->
-  <div class="controls-overlay" id="controlsOverlay">
-    <div class="top-bar">
-      <div class="live-pill">
-        <div class="live-dot"></div> LIVE
-      </div>
-    </div>
+  <!-- ========================================================= -->
+  <!-- 2. TOP-RIGHT BROADCAST LOGO / WATERMARK -->
+  <!-- ========================================================= -->
+  <div class="tv-watermark-right">
+    <img id="tvLogoImg" class="tv-logo-img" src="" style="display:none;" alt="Channel Logo">
+    <div id="tvLogoFallback" class="tv-logo-fallback">LIVE TV <span class="hd-badge">HD</span></div>
+  </div>
 
+  <!-- ========================================================= -->
+  <!-- 3. CONTROLS OVERLAY & FULLSCREEN BUTTON -->
+  <!-- ========================================================= -->
+  <div class="controls-overlay" id="controlsOverlay">
     <div class="bottom-controls">
       <div class="progress-track">
         <div class="progress-fill" id="progressFill"></div>
       </div>
       <div class="ctrl-row">
         <div class="ctrl-group">
-          <button class="ctrl-btn" id="btnPlay" onclick="togglePlayPause(event)">❚❚</button>
-          <button class="ctrl-btn" id="btnMute" onclick="toggleMute(event)">🔊</button>
+          <button class="ctrl-btn" id="btnPlay" onclick="togglePlayPause(event)">❚❚ Pause</button>
+          <button class="ctrl-btn" id="btnMute" onclick="toggleMute(event)">🔊 Mute</button>
           <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
         </div>
         <div class="ctrl-group">
-          <button class="ctrl-btn" onclick="toggleFullscreen(event)">⛶</button>
+          <!-- FULLSCREEN TOGGLE BUTTON -->
+          <button class="ctrl-btn fullscreen-btn" onclick="toggleFullscreen(event)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            <span>FULLSCREEN</span>
+          </button>
         </div>
       </div>
     </div>
@@ -278,9 +303,21 @@
 
     const data = calculateOffset(scheduleData);
     
-    // Update TV Overlay Text (Left side)
+    // Update TV Watermark Text (Top-Left: "अब" & "आगे")
     document.getElementById('txtNow').innerText = data.current.name;
     document.getElementById('txtNext').innerText = data.next.name;
+
+    // Update Top-Right Channel Logo if item has a logo URL
+    const logoImg = document.getElementById('tvLogoImg');
+    const logoFallback = document.getElementById('tvLogoFallback');
+    if (data.current.logo) {
+      logoImg.src = data.current.logo;
+      logoImg.style.display = 'block';
+      logoFallback.style.display = 'none';
+    } else {
+      logoImg.style.display = 'none';
+      logoFallback.style.display = 'block';
+    }
 
     const activeEl = activePlayer === 'A' ? playerA : playerB;
 
@@ -293,7 +330,7 @@
     activeEl.currentTime = data.offset;
     activeEl.play().catch(() => console.log("Waiting for user tap"));
 
-    // Real-time progress and clock update
+    // Real-time progress update
     activeEl.ontimeupdate = () => {
       const pct = (activeEl.currentTime / data.current.duration) * 100;
       document.getElementById('progressFill').style.width = Math.min(pct, 100) + '%';
@@ -320,28 +357,7 @@
     syncPlayback();
   }
 
-  /* Control Handlers */
-  function togglePlayPause(e) {
-    if(e) e.stopPropagation();
-    const activeEl = activePlayer === 'A' ? playerA : playerB;
-    const btn = document.getElementById('btnPlay');
-    if (activeEl.paused) {
-      activeEl.play();
-      btn.innerText = '❚❚';
-    } else {
-      activeEl.pause();
-      btn.innerText = '▶';
-    }
-  }
-
-  function toggleMute(e) {
-    if(e) e.stopPropagation();
-    const activeEl = activePlayer === 'A' ? playerA : playerB;
-    const btn = document.getElementById('btnMute');
-    activeEl.muted = !activeEl.muted;
-    btn.innerText = activeEl.muted ? '🔇' : '🔊';
-  }
-
+  /* Fullscreen & Control Functions */
   function toggleFullscreen(e) {
     if(e) e.stopPropagation();
     const wrapper = document.getElementById('playerWrapper');
@@ -358,6 +374,27 @@
         document.webkitExitFullscreen();
       }
     }
+  }
+
+  function togglePlayPause(e) {
+    if(e) e.stopPropagation();
+    const activeEl = activePlayer === 'A' ? playerA : playerB;
+    const btn = document.getElementById('btnPlay');
+    if (activeEl.paused) {
+      activeEl.play();
+      btn.innerText = '❚❚ Pause';
+    } else {
+      activeEl.pause();
+      btn.innerText = '▶ Play';
+    }
+  }
+
+  function toggleMute(e) {
+    if(e) e.stopPropagation();
+    const activeEl = activePlayer === 'A' ? playerA : playerB;
+    const btn = document.getElementById('btnMute');
+    activeEl.muted = !activeEl.muted;
+    btn.innerText = activeEl.muted ? '🔇 Unmute' : '🔊 Mute';
   }
 
   function handleUserTap() {
