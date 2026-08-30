@@ -941,7 +941,6 @@
           <div class="sheet-tabs">
             <button class="tab-btn active" id="tabQuality">Quality</button>
             <button class="tab-btn" id="tabAudio">Audio & Subtitles</button>
-            <!-- Tab Speed is dynamically hidden during Live TV -->
             <button class="tab-btn" id="tabSpeed">Playback Speed</button>
           </div>
           <div class="sheet-actions">
@@ -972,7 +971,7 @@
           </div>
         </div>
 
-        <!-- Audio & Subtitles Panel (MKV, M3U8, Multi-Language) -->
+        <!-- Audio & Subtitles Panel -->
         <div class="tab-content-panel" id="audioPanel">
           <div class="two-col-layout">
             <div class="col-half">
@@ -1050,7 +1049,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS (Uses Poster.h or Banner priority) -->
+      <!-- MORE LIKE THIS (Uses algorithmic ranking) -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1104,6 +1103,7 @@
   let currentSpeed = 1;
   let currentUser = null;
   let userDocRef = null;
+  let userWatchlist = [];
   let availableHlsLevels = [];
   let lastProgressSave = 0;
 
@@ -1134,7 +1134,7 @@
   }
   window.addEventListener('resize', checkOrientation, { passive: true });
   window.addEventListener('orientationchange', checkOrientation, { passive: true });
-  document.addEventListener('fullscreenchange', checkOrientation, { passive: true });
+  document.addEventListener('fullscreenchange', checkOrientation);
   checkOrientation();
 
   if (!currentDocId) {
@@ -1148,7 +1148,6 @@
     return url.trim().replace(/^http:\/\//i, 'https://');
   }
 
-  // Resolves Poster.h, Poster_h, Banner, Poster in exact priority
   function getPosterH(c) {
     if (!c) return '';
     return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster || c["Logo.png"] || c.Logo || '');
@@ -1195,7 +1194,6 @@
     } catch(e) { return 0; }
   }
 
-  // Throttled local storage progress saver
   function saveProgressThrottled(key, time) {
     const now = Date.now();
     if (now - lastProgressSave > 1500) {
@@ -1218,7 +1216,6 @@
       nativeVid.pause();
       nativeVid.removeAttribute('src');
       nativeVid.load();
-      // Remove text tracks
       while (nativeVid.firstChild) {
         nativeVid.removeChild(nativeVid.firstChild);
       }
@@ -1252,7 +1249,6 @@
     const collectionsToCheck = ["Live TV", "Shows", "Movies"];
     let detectedCollection = null;
 
-    // Check cached data first for instantaneous loading
     for (const colName of collectionsToCheck) {
       if (cachedCollectionData[colName] && cachedCollectionData[colName].some(d => d.id === docId)) {
         detectedCollection = colName;
@@ -1361,16 +1357,16 @@
         if (!snap.empty) {
           userDocRef = doc(authDb, "UARM", snap.docs[0].id);
           const udata = snap.docs[0].data();
-          const wl = udata.Watchlist || [];
-          updateWatchlistUI(wl.includes(currentDocId));
+          userWatchlist = udata.Watchlist || [];
+          updateWatchlistUI(userWatchlist.includes(currentDocId));
           return;
         }
       } else if (userDocRef) {
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
           const udata = docSnap.data();
-          const wl = udata.Watchlist || [];
-          updateWatchlistUI(wl.includes(currentDocId));
+          userWatchlist = udata.Watchlist || [];
+          updateWatchlistUI(userWatchlist.includes(currentDocId));
           return;
         }
       }
@@ -1401,12 +1397,18 @@
       if (userDocRef) {
         if (isAdded) {
           await updateDoc(userDocRef, { Watchlist: arrayRemove(currentDocId) });
+          userWatchlist = userWatchlist.filter(id => id !== currentDocId);
           updateWatchlistUI(false);
           showToast("Removed from Watchlist");
         } else {
           await updateDoc(userDocRef, { Watchlist: arrayUnion(currentDocId) });
+          userWatchlist.push(currentDocId);
           updateWatchlistUI(true);
           showToast("Added to Watchlist");
+        }
+        // Refresh recommendations with updated watchlist affinity
+        if (currentChannel) {
+          listenToRecommendations(currentDocId, contentType === 'show' ? 'Shows' : (contentType === 'movie' ? 'Movies' : 'Live TV'));
         }
       } else {
         updateWatchlistUI(!isAdded);
@@ -1473,7 +1475,7 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
-      // Live TV Scenario: Fully removes Speed from controls and Settings
+      // Live TV: Hide Speed Everywhere
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
       btnPreviously.style.display = hasPreviously ? 'flex' : 'none';
@@ -1595,7 +1597,6 @@
     });
   }
 
-  // Stream Player Initializer (.m3u8, .mp4, .mkv, youtube, mpd)
   function startStreamPlayback(data) {
     destroyPlayers();
 
@@ -1701,7 +1702,6 @@
       return;
     }
 
-    // Handles .m3u8, .mp4, and .mkv streams
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
@@ -1754,9 +1754,7 @@
     showToast("No playable stream URL found.");
   }
 
-  // Native MKV / HTML5 Audio & Subtitle Tracks Extractor
   function extractNativeTracks(videoEl) {
-    // 1. Text Tracks / Subtitles
     if (videoEl.textTracks && videoEl.textTracks.length > 0) {
       const subTracks = Array.from(videoEl.textTracks).map((t, idx) => ({
         name: t.label || t.language || `Track ${idx + 1}`
@@ -1764,7 +1762,6 @@
       setupSubtitleOptions(subTracks);
     }
 
-    // 2. Multi-Audio Tracks (Chromium/Firefox WebM/MKV multi-audio support)
     if (videoEl.audioTracks && videoEl.audioTracks.length > 1) {
       const list = document.getElementById('audioOptionsList');
       list.innerHTML = '';
@@ -1790,7 +1787,6 @@
     }
   }
 
-  // Tiered Quality Handler
   document.querySelectorAll('#qualityOptionsList .q-item').forEach(item => {
     item.onclick = (e) => {
       e.stopPropagation();
@@ -2072,7 +2068,6 @@
       showControls();
     }
 
-    // Pinch-to-Zoom Gesture
     let initialDistance = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -2153,7 +2148,6 @@
       }
     };
 
-    // Smooth & Non-Laggy Timeupdate
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube') return;
 
@@ -2493,7 +2487,70 @@
     autoDetectAndInitContent(newId);
   };
 
-  // High-Performance Recommendations Listener with Local Cache
+  // =========================================================================
+  // SMART MULTI-VECTOR RECOMMENDATION ALGORITHM (YouTube / Hotstar style)
+  // Evaluates Genres, Tags, Description Tokens, Studio, Language, Ratings & Watchlist
+  // =========================================================================
+  function computeRelevanceScore(target, candidate, watchlistIds) {
+    if (!target || !candidate) return 0;
+    let score = 0;
+
+    // Helper tokenizers
+    const toArr = (v) => Array.isArray(v) ? v : (v ? String(v).split(/[,/|•\s]+/).filter(Boolean) : []);
+    const cleanTokens = (str) => (str || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+
+    // 1. Genres & Sub-genres Matching (35% Weight)
+    const targetGenres = toArr(target.Genres || target.Genre).map(g => g.toLowerCase().trim());
+    const candGenres = toArr(candidate.Genres || candidate.Genre).map(g => g.toLowerCase().trim());
+    targetGenres.forEach(g => {
+      if (candGenres.some(cg => cg === g || cg.includes(g) || g.includes(cg))) score += 35;
+    });
+
+    // 2. Tags & "Blue Tags" Matching (25% Weight)
+    const targetTags = [...toArr(target.Tags), ...toArr(target["Blue Tags"])].map(t => t.toLowerCase().trim());
+    const candTags = [...toArr(candidate.Tags), ...toArr(candidate["Blue Tags"])].map(t => t.toLowerCase().trim());
+    targetTags.forEach(t => {
+      if (candTags.some(ct => ct === t || ct.includes(t))) score += 25;
+    });
+
+    // 3. Studio / Network / Partner Affinity (15% Weight)
+    const targetStudio = (target.Partner || target.Studio || '').toLowerCase().trim();
+    const candStudio = (candidate.Partner || candidate.Studio || '').toLowerCase().trim();
+    if (targetStudio && candStudio && (targetStudio === candStudio || candStudio.includes(targetStudio))) {
+      score += 15;
+    }
+
+    // 4. Target Language Affinity (10% Weight)
+    const targetLang = (target.Language || '').toLowerCase().trim();
+    const candLang = (candidate.Language || '').toLowerCase().trim();
+    if (targetLang && candLang && targetLang === candLang) {
+      score += 10;
+    }
+
+    // 5. Age Rating & Content Tier Matching (10% Weight)
+    const targetRating = (target["Age Rating"] || target.AgeRating || target.Rating || '').toLowerCase().trim();
+    const candRating = (candidate["Age Rating"] || candidate.AgeRating || candidate.Rating || '').toLowerCase().trim();
+    if (targetRating && candRating && targetRating === candRating) {
+      score += 10;
+    }
+
+    // 6. User Watchlist / Personalization Boost (20% Weight)
+    if (watchlistIds && watchlistIds.includes(candidate.id)) {
+      score += 20;
+    }
+
+    // 7. Description & Title Semantic Overlap (15% Weight)
+    const targetTokens = [...cleanTokens(target.Description), ...cleanTokens(target.Name)];
+    const candTokens = new Set([...cleanTokens(candidate.Description), ...cleanTokens(candidate.Name)]);
+    let overlapCount = 0;
+    targetTokens.forEach(token => {
+      if (candTokens.has(token)) overlapCount++;
+    });
+    score += Math.min(15, overlapCount * 3);
+
+    return score;
+  }
+
   function listenToRecommendations(excludeId, colName) {
     if (collectionUnsub) collectionUnsub();
 
@@ -2504,16 +2561,24 @@
     const fetchCol = (colName === 'Shows') ? 'Shows' : (colName === 'Movies' ? 'Movies' : 'Live TV');
     sec1Heading.innerText = "More Like This";
 
-    const renderFromData = (items) => {
-      const targetGenre = (currentChannel?.Genres || '').toLowerCase();
-      let recommended = items.filter(c => targetGenre && (c.Genres || '').toLowerCase().includes(targetGenre));
-      if (recommended.length === 0) recommended = items;
+    const processAndRenderRecommendations = (items) => {
+      const candidates = items.filter(c => c.id !== excludeId);
 
-      // Render 16:9 Banner using Poster.h priority
-      recGrid.innerHTML = recommended.map(c => `
+      // Score and rank all items via the recommendation algorithm
+      const scoredItems = candidates.map(c => ({
+        item: c,
+        score: computeRelevanceScore(currentChannel, c, userWatchlist)
+      }));
+
+      // Sort descending by relevance score
+      scoredItems.sort((a, b) => b.score - a.score);
+      const rankedList = scoredItems.map(s => s.item);
+
+      // 1. Portrait 16:9 Banner Recommendation Cards
+      recGrid.innerHTML = rankedList.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="banner-card">
           <div class="banner-thumb-box">
-            <img class="main-thumb" src="${getPosterH(c)}" alt="${c.Name}" loading="lazy">
+            <img class="main-thumb" src="${getPosterH(c)}" alt="${c.Name || 'Title'}" loading="lazy">
             <img class="banner-logo-badge" src="${safeUrl(c["Logo.png"] || c.Logo || c.Poster || '')}" alt="Logo" loading="lazy">
           </div>
           <div class="banner-title">${c.Name || 'Title'}</div>
@@ -2521,10 +2586,11 @@
         </div>
       `).join('');
 
-      drawerCardsRow.innerHTML = items.map(c => `
+      // 2. Landscape "Watch Next" Drawer Cards
+      drawerCardsRow.innerHTML = rankedList.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
           <div class="watch-card-thumb-wrap">
-            <img src="${getPosterH(c)}" alt="${c.Name}" loading="lazy">
+            <img src="${getPosterH(c)}" alt="${c.Name || 'Title'}" loading="lazy">
             <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="watch-card-name">${c.Name || 'Title'}</div>
@@ -2533,16 +2599,16 @@
       `).join('');
     };
 
-    // Instant render from local cache if available
+    // Instant initial render from in-memory cache
     if (cachedCollectionData[fetchCol] && cachedCollectionData[fetchCol].length > 0) {
-      renderFromData(cachedCollectionData[fetchCol].filter(d => d.id !== excludeId));
+      processAndRenderRecommendations(cachedCollectionData[fetchCol]);
     }
 
     collectionUnsub = onSnapshot(collection(channelDb, fetchCol), (snap) => {
       let items = [];
       snap.forEach(d => items.push({ id: d.id, ...d.data() }));
       cachedCollectionData[fetchCol] = items;
-      renderFromData(items.filter(d => d.id !== excludeId));
+      processAndRenderRecommendations(items);
     });
   }
 </script>
