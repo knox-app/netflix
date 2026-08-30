@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Digital TV Stream</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; }
+
+    .video-viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+    }
+
+    /* Dual Stacked Players for Seamless Transition */
+    .video-player {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: opacity 0.5s ease-in-out;
+    }
+    .video-player.hidden { opacity: 0; pointer-events: none; z-index: 1; }
+    .video-player.active { opacity: 1; z-index: 2; }
+
+    /* Click to Play Overlay (Autoplay Workaround) */
+    #overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      cursor: pointer;
+    }
+    #overlay button {
+      background: #e50914;
+      color: white; border: none;
+      padding: 15px 35px; font-size: 18px; font-weight: bold;
+      border-radius: 30px; margin-top: 15px; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(229,9,20,0.5);
+    }
+
+    /* Real TV Badges & EPG Overlay */
+    .live-badge {
+      position: absolute;
+      top: 25px; left: 25px;
+      background: #e50914; color: #fff;
+      padding: 6px 14px; font-weight: bold; font-size: 13px;
+      border-radius: 4px; letter-spacing: 1.5px;
+      z-index: 10; display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    .live-dot { width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: pulse 1s infinite alternate; }
+    @keyframes pulse { from { opacity: 0.3; } to { opacity: 1; } }
+
+    /* TV Guide / EPG Bottom Overlay */
+    .epg-bar {
+      position: absolute;
+      bottom: 25px; left: 25px; right: 25px;
+      background: rgba(15, 15, 20, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 18px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      color: white;
+    }
+
+    .now-playing { display: flex; align-items: center; gap: 20px; max-width: 65%; }
+    .now-poster { width: 60px; height: 85px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); }
+    .now-details h3 { font-size: 20px; font-weight: 700; margin-bottom: 5px; color: #fff; }
+    .now-meta { display: flex; gap: 10px; align-items: center; font-size: 12px; color: #bbb; }
+    .tag { background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 3px; font-weight: bold; }
+
+    .up-next { display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; }
+    .next-label { font-size: 11px; text-transform: uppercase; color: #e50914; font-weight: bold; }
+    .next-title { font-size: 14px; font-weight: 600; color: #eee; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .next-poster { width: 35px; height: 50px; object-fit: cover; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="live-badge">
+  <div class="live-dot"></div> LIVE TV
+</div>
+
+<div id="overlay" onclick="joinStream()">
+  <h2>Digital TV Network</h2>
+  <button>CLICK TO WATCH LIVE</button>
+</div>
+
+<div class="video-viewport">
+  <video id="playerA" class="video-player active" playsinline></video>
+  <video id="playerB" class="video-player hidden" playsinline></video>
+</div>
+
+<!-- Bottom Live EPG Bar -->
+<div class="epg-bar" id="epgBar" style="display:none;">
+  <div class="now-playing">
+    <img id="nowPoster" class="now-poster" src="" alt="">
+    <div class="now-details">
+      <div class="now-meta">
+        <span class="tag" id="nowRating">U</span>
+        <span id="nowStudio">Studio</span>
+      </div>
+      <h3 id="nowTitle">Loading...</h3>
+    </div>
+  </div>
+
+  <div class="up-next">
+    <img id="nextPoster" class="next-poster" src="" alt="">
+    <div>
+      <div class="next-label">Up Next</div>
+      <div class="next-title" id="nextTitle">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+    authDomain: "internal-systems-46728.firebaseapp.com",
+    projectId: "internal-systems-46728",
+    storageBucket: "internal-systems-46728.firebasestorage.app",
+    messagingSenderId: "172177452674",
+    appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+    measurementId: "G-Y87B8VRQ1N"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let scheduleData = null;
+  let activePlayer = 'A'; // 'A' or 'B'
+  let playerA = document.getElementById('playerA');
+  let playerB = document.getElementById('playerB');
+  let hlsA = null, hlsB = null;
+  let loopCheckTimer = null;
+
+  async function initStream() {
+    try {
+      const doc = await db.collection("schedules").doc("live_tv").get();
+      if (!doc.exists) {
+        alert("No schedule found. Run 1.html first!");
+        return;
+      }
+      scheduleData = doc.data();
+      syncPlayback();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function calculateCurrentItem(schedule) {
+    const now = Date.now();
+    const elapsedSeconds = Math.floor((now - schedule.epochStartTime) / 1000);
+    
+    let cycleTime = elapsedSeconds % schedule.totalDuration;
+    if (cycleTime < 0) cycleTime += schedule.totalDuration;
+
+    let accumulated = 0;
+    for (let i = 0; i < schedule.items.length; i++) {
+      const item = schedule.items[i];
+      if (cycleTime >= accumulated && cycleTime < (accumulated + item.duration)) {
+        const nextItem = schedule.items[(i + 1) % schedule.items.length];
+        return {
+          current: item,
+          offset: cycleTime - accumulated,
+          remaining: item.duration - (cycleTime - accumulated),
+          next: nextItem
+        };
+      }
+      accumulated += item.duration;
+    }
+    return { current: schedule.items[0], offset: 0, remaining: schedule.items[0].duration, next: schedule.items[1] || schedule.items[0] };
+  }
+
+  function loadMediaSource(videoElement, url) {
+    if (url.includes('.m3u8') && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(url);
+      hls.attachMedia(videoElement);
+      return hls;
+    } else {
+      videoElement.src = url;
+      return null;
+    }
+  }
+
+  function syncPlayback() {
+    if (!scheduleData) return;
+
+    const data = calculateCurrentItem(scheduleData);
+    updateEPG(data.current, data.next);
+
+    const currentPlayer = activePlayer === 'A' ? playerA : playerB;
+
+    // Load Stream into Current Active Player
+    if (activePlayer === 'A') {
+      hlsA = loadMediaSource(playerA, data.current.stream);
+    } else {
+      hlsB = loadMediaSource(playerB, data.current.stream);
+    }
+
+    currentPlayer.currentTime = data.offset;
+    currentPlayer.play().catch(e => console.log("Autoplay waiting for click"));
+
+    // Schedule Next Switch Timer
+    clearTimeout(loopCheckTimer);
+    loopCheckTimer = setTimeout(() => {
+      switchPlayer();
+    }, data.remaining * 1000);
+  }
+
+  function switchPlayer() {
+    const nextPlayerType = activePlayer === 'A' ? 'B' : 'A';
+    const currentPlayer = activePlayer === 'A' ? playerA : playerB;
+    const nextPlayer = nextPlayerType === 'A' ? playerA : playerB;
+
+    activePlayer = nextPlayerType;
+
+    // Swap Visual Stack
+    nextPlayer.classList.remove('hidden');
+    nextPlayer.classList.add('active');
+    currentPlayer.classList.remove('active');
+    currentPlayer.classList.add('hidden');
+
+    // Sync state for new active player
+    syncPlayback();
+  }
+
+  function updateEPG(current, next) {
+    document.getElementById('epgBar').style.display = 'flex';
+    document.getElementById('nowTitle').innerText = current.name;
+    document.getElementById('nowStudio').innerText = current.studio;
+    document.getElementById('nowRating').innerText = current.ageRating;
+    document.getElementById('nowPoster').src = current.poster || 'https://via.placeholder.com/60x85';
+
+    document.getElementById('nextTitle').innerText = next.name;
+    document.getElementById('nextPoster').src = next.poster || 'https://via.placeholder.com/35x50';
+  }
+
+  function joinStream() {
+    document.getElementById('overlay').style.display = 'none';
+    playerA.play();
+    playerB.play();
+  }
+
+  // Initialize Stream on Load
+  window.onload = initStream;
+</script>
+</body>
+</html>
