@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Preview - Hotstar</title>
+  
+  <!-- YouTube IFrame API for Trailer Playback -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <style>
+    :root {
+      --bg-color: #090a0f;
+      --card-bg: #151821;
+      --accent-blue: #0072ef;
+      --text-main: #ffffff;
+      --text-muted: #8f98b2;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --btn-white: #ffffff;
+      --btn-white-text: #090a0f;
+      --btn-dark: #1e2230;
+      --live-red: #e50914;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding-bottom: 90px;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* Fixed Top Floating Header */
+    .top-floating-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      background: linear-gradient(180deg, rgba(9,10,15,0.85) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    .nav-btn {
+      background: rgba(15, 16, 23, 0.65);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      pointer-events: auto;
+      backdrop-filter: blur(8px);
+      transition: transform 0.15s ease;
+    }
+    .nav-btn:active { transform: scale(0.9); }
+    .nav-btn svg { width: 20px; height: 20px; fill: #fff; }
+
+    /* Hero Banner & Trailer Container */
+    .hero-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background-color: #000;
+      overflow: hidden;
+    }
+    .hero-banner-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.6s ease;
+    }
+    .hero-trailer-host {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+      background: #000;
+    }
+    .hero-trailer-host.playing {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .hero-trailer-host iframe, 
+    .hero-trailer-host video {
+      width: 100%;
+      height: 100%;
+      border: none;
+      object-fit: cover;
+    }
+    .hero-gradient-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(9,10,15,0.2) 0%, transparent 40%, rgba(9,10,15,0.85) 80%, #090a0f 100%);
+      pointer-events: none;
+    }
+    .trailer-status-badge {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid var(--border-color);
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      backdrop-filter: blur(6px);
+      z-index: 10;
+    }
+
+    /* Content Info Section */
+    .content-details-wrap {
+      padding: 0 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      margin-top: -30px;
+      z-index: 10;
+    }
+
+    .brand-logo-img {
+      max-width: 200px;
+      max-height: 75px;
+      object-fit: contain;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8));
+    }
+    .title-fallback {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    /* Meta details row */
+    .meta-pills-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+    .meta-pill-badge {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* Primary & Secondary CTA Buttons */
+    .cta-container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .btn-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 13px 18px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      border: none;
+    }
+    .btn-cta:active { transform: scale(0.98); opacity: 0.9; }
+    .btn-cta svg { width: 20px; height: 20px; fill: currentColor; }
+
+    .btn-cta-primary {
+      background-color: var(--btn-white);
+      color: var(--btn-white-text);
+    }
+    .btn-cta-secondary {
+      background-color: var(--btn-dark);
+      color: #fff;
+      border: 1px solid var(--border-color);
+    }
+    .btn-cta-subscribe {
+      background: linear-gradient(90deg, #0072ef 0%, #00d2ff 100%);
+      color: #fff;
+    }
+
+    /* Tags & Description */
+    .genres-tags-line {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .genres-tags-line span {
+      color: var(--text-muted);
+      margin: 0 4px;
+    }
+    .description-para {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin-bottom: 22px;
+    }
+
+    /* Action Icons (Watchlist, Share, Rate) */
+    .action-icons-row {
+      display: flex;
+      justify-content: center;
+      gap: 46px;
+      width: 100%;
+      margin-bottom: 28px;
+    }
+    .action-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      opacity: 0.85;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .action-item:active { transform: scale(0.92); opacity: 1; }
+    .action-item.active { color: var(--accent-blue); }
+    .action-item svg { width: 22px; height: 22px; fill: currentColor; }
+
+    /* Section Containers */
+    .section-container {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto 26px;
+      padding: 0 18px;
+      text-align: left;
+    }
+    .section-heading {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      color: #fff;
+    }
+
+    /* Episodes List for Shows */
+    .episodes-wrapper { display: none; }
+    .season-tab-row {
+      display: flex;
+      gap: 18px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .season-tab-row::-webkit-scrollbar { display: none; }
+    .season-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+      padding-bottom: 6px;
+    }
+    .season-btn.active { color: #fff; }
+    .season-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: #fff;
+    }
+
+    .episodes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .ep-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      color: #fff;
+      transition: background 0.15s ease;
+    }
+    .ep-card:active { background: rgba(255, 255, 255, 0.08); }
+    .ep-thumb-wrap {
+      position: relative;
+      width: 120px;
+      min-width: 120px;
+      aspect-ratio: 16/9;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #151821;
+    }
+    .ep-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .ep-play-circle {
+      position: absolute;
+      bottom: 6px;
+      left: 6px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ep-play-circle svg { width: 10px; height: 10px; fill: #fff; margin-left: 1px; }
+
+    .ep-info { flex: 1; min-width: 0; }
+    .ep-name {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ep-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .ep-download-btn {
+      color: var(--text-muted);
+      padding: 6px;
+      cursor: pointer;
+    }
+    .ep-download-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+    .view-more-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 140px;
+      margin: 16px auto 6px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Recommendations Grid ("More Like This") */
+    .rec-grid-vertical {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (min-width: 600px) {
+      .rec-grid-vertical { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (min-width: 800px) {
+      .rec-grid-vertical { grid-template-columns: repeat(6, 1fr); }
+    }
+
+    .poster-card {
+      position: relative;
+      aspect-ratio: 2/3;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.15s ease;
+    }
+    .poster-card:active { transform: scale(0.96); }
+    .poster-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Bottom Hotstar Navigation Bar */
+    .bottom-app-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: rgba(9, 10, 15, 0.95);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+    }
+    .nav-tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-tab-item.active { color: #fff; }
+    .nav-tab-item svg { width: 22px; height: 22px; fill: currentColor; }
+
+    /* Toast Notification */
+    .toast-box {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(21, 24, 33, 0.95);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .toast-box.show { opacity: 1; }
+
+    /* Loader */
+    .loader-wrap {
+      text-align: center;
+      padding: 100px 20px;
+      color: var(--accent-blue);
+      font-weight: 700;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Close/Back Nav -->
+  <div class="top-floating-nav">
+    <div style="flex:1;"></div>
+    <button class="nav-btn" onclick="window.history.back()" title="Close">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+  </div>
+
+  <div id="loader" class="loader-wrap">Loading details...</div>
+
+  <div id="previewMain" style="display: none;">
+    <!-- Banner & Auto-Trailer Hero -->
+    <div class="hero-container" id="heroContainer">
+      <img id="heroBanner" class="hero-banner-img" src="" alt="Banner">
+      <div id="heroTrailerHost" class="hero-trailer-host"></div>
+      <div class="hero-gradient-overlay"></div>
+      <div class="trailer-status-badge" id="trailerStatus">BANNER</div>
+    </div>
+
+    <!-- Metadata & Details -->
+    <div class="content-details-wrap">
+      <img id="contentLogo" class="brand-logo-img" src="" alt="Logo" style="display: none;">
+      <h1 id="contentTitle" class="title-fallback" style="display: none;">Title</h1>
+
+      <div class="meta-pills-row" id="metaPillsRow"></div>
+
+      <!-- Action / Watch CTA Buttons -->
+      <div class="cta-container" id="ctaContainer"></div>
+
+      <!-- Tags & Description -->
+      <div class="genres-tags-line" id="genresTagsLine"></div>
+      <div class="description-para" id="contentDescription"></div>
+
+      <!-- Action Items: Watchlist, Share, Rate -->
+      <div class="action-icons-row">
+        <div class="action-item" id="btnWatchlist">
+          <svg id="wlIcon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span id="wlLabel">Watchlist</span>
+        </div>
+        <div class="action-item" id="btnShare">
+          <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+          <span>Share</span>
+        </div>
+        <div class="action-item" id="btnRate">
+          <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span id="rateLabel">Rate</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Episodes Section (Only shown for TV Shows) -->
+    <div class="section-container episodes-wrapper" id="episodesSection">
+      <div class="section-heading">Episodes</div>
+      <div class="season-tab-row" id="seasonTabsRow"></div>
+      <div class="episodes-list" id="episodesList"></div>
+      <button class="view-more-btn" id="btnViewMoreEpisodes" style="display: none;">View More</button>
+    </div>
+
+    <!-- More Like This Grid -->
+    <div class="section-container">
+      <div class="section-heading">More Like This</div>
+      <div class="rec-grid-vertical" id="recommendationsGrid"></div>
+    </div>
+  </div>
+
+  <!-- Bottom App Navigation Bar -->
+  <div class="bottom-app-nav">
+    <a class="nav-tab-item" href="1.html">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <span>Search</span>
+    </a>
+    <a class="nav-tab-item active" href="1.html">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a class="nav-tab-item" href="1.html">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      <span>My Space</span>
+    </a>
+  </div>
+
+  <div class="toast-box" id="toastAlert"></div>
+
+  <!-- Firebase Scripts & Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 1. Content Database Configuration
+    const contentConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+      measurementId: "G-Y87B8VRQ1N"
+    };
+    const contentApp = initializeApp(contentConfig, "contentApp");
+    const contentDb = getFirestore(contentApp);
+
+    // 2. User & Watchlist Database Configuration
+    const userConfig = {
+      apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+      authDomain: "question-metabase.firebaseapp.com",
+      databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "question-metabase",
+      storageBucket: "question-metabase.firebasestorage.app",
+      messagingSenderId: "770698198753",
+      appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+      measurementId: "G-6ZP1FPMKSJ"
+    };
+    const userApp = initializeApp(userConfig, "userApp");
+    const userDb = getFirestore(userApp);
+
+    // Global State
+    let currentItem = null;
+    let contentType = 'movie'; // 'movie' | 'show' | 'live'
+    let currentCollection = 'Movies';
+    let currentUser = null;
+    let userDocRef = null;
+    let userWatchlist = [];
+    let userHasPlan = false;
+    let trailerTimeout = null;
+    let ytTrailerPlayer = null;
+    let currentSeasonKey = null;
+    let showAllEpisodes = false;
+
+    // URL Query Param (?preview=id or fallback ?watch=id)
+    const urlParams = new URLSearchParams(window.location.search);
+    const contentId = urlParams.get('preview') || urlParams.get('watch');
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastAlert');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function safeUrl(url) {
+      if (!url) return '';
+      return url.trim().replace(/^http:\/\//i, 'https://');
+    }
+
+    function extractYouTubeId(url) {
+      if (!url) return null;
+      try {
+        const u = new URL(url.trim());
+        if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('/')[0];
+        if (u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com')) {
+          if (u.pathname === '/watch') return u.searchParams.get('v');
+          if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
+          if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
+        }
+      } catch (e) {
+        if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+      }
+      return null;
+    }
+
+    async function initPreview() {
+      if (!contentId) {
+        document.getElementById('loader').innerText = "URL Parameter Missing (?preview=DOCUMENT_ID)";
+        return;
+      }
+
+      await checkUserDataAndPlan();
+      await fetchContentData(contentId);
+    }
+
+    async function checkUserDataAndPlan() {
+      try {
+        const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
+        currentUser = stored ? JSON.parse(stored) : null;
+      } catch (e) { currentUser = null; }
+
+      if (currentUser) {
+        try {
+          let q = null;
+          if (currentUser.Lotus) {
+            q = query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus));
+          } else if (currentUser.Email) {
+            q = query(collection(userDb, "UARM"), where("Email", "==", currentUser.Email));
+          } else if (currentUser.id) {
+            userDocRef = doc(userDb, "UARM", currentUser.id);
+          }
+
+          if (q) {
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              userDocRef = doc(userDb, "UARM", snap.docs[0].id);
+              const uData = snap.docs[0].data();
+              userWatchlist = uData.Watchlist || [];
+              userHasPlan = Boolean(uData.Plan || uData.Subscription || uData.Premium || uData.hasPlan);
+            }
+          } else if (userDocRef) {
+            const snap = await getDoc(userDocRef);
+            if (snap.exists()) {
+              const uData = snap.data();
+              userWatchlist = uData.Watchlist || [];
+              userHasPlan = Boolean(uData.Plan || uData.Subscription || uData.Premium || uData.hasPlan);
+            }
+          }
+        } catch (err) {
+          console.warn("User auth checking fallback", err);
+        }
+      }
+      // If user is guest, plan is false by default
+    }
+
+    async function fetchContentData(id) {
+      const collections = ["Live TV", "Movies", "Shows"];
+      let matchedDoc = null;
+
+      for (const col of collections) {
+        try {
+          const snap = await getDoc(doc(contentDb, col, id));
+          if (snap.exists()) {
+            matchedDoc = snap.data();
+            currentCollection = col;
+            break;
+          }
+        } catch (e) {}
+      }
+
+      if (!matchedDoc) {
+        document.getElementById('loader').innerText = `Content "${id}" not found.`;
+        return;
+      }
+
+      currentItem = { id, ...matchedDoc };
+
+      // Determine 3 Cases: Live, Movies, Shows
+      const seasons = Object.keys(currentItem).filter(k => k.toLowerCase().startsWith('season'));
+      if (currentCollection === "Shows" || seasons.length > 0) {
+        contentType = 'show';
+        currentSeasonKey = seasons[0] || 'Season 1';
+      } else if (currentCollection === "Movies") {
+        contentType = 'movie';
+      } else {
+        contentType = 'live';
+      }
+
+      renderPreviewUI();
+      scheduleTrailerPlayback();
+      fetchRecommendations();
+    }
+
+    function renderPreviewUI() {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('previewMain').style.display = 'block';
+
+      // 1. Banner
+      const bannerImg = document.getElementById('heroBanner');
+      const bannerUrl = safeUrl(currentItem.Banner || currentItem["Poster.h"] || currentItem.Poster || '');
+      bannerImg.src = bannerUrl;
+
+      // 2. Logo / Title
+      const logoImg = document.getElementById('contentLogo');
+      const titleFallback = document.getElementById('contentTitle');
+      const logoUrl = safeUrl(currentItem.Logo || currentItem["Logo.png"] || '');
+
+      if (logoUrl) {
+        logoImg.src = logoUrl;
+        logoImg.style.display = 'block';
+        titleFallback.style.display = 'none';
+      } else {
+        logoImg.style.display = 'none';
+        titleFallback.innerText = currentItem.Name || currentItem.Title || "Content";
+        titleFallback.style.display = 'block';
+      }
+
+      // 3. Meta Pills Row
+      const metaRow = document.getElementById('metaPillsRow');
+      const year = currentItem.Year || currentItem["Release Year"] || (contentType === 'live' ? 'LIVE' : '2024');
+      const age = currentItem.Age_Rating || currentItem["Age Rating"] || currentItem.Rating || 'U/A 13+';
+      const languages = Array.isArray(currentItem.Language) ? currentItem.Language.join(', ') : (currentItem.Language || 'Hindi, English');
+      
+      let durationOrSeasons = '';
+      if (contentType === 'show') {
+        const seasons = Object.keys(currentItem).filter(k => k.toLowerCase().startsWith('season'));
+        durationOrSeasons = `${seasons.length || 1} Season${seasons.length > 1 ? 's' : ''}`;
+      } else if (contentType === 'movie') {
+        durationOrSeasons = currentItem.Duration || '1h 45m';
+      }
+
+      metaRow.innerHTML = `
+        <span>${year}</span>
+        <span class="meta-pill-badge">${age}</span>
+        ${durationOrSeasons ? `<span>•</span><span>${durationOrSeasons}</span>` : ''}
+        <span>•</span><span>${languages}</span>
+      `;
+
+      // 4. Action CTA Buttons
+      renderCTAButtons();
+
+      // 5. Tags & Description
+      const genresLine = document.getElementById('genresTagsLine');
+      const rawGenres = currentItem.Genres || currentItem.Tags || '';
+      const genreItems = (Array.isArray(rawGenres) ? rawGenres : rawGenres.split(/[,/|]+/)).map(g => g.trim()).filter(Boolean);
+      genresLine.innerHTML = genreItems.map(g => `<b>${g}</b>`).join(' <span>|</span> ');
+
+      const desc = currentItem.Discription || currentItem.Description || "Enjoy thrilling streaming content only on Hotstar.";
+      document.getElementById('contentDescription').innerText = desc;
+
+      // 6. Watchlist state
+      updateWatchlistButtonState();
+
+      // 7. Render Episodes if Show
+      if (contentType === 'show') {
+        renderEpisodesSection();
+      } else {
+        document.getElementById('episodesSection').style.display = 'none';
+      }
+    }
+
+    function renderCTAButtons() {
+      const ctaBox = document.getElementById('ctaContainer');
+      ctaBox.innerHTML = '';
+
+      // Check Saved Progress from localStorage
+      let resumeKey = currentItem.id;
+      if (contentType === 'show' && currentSeasonKey) {
+        resumeKey = `${currentItem.id}_${currentSeasonKey}_ep0`;
+      }
+      const savedTime = parseFloat(localStorage.getItem(`progress_${resumeKey}`) || '0');
+      const hasWatchedBefore = savedTime > 15;
+
+      // Case A: User has NO active plan
+      if (!userHasPlan) {
+        ctaBox.innerHTML = `
+          <a class="btn-cta btn-cta-subscribe" href="1.html?action=subscribe">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+            Subscribe to Watch
+          </a>
+        `;
+        return;
+      }
+
+      // Case B: User has plan and HAS started watching before (Resume / Start from beginning)
+      if (hasWatchedBefore && contentType !== 'live') {
+        const subLabel = contentType === 'show' ? 'S1 E1' : '';
+        ctaBox.innerHTML = `
+          <a class="btn-cta btn-cta-primary" href="1.html?watch=${currentItem.id}&action=resume">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Resume ${subLabel}
+          </a>
+          <a class="btn-cta btn-cta-secondary" href="1.html?watch=${currentItem.id}&action=starting">
+            <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+            Watch from Beginning ${subLabel}
+          </a>
+        `;
+        return;
+      }
+
+      // Case C: Fresh Watch
+      let primaryLabel = "Watch Now";
+      if (contentType === 'live') primaryLabel = "Watch Live";
+      
+      ctaBox.innerHTML = `
+        <a class="btn-cta btn-cta-primary" href="1.html?watch=${currentItem.id}&action=starting">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          ${primaryLabel}
+        </a>
+      `;
+    }
+
+    // 2-4 Second Auto-Trailer Transition
+    function scheduleTrailerPlayback() {
+      const trailerStatus = document.getElementById('trailerStatus');
+      const trailerUrl = safeUrl(currentItem.Trailer || '');
+
+      clearTimeout(trailerTimeout);
+      trailerTimeout = setTimeout(() => {
+        if (!trailerUrl) {
+          trailerStatus.innerText = "UNAVAILABLE";
+          return;
+        }
+
+        const ytId = extractYouTubeId(trailerUrl);
+        const host = document.getElementById('heroTrailerHost');
+
+        if (ytId) {
+          host.innerHTML = `<div id="ytTrailerPlayer"></div>`;
+          host.classList.add('playing');
+          trailerStatus.innerText = "TRAILER";
+
+          ytTrailerPlayer = new YT.Player('ytTrailerPlayer', {
+            videoId: ytId,
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              mute: 1,
+              loop: 1,
+              playlist: ytId,
+              playsinline: 1,
+              modestbranding: 1
+            },
+            events: {
+              onReady: (e) => e.target.playVideo(),
+              onError: () => {
+                trailerStatus.innerText = "UNAVAILABLE";
+                host.classList.remove('playing');
+              }
+            }
+          });
+        } else if (trailerUrl.endsWith('.mp4') || trailerUrl.includes('.m3u8')) {
+          host.innerHTML = `<video src="${trailerUrl}" autoplay muted loop playsinline></video>`;
+          host.classList.add('playing');
+          trailerStatus.innerText = "TRAILER";
+        } else {
+          trailerStatus.innerText = "UNAVAILABLE";
+        }
+      }, 3000); // 3 seconds timeout
+    }
+
+    // TV Show Episodes
+    function renderEpisodesSection() {
+      const epWrap = document.getElementById('episodesSection');
+      const tabsRow = document.getElementById('seasonTabsRow');
+      const listEl = document.getElementById('episodesList');
+      const viewMoreBtn = document.getElementById('btnViewMoreEpisodes');
+
+      const seasons = Object.keys(currentItem).filter(k => k.toLowerCase().startsWith('season'));
+      if (seasons.length === 0) {
+        epWrap.style.display = 'none';
+        return;
+      }
+
+      epWrap.style.display = 'block';
+      tabsRow.innerHTML = seasons.map(s => `
+        <button class="season-btn ${s === currentSeasonKey ? 'active' : ''}" onclick="window.selectSeasonTab('${s}')">
+          ${s}
+        </button>
+      `).join('');
+
+      const epList = currentItem[currentSeasonKey] || [];
+      const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
+      const limit = showAllEpisodes ? epList.length : 5;
+
+      listEl.innerHTML = epList.slice(0, limit).map((ep, idx) => `
+        <a class="ep-card" href="1.html?watch=${currentItem.id}&season=${encodeURIComponent(currentSeasonKey)}&ep=${idx + 1}">
+          <div class="ep-thumb-wrap">
+            <img src="${safeUrl(currentItem["Poster.h"] || currentItem.Banner || '')}" alt="${ep.Name}">
+            <div class="ep-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="ep-info">
+            <div class="ep-name">${ep.Name || `Episode ${idx + 1}`}</div>
+            <div class="ep-subtext">S${seasonNum} E${idx + 1} • ${ep.Duration || '28m'}</div>
+          </div>
+          <div class="ep-download-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          </div>
+        </a>
+      `).join('');
+
+      if (epList.length > 5) {
+        viewMoreBtn.style.display = 'flex';
+        viewMoreBtn.innerText = showAllEpisodes ? 'View Less' : 'View More';
+        viewMoreBtn.onclick = () => {
+          showAllEpisodes = !showAllEpisodes;
+          renderEpisodesSection();
+        };
+      } else {
+        viewMoreBtn.style.display = 'none';
+      }
+    }
+
+    window.selectSeasonTab = function(seasonKey) {
+      currentSeasonKey = seasonKey;
+      renderEpisodesSection();
+    };
+
+    // Watchlist Interactions
+    function updateWatchlistButtonState() {
+      const btn = document.getElementById('btnWatchlist');
+      const isAdded = userWatchlist.includes(currentItem.id);
+      btn.classList.toggle('active', isAdded);
+      document.getElementById('wlLabel').innerText = isAdded ? 'Added' : 'Watchlist';
+      document.getElementById('wlIcon').innerHTML = isAdded 
+        ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' 
+        : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
+    }
+
+    document.getElementById('btnWatchlist').onclick = async () => {
+      if (!userDocRef) {
+        showToast("Please login to save to Watchlist");
+        return;
+      }
+      const isAdded = userWatchlist.includes(currentItem.id);
+      try {
+        if (isAdded) {
+          await updateDoc(userDocRef, { Watchlist: arrayRemove(currentItem.id) });
+          userWatchlist = userWatchlist.filter(id => id !== currentItem.id);
+          showToast("Removed from Watchlist");
+        } else {
+          await updateDoc(userDocRef, { Watchlist: arrayUnion(currentItem.id) });
+          userWatchlist.push(currentItem.id);
+          showToast("Added to Watchlist");
+        }
+        updateWatchlistButtonState();
+      } catch (err) {
+        showToast("Watchlist updated");
+      }
+    };
+
+    // Share Interaction
+    document.getElementById('btnShare').onclick = async () => {
+      const shareUrl = `${window.location.origin}${window.location.pathname}?preview=${currentItem.id}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: currentItem.Name || "Hotstar",
+            text: `Watch ${currentItem.Name} on Hotstar!`,
+            url: shareUrl
+          });
+        } catch(e){}
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        showToast("Link copied to clipboard!");
+      }
+    };
+
+    // Rate Interaction
+    document.getElementById('btnRate').onclick = () => {
+      const btn = document.getElementById('btnRate');
+      btn.classList.toggle('active');
+      showToast(btn.classList.contains('active') ? "Rated ★★★★★" : "Rating removed");
+    };
+
+    // Recommendations Engine ("More Like This")
+    async function fetchRecommendations() {
+      const grid = document.getElementById('recommendationsGrid');
+      try {
+        const snap = await getDocs(collection(contentDb, currentCollection));
+        let items = [];
+        snap.forEach(d => {
+          if (d.id !== currentItem.id) items.push({ id: d.id, ...d.data() });
+        });
+
+        // Similarity Algorithm (Studio, Genres, Rating, Tags)
+        const targetGenres = (currentItem.Genres || '').toLowerCase().split(/[,/|]+/);
+        const targetStudio = (currentItem.Studio || '').toLowerCase();
+        const targetAge = (currentItem.Age_Rating || '').toLowerCase();
+
+        items.sort((a, b) => {
+          let scoreA = 0;
+          let scoreB = 0;
+
+          const aG = (a.Genres || '').toLowerCase();
+          const bG = (b.Genres || '').toLowerCase();
+          targetGenres.forEach(g => {
+            if (g && aG.includes(g.trim())) scoreA += 10;
+            if (g && bG.includes(g.trim())) scoreB += 10;
+          });
+
+          if (targetStudio && (a.Studio || '').toLowerCase().includes(targetStudio)) scoreA += 15;
+          if (targetStudio && (b.Studio || '').toLowerCase().includes(targetStudio)) scoreB += 15;
+
+          if (targetAge && (a.Age_Rating || '').toLowerCase() === targetAge) scoreA += 5;
+          if (targetAge && (b.Age_Rating || '').toLowerCase() === targetAge) scoreB += 5;
+
+          return scoreB - scoreA;
+        });
+
+        grid.innerHTML = items.slice(0, 12).map(c => {
+          const vPoster = safeUrl(c["Poster.v"] || c.Poster_v || c.Poster || c.Banner || '');
+          return `
+            <a class="poster-card" href="preview.html?preview=${c.id}">
+              <img src="${vPoster}" alt="${c.Name || 'Title'}" loading="lazy">
+            </a>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error("Recs error", err);
+      }
+    }
+
+    // Launch
+    initPreview();
+  </script>
+</body>
+</html>
