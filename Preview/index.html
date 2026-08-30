@@ -108,7 +108,7 @@
     .hero-gradient-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(9,10,15,0.2) 0%, transparent 40%, rgba(9,10,15,0.85) 80%, #090a0f 100%);
+      background: linear-gradient(180deg, rgba(9,10,15,0.1) 0%, transparent 40%, rgba(9,10,15,0.85) 80%, #090a0f 100%);
       pointer-events: none;
     }
     .trailer-status-badge {
@@ -139,11 +139,11 @@
     }
 
     .brand-logo-img {
-      max-width: 200px;
-      max-height: 75px;
+      max-width: 220px;
+      max-height: 80px;
       object-fit: contain;
       margin-bottom: 12px;
-      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8));
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.85));
     }
     .title-fallback {
       font-size: 26px;
@@ -152,7 +152,7 @@
       color: #fff;
     }
 
-    /* Meta details row */
+    /* Metadata pills */
     .meta-pills-row {
       display: flex;
       align-items: center;
@@ -165,7 +165,7 @@
       margin-bottom: 18px;
     }
     .meta-pill-badge {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
       color: #fff;
       padding: 2px 7px;
       border-radius: 4px;
@@ -257,7 +257,7 @@
     .action-item.active { color: var(--accent-blue); }
     .action-item svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Section Containers */
+    /* Sections */
     .section-container {
       width: 100%;
       max-width: 900px;
@@ -318,7 +318,6 @@
       padding: 8px;
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.02);
-      border: 1px solid transparent;
       cursor: pointer;
       text-decoration: none;
       color: #fff;
@@ -367,7 +366,6 @@
     .ep-download-btn {
       color: var(--text-muted);
       padding: 6px;
-      cursor: pointer;
     }
     .ep-download-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
@@ -568,7 +566,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 1. Content Database Configuration
+    // 1. Content Database Configuration (internal-systems-46728)
     const contentConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -581,7 +579,7 @@
     const contentApp = initializeApp(contentConfig, "contentApp");
     const contentDb = getFirestore(contentApp);
 
-    // 2. User & Watchlist Database Configuration
+    // 2. User & Subscription Database Configuration (question-metabase)
     const userConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
@@ -602,7 +600,8 @@
     let currentUser = null;
     let userDocRef = null;
     let userWatchlist = [];
-    let userHasPlan = false;
+    let userAuthorizedStudios = new Set();
+    let hasAccess = false;
     let trailerTimeout = null;
     let ytTrailerPlayer = null;
     let currentSeasonKey = null;
@@ -646,48 +645,93 @@
         return;
       }
 
-      await checkUserDataAndPlan();
+      await loadUserSubscriptionPlan();
       await fetchContentData(contentId);
     }
 
-    async function checkUserDataAndPlan() {
+    // ==========================================
+    // USER PLANS & AUTHORIZATION VERIFICATION
+    // ==========================================
+    async function loadUserSubscriptionPlan() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
         currentUser = stored ? JSON.parse(stored) : null;
       } catch (e) { currentUser = null; }
 
-      if (currentUser) {
-        try {
-          let q = null;
-          if (currentUser.Lotus) {
-            q = query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus));
-          } else if (currentUser.Email) {
-            q = query(collection(userDb, "UARM"), where("Email", "==", currentUser.Email));
-          } else if (currentUser.id) {
-            userDocRef = doc(userDb, "UARM", currentUser.id);
-          }
+      if (!currentUser) return;
 
-          if (q) {
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-              userDocRef = doc(userDb, "UARM", snap.docs[0].id);
-              const uData = snap.docs[0].data();
-              userWatchlist = uData.Watchlist || [];
-              userHasPlan = Boolean(uData.Plan || uData.Subscription || uData.Premium || uData.hasPlan);
-            }
-          } else if (userDocRef) {
-            const snap = await getDoc(userDocRef);
-            if (snap.exists()) {
-              const uData = snap.data();
-              userWatchlist = uData.Watchlist || [];
-              userHasPlan = Boolean(uData.Plan || uData.Subscription || uData.Premium || uData.hasPlan);
-            }
+      try {
+        let uData = null;
+
+        // Fetch User Record from UARM collection in question-metabase
+        if (currentUser.Lotus) {
+          const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
+          if (!snap.empty) {
+            userDocRef = doc(userDb, "UARM", snap.docs[0].id);
+            uData = snap.docs[0].data();
           }
-        } catch (err) {
-          console.warn("User auth checking fallback", err);
+        } else if (currentUser.Email) {
+          const snap = await getDocs(query(collection(userDb, "UARM"), where("Email", "==", currentUser.Email)));
+          if (!snap.empty) {
+            userDocRef = doc(userDb, "UARM", snap.docs[0].id);
+            uData = snap.docs[0].data();
+          }
+        } else if (currentUser.id || currentUser.UARMS_ID) {
+          const uId = currentUser.id || currentUser.UARMS_ID;
+          userDocRef = doc(userDb, "UARM", uId);
+          const snap = await getDoc(userDocRef);
+          if (snap.exists()) uData = snap.data();
+        }
+
+        if (!uData) return;
+
+        userWatchlist = uData.Watchlist || [];
+
+        // Check user Plans array (e.g., ["A985D1D235"])
+        const userPlanIds = Array.isArray(uData.Plans) ? uData.Plans : (uData.Plan ? [uData.Plan] : []);
+
+        // Resolve Studios granted by user's active Plans
+        for (const planId of userPlanIds) {
+          if (!planId) continue;
+          try {
+            // Check "Plans & Subscriptions"
+            let pSnap = await getDoc(doc(userDb, "Plans & Subscriptions", planId));
+            if (!pSnap.exists()) {
+              pSnap = await getDoc(doc(userDb, "Plans & Subscription", planId));
+            }
+
+            if (pSnap.exists()) {
+              const pData = pSnap.data();
+              const studios = Array.isArray(pData.Studio) ? pData.Studio : (pData.Studios || []);
+              studios.forEach(s => userAuthorizedStudios.add(String(s).trim().toLowerCase()));
+            }
+          } catch (err) {
+            console.warn("Error fetching plan doc:", planId, err);
+          }
+        }
+      } catch (err) {
+        console.warn("User auth verification error", err);
+      }
+    }
+
+    function checkContentAccess(content) {
+      if (!content) return false;
+      const contentStudio = String(content.Studio || content.Partner || '').trim().toLowerCase();
+
+      // Free tier content or "free-4-all"
+      if (!contentStudio || contentStudio === 'free' || contentStudio === 'open') return true;
+
+      // Check if user has studio permission granted in any of their plans
+      if (userAuthorizedStudios.has(contentStudio)) return true;
+
+      // Allow partial match (e.g. "disney" in "disney india")
+      for (const authStudio of userAuthorizedStudios) {
+        if (contentStudio.includes(authStudio) || authStudio.includes(contentStudio)) {
+          return true;
         }
       }
-      // If user is guest, plan is false by default
+
+      return false;
     }
 
     async function fetchContentData(id) {
@@ -711,6 +755,7 @@
       }
 
       currentItem = { id, ...matchedDoc };
+      hasAccess = checkContentAccess(currentItem);
 
       // Determine 3 Cases: Live, Movies, Shows
       const seasons = Object.keys(currentItem).filter(k => k.toLowerCase().startsWith('season'));
@@ -752,7 +797,7 @@
         titleFallback.style.display = 'block';
       }
 
-      // 3. Meta Pills Row
+      // 3. Metadata Pills
       const metaRow = document.getElementById('metaPillsRow');
       const year = currentItem.Year || currentItem["Release Year"] || (contentType === 'live' ? 'LIVE' : '2024');
       const age = currentItem.Age_Rating || currentItem["Age Rating"] || currentItem.Rating || 'U/A 13+';
@@ -779,7 +824,7 @@
       // 5. Tags & Description
       const genresLine = document.getElementById('genresTagsLine');
       const rawGenres = currentItem.Genres || currentItem.Tags || '';
-      const genreItems = (Array.isArray(rawGenres) ? rawGenres : rawGenres.split(/[,/|]+/)).map(g => g.trim()).filter(Boolean);
+      const genreItems = (Array.isArray(rawGenres) ? rawGenres : String(rawGenres).split(/[,/|]+/)).map(g => g.trim()).filter(Boolean);
       genresLine.innerHTML = genreItems.map(g => `<b>${g}</b>`).join(' <span>|</span> ');
 
       const desc = currentItem.Discription || currentItem.Description || "Enjoy thrilling streaming content only on Hotstar.";
@@ -800,6 +845,17 @@
       const ctaBox = document.getElementById('ctaContainer');
       ctaBox.innerHTML = '';
 
+      // CASE 1: User HAS NOT subscribed / Content Studio not in active plan
+      if (!hasAccess) {
+        ctaBox.innerHTML = `
+          <a class="btn-cta btn-cta-subscribe" href="1.html?action=subscribe&studio=${encodeURIComponent(currentItem.Studio || '')}">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+            Subscribe to Watch
+          </a>
+        `;
+        return;
+      }
+
       // Check Saved Progress from localStorage
       let resumeKey = currentItem.id;
       if (contentType === 'show' && currentSeasonKey) {
@@ -808,34 +864,23 @@
       const savedTime = parseFloat(localStorage.getItem(`progress_${resumeKey}`) || '0');
       const hasWatchedBefore = savedTime > 15;
 
-      // Case A: User has NO active plan
-      if (!userHasPlan) {
-        ctaBox.innerHTML = `
-          <a class="btn-cta btn-cta-subscribe" href="1.html?action=subscribe">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
-            Subscribe to Watch
-          </a>
-        `;
-        return;
-      }
-
-      // Case B: User has plan and HAS started watching before (Resume / Start from beginning)
+      // CASE 2: User HAS PLAN and HAS STARTED WATCHING
       if (hasWatchedBefore && contentType !== 'live') {
         const subLabel = contentType === 'show' ? 'S1 E1' : '';
         ctaBox.innerHTML = `
           <a class="btn-cta btn-cta-primary" href="1.html?watch=${currentItem.id}&action=resume">
             <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            Resume ${subLabel}
+            Continue Watching ${subLabel}
           </a>
           <a class="btn-cta btn-cta-secondary" href="1.html?watch=${currentItem.id}&action=starting">
             <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
-            Watch from Beginning ${subLabel}
+            Start from Beginning ${subLabel}
           </a>
         `;
         return;
       }
 
-      // Case C: Fresh Watch
+      // CASE 3: Fresh Watch (Movie / Live / Show)
       let primaryLabel = "Watch Now";
       if (contentType === 'live') primaryLabel = "Watch Live";
       
@@ -893,7 +938,7 @@
         } else {
           trailerStatus.innerText = "UNAVAILABLE";
         }
-      }, 3000); // 3 seconds timeout
+      }, 3000);
     }
 
     // TV Show Episodes
@@ -1021,26 +1066,26 @@
         });
 
         // Similarity Algorithm (Studio, Genres, Rating, Tags)
-        const targetGenres = (currentItem.Genres || '').toLowerCase().split(/[,/|]+/);
-        const targetStudio = (currentItem.Studio || '').toLowerCase();
-        const targetAge = (currentItem.Age_Rating || '').toLowerCase();
+        const targetGenres = String(currentItem.Genres || '').toLowerCase().split(/[,/|]+/);
+        const targetStudio = String(currentItem.Studio || '').toLowerCase();
+        const targetAge = String(currentItem.Age_Rating || '').toLowerCase();
 
         items.sort((a, b) => {
           let scoreA = 0;
           let scoreB = 0;
 
-          const aG = (a.Genres || '').toLowerCase();
-          const bG = (b.Genres || '').toLowerCase();
+          const aG = String(a.Genres || '').toLowerCase();
+          const bG = String(b.Genres || '').toLowerCase();
           targetGenres.forEach(g => {
             if (g && aG.includes(g.trim())) scoreA += 10;
             if (g && bG.includes(g.trim())) scoreB += 10;
           });
 
-          if (targetStudio && (a.Studio || '').toLowerCase().includes(targetStudio)) scoreA += 15;
-          if (targetStudio && (b.Studio || '').toLowerCase().includes(targetStudio)) scoreB += 15;
+          if (targetStudio && String(a.Studio || '').toLowerCase().includes(targetStudio)) scoreA += 15;
+          if (targetStudio && String(b.Studio || '').toLowerCase().includes(targetStudio)) scoreB += 15;
 
-          if (targetAge && (a.Age_Rating || '').toLowerCase() === targetAge) scoreA += 5;
-          if (targetAge && (b.Age_Rating || '').toLowerCase() === targetAge) scoreB += 5;
+          if (targetAge && String(a.Age_Rating || '').toLowerCase() === targetAge) scoreA += 5;
+          if (targetAge && String(b.Age_Rating || '').toLowerCase() === targetAge) scoreB += 5;
 
           return scoreB - scoreA;
         });
@@ -1058,7 +1103,7 @@
       }
     }
 
-    // Launch
+    // Initialize
     initPreview();
   </script>
 </body>
