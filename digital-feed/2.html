@@ -2,219 +2,167 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Live TV Player</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <title>Disney+ Live Stream Player</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-
-    .tv-container {
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    
+    /* Fullscreen Player Container */
+    .stream-viewport {
       position: relative;
       width: 100vw;
       height: 100vh;
       background: #000;
+    }
+
+    .player-frame {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+      pointer-events: none; /* Block direct YouTube interactions for broadcast feel */
+      transition: opacity 0.5s ease-in-out;
+    }
+
+    #playerA { z-index: 2; opacity: 1; }
+    #playerB { z-index: 1; opacity: 0; }
+
+    /* Disney+ Integrated TV Overlay Bar */
+    .tv-broadcast-bar {
+      position: absolute;
+      top: 25px;
+      left: 30px;
+      right: 30px;
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    /* Left Side Integrated Broadcast Pill */
+    .broadcast-info-pill {
+      display: flex;
+      align-items: center;
+      background: rgba(10, 15, 30, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 114, 210, 0.4);
+      border-radius: 30px;
+      padding: 4px 6px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .live-tag {
+      background: linear-gradient(135deg, #0072d2, #004494);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 20px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .show-meta {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 0 16px;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .now-title { font-weight: 700; color: #ffffff; }
+    .next-divider { color: rgba(255,255,255,0.3); }
+    .next-title { color: rgba(255, 255, 255, 0.7); font-weight: 400; }
+
+    /* Right Side Disney+ Logo */
+    .disney-logo {
+      height: 45px;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+    }
+
+    /* Click to Play Autoplay Overlay */
+    #startOverlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle, rgba(15,24,48,0.95) 0%, rgba(5,7,12,0.98) 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
+      z-index: 100;
+      cursor: pointer;
     }
 
-    /* Video Engines (Dual for zero-gap switching) */
-    .video-engine {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      object-fit: contain;
-      transition: opacity 0.4s ease;
-    }
-    .video-engine.hidden { opacity: 0; pointer-events: none; z-index: 1; }
-    .video-engine.active { opacity: 1; z-index: 2; }
+    #startOverlay img { height: 75px; margin-bottom: 25px; }
+    #startOverlay h1 { font-size: 28px; font-weight: 600; letter-spacing: 1px; }
+    #startOverlay p { margin-top: 10px; color: #0072d2; font-size: 14px; letter-spacing: 0.5px; }
 
-    /* ==================================================== */
-    /* 1. REAL TV BROADCAST OVERLAYS (PERMANENT ON STREAM) */
-    /* ==================================================== */
-    
-    /* TOP-LEFT: "अब" AND "आगे" TV WATERMARK */
-    .tv-watermark-left {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 15;
-      pointer-events: none;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .tv-tag {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 700;
-      color: #ffffff;
-      background: rgba(0, 0, 0, 0.55);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      padding: 4px 10px;
-      border-radius: 4px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
-      max-width: 75vw;
-    }
-    .tv-tag.now { border-left: 3px solid #e50914; }
-    .tv-tag.next { border-left: 3px solid #ff9900; color: #dddddd; font-size: 12px; }
-
-    .lbl-hi { font-weight: 900; font-size: 12px; letter-spacing: 0.5px; }
-    .lbl-hi.now-lbl { color: #e50914; }
-    .lbl-hi.next-lbl { color: #ff9900; }
-    .tv-title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* TOP-RIGHT: CHANNEL LOGO / WATERMARK */
-    .tv-watermark-right {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 15;
-      pointer-events: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      opacity: 0.85;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
-    }
-    .tv-logo-img { height: 35px; width: auto; object-fit: contain; }
-    .tv-logo-fallback {
-      font-size: 16px;
-      font-weight: 900;
-      color: #fff;
-      letter-spacing: 1.5px;
-      background: rgba(0,0,0,0.4);
-      padding: 4px 10px;
-      border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    .hd-badge { background: #e50914; color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 2px; margin-left: 4px; vertical-align: middle; }
-
-    /* ==================================================== */
-    /* 2. PLAYER CONTROLS & FULLSCREEN BUTTON */
-    /* ==================================================== */
-    
+    /* Custom Player Control Bar (Bottom Overlay) */
     .controls-overlay {
       position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 10;
+      bottom: 0; left: 0; right: 0;
+      padding: 20px 30px;
+      background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
       display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 15px 20px;
-      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 40%);
-      transition: opacity 0.3s ease;
-      opacity: 1;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 30;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
-    .controls-overlay.hide-ui { opacity: 0; pointer-events: none; }
 
-    .bottom-controls { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-    
-    .progress-track {
-      width: 100%; height: 4px; background: rgba(255,255,255,0.25);
-      border-radius: 2px; overflow: hidden;
+    .stream-viewport:hover .controls-overlay { opacity: 1; }
+
+    .control-btn {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      backdrop-filter: blur(5px);
+      transition: background 0.2s;
     }
-    .progress-fill { height: 100%; background: #e50914; width: 0%; transition: width 0.2s linear; }
 
-    .ctrl-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-    .ctrl-group { display: flex; align-items: center; gap: 12px; }
-    
-    .ctrl-btn {
-      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-      color: white; font-size: 15px; cursor: pointer; padding: 8px 14px;
-      border-radius: 6px; display: flex; align-items: center; gap: 6px;
-      font-weight: 600; backdrop-filter: blur(4px);
-    }
-    .ctrl-btn:hover { background: rgba(255,255,255,0.25); }
-
-    .fullscreen-btn { background: #e50914; border: none; font-weight: bold; }
-    .fullscreen-btn:hover { background: #b80710; }
-
-    .time-display { font-size: 12px; color: #ddd; font-family: monospace; }
-
-    /* Initial Play Screen */
-    .start-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
-      color: white; z-index: 100;
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      cursor: pointer; text-align: center; padding: 20px;
-    }
-    .start-btn {
-      background: #e50914; color: white; border: none;
-      padding: 16px 36px; font-size: 18px; font-weight: bold;
-      border-radius: 30px; margin-top: 15px; cursor: pointer;
-      box-shadow: 0 4px 20px rgba(229,9,20,0.5);
-    }
+    .control-btn:hover { background: var(--accent-blue, #0072d2); }
   </style>
 </head>
 <body>
 
-<div class="tv-container" id="playerWrapper" onclick="handleUserTap()">
+<div id="startOverlay" onclick="initializeAudioAndStart()">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
+  <h1>JOIN LIVE STREAM</h1>
+  <p>CLICK TO START BROADCAST</p>
+</div>
 
-  <!-- Initial Tap-to-Watch Overlay -->
-  <div class="start-overlay" id="startOverlay" onclick="startStream(event)">
-    <h2>LIVE TV BROADCAST</h2>
-    <p style="color: #aaa; font-size: 13px; margin-top: 6px;">Tap to open stream with sound</p>
-    <button class="start-btn">▶ WATCH LIVE</button>
-  </div>
-
-  <!-- Dual Video Engines -->
-  <video id="playerA" class="video-engine active" playsinline webkit-playsinline></video>
-  <video id="playerB" class="video-engine hidden" playsinline webkit-playsinline></video>
-
-  <!-- ========================================================= -->
-  <!-- 1. TOP-LEFT BROADCAST TEXT: "अब" & "आगे" -->
-  <!-- ========================================================= -->
-  <div class="tv-watermark-left">
-    <div class="tv-tag now">
-      <span class="lbl-hi now-lbl">अब:</span>
-      <span class="tv-title-text" id="txtNow">Loading...</span>
-    </div>
-    <div class="tv-tag next">
-      <span class="lbl-hi next-lbl">आगे:</span>
-      <span class="tv-title-text" id="txtNext">Loading...</span>
-    </div>
-  </div>
-
-  <!-- ========================================================= -->
-  <!-- 2. TOP-RIGHT BROADCAST LOGO / WATERMARK -->
-  <!-- ========================================================= -->
-  <div class="tv-watermark-right">
-    <img id="tvLogoImg" class="tv-logo-img" src="" style="display:none;" alt="Channel Logo">
-    <div id="tvLogoFallback" class="tv-logo-fallback">LIVE TV <span class="hd-badge">HD</span></div>
-  </div>
-
-  <!-- ========================================================= -->
-  <!-- 3. CONTROLS OVERLAY & FULLSCREEN BUTTON -->
-  <!-- ========================================================= -->
-  <div class="controls-overlay" id="controlsOverlay">
-    <div class="bottom-controls">
-      <div class="progress-track">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-      <div class="ctrl-row">
-        <div class="ctrl-group">
-          <button class="ctrl-btn" id="btnPlay" onclick="togglePlayPause(event)">❚❚ Pause</button>
-          <button class="ctrl-btn" id="btnMute" onclick="toggleMute(event)">🔊 Mute</button>
-          <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
-        </div>
-        <div class="ctrl-group">
-          <!-- FULLSCREEN TOGGLE BUTTON -->
-          <button class="ctrl-btn fullscreen-btn" onclick="toggleFullscreen(event)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-            <span>FULLSCREEN</span>
-          </button>
-        </div>
+<div class="stream-viewport">
+  <!-- Disney+ Integrated TV Bar -->
+  <div class="tv-broadcast-bar">
+    <div class="broadcast-info-pill">
+      <div class="live-tag">LIVE</div>
+      <div class="show-meta">
+        <span class="now-title" id="nowText">NOW: Loading...</span>
+        <span class="next-divider">|</span>
+        <span class="next-title" id="nextText">NEXT: ...</span>
       </div>
     </div>
+    <img class="disney-logo" src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
   </div>
 
+  <!-- Dual Player Iframe Slots for Gapless Prebuffering -->
+  <div id="playerA" class="player-frame"></div>
+  <div id="playerB" class="player-frame"></div>
+
+  <!-- Custom Player Controls -->
+  <div class="controls-overlay">
+    <button class="control-btn" onclick="toggleMute()" id="muteBtn">MUTE</button>
+    <button class="control-btn" onclick="toggleFullscreen()">FULLSCREEN</button>
+  </div>
 </div>
 
 <!-- Firebase SDKs -->
@@ -235,186 +183,158 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  let scheduleData = null;
-  let activePlayer = 'A';
-  let playerA = document.getElementById('playerA');
-  let playerB = document.getElementById('playerB');
-  let hlsA = null, hlsB = null;
-  let syncTimer = null;
-  let uiTimer = null;
+  // Get Channel Slug from URL parameter (2.html?watch=channelId)
+  const urlParams = new URLSearchParams(window.location.search);
+  const channelId = urlParams.get('watch') || 'main';
 
-  async function initPlayer() {
+  let playerA, playerB;
+  let activePlayer = 'A';
+  let scheduleData = null;
+  let prebufferTimer = null;
+  let transitionTimer = null;
+  let isMuted = false;
+
+  // Load YouTube IFrame API
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, document.getElementsByTagName('script')[0]);
+
+  function onYouTubeIframeAPIReady() {
+    fetchChannelSchedule();
+  }
+
+  async function fetchChannelSchedule() {
     try {
-      const doc = await db.collection("schedules").doc("live_tv").get();
+      const doc = await db.collection("channels").doc(channelId).get();
       if (!doc.exists) {
-        alert("No stream schedule found. Run 1.html first.");
+        document.getElementById('nowText').innerText = `Channel '${channelId}' not found. Setup in 1.html first.`;
         return;
       }
       scheduleData = doc.data();
-      syncPlayback();
+      initPlayers();
     } catch (e) {
       console.error(e);
+      document.getElementById('nowText').innerText = "Error loading live stream.";
     }
   }
 
-  function formatTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  }
-
-  function calculateOffset(schedule) {
+  function calculatePlaybackState(schedule) {
     const now = Date.now();
-    const elapsed = Math.floor((now - schedule.epochStartTime) / 1000);
-    let cycleTime = elapsed % schedule.totalDuration;
+    const elapsedSeconds = Math.floor((now - schedule.epochStartTime) / 1000);
+    
+    let cycleTime = elapsedSeconds % schedule.totalDuration;
     if (cycleTime < 0) cycleTime += schedule.totalDuration;
 
-    let acc = 0;
-    for (let i = 0; i < schedule.items.length; i++) {
-      const item = schedule.items[i];
-      if (cycleTime >= acc && cycleTime < (acc + item.duration)) {
-        const nextItem = schedule.items[(i + 1) % schedule.items.length];
+    let accumulatedTime = 0;
+    for (let i = 0; i < schedule.videos.length; i++) {
+      const video = schedule.videos[i];
+      if (cycleTime >= accumulatedTime && cycleTime < (accumulatedTime + video.duration)) {
+        const offset = cycleTime - accumulatedTime;
+        const nextIndex = (i + 1) % schedule.videos.length;
         return {
-          current: item,
-          offset: cycleTime - acc,
-          remaining: item.duration - (cycleTime - acc),
-          next: nextItem
+          currentIndex: i,
+          video: video,
+          offset: offset,
+          remaining: video.duration - offset,
+          nextVideo: schedule.videos[nextIndex]
         };
       }
-      acc += item.duration;
+      accumulatedTime += video.duration;
     }
-    return { current: schedule.items[0], offset: 0, remaining: schedule.items[0].duration, next: schedule.items[1] || schedule.items[0] };
+    return { currentIndex: 0, video: schedule.videos[0], offset: 0, remaining: schedule.videos[0].duration, nextVideo: schedule.videos[1] || schedule.videos[0] };
   }
 
-  function loadMedia(videoEl, url) {
-    if (url.includes('.m3u8') && Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(url);
-      hls.attachMedia(videoEl);
-      return hls;
-    } else {
-      videoEl.src = url;
-      return null;
-    }
+  function initPlayers() {
+    const current = calculatePlaybackState(scheduleData);
+    updateOverlayTitles(current.video.title, current.nextVideo.title);
+
+    // Player A (Active)
+    playerA = new YT.Player('playerA', {
+      videoId: current.video.id,
+      playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'start': Math.floor(current.offset) },
+      events: { 'onReady': (e) => e.target.playVideo() }
+    });
+
+    // Player B (Background Standby for Gapless Buffer)
+    playerB = new YT.Player('playerB', {
+      videoId: current.nextVideo.id,
+      playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0 },
+      events: { 'onReady': () => setupNextPrebuffer(current) }
+    });
   }
 
-  function syncPlayback() {
-    if (!scheduleData) return;
-
-    const data = calculateOffset(scheduleData);
-    
-    // Update TV Watermark Text (Top-Left: "अब" & "आगे")
-    document.getElementById('txtNow').innerText = data.current.name;
-    document.getElementById('txtNext').innerText = data.next.name;
-
-    // Update Top-Right Channel Logo if item has a logo URL
-    const logoImg = document.getElementById('tvLogoImg');
-    const logoFallback = document.getElementById('tvLogoFallback');
-    if (data.current.logo) {
-      logoImg.src = data.current.logo;
-      logoImg.style.display = 'block';
-      logoFallback.style.display = 'none';
-    } else {
-      logoImg.style.display = 'none';
-      logoFallback.style.display = 'block';
-    }
-
-    const activeEl = activePlayer === 'A' ? playerA : playerB;
-
-    if (activePlayer === 'A') {
-      hlsA = loadMedia(playerA, data.current.stream);
-    } else {
-      hlsB = loadMedia(playerB, data.current.stream);
-    }
-
-    activeEl.currentTime = data.offset;
-    activeEl.play().catch(() => console.log("Waiting for user tap"));
-
-    // Real-time progress update
-    activeEl.ontimeupdate = () => {
-      const pct = (activeEl.currentTime / data.current.duration) * 100;
-      document.getElementById('progressFill').style.width = Math.min(pct, 100) + '%';
-      document.getElementById('timeDisplay').innerText = `${formatTime(activeEl.currentTime)} / ${formatTime(data.current.duration)}`;
-    };
-
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => {
-      switchPlayer();
-    }, data.remaining * 1000);
+  function updateOverlayTitles(nowTitle, nextTitle) {
+    document.getElementById('nowText').innerText = "NOW: " + nowTitle;
+    document.getElementById('nextText').innerText = "NEXT: " + nextTitle;
   }
 
-  function switchPlayer() {
-    const nextType = activePlayer === 'A' ? 'B' : 'A';
-    const curEl = activePlayer === 'A' ? playerA : playerB;
-    const nextEl = nextType === 'A' ? playerA : playerB;
+  function setupNextPrebuffer(current) {
+    clearTimeout(prebufferTimer);
+    clearTimeout(transitionTimer);
 
-    activePlayer = nextType;
-    nextEl.classList.remove('hidden');
-    nextEl.classList.add('active');
-    curEl.classList.remove('active');
-    curEl.classList.add('hidden');
+    // Preload next video in background player 10 seconds before current ends
+    const prebufferDelay = Math.max(0, (current.remaining - 10)) * 1000;
+    prebufferTimer = setTimeout(() => {
+      const state = calculatePlaybackState(scheduleData);
+      const standbyPlayer = activePlayer === 'A' ? playerB : playerA;
+      standbyPlayer.cueVideoById(state.nextVideo.id, 0);
+    }, prebufferDelay);
 
-    syncPlayback();
+    // Exact transition timer when current video ends
+    transitionTimer = setTimeout(() => {
+      switchGaplessPlayer();
+    }, current.remaining * 1000);
   }
 
-  /* Fullscreen & Control Functions */
-  function toggleFullscreen(e) {
-    if(e) e.stopPropagation();
-    const wrapper = document.getElementById('playerWrapper');
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      if (wrapper.requestFullscreen) {
-        wrapper.requestFullscreen();
-      } else if (wrapper.webkitRequestFullscreen) {
-        wrapper.webkitRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
-    }
+  function switchGaplessPlayer() {
+    const current = calculatePlaybackState(scheduleData);
+    updateOverlayTitles(current.video.title, current.nextVideo.title);
+
+    const currentPlayerObj = activePlayer === 'A' ? playerA : playerB;
+    const nextPlayerObj = activePlayer === 'A' ? playerB : playerA;
+    const currentFrame = document.getElementById(activePlayer === 'A' ? 'playerA' : 'playerB');
+    const nextFrame = document.getElementById(activePlayer === 'A' ? 'playerB' : 'playerA');
+
+    // Smooth Gapless Switch
+    nextPlayerObj.playVideo();
+    nextFrame.style.opacity = '1';
+    nextFrame.style.zIndex = '2';
+
+    currentFrame.style.opacity = '0';
+    currentFrame.style.zIndex = '1';
+    currentPlayerObj.pauseVideo();
+
+    activePlayer = activePlayer === 'A' ? 'B' : 'A';
+
+    setupNextPrebuffer(current);
   }
 
-  function togglePlayPause(e) {
-    if(e) e.stopPropagation();
-    const activeEl = activePlayer === 'A' ? playerA : playerB;
-    const btn = document.getElementById('btnPlay');
-    if (activeEl.paused) {
-      activeEl.play();
-      btn.innerText = '❚❚ Pause';
-    } else {
-      activeEl.pause();
-      btn.innerText = '▶ Play';
-    }
-  }
-
-  function toggleMute(e) {
-    if(e) e.stopPropagation();
-    const activeEl = activePlayer === 'A' ? playerA : playerB;
-    const btn = document.getElementById('btnMute');
-    activeEl.muted = !activeEl.muted;
-    btn.innerText = activeEl.muted ? '🔇 Unmute' : '🔊 Mute';
-  }
-
-  function handleUserTap() {
-    const overlay = document.getElementById('controlsOverlay');
-    overlay.classList.remove('hide-ui');
-    clearTimeout(uiTimer);
-    uiTimer = setTimeout(() => {
-      overlay.classList.add('hide-ui');
-    }, 3500);
-  }
-
-  function startStream(e) {
-    if(e) e.stopPropagation();
+  function initializeAudioAndStart() {
     document.getElementById('startOverlay').style.display = 'none';
-    playerA.play();
-    playerB.play();
-    handleUserTap();
+    if (playerA && playerA.playVideo) playerA.playVideo();
+    if (playerB && playerB.playVideo) playerB.playVideo();
   }
 
-  window.onload = initPlayer;
+  function toggleMute() {
+    const p = activePlayer === 'A' ? playerA : playerB;
+    if (!p) return;
+    if (isMuted) {
+      p.unMute();
+      document.getElementById('muteBtn').innerText = "MUTE";
+    } else {
+      p.mute();
+      document.getElementById('muteBtn').innerText = "UNMUTE";
+    }
+    isMuted = !isMuted;
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+    }
+  }
 </script>
 </body>
 </html>
