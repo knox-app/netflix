@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Disney+ Live Stream Player</title>
   <style>
+    :root {
+      --accent-blue: #0072d2;
+      --glass-bg: rgba(10, 15, 30, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.15);
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     
@@ -16,7 +22,7 @@
       overflow: hidden;
     }
 
-    /* 135% Scaling + -17.5% Offsets completely crops out all YouTube logos, titles, and controls */
+    /* 135% Scaling + -17.5% Offsets completely crops out all YouTube logos & controls */
     .iframe-wrapper {
       position: absolute;
       top: -17.5%;
@@ -37,7 +43,7 @@
     #playerA { z-index: 2; opacity: 1; }
     #playerB { z-index: 1; opacity: 0; }
 
-    /* Invisible blocker prevents touching/clicking YouTube UI elements */
+    /* Invisible blocker prevents touching YouTube UI elements */
     .interaction-blocker {
       position: absolute;
       top: 0; left: 0;
@@ -46,7 +52,7 @@
       cursor: pointer;
     }
 
-    /* Top TV Broadcast Overlay (Orientation Safe) */
+    /* Top TV Broadcast Overlay */
     .tv-broadcast-bar {
       position: absolute;
       top: clamp(15px, 3vh, 35px);
@@ -63,26 +69,42 @@
     .tv-ticker-container {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       background: transparent !important;
       border: none !important;
-      box-shadow: none !important;
       padding: 0 !important;
     }
 
     .live-badge {
-      background: #0072d2;
+      background: linear-gradient(135deg, #0072d2, #004494);
       color: #fff;
       font-size: clamp(10px, 1.2vw, 12px);
       font-weight: 800;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 4px;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 4px 12px rgba(0, 114, 210, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    /* Clean Text with Heavy Drop Shadow - No Box Background */
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+
+    /* Clean Text with Heavy Drop Shadow */
     .tv-ticker-text {
       color: #ffffff;
       font-size: clamp(15px, 2.4vw, 22px);
@@ -93,8 +115,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 65vw;
-      background: transparent !important;
+      max-width: 60vw;
     }
 
     /* Disney+ Logo */
@@ -121,33 +142,73 @@
     #startOverlay h1 { font-size: clamp(20px, 4vw, 32px); font-weight: 700; letter-spacing: 1.5px; }
     #startOverlay p { margin-top: 10px; color: #0072d2; font-size: clamp(12px, 1.8vw, 15px); font-weight: 600; letter-spacing: 1px; }
 
-    /* Bottom Control Bar */
+    /* ALWAYS-VISIBLE FLOATING FULLSCREEN BUTTON */
+    .persistent-fs-btn {
+      position: absolute;
+      bottom: clamp(20px, 4vh, 35px);
+      right: clamp(20px, 4vw, 35px);
+      width: 48px;
+      height: 48px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 50%;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      transition: transform 0.2s, background 0.2s, opacity 0.3s;
+      opacity: 0.85;
+    }
+
+    .persistent-fs-btn:hover {
+      transform: scale(1.1);
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      opacity: 1;
+    }
+
+    /* Floating Control Bar Overlay */
     .controls-overlay {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      padding: 20px 30px;
-      background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      bottom: clamp(20px, 4vh, 35px);
+      left: clamp(20px, 4vw, 35px);
       z-index: 40;
+      display: flex;
+      gap: 12px;
       opacity: 0;
+      pointer-events: none;
       transition: opacity 0.3s ease;
     }
 
-    .controls-overlay.visible { opacity: 1; }
+    .controls-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
 
     .control-btn {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
       color: white;
       padding: 10px 18px;
-      border-radius: 6px;
+      border-radius: 30px;
       cursor: pointer;
       font-size: 13px;
       font-weight: 700;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      transition: background 0.2s, transform 0.1s;
     }
+
+    .control-btn:hover { background: var(--accent-blue); border-color: var(--accent-blue); }
+    .control-btn:active { transform: scale(0.95); }
+    .control-btn svg { width: 18px; height: 18px; fill: currentColor; }
   </style>
 </head>
 <body>
@@ -156,7 +217,7 @@
   <!-- Disney+ Integrated TV Bar -->
   <div class="tv-broadcast-bar">
     <div class="tv-ticker-container">
-      <div class="live-badge">LIVE</div>
+      <div class="live-badge"><span class="live-dot"></span>LIVE</div>
       <div class="tv-ticker-text" id="tvTickerText">NOW: Loading...</div>
     </div>
     <img class="disney-logo" src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
@@ -168,7 +229,8 @@
     <div id="playerB" class="player-frame"></div>
   </div>
 
-  <div class="interaction-blocker" onclick="toggleControls()"></div>
+  <!-- Interaction Blocker -->
+  <div class="interaction-blocker" onclick="handleInteractionClick(event)"></div>
 
   <!-- Start Overlay -->
   <div id="startOverlay" onclick="initializeAudioAndStart()">
@@ -177,11 +239,21 @@
     <p>CLICK TO START BROADCAST</p>
   </div>
 
-  <!-- Custom Controls Bar -->
+  <!-- Bottom Left Controls -->
   <div class="controls-overlay" id="controlsOverlay">
-    <button class="control-btn" onclick="toggleMute()" id="muteBtn">MUTE</button>
-    <button class="control-btn" onclick="toggleFullscreen()" id="fsBtn">FULLSCREEN</button>
+    <button class="control-btn" onclick="toggleMute()" id="muteBtn">
+      <svg id="muteIcon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      <span id="muteText">MUTE</span>
+    </button>
   </div>
+
+  <!-- ALWAYS-VISIBLE FLOATING FULLSCREEN BUTTON (BOTTOM-RIGHT) -->
+  <button class="persistent-fs-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen" id="fsFab">
+    <!-- Expand Icon (Default) -->
+    <svg id="fsExpandIcon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+    <!-- Compress Icon (Hidden by default) -->
+    <svg id="fsCompressIcon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M4 14h6v6m10-10h-6V4m0 6l7-7M3 21l7-7"/></svg>
+  </button>
 </div>
 
 <!-- Firebase SDKs -->
@@ -213,8 +285,12 @@
   let tickerTimer = null;
   let controlsHideTimeout = null;
   let isMuted = false;
+  let lastTapTime = 0;
 
-  let tickerState = 'NOW'; // Flips between NOW and NEXT every 20 seconds
+  let tickerState = 'NOW'; // Toggles between NOW and NEXT every 20s
+
+  document.addEventListener('fullscreenchange', updateFullscreenButtonState);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenButtonState);
 
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
@@ -266,7 +342,6 @@
     return { currentIndex: 0, video: schedule.videos[0], offset: 0, remaining: schedule.videos[0].duration, nextVideo: schedule.videos[1] || schedule.videos[0] };
   }
 
-  // 20-SECOND TICKER ALTERNATOR (NOW <-> NEXT)
   function updateTickerDisplay() {
     if (!scheduleData) return;
     const current = calculatePlaybackState(scheduleData);
@@ -290,7 +365,7 @@
     tickerTimer = setInterval(() => {
       tickerState = (tickerState === 'NOW') ? 'NEXT' : 'NOW';
       updateTickerDisplay();
-    }, 20000); // 20 Seconds Delay
+    }, 20000);
   }
 
   function initPlayers() {
@@ -356,27 +431,69 @@
   function toggleMute() {
     const p = activePlayer === 'A' ? playerA : playerB;
     if (!p) return;
+    const icon = document.getElementById('muteIcon');
+    const text = document.getElementById('muteText');
+
     if (isMuted) {
       p.unMute();
-      document.getElementById('muteBtn').innerText = "MUTE";
+      text.innerText = "MUTE";
+      icon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
     } else {
       p.mute();
-      document.getElementById('muteBtn').innerText = "UNMUTE";
+      text.innerText = "UNMUTE";
+      icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
     }
     isMuted = !isMuted;
   }
 
+  // ENHANCED FULLSCREEN TOGGLE
   function toggleFullscreen() {
-    const elem = document.getElementById('viewport');
-    if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-      if (elem.requestFullscreen) elem.requestFullscreen();
-      else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-      else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+    const docEl = document.documentElement;
+    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+
+    if (!isFS) {
+      if (docEl.requestFullscreen) docEl.requestFullscreen().catch(err => console.log(err));
+      else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+      else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
+
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
     } else {
       if (document.exitFullscreen) document.exitFullscreen();
       else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
       else if (document.msExitFullscreen) document.msExitFullscreen();
+
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+      }
     }
+  }
+
+  function updateFullscreenButtonState() {
+    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+    const expandIcon = document.getElementById('fsExpandIcon');
+    const compressIcon = document.getElementById('fsCompressIcon');
+
+    if (isFS) {
+      expandIcon.style.display = 'none';
+      compressIcon.style.display = 'block';
+    } else {
+      expandIcon.style.display = 'block';
+      compressIcon.style.display = 'none';
+    }
+  }
+
+  function handleInteractionClick(e) {
+    const currentTime = Date.now();
+    const tapLength = currentTime - lastTapTime;
+
+    if (tapLength < 300 && tapLength > 0) {
+      toggleFullscreen();
+    } else {
+      toggleControls();
+    }
+    lastTapTime = currentTime;
   }
 
   function toggleControls() {
