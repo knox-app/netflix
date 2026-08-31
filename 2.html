@@ -8,7 +8,6 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     
-    /* Main Viewport Container */
     #viewport {
       position: relative;
       width: 100vw;
@@ -17,13 +16,13 @@
       overflow: hidden;
     }
 
-    /* Video Frame Container - Scaled to completely crop/hide YouTube controls & overlays */
+    /* 135% Scaling + -17.5% Offsets completely crops out all YouTube logos, titles, and controls */
     .iframe-wrapper {
       position: absolute;
-      top: -5%;
-      left: -5%;
-      width: 110%;
-      height: 110%;
+      top: -17.5%;
+      left: -17.5%;
+      width: 135%;
+      height: 135%;
       pointer-events: none;
     }
 
@@ -38,7 +37,7 @@
     #playerA { z-index: 2; opacity: 1; }
     #playerB { z-index: 1; opacity: 0; }
 
-    /* Interaction Blocker - Blocks clicks on YouTube video */
+    /* Invisible blocker prevents touching/clicking YouTube UI elements */
     .interaction-blocker {
       position: absolute;
       top: 0; left: 0;
@@ -47,10 +46,10 @@
       cursor: pointer;
     }
 
-    /* Top TV Broadcast Overlay Bar (Orientation Responsive) */
+    /* Top TV Broadcast Overlay */
     .tv-broadcast-bar {
       position: absolute;
-      top: clamp(12px, 3vh, 30px);
+      top: clamp(15px, 3vh, 35px);
       left: clamp(15px, 4vw, 40px);
       right: clamp(15px, 4vw, 40px);
       display: flex;
@@ -60,13 +59,14 @@
       pointer-events: none;
     }
 
-    /* Clean Text Container without Background */
+    /* Zero-Background Title Container */
     .tv-ticker-container {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: none !important; /* Explicitly NO background */
+      gap: 10px;
+      background: transparent !important;
       border: none !important;
+      box-shadow: none !important;
       padding: 0 !important;
     }
 
@@ -82,27 +82,28 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     }
 
-    /* Ticker Text with Drop Shadow for readability on any video background */
+    /* Clean Text with Heavy Drop Shadow */
     .tv-ticker-text {
       color: #ffffff;
-      font-size: clamp(14px, 2.2vw, 20px);
+      font-size: clamp(15px, 2.4vw, 22px);
       font-weight: 700;
       letter-spacing: 0.5px;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.9);
-      transition: opacity 0.5s ease;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 15px rgba(0, 0, 0, 0.9);
+      transition: opacity 0.5s ease-in-out;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 60vw;
+      max-width: 65vw;
+      background: transparent !important;
     }
 
-    /* Disney+ Logo (Responsive to orientation) */
+    /* Disney+ Logo */
     .disney-logo {
       height: clamp(32px, 4.5vw, 55px);
       filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.9));
     }
 
-    /* Start / Unmute Overlay */
+    /* Initial Click Overlay */
     #startOverlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -120,7 +121,7 @@
     #startOverlay h1 { font-size: clamp(20px, 4vw, 32px); font-weight: 700; letter-spacing: 1.5px; }
     #startOverlay p { margin-top: 10px; color: #0072d2; font-size: clamp(12px, 1.8vw, 15px); font-weight: 600; letter-spacing: 1px; }
 
-    /* Custom Bottom Control Bar */
+    /* Bottom Control Bar */
     .controls-overlay {
       position: absolute;
       bottom: 0; left: 0; right: 0;
@@ -138,9 +139,9 @@
 
     .control-btn {
       background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
       color: white;
-      padding: 10px 18px;
+      padding: 10px 20px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 13px;
@@ -171,17 +172,17 @@
     <div id="playerB" class="player-frame"></div>
   </div>
 
-  <!-- Blocker Div to prevent direct YouTube interactions & toggle custom controls -->
-  <div class="interaction-blocker" onclick="toggleControls()"></div>
+  <!-- Single Tap = Show Controls | Double Tap = Toggle Fullscreen -->
+  <div class="interaction-blocker" onclick="handleInteractionClick(event)"></div>
 
-  <!-- Click to Play Autoplay Overlay -->
+  <!-- Start Overlay -->
   <div id="startOverlay" onclick="initializeAudioAndStart()">
     <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
     <h1>JOIN LIVE STREAM</h1>
     <p>CLICK TO START BROADCAST</p>
   </div>
 
-  <!-- Custom Player Controls Bar -->
+  <!-- Custom Controls Bar -->
   <div class="controls-overlay" id="controlsOverlay">
     <button class="control-btn" onclick="toggleMute()" id="muteBtn">MUTE</button>
     <button class="control-btn" onclick="toggleFullscreen()" id="fsBtn">FULLSCREEN</button>
@@ -206,7 +207,6 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Get Channel Slug from URL parameter (2.html?watch=channelId)
   const urlParams = new URLSearchParams(window.location.search);
   const channelId = urlParams.get('watch') || 'main';
 
@@ -218,10 +218,14 @@
   let tickerTimer = null;
   let controlsHideTimeout = null;
   let isMuted = false;
+  let lastTapTime = 0;
 
-  let tickerState = 'NOW'; // Toggles between 'NOW' and 'NEXT' every 20 seconds
+  let tickerState = 'NOW'; // Flips between NOW and NEXT every 20 seconds
 
-  // Load YouTube IFrame API
+  // Event Listeners for Fullscreen Changes to Update Button Label
+  document.addEventListener('fullscreenchange', updateFullscreenButtonState);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenButtonState);
+
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
   document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, document.getElementsByTagName('script')[0]);
@@ -272,13 +276,12 @@
     return { currentIndex: 0, video: schedule.videos[0], offset: 0, remaining: schedule.videos[0].duration, nextVideo: schedule.videos[1] || schedule.videos[0] };
   }
 
-  // 20-SECOND NOW / NEXT TICKER LOOP
+  // 20-SECOND TICKER ALTERNATOR (NOW <-> NEXT)
   function updateTickerDisplay() {
     if (!scheduleData) return;
     const current = calculatePlaybackState(scheduleData);
     const tickerTextEl = document.getElementById('tvTickerText');
 
-    // Fade out text
     tickerTextEl.style.opacity = '0';
 
     setTimeout(() => {
@@ -287,7 +290,6 @@
       } else {
         tickerTextEl.innerText = "NEXT: " + current.nextVideo.title;
       }
-      // Fade in text
       tickerTextEl.style.opacity = '1';
     }, 500);
   }
@@ -298,20 +300,18 @@
     tickerTimer = setInterval(() => {
       tickerState = (tickerState === 'NOW') ? 'NEXT' : 'NOW';
       updateTickerDisplay();
-    }, 20000); // Toggles every 20 seconds
+    }, 20000); // 20 Seconds Delay
   }
 
   function initPlayers() {
     const current = calculatePlaybackState(scheduleData);
 
-    // Player A (Active)
     playerA = new YT.Player('playerA', {
       videoId: current.video.id,
       playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'iv_load_policy': 3, 'start': Math.floor(current.offset) },
       events: { 'onReady': (e) => e.target.playVideo() }
     });
 
-    // Player B (Background Standby for Gapless Buffer)
     playerB = new YT.Player('playerB', {
       videoId: current.nextVideo.id,
       playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'iv_load_policy': 3 },
@@ -323,7 +323,6 @@
     clearTimeout(prebufferTimer);
     clearTimeout(transitionTimer);
 
-    // Preload next video in background player 10 seconds before current ends
     const prebufferDelay = Math.max(0, (current.remaining - 10)) * 1000;
     prebufferTimer = setTimeout(() => {
       const state = calculatePlaybackState(scheduleData);
@@ -331,7 +330,6 @@
       standbyPlayer.cueVideoById(state.nextVideo.id, 0);
     }, prebufferDelay);
 
-    // Transition when current video ends
     transitionTimer = setTimeout(() => {
       switchGaplessPlayer();
     }, current.remaining * 1000);
@@ -346,7 +344,6 @@
     const currentFrame = document.getElementById(activePlayer === 'A' ? 'playerA' : 'playerB');
     const nextFrame = document.getElementById(activePlayer === 'A' ? 'playerB' : 'playerA');
 
-    // Gapless crossfade switch
     nextPlayerObj.playVideo();
     nextFrame.style.opacity = '1';
     nextFrame.style.zIndex = '2';
@@ -379,21 +376,62 @@
     isMuted = !isMuted;
   }
 
-  // Cross-Browser Fullscreen Handler
+  // --- ENHANCED FULLSCREEN LOGIC ---
   function toggleFullscreen() {
-    const elem = document.getElementById('viewport');
-    if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-      if (elem.requestFullscreen) elem.requestFullscreen();
-      else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-      else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+    const docEl = document.documentElement;
+    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+
+    if (!isFS) {
+      // Enter Fullscreen
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().catch(err => console.log(err));
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+      } else if (docEl.msRequestFullscreen) {
+        docEl.msRequestFullscreen();
+      }
+      // Auto Lock to Landscape on Mobile
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
     } else {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-      else if (document.msExitFullscreen) document.msExitFullscreen();
+      // Exit Fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+      }
     }
   }
 
-  // Toggle Controls on Click/Tap
+  function updateFullscreenButtonState() {
+    const btn = document.getElementById('fsBtn');
+    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+    if (btn) {
+      btn.innerText = isFS ? "EXIT FULLSCREEN" : "FULLSCREEN";
+    }
+  }
+
+  // Handle Double-Tap for Fullscreen & Single-Tap for Controls
+  function handleInteractionClick(e) {
+    const currentTime = Date.now();
+    const tapLength = currentTime - lastTapTime;
+
+    if (tapLength < 300 && tapLength > 0) {
+      // Double Tap -> Toggle Fullscreen
+      toggleFullscreen();
+    } else {
+      // Single Tap -> Show Controls
+      toggleControls();
+    }
+    lastTapTime = currentTime;
+  }
+
   function toggleControls() {
     const overlay = document.getElementById('controlsOverlay');
     overlay.classList.add('visible');
