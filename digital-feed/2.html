@@ -2,17 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Disney+ Live Stream Player</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     
-    /* Fullscreen Player Container */
-    .stream-viewport {
+    #viewport {
       position: relative;
       width: 100vw;
       height: 100vh;
       background: #000;
+      overflow: hidden;
+    }
+
+    /* 135% Scaling + -17.5% Offsets completely crops out all YouTube logos, titles, and controls */
+    .iframe-wrapper {
+      position: absolute;
+      top: -17.5%;
+      left: -17.5%;
+      width: 135%;
+      height: 135%;
+      pointer-events: none;
     }
 
     .player-frame {
@@ -20,73 +31,83 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       border: none;
-      pointer-events: none; /* Block direct YouTube interactions for broadcast feel */
-      transition: opacity 0.5s ease-in-out;
+      transition: opacity 0.6s ease-in-out;
     }
 
     #playerA { z-index: 2; opacity: 1; }
     #playerB { z-index: 1; opacity: 0; }
 
-    /* Disney+ Integrated TV Overlay Bar */
+    /* Invisible blocker prevents touching/clicking YouTube UI elements */
+    .interaction-blocker {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 10;
+      cursor: pointer;
+    }
+
+    /* Top TV Broadcast Overlay (Orientation Safe) */
     .tv-broadcast-bar {
       position: absolute;
-      top: 25px;
-      left: 30px;
-      right: 30px;
+      top: clamp(15px, 3vh, 35px);
+      left: clamp(15px, 4vw, 40px);
+      right: clamp(15px, 4vw, 40px);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      z-index: 20;
+      z-index: 30;
       pointer-events: none;
     }
 
-    /* Left Side Integrated Broadcast Pill */
-    .broadcast-info-pill {
+    /* Zero-Background Title Container */
+    .tv-ticker-container {
       display: flex;
       align-items: center;
-      background: rgba(10, 15, 30, 0.75);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 114, 210, 0.4);
-      border-radius: 30px;
-      padding: 4px 6px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      gap: 10px;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
     }
 
-    .live-tag {
-      background: linear-gradient(135deg, #0072d2, #004494);
+    .live-badge {
+      background: #0072d2;
       color: #fff;
-      font-size: 11px;
+      font-size: clamp(10px, 1.2vw, 12px);
       font-weight: 800;
-      padding: 6px 14px;
-      border-radius: 20px;
+      padding: 4px 10px;
+      border-radius: 4px;
       letter-spacing: 1.5px;
       text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     }
 
-    .show-meta {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      padding: 0 16px;
-      color: #fff;
-      font-size: 13px;
+    /* Clean Text with Heavy Drop Shadow - No Box Background */
+    .tv-ticker-text {
+      color: #ffffff;
+      font-size: clamp(15px, 2.4vw, 22px);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 15px rgba(0, 0, 0, 0.9);
+      transition: opacity 0.5s ease-in-out;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 65vw;
+      background: transparent !important;
     }
 
-    .now-title { font-weight: 700; color: #ffffff; }
-    .next-divider { color: rgba(255,255,255,0.3); }
-    .next-title { color: rgba(255, 255, 255, 0.7); font-weight: 400; }
-
-    /* Right Side Disney+ Logo */
+    /* Disney+ Logo */
     .disney-logo {
-      height: 45px;
-      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+      height: clamp(32px, 4.5vw, 55px);
+      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.9));
     }
 
-    /* Click to Play Autoplay Overlay */
+    /* Initial Click Overlay */
     #startOverlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(15,24,48,0.95) 0%, rgba(5,7,12,0.98) 100%);
+      background: radial-gradient(circle, rgba(15,24,48,0.96) 0%, rgba(5,7,12,0.98) 100%);
       color: white;
       display: flex;
       flex-direction: column;
@@ -96,11 +117,11 @@
       cursor: pointer;
     }
 
-    #startOverlay img { height: 75px; margin-bottom: 25px; }
-    #startOverlay h1 { font-size: 28px; font-weight: 600; letter-spacing: 1px; }
-    #startOverlay p { margin-top: 10px; color: #0072d2; font-size: 14px; letter-spacing: 0.5px; }
+    #startOverlay img { height: clamp(50px, 10vw, 85px); margin-bottom: 20px; }
+    #startOverlay h1 { font-size: clamp(20px, 4vw, 32px); font-weight: 700; letter-spacing: 1.5px; }
+    #startOverlay p { margin-top: 10px; color: #0072d2; font-size: clamp(12px, 1.8vw, 15px); font-weight: 600; letter-spacing: 1px; }
 
-    /* Custom Player Control Bar (Bottom Overlay) */
+    /* Bottom Control Bar */
     .controls-overlay {
       position: absolute;
       bottom: 0; left: 0; right: 0;
@@ -109,59 +130,57 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      z-index: 30;
+      z-index: 40;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s ease;
     }
 
-    .stream-viewport:hover .controls-overlay { opacity: 1; }
+    .controls-overlay.visible { opacity: 1; }
 
     .control-btn {
       background: rgba(255,255,255,0.15);
-      border: none;
+      border: 1px solid rgba(255,255,255,0.2);
       color: white;
-      padding: 8px 16px;
-      border-radius: 4px;
+      padding: 10px 18px;
+      border-radius: 6px;
       cursor: pointer;
       font-size: 13px;
-      font-weight: 600;
-      backdrop-filter: blur(5px);
-      transition: background 0.2s;
+      font-weight: 700;
+      backdrop-filter: blur(8px);
     }
-
-    .control-btn:hover { background: var(--accent-blue, #0072d2); }
   </style>
 </head>
 <body>
 
-<div id="startOverlay" onclick="initializeAudioAndStart()">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
-  <h1>JOIN LIVE STREAM</h1>
-  <p>CLICK TO START BROADCAST</p>
-</div>
-
-<div class="stream-viewport">
+<div id="viewport">
   <!-- Disney+ Integrated TV Bar -->
   <div class="tv-broadcast-bar">
-    <div class="broadcast-info-pill">
-      <div class="live-tag">LIVE</div>
-      <div class="show-meta">
-        <span class="now-title" id="nowText">NOW: Loading...</span>
-        <span class="next-divider">|</span>
-        <span class="next-title" id="nextText">NEXT: ...</span>
-      </div>
+    <div class="tv-ticker-container">
+      <div class="live-badge">LIVE</div>
+      <div class="tv-ticker-text" id="tvTickerText">NOW: Loading...</div>
     </div>
     <img class="disney-logo" src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
   </div>
 
-  <!-- Dual Player Iframe Slots for Gapless Prebuffering -->
-  <div id="playerA" class="player-frame"></div>
-  <div id="playerB" class="player-frame"></div>
+  <!-- Dual Player Iframe Container -->
+  <div class="iframe-wrapper">
+    <div id="playerA" class="player-frame"></div>
+    <div id="playerB" class="player-frame"></div>
+  </div>
 
-  <!-- Custom Player Controls -->
-  <div class="controls-overlay">
+  <div class="interaction-blocker" onclick="toggleControls()"></div>
+
+  <!-- Start Overlay -->
+  <div id="startOverlay" onclick="initializeAudioAndStart()">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
+    <h1>JOIN LIVE STREAM</h1>
+    <p>CLICK TO START BROADCAST</p>
+  </div>
+
+  <!-- Custom Controls Bar -->
+  <div class="controls-overlay" id="controlsOverlay">
     <button class="control-btn" onclick="toggleMute()" id="muteBtn">MUTE</button>
-    <button class="control-btn" onclick="toggleFullscreen()">FULLSCREEN</button>
+    <button class="control-btn" onclick="toggleFullscreen()" id="fsBtn">FULLSCREEN</button>
   </div>
 </div>
 
@@ -183,7 +202,6 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Get Channel Slug from URL parameter (2.html?watch=channelId)
   const urlParams = new URLSearchParams(window.location.search);
   const channelId = urlParams.get('watch') || 'main';
 
@@ -192,9 +210,12 @@
   let scheduleData = null;
   let prebufferTimer = null;
   let transitionTimer = null;
+  let tickerTimer = null;
+  let controlsHideTimeout = null;
   let isMuted = false;
 
-  // Load YouTube IFrame API
+  let tickerState = 'NOW'; // Flips between NOW and NEXT every 20 seconds
+
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
   document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, document.getElementsByTagName('script')[0]);
@@ -207,14 +228,15 @@
     try {
       const doc = await db.collection("channels").doc(channelId).get();
       if (!doc.exists) {
-        document.getElementById('nowText').innerText = `Channel '${channelId}' not found. Setup in 1.html first.`;
+        document.getElementById('tvTickerText').innerText = `Channel '${channelId}' not found. Setup in 1.html first.`;
         return;
       }
       scheduleData = doc.data();
       initPlayers();
+      startTickerLoop();
     } catch (e) {
       console.error(e);
-      document.getElementById('nowText').innerText = "Error loading live stream.";
+      document.getElementById('tvTickerText').innerText = "Error loading live stream.";
     }
   }
 
@@ -244,35 +266,53 @@
     return { currentIndex: 0, video: schedule.videos[0], offset: 0, remaining: schedule.videos[0].duration, nextVideo: schedule.videos[1] || schedule.videos[0] };
   }
 
+  // 20-SECOND TICKER ALTERNATOR (NOW <-> NEXT)
+  function updateTickerDisplay() {
+    if (!scheduleData) return;
+    const current = calculatePlaybackState(scheduleData);
+    const tickerTextEl = document.getElementById('tvTickerText');
+
+    tickerTextEl.style.opacity = '0';
+
+    setTimeout(() => {
+      if (tickerState === 'NOW') {
+        tickerTextEl.innerText = "NOW: " + current.video.title;
+      } else {
+        tickerTextEl.innerText = "NEXT: " + current.nextVideo.title;
+      }
+      tickerTextEl.style.opacity = '1';
+    }, 500);
+  }
+
+  function startTickerLoop() {
+    updateTickerDisplay();
+    clearInterval(tickerTimer);
+    tickerTimer = setInterval(() => {
+      tickerState = (tickerState === 'NOW') ? 'NEXT' : 'NOW';
+      updateTickerDisplay();
+    }, 20000); // 20 Seconds Delay
+  }
+
   function initPlayers() {
     const current = calculatePlaybackState(scheduleData);
-    updateOverlayTitles(current.video.title, current.nextVideo.title);
 
-    // Player A (Active)
     playerA = new YT.Player('playerA', {
       videoId: current.video.id,
-      playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'start': Math.floor(current.offset) },
+      playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'iv_load_policy': 3, 'start': Math.floor(current.offset) },
       events: { 'onReady': (e) => e.target.playVideo() }
     });
 
-    // Player B (Background Standby for Gapless Buffer)
     playerB = new YT.Player('playerB', {
       videoId: current.nextVideo.id,
-      playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0 },
+      playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'iv_load_policy': 3 },
       events: { 'onReady': () => setupNextPrebuffer(current) }
     });
-  }
-
-  function updateOverlayTitles(nowTitle, nextTitle) {
-    document.getElementById('nowText').innerText = "NOW: " + nowTitle;
-    document.getElementById('nextText').innerText = "NEXT: " + nextTitle;
   }
 
   function setupNextPrebuffer(current) {
     clearTimeout(prebufferTimer);
     clearTimeout(transitionTimer);
 
-    // Preload next video in background player 10 seconds before current ends
     const prebufferDelay = Math.max(0, (current.remaining - 10)) * 1000;
     prebufferTimer = setTimeout(() => {
       const state = calculatePlaybackState(scheduleData);
@@ -280,7 +320,6 @@
       standbyPlayer.cueVideoById(state.nextVideo.id, 0);
     }, prebufferDelay);
 
-    // Exact transition timer when current video ends
     transitionTimer = setTimeout(() => {
       switchGaplessPlayer();
     }, current.remaining * 1000);
@@ -288,14 +327,13 @@
 
   function switchGaplessPlayer() {
     const current = calculatePlaybackState(scheduleData);
-    updateOverlayTitles(current.video.title, current.nextVideo.title);
+    updateTickerDisplay();
 
     const currentPlayerObj = activePlayer === 'A' ? playerA : playerB;
     const nextPlayerObj = activePlayer === 'A' ? playerB : playerA;
     const currentFrame = document.getElementById(activePlayer === 'A' ? 'playerA' : 'playerB');
     const nextFrame = document.getElementById(activePlayer === 'A' ? 'playerB' : 'playerA');
 
-    // Smooth Gapless Switch
     nextPlayerObj.playVideo();
     nextFrame.style.opacity = '1';
     nextFrame.style.zIndex = '2';
@@ -329,11 +367,25 @@
   }
 
   function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+    const elem = document.getElementById('viewport');
+    if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+      if (elem.requestFullscreen) elem.requestFullscreen();
+      else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+      else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
     } else {
       if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
     }
+  }
+
+  function toggleControls() {
+    const overlay = document.getElementById('controlsOverlay');
+    overlay.classList.add('visible');
+    clearTimeout(controlsHideTimeout);
+    controlsHideTimeout = setTimeout(() => {
+      overlay.classList.remove('visible');
+    }, 4000);
   }
 </script>
 </body>
