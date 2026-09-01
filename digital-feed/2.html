@@ -22,7 +22,7 @@
       overflow: hidden;
     }
 
-    /* 135% Scaling + -17.5% Offsets completely crops out all YouTube logos & controls */
+    /* 135% Scaling + -17.5% Offsets crops YouTube controls */
     .iframe-wrapper {
       position: absolute;
       top: -17.5%;
@@ -43,7 +43,6 @@
     #playerA { z-index: 2; opacity: 1; }
     #playerB { z-index: 1; opacity: 0; }
 
-    /* Invisible blocker prevents touching YouTube UI elements */
     .interaction-blocker {
       position: absolute;
       top: 0; left: 0;
@@ -52,7 +51,7 @@
       cursor: pointer;
     }
 
-    /* Top TV Broadcast Overlay */
+    /* Top TV Broadcast Bar (SHADOWS REMOVED) */
     .tv-broadcast-bar {
       position: absolute;
       top: clamp(15px, 3vh, 35px);
@@ -65,7 +64,6 @@
       pointer-events: none;
     }
 
-    /* Zero-Background Title Container */
     .tv-ticker-container {
       display: flex;
       align-items: center;
@@ -76,7 +74,7 @@
     }
 
     .live-badge {
-      background: linear-gradient(135deg, #0072d2, #004494);
+      background: #0072d2;
       color: #fff;
       font-size: clamp(10px, 1.2vw, 12px);
       font-weight: 800;
@@ -84,7 +82,6 @@
       border-radius: 4px;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      box-shadow: 0 4px 12px rgba(0, 114, 210, 0.4);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -104,13 +101,12 @@
       100% { opacity: 1; }
     }
 
-    /* Clean Text with Heavy Drop Shadow */
+    /* NOW / NEXT Text (SHADOWS REMOVED) */
     .tv-ticker-text {
       color: #ffffff;
       font-size: clamp(15px, 2.4vw, 22px);
       font-weight: 700;
       letter-spacing: 0.5px;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 15px rgba(0, 0, 0, 0.9);
       transition: opacity 0.5s ease-in-out;
       white-space: nowrap;
       overflow: hidden;
@@ -118,31 +114,11 @@
       max-width: 60vw;
     }
 
-    /* Disney+ Logo */
     .disney-logo {
       height: clamp(32px, 4.5vw, 55px);
-      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.9));
     }
 
-    /* Initial Click Overlay */
-    #startOverlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(15,24,48,0.96) 0%, rgba(5,7,12,0.98) 100%);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-      cursor: pointer;
-    }
-
-    #startOverlay img { height: clamp(50px, 10vw, 85px); margin-bottom: 20px; }
-    #startOverlay h1 { font-size: clamp(20px, 4vw, 32px); font-weight: 700; letter-spacing: 1.5px; }
-    #startOverlay p { margin-top: 10px; color: #0072d2; font-size: clamp(12px, 1.8vw, 15px); font-weight: 600; letter-spacing: 1px; }
-
-    /* ALWAYS-VISIBLE FLOATING FULLSCREEN BUTTON */
+    /* Persistent Fullscreen Button (SHADOWS REMOVED) */
     .persistent-fs-btn {
       position: absolute;
       bottom: clamp(20px, 4vh, 35px);
@@ -159,7 +135,6 @@
       z-index: 50;
       cursor: pointer;
       backdrop-filter: blur(10px);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
       transition: transform 0.2s, background 0.2s, opacity 0.3s;
       opacity: 0.85;
     }
@@ -171,7 +146,7 @@
       opacity: 1;
     }
 
-    /* Floating Control Bar Overlay */
+    /* Controls Overlay (SHADOWS REMOVED) */
     .controls-overlay {
       position: absolute;
       bottom: clamp(20px, 4vh, 35px);
@@ -202,7 +177,6 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
       transition: background 0.2s, transform 0.1s;
     }
 
@@ -214,7 +188,7 @@
 <body>
 
 <div id="viewport">
-  <!-- Disney+ Integrated TV Bar -->
+  <!-- Disney+ TV Header -->
   <div class="tv-broadcast-bar">
     <div class="tv-ticker-container">
       <div class="live-badge"><span class="live-dot"></span>LIVE</div>
@@ -223,7 +197,7 @@
     <img class="disney-logo" src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
   </div>
 
-  <!-- Dual Player Iframe Container -->
+  <!-- Dual Player Frames -->
   <div class="iframe-wrapper">
     <div id="playerA" class="player-frame"></div>
     <div id="playerB" class="player-frame"></div>
@@ -232,14 +206,7 @@
   <!-- Interaction Blocker -->
   <div class="interaction-blocker" onclick="handleInteractionClick(event)"></div>
 
-  <!-- Start Overlay -->
-  <div id="startOverlay" onclick="initializeAudioAndStart()">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
-    <h1>JOIN LIVE STREAM</h1>
-    <p>CLICK TO START BROADCAST</p>
-  </div>
-
-  <!-- Bottom Left Controls -->
+  <!-- Controls -->
   <div class="controls-overlay" id="controlsOverlay">
     <button class="control-btn" onclick="toggleMute()" id="muteBtn">
       <svg id="muteIcon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
@@ -247,11 +214,8 @@
     </button>
   </div>
 
-  <!-- ALWAYS-VISIBLE FLOATING FULLSCREEN BUTTON (BOTTOM-RIGHT) -->
   <button class="persistent-fs-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen" id="fsFab">
-    <!-- Expand Icon (Default) -->
     <svg id="fsExpandIcon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-    <!-- Compress Icon (Hidden by default) -->
     <svg id="fsCompressIcon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M4 14h6v6m10-10h-6V4m0 6l7-7M3 21l7-7"/></svg>
   </button>
 </div>
@@ -286,8 +250,7 @@
   let controlsHideTimeout = null;
   let isMuted = false;
   let lastTapTime = 0;
-
-  let tickerState = 'NOW'; // Toggles between NOW and NEXT every 20s
+  let tickerState = 'NOW';
 
   document.addEventListener('fullscreenchange', updateFullscreenButtonState);
   document.addEventListener('webkitfullscreenchange', updateFullscreenButtonState);
@@ -316,6 +279,7 @@
     }
   }
 
+  // Exact Real-Time Calculation (Deterministic for all viewers)
   function calculatePlaybackState(schedule) {
     const now = Date.now();
     const elapsedSeconds = Math.floor((now - schedule.epochStartTime) / 1000);
@@ -342,18 +306,22 @@
     return { currentIndex: 0, video: schedule.videos[0], offset: 0, remaining: schedule.videos[0].duration, nextVideo: schedule.videos[1] || schedule.videos[0] };
   }
 
+  // Synchronized NOW & NEXT Display
   function updateTickerDisplay() {
     if (!scheduleData) return;
     const current = calculatePlaybackState(scheduleData);
     const tickerTextEl = document.getElementById('tvTickerText');
 
+    const nowTitle = current.video.showName ? `${current.video.showName}: ${current.video.title}` : current.video.title;
+    const nextTitle = current.nextVideo.showName ? `${current.nextVideo.showName}: ${current.nextVideo.title}` : current.nextVideo.title;
+
     tickerTextEl.style.opacity = '0';
 
     setTimeout(() => {
       if (tickerState === 'NOW') {
-        tickerTextEl.innerText = "NOW: " + current.video.title;
+        tickerTextEl.innerText = "NOW: " + nowTitle;
       } else {
-        tickerTextEl.innerText = "NEXT: " + current.nextVideo.title;
+        tickerTextEl.innerText = "NEXT: " + nextTitle;
       }
       tickerTextEl.style.opacity = '1';
     }, 500);
@@ -374,7 +342,11 @@
     playerA = new YT.Player('playerA', {
       videoId: current.video.id,
       playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'iv_load_policy': 3, 'start': Math.floor(current.offset) },
-      events: { 'onReady': (e) => e.target.playVideo() }
+      events: { 
+        'onReady': (e) => {
+          e.target.playVideo();
+        } 
+      }
     });
 
     playerB = new YT.Player('playerB', {
@@ -422,12 +394,6 @@
     setupNextPrebuffer(current);
   }
 
-  function initializeAudioAndStart() {
-    document.getElementById('startOverlay').style.display = 'none';
-    if (playerA && playerA.playVideo) playerA.playVideo();
-    if (playerB && playerB.playVideo) playerB.playVideo();
-  }
-
   function toggleMute() {
     const p = activePlayer === 'A' ? playerA : playerB;
     if (!p) return;
@@ -446,7 +412,6 @@
     isMuted = !isMuted;
   }
 
-  // ENHANCED FULLSCREEN TOGGLE
   function toggleFullscreen() {
     const docEl = document.documentElement;
     const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
@@ -455,33 +420,17 @@
       if (docEl.requestFullscreen) docEl.requestFullscreen().catch(err => console.log(err));
       else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
       else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
-
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(() => {});
-      }
     } else {
       if (document.exitFullscreen) document.exitFullscreen();
       else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
       else if (document.msExitFullscreen) document.msExitFullscreen();
-
-      if (screen.orientation && screen.orientation.unlock) {
-        screen.orientation.unlock();
-      }
     }
   }
 
   function updateFullscreenButtonState() {
     const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-    const expandIcon = document.getElementById('fsExpandIcon');
-    const compressIcon = document.getElementById('fsCompressIcon');
-
-    if (isFS) {
-      expandIcon.style.display = 'none';
-      compressIcon.style.display = 'block';
-    } else {
-      expandIcon.style.display = 'block';
-      compressIcon.style.display = 'none';
-    }
+    document.getElementById('fsExpandIcon').style.display = isFS ? 'none' : 'block';
+    document.getElementById('fsCompressIcon').style.display = isFS ? 'block' : 'none';
   }
 
   function handleInteractionClick(e) {
