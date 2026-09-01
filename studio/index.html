@@ -3,282 +3,356 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Partner & Studio Admin Panel</title>
-
+  <title>Studio Hub</title>
+  
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
+    :root {
+      --bg-dark: #0f1017;
+      --card-bg: #1a1c29;
+      --accent-blue: #0072d2;
+      --text-main: #f9f9f9;
+      --text-muted: #8c93a8;
+      --aspect-ratio: 16 / 9;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
     body {
-      background-color: #0b0c10;
-      color: #c5c6c7;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
       min-height: 100vh;
-      padding: 24px 5vw;
+      overflow-x: hidden;
     }
 
-    h1, h2, h3 {
-      color: #66fcf1;
-      font-weight: 700;
-    }
-
-    .header-bar {
+    /* ================= HERO HEADER ================= */
+    .hero-banner-container {
+      position: relative;
+      width: 100vw;
+      height: 75vh;
+      min-height: 480px;
+      max-height: 720px;
+      overflow: hidden;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #1f2833;
-      margin-bottom: 25px;
+      justify-content: center;
+      background-color: var(--bg-dark);
     }
 
-    .studio-select-bar {
-      background: #1f2833;
-      padding: 18px 24px;
-      border-radius: 8px;
-      margin-bottom: 25px;
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    select, input[type="text"] {
-      background: #0b0c10;
-      border: 1px solid #45a29e;
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      outline: none;
-    }
-
-    select {
-      min-width: 240px;
-    }
-
-    .btn {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: opacity 0.2s ease, transform 0.1s ease;
-    }
-    .btn:active {
-      transform: scale(0.97);
-    }
-
-    .btn-primary { background: #45a29e; color: #0b0c10; }
-    .btn-primary:hover { background: #66fcf1; }
-
-    .btn-save { background: #28a745; color: #fff; font-size: 1rem; padding: 12px 24px; }
-    .btn-save:hover { opacity: 0.9; }
-
-    .btn-danger { background: #e63946; color: #fff; }
-    .btn-danger:hover { opacity: 0.85; }
-
-    .btn-secondary { background: #343a40; color: #fff; }
-    .btn-secondary:hover { background: #495057; }
-
-    .btn-sm { padding: 6px 10px; font-size: 0.8rem; }
-
-    /* Studio Details Form */
-    .form-card {
-      background: #141724;
-      border: 1px solid #1f2833;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 25px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 15px;
-      margin-top: 12px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      margin-bottom: 6px;
-      color: #8c93a8;
-      text-transform: uppercase;
-      font-weight: bold;
-    }
-
-    .form-group input {
+    .hero-banner-img {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 25%;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.6s ease-in-out;
     }
 
-    /* Section Block */
-    .section-block {
-      background: #121420;
-      border: 1px solid rgba(102, 252, 241, 0.2);
+    .hero-banner-img.loaded {
+      opacity: 1;
+    }
+
+    .hero-banner-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: linear-gradient(
+        180deg, 
+        rgba(15, 16, 23, 0.1) 0%, 
+        rgba(15, 16, 23, 0.3) 40%, 
+        rgba(15, 16, 23, 0.75) 75%, 
+        rgba(15, 16, 23, 0.98) 95%, 
+        var(--bg-dark) 100%
+      );
+    }
+
+    .hero-logo {
+      position: relative;
+      z-index: 3;
+      max-width: 500px;
+      max-height: 220px;
+      width: 50vw;
+      margin-top: -60px;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 25px rgba(0, 0, 0, 0.85));
+      animation: heroFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hero-title-fallback {
+      position: relative;
+      z-index: 3;
+      font-size: 3.8rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 8px 30px rgba(0,0,0,0.9);
+      margin-top: -60px;
+      animation: heroFadeIn 0.8s ease-out;
+    }
+
+    @keyframes heroFadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ================= MAIN CONTAINER ================= */
+    .main-content {
+      position: relative;
+      z-index: 4;
+      padding: 0 4vw 60px 4vw;
+      margin-top: -120px;
+    }
+
+    /* ================= SUB-STUDIOS GRID ================= */
+    .sub-studios-section {
+      margin-bottom: 42px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #e4e7eb;
+      margin-bottom: 14px;
+      letter-spacing: 0.2px;
+    }
+
+    .sub-studio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 16px;
+    }
+
+    .studio-tile {
+      aspect-ratio: var(--aspect-ratio);
+      background: linear-gradient(145deg, #1e2130, #131520);
       border-radius: 8px;
-      padding: 18px;
-      margin-bottom: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .studio-tile:hover {
+      transform: scale(1.05);
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.7);
+    }
+
+    .studio-tile-text {
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+
+    /* ================= CONTENT ROWS & CAROUSEL ================= */
+    .content-row {
+      margin-bottom: 38px;
       position: relative;
     }
 
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .section-header-left {
+    .carousel-wrapper {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex: 1;
     }
 
-    .section-badge {
-      background: #45a29e;
-      color: #0b0c10;
-      font-weight: bold;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 0.85rem;
-    }
-
-    /* 16:9 Tiles Horizontal Grid */
-    .tiles-container {
+    .scroll-container {
       display: flex;
-      gap: 14px;
+      gap: 15px;
       overflow-x: auto;
-      padding: 12px 0;
-      min-height: 160px;
-      align-items: center;
-    }
-
-    .tile-card {
-      flex: 0 0 210px;
-      background: #1a1c29;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 6px;
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .tile-img {
+      scroll-behavior: smooth;
+      padding: 12px 4px;
+      scrollbar-width: none;
       width: 100%;
-      aspect-ratio: 16 / 9;
-      background: #000;
-      border-radius: 4px;
-      object-fit: cover;
     }
 
-    .tile-name {
-      font-size: 0.8rem;
+    .scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Carousel Nav Arrows */
+    .carousel-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: calc(100% - 24px);
+      background: rgba(15, 16, 23, 0.75);
+      backdrop-filter: blur(4px);
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 12;
+      opacity: 0;
+      transition: opacity 0.25s ease, background 0.2s ease;
+      border-radius: 6px;
+    }
+
+    .carousel-wrapper:hover .carousel-arrow {
+      opacity: 1;
+    }
+
+    .carousel-arrow:hover {
+      background: rgba(0, 114, 210, 0.85);
+    }
+
+    .carousel-arrow.left { left: 0; }
+    .carousel-arrow.right { right: 0; }
+
+    /* ================= 16:9 CONTENT CARDS ================= */
+    .content-card {
+      flex: 0 0 calc(20% - 12px);
+      min-width: 210px;
+      aspect-ratio: var(--aspect-ratio);
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+      transition: transform 0.25s cubic-bezier(0.2, 0, 0.1, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .content-card:hover {
+      transform: scale(1.06);
+      border-color: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9);
+      z-index: 10;
+    }
+
+    .content-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: opacity 0.3s ease;
+    }
+
+    .card-info-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 60%);
+      opacity: 0;
+      display: flex;
+      align-items: flex-end;
+      padding: 10px;
+      transition: opacity 0.25s ease;
+    }
+
+    .content-card:hover .card-info-overlay {
+      opacity: 1;
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
       color: #fff;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      text-align: center;
     }
 
-    .tile-actions {
+    .card-placeholder {
       display: flex;
-      justify-content: space-between;
-      gap: 4px;
-    }
-
-    .add-tile-bar {
-      display: flex;
-      gap: 10px;
-      margin-top: 12px;
       align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      padding: 12px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      background: linear-gradient(135deg, #1b1d2a, #11131c);
+      font-weight: 600;
+      text-transform: capitalize;
     }
 
-    .status-msg {
-      margin-left: 15px;
-      font-weight: bold;
+    /* ================= SKELETON SHIMMER ================= */
+    .skeleton-box {
+      background: linear-gradient(90deg, #161824 25%, #222638 50%, #161824 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
     }
 
-    .filter-badge {
-      font-size: 0.8rem;
-      background: rgba(102, 252, 241, 0.1);
-      color: #66fcf1;
-      padding: 4px 8px;
-      border-radius: 4px;
-      border: 1px solid rgba(102, 252, 241, 0.3);
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ================= RESPONSIVE ================= */
+    @media (max-width: 1024px) {
+      .content-card { flex: 0 0 calc(28% - 10px); min-width: 190px; }
+      .main-content { margin-top: -100px; }
+    }
+
+    @media (max-width: 768px) {
+      .hero-banner-container { height: 60vh; min-height: 400px; }
+      .hero-logo { width: 70vw; max-height: 160px; margin-top: -80px; }
+      .hero-title-fallback { font-size: 2.6rem; margin-top: -80px; }
+      .main-content { margin-top: -140px; padding: 0 4vw 40px 4vw; }
+      .content-card { flex: 0 0 55%; min-width: 165px; border-radius: 6px; }
+      .carousel-arrow { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-banner-container { height: 55vh; min-height: 350px; }
+      .content-card { flex: 0 0 70%; min-width: 150px; }
+      .main-content { margin-top: -120px; }
     }
   </style>
 </head>
 <body>
 
-  <div class="header-bar">
-    <h1>Partner / Studio Admin Panel</h1>
-    <div>
-      <button class="btn btn-save" onclick="saveToFirestore()">Save Changes to Firestore</button>
-      <span id="statusMsg" class="status-msg"></span>
-    </div>
-  </div>
+  <!-- App Structure -->
+  <div id="app">
+    <!-- Top Hero Banner -->
+    <header class="hero-banner-container" id="heroBannerContainer">
+      <img id="heroBannerImg" class="hero-banner-img" src="" alt="Banner" />
+      <div class="hero-banner-overlay"></div>
+      <img id="heroLogo" class="hero-logo" src="" alt="Studio Logo" style="display: none;" />
+      <h1 id="heroTitle" class="hero-title-fallback" style="display: none;"></h1>
+    </header>
 
-  <!-- Studio Selection Bar -->
-  <div class="studio-select-bar">
-    <label for="studioSelect" style="font-weight: 600; color: #fff;">Select Partner/Studio:</label>
-    <select id="studioSelect" onchange="onStudioSelected()">
-      <option value="">-- Choose Studio --</option>
-    </select>
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Sub-Studios Row -->
+      <section class="sub-studios-section" id="subStudioSection" style="display: none;">
+        <h2 class="section-title">Studios</h2>
+        <div class="sub-studio-grid" id="subStudioGrid"></div>
+      </section>
 
-    <input type="text" id="newStudioId" placeholder="New ID (e.g. marvel or disney)" />
-    <button class="btn btn-primary" onclick="createNewStudio()">+ Create Studio</button>
-  </div>
-
-  <div id="editorArea" style="display: none;">
-    <!-- Studio Metadata -->
-    <div class="form-card">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>Studio Details</h3>
-        <span id="studioFilterBadge" class="filter-badge"></span>
-      </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Display Name</label>
-          <input type="text" id="studioName" placeholder="e.g. Disney" />
-        </div>
-        <div class="form-group">
-          <label>Banner Image URL</label>
-          <input type="text" id="studioBanner" placeholder="https://.../Banner.jpg" />
-        </div>
-        <div class="form-group">
-          <label>Logo PNG URL</label>
-          <input type="text" id="studioLogo" placeholder="https://.../Logo.png" />
-        </div>
-        <div class="form-group">
-          <label>Sub-Studios (Comma-separated IDs)</label>
-          <input type="text" id="studioSubStudios" placeholder="disney, marvel, pixar, star-wars" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Sections & Tiles Re-arrangement -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-      <h2>Sections & Tiles Re-arrangement</h2>
-      <button class="btn btn-primary" onclick="addSection()">+ Add New Section</button>
-    </div>
-
-    <div id="sectionsContainer"></div>
+      <!-- Dynamic Sorted Rows (S1., S2., S3...) -->
+      <div id="sectionsContainer"></div>
+    </main>
   </div>
 
   <script>
-    // 1. Firebase Configuration
+    // 1. Firebase Initialization
     const firebaseConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -292,288 +366,242 @@
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let currentDocId = '';
-    let currentDocData = {};
-    let sectionsList = []; // [{ title: "Doraemon", items: ["doraemon-1", ...] }]
-    let allMediaItems = []; // List of all shows and movies across database
+    // 2. Parse Query Params
+    const urlParams = new URLSearchParams(window.location.search);
+    const studioParam = urlParams.get('studio') || 'disney-plus';
+    const subParam = urlParams.get('sub');
+    const activeDocId = subParam || studioParam;
 
-    // 2. Initialize
-    async function initAdmin() {
-      await loadAllMedia();
-      await loadPartnersList();
+    const mediaCache = new Map();
+
+    // 3. Parallel Batch Media Resolver
+    async function fetchMediaDetails(id) {
+      if (!id || typeof id !== 'string') return null;
+      if (mediaCache.has(id)) return mediaCache.get(id);
+
+      const lookups = [
+        id,
+        id.toLowerCase(),
+        id.replace(/^doremon/i, 'doraemon'),
+        id.replace(/^doraemon/i, 'doremon')
+      ];
+
+      for (const key of lookups) {
+        try {
+          // Check Movies
+          let docSnap = await db.collection('Movies').doc(key).get();
+          if (docSnap.exists) {
+            const data = docSnap.data();
+            mediaCache.set(id, data);
+            return data;
+          }
+          // Check Shows
+          docSnap = await db.collection('Shows').doc(key).get();
+          if (docSnap.exists) {
+            const data = docSnap.data();
+            mediaCache.set(id, data);
+            return data;
+          }
+        } catch (e) {
+          console.warn(`Fetch error for ID: ${key}`, e);
+        }
+      }
+
+      mediaCache.set(id, null);
+      return null;
     }
 
-    // Load all Shows and Movies
-    async function loadAllMedia() {
-      allMediaItems = [];
-      const showsSnap = await db.collection('Shows').get();
-      showsSnap.forEach(doc => allMediaItems.push({ id: doc.id, collectionType: 'Shows', ...doc.data() }));
+    // 4. Real-Time Firestore Sync
+    function initRealtimeListener() {
+      let parentData = null;
 
-      const moviesSnap = await db.collection('Movies').get();
-      moviesSnap.forEach(doc => allMediaItems.push({ id: doc.id, collectionType: 'Movies', ...doc.data() }));
-    }
+      if (subParam && activeDocId !== studioParam) {
+        db.collection('Partners').doc(studioParam).onSnapshot(snap => {
+          parentData = snap.exists ? snap.data() : null;
+        });
+      }
 
-    // Load available Partner/Studio IDs
-    async function loadPartnersList() {
-      const select = document.getElementById('studioSelect');
-      select.innerHTML = '<option value="">-- Choose Studio --</option>';
+      db.collection('Partners').doc(activeDocId).onSnapshot(async docSnap => {
+        if (!docSnap.exists) {
+          document.getElementById('sectionsContainer').innerHTML = `
+            <div style="padding: 40px 0; text-align: center; color: var(--text-muted);">
+              <h3>No Studio data found for "${activeDocId}"</h3>
+            </div>
+          `;
+          return;
+        }
 
-      const snap = await db.collection('Partners').get();
-      snap.forEach(doc => {
-        const opt = document.createElement('option');
-        opt.value = doc.id;
-        opt.textContent = doc.id + (doc.data().Name ? ` (${doc.data().Name})` : '');
-        select.appendChild(opt);
+        const data = docSnap.data();
+        await renderPage(data, parentData);
+      }, error => {
+        console.error("Firestore Real-time Error:", error);
       });
     }
 
-    // 3. Studio Selection
-    async function onStudioSelected() {
-      const docId = document.getElementById('studioSelect').value;
-      if (!docId) {
-        document.getElementById('editorArea').style.display = 'none';
-        return;
+    // 5. Render Core UI
+    async function renderPage(data, parentData) {
+      // 1. Setup Hero Banner & Logo
+      const bannerImg = document.getElementById('heroBannerImg');
+      const heroLogo = document.getElementById('heroLogo');
+      const heroTitle = document.getElementById('heroTitle');
+
+      const bgUrl = data['Banner'] || data['Background.jpg'] || data['Background'] || data['Tile'] ||
+                    (parentData && (parentData['Banner'] || parentData['Background.jpg'] || parentData['Background']));
+
+      const logoUrl = data['Logo'] || data['Logo.png'] || 
+                      (parentData && (parentData['Logo'] || parentData['Logo.png']));
+
+      const studioName = data['Name'] || data['Title'] || activeDocId.replace(/-/g, ' ');
+
+      if (bgUrl) {
+        bannerImg.src = bgUrl;
+        bannerImg.onload = () => bannerImg.classList.add('loaded');
+        bannerImg.style.display = 'block';
+      } else {
+        bannerImg.style.display = 'none';
       }
-      currentDocId = docId;
 
-      const docSnap = await db.collection('Partners').doc(docId).get();
-      currentDocData = docSnap.exists ? docSnap.data() : {};
+      if (logoUrl) {
+        heroLogo.src = logoUrl;
+        heroLogo.style.display = 'block';
+        heroTitle.style.display = 'none';
+      } else {
+        heroLogo.style.display = 'none';
+        heroTitle.textContent = studioName;
+        heroTitle.style.display = 'block';
+      }
 
-      // Fill Form Inputs
-      document.getElementById('studioName').value = currentDocData.Name || '';
-      document.getElementById('studioBanner').value = currentDocData.Banner || currentDocData['Background.jpg'] || '';
-      document.getElementById('studioLogo').value = currentDocData.Logo || currentDocData['Logo.png'] || '';
-      
-      const subStudios = currentDocData['Sub-Studio'] || [];
-      document.getElementById('studioSubStudios').value = Array.isArray(subStudios) ? subStudios.join(', ') : '';
+      // 2. Render Sub-Studio Grid
+      if (!subParam && data['Sub-Studio'] && Array.isArray(data['Sub-Studio'])) {
+        renderSubStudios(data['Sub-Studio']);
+      } else {
+        document.getElementById('subStudioSection').style.display = 'none';
+      }
 
-      document.getElementById('studioFilterBadge').innerText = `Filtered for Studio: "${currentDocId}"`;
+      // 3. Render S1., S2., S3... Rows
+      await renderSections(data);
+    }
 
-      // Extract and Sort Sections (S1., S2., S3.)
-      sectionsList = [];
-      Object.keys(currentDocData).forEach(key => {
+    function renderSubStudios(subList) {
+      const section = document.getElementById('subStudioSection');
+      const grid = document.getElementById('subStudioGrid');
+      grid.innerHTML = '';
+
+      subList.forEach(sub => {
+        const tile = document.createElement('a');
+        tile.className = 'studio-tile';
+        tile.href = `1.html?studio=${encodeURIComponent(studioParam)}&sub=${encodeURIComponent(sub)}`;
+        tile.innerHTML = `<span class="studio-tile-text">${sub.replace(/-/g, ' ')}</span>`;
+        grid.appendChild(tile);
+      });
+
+      section.style.display = 'block';
+    }
+
+    async function renderSections(data) {
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = '';
+
+      // Collect & Sort Sections
+      const sections = [];
+      Object.keys(data).forEach(key => {
         if (/^S\d+\./i.test(key.trim())) {
-          sectionsList.push({
-            origKey: key,
+          sections.push({
+            key: key,
             title: key.replace(/^S\d+\.\s*/i, ''),
-            items: Array.isArray(currentDocData[key]) ? [...currentDocData[key]] : []
+            items: Array.isArray(data[key]) ? data[key] : Object.values(data[key] || {})
           });
         }
       });
 
-      sectionsList.sort((a, b) => {
-        const numA = parseInt(a.origKey.match(/^S(\d+)\./i)?.[1] || 9999);
-        const numB = parseInt(b.origKey.match(/^S(\d+)\./i)?.[1] || 9999);
+      sections.sort((a, b) => {
+        const numA = parseInt(a.key.match(/^S(\d+)\./i)?.[1] || 9999);
+        const numB = parseInt(b.key.match(/^S(\d+)\./i)?.[1] || 9999);
         return numA - numB;
       });
 
-      document.getElementById('editorArea').style.display = 'block';
-      renderSectionsUI();
-    }
+      // Render each row
+      for (const sec of sections) {
+        const row = document.createElement('div');
+        row.className = 'content-row';
 
-    function createNewStudio() {
-      const id = document.getElementById('newStudioId').value.trim().toLowerCase();
-      if (!id) return alert('Enter a valid studio ID.');
-      currentDocId = id;
-      currentDocData = { Name: id.toUpperCase(), Banner: '', Logo: '' };
-      sectionsList = [];
+        const rowTitle = document.createElement('h2');
+        rowTitle.className = 'section-title';
+        rowTitle.textContent = sec.title;
+        row.appendChild(rowTitle);
 
-      document.getElementById('studioName').value = currentDocData.Name;
-      document.getElementById('studioBanner').value = '';
-      document.getElementById('studioLogo').value = '';
-      document.getElementById('studioSubStudios').value = '';
-      document.getElementById('studioFilterBadge').innerText = `Filtered for Studio: "${currentDocId}"`;
+        const carouselWrapper = document.createElement('div');
+        carouselWrapper.className = 'carousel-wrapper';
 
-      document.getElementById('editorArea').style.display = 'block';
-      renderSectionsUI();
-    }
+        // Left Navigation Arrow
+        const leftBtn = document.createElement('button');
+        leftBtn.className = 'carousel-arrow left';
+        leftBtn.innerHTML = '&#10094;';
+        leftBtn.onclick = () => scrollRow(scrollContainer, -600);
 
-    // 4. Filter Media: Belongs to Current Studio & NOT Already Chosen
-    function getAvailableMediaForSelection() {
-      // Collect all IDs already added in any section
-      const alreadyChosenIds = new Set();
-      sectionsList.forEach(sec => {
-        sec.items.forEach(id => alreadyChosenIds.add(id));
-      });
+        // Right Navigation Arrow
+        const rightBtn = document.createElement('button');
+        rightBtn.className = 'carousel-arrow right';
+        rightBtn.innerHTML = '&#10095;';
+        rightBtn.onclick = () => scrollRow(scrollContainer, 600);
 
-      const currentStudioKey = currentDocId.toLowerCase();
+        const scrollContainer = document.createElement('div');
+        scrollContainer.className = 'scroll-container';
 
-      return allMediaItems.filter(item => {
-        // 1. Exclude already chosen items
-        if (alreadyChosenIds.has(item.id)) return false;
+        // Batch load all media items in this section concurrently
+        const mediaDetailsList = await Promise.all(sec.items.map(fetchMediaDetails));
 
-        // 2. Filter by Studio match (Check Studio / Partner / Studio_id fields)
-        const itemStudio = (item.Studio || item.Partner || item.studio || item.partner || item.Studio_id || '').toLowerCase();
-        
-        // If studio field exists on media item, it MUST match current studio
-        if (itemStudio) {
-          return itemStudio === currentStudioKey || itemStudio.includes(currentStudioKey);
-        }
-
-        // If media item has no studio tag, permit adding
-        return true;
-      });
-    }
-
-    // 5. Render Sections & 16:9 Tiles UI
-    function renderSectionsUI() {
-      const container = document.getElementById('sectionsContainer');
-      container.innerHTML = '';
-
-      const selectableMedia = getAvailableMediaForSelection();
-
-      sectionsList.forEach((sec, sIdx) => {
-        const block = document.createElement('div');
-        block.className = 'section-block';
-
-        // Section Header
-        const header = document.createElement('div');
-        header.className = 'section-header';
-        header.innerHTML = `
-          <div class="section-header-left">
-            <span class="section-badge">S${sIdx + 1}.</span>
-            <input type="text" value="${sec.title}" onchange="updateSectionTitle(${sIdx}, this.value)" style="flex:1;" placeholder="Section Title" />
-          </div>
-          <div>
-            <button class="btn btn-secondary btn-sm" onclick="moveSection(${sIdx}, -1)" ${sIdx === 0 ? 'disabled' : ''}>▲ Move Up</button>
-            <button class="btn btn-secondary btn-sm" onclick="moveSection(${sIdx}, 1)" ${sIdx === sectionsList.length - 1 ? 'disabled' : ''}>▼ Move Down</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteSection(${sIdx})">Delete Section</button>
-          </div>
-        `;
-        block.appendChild(header);
-
-        // Tiles Scrollable Area
-        const tilesContainer = document.createElement('div');
-        tilesContainer.className = 'tiles-container';
-
-        sec.items.forEach((itemId, tIdx) => {
-          const itemMeta = allMediaItems.find(i => i.id === itemId) || {};
-          const poster = itemMeta.Banner || itemMeta['Background.jpg'] || itemMeta.Tile || itemMeta?.['Multi-Language']?.Poster || itemMeta.Poster || '';
-          const name = itemMeta?.['Multi-Language']?.Name || itemMeta.Name || itemId;
-
+        sec.items.forEach((item, idx) => {
           const card = document.createElement('div');
-          card.className = 'tile-card';
-          card.innerHTML = `
-            <img class="tile-img" src="${poster}" alt="" onerror="this.src='https://via.placeholder.com/300x170?text=16:9+Poster'" />
-            <div class="tile-name" title="${name}">${name}</div>
-            <div class="tile-actions">
-              <button class="btn btn-secondary btn-sm" onclick="moveTile(${sIdx}, ${tIdx}, -1)" ${tIdx === 0 ? 'disabled' : ''}>◀</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteTile(${sIdx}, ${tIdx})">✕</button>
-              <button class="btn btn-secondary btn-sm" onclick="moveTile(${sIdx}, ${tIdx}, 1)" ${tIdx === sec.items.length - 1 ? 'disabled' : ''}>▶</button>
-            </div>
-          `;
-          tilesContainer.appendChild(card);
+          card.className = 'content-card';
+
+          if (typeof item === 'string' && (item.startsWith('http://') || item.startsWith('https://'))) {
+            card.innerHTML = `
+              <img src="${item}" alt="${sec.title}" loading="lazy" />
+              <div class="card-info-overlay"><span class="card-title">${sec.title}</span></div>
+            `;
+          } else {
+            const itemDoc = mediaDetailsList[idx];
+            const posterImg = itemDoc ? (
+              itemDoc.Banner || 
+              itemDoc['Background.jpg'] || 
+              itemDoc.Tile || 
+              itemDoc.Thumbnail || 
+              itemDoc?.['Multi-Language']?.Poster || 
+              itemDoc.Poster || 
+              itemDoc.Image
+            ) : null;
+
+            const displayName = itemDoc?.['Multi-Language']?.Name || itemDoc?.Name || itemDoc?.Title || item.replace(/-/g, ' ');
+
+            if (posterImg) {
+              card.innerHTML = `
+                <img src="${posterImg}" alt="${displayName}" loading="lazy" />
+                <div class="card-info-overlay"><span class="card-title">${displayName}</span></div>
+              `;
+            } else {
+              card.innerHTML = `<div class="card-placeholder"><span>${displayName}</span></div>`;
+            }
+          }
+
+          scrollContainer.appendChild(card);
         });
 
-        block.appendChild(tilesContainer);
+        carouselWrapper.appendChild(leftBtn);
+        carouselWrapper.appendChild(scrollContainer);
+        carouselWrapper.appendChild(rightBtn);
 
-        // Add Tile Dropdown with Filtered Items
-        const addTileBar = document.createElement('div');
-        addTileBar.className = 'add-tile-bar';
-        addTileBar.innerHTML = `
-          <select id="selectItem_${sIdx}">
-            <option value="">-- Choose Show/Movie to Add (${selectableMedia.length} available) --</option>
-            ${selectableMedia.map(item => `<option value="${item.id}">${item.id} (${item?.['Multi-Language']?.Name || item.Name || item.collectionType})</option>`).join('')}
-          </select>
-          <button class="btn btn-primary btn-sm" onclick="addTile(${sIdx})">+ Add Tile</button>
-        `;
-        block.appendChild(addTileBar);
-
-        container.appendChild(block);
-      });
-    }
-
-    // 6. Section & Tile Controls
-    function addSection() {
-      sectionsList.push({ title: "New Section", items: [] });
-      renderSectionsUI();
-    }
-
-    function deleteSection(index) {
-      if (confirm('Delete this section?')) {
-        sectionsList.splice(index, 1);
-        renderSectionsUI();
+        row.appendChild(carouselWrapper);
+        container.appendChild(row);
       }
     }
 
-    function moveSection(index, direction) {
-      const target = index + direction;
-      if (target < 0 || target >= sectionsList.length) return;
-      const temp = sectionsList[index];
-      sectionsList[index] = sectionsList[target];
-      sectionsList[target] = temp;
-      renderSectionsUI();
+    function scrollRow(container, distance) {
+      container.scrollBy({ left: distance, behavior: 'smooth' });
     }
 
-    function updateSectionTitle(index, newTitle) {
-      sectionsList[index].title = newTitle;
-    }
-
-    function addTile(secIndex) {
-      const select = document.getElementById(`selectItem_${secIndex}`);
-      const val = select.value;
-      if (!val) return;
-      sectionsList[secIndex].items.push(val);
-      renderSectionsUI();
-    }
-
-    function deleteTile(secIndex, tileIndex) {
-      sectionsList[secIndex].items.splice(tileIndex, 1);
-      renderSectionsUI();
-    }
-
-    function moveTile(secIndex, tileIndex, direction) {
-      const items = sectionsList[secIndex].items;
-      const target = tileIndex + direction;
-      if (target < 0 || target >= items.length) return;
-      const temp = items[tileIndex];
-      items[tileIndex] = items[target];
-      items[target] = temp;
-      renderSectionsUI();
-    }
-
-    // 7. Save Fresh & Clean Version (Deletes Previous Old Fields Completely)
-    async function saveToFirestore() {
-      if (!currentDocId) return alert('No Studio selected.');
-
-      const status = document.getElementById('statusMsg');
-      status.style.color = '#ffc107';
-      status.innerText = 'Overwriting with fresh version...';
-
-      try {
-        // Build clean payload
-        const subStudiosInput = document.getElementById('studioSubStudios').value.trim();
-        const subStudioArray = subStudiosInput ? subStudiosInput.split(',').map(s => s.trim()).filter(Boolean) : [];
-
-        const freshPayload = {
-          Name: document.getElementById('studioName').value.trim(),
-          Banner: document.getElementById('studioBanner').value.trim(),
-          Logo: document.getElementById('studioLogo').value.trim(),
-          ...(subStudioArray.length > 0 && { 'Sub-Studio': subStudioArray })
-        };
-
-        // Add cleanly numbered S1., S2., S3...
-        sectionsList.forEach((sec, idx) => {
-          const cleanKey = `S${idx + 1}. ${sec.title.trim()}`;
-          freshPayload[cleanKey] = sec.items;
-        });
-
-        // OVERWRITE COMPLETELY (WITHOUT {merge: true}) TO DELETE ALL OLD VERSIONS
-        await db.collection('Partners').doc(currentDocId).set(freshPayload);
-
-        status.style.color = '#28a745';
-        status.innerText = 'Saved Fresh Version Successfully!';
-        setTimeout(() => { status.innerText = ''; }, 3000);
-        await loadPartnersList();
-      } catch (err) {
-        console.error(err);
-        status.style.color = '#e63946';
-        status.innerText = 'Save Failed!';
-      }
-    }
-
-    // Start
-    initAdmin();
+    // Start App
+    initRealtimeListener();
   </script>
 </body>
 </html>
