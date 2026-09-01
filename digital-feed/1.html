@@ -2,49 +2,120 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Digital TV Admin - Schedule Stream</title>
+  <title>Admin - Time Slot Broadcast Scheduler</title>
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f12; color: #fff; padding: 30px; }
-    .card { background: #18181c; padding: 25px; border-radius: 10px; max-width: 650px; margin: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.6); border: 1px solid #2a2a30; }
-    h2 { color: #e50914; margin-bottom: 20px; }
-    label { font-size: 13px; font-weight: bold; margin-top: 15px; display: block; color: #aaa; text-transform: uppercase; }
-    input, select, button { width: 100%; padding: 12px; margin-top: 6px; border-radius: 6px; border: 1px solid #333; box-sizing: border-box; font-size: 14px; }
-    input, select { background: #222226; color: #fff; }
-    .checkbox-container { display: flex; align-items: center; gap: 10px; margin-top: 15px; cursor: pointer; }
-    .checkbox-container input { width: auto; margin: 0; }
-    button { background: #e50914; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 25px; border: none; transition: 0.2s; }
-    button:hover { background: #b80710; }
-    #status { margin-top: 20px; padding: 12px; border-radius: 6px; background: #222226; font-size: 14px; line-height: 1.5; display: none; }
+    :root {
+      --bg-color: #0f1015;
+      --card-bg: #181920;
+      --accent-blue: #0072d2;
+      --text-main: #f9f9f9;
+      --border-color: #2b2d3a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: var(--bg-color); color: var(--text-main); padding: 30px; }
+    .container { max-width: 850px; margin: auto; background: var(--card-bg); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); }
+    h1 { font-size: 22px; color: #fff; margin-bottom: 20px; font-weight: 700; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #aaa; margin-bottom: 6px; text-transform: uppercase; }
+    input, select, button { width: 100%; padding: 12px; background: #222430; border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 14px; outline: none; }
+    input:focus, select:focus { border-color: var(--accent-blue); }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+    button { background: var(--accent-blue); font-weight: bold; border: none; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+    button:hover { background: #005bb5; }
+    .btn-secondary { background: #333646; }
+    .btn-secondary:hover { background: #44485c; }
+    .section-title { font-size: 14px; font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin: 22px 0 14px 0; color: var(--accent-blue); }
+    
+    /* Slot Table */
+    .slot-list { margin-top: 15px; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+    .slot-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #12131a; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+    .slot-item:last-child { border-bottom: none; }
+    .slot-info { display: flex; gap: 15px; align-items: center; }
+    .time-badge { background: var(--accent-blue); padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+    .remove-btn { background: #ff4444; width: auto; padding: 6px 12px; margin: 0; font-size: 12px; }
+
+    #status { margin-top: 20px; padding: 12px; border-radius: 6px; background: #12131a; border: 1px solid var(--border-color); font-size: 13px; line-height: 1.5; word-break: break-word; }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>📺 Digital Live TV Scheduler</h2>
-  
-  <label>1. Select Collection Source:</label>
-  <select id="collectionSelect">
-    <option value="Movies">Movies</option>
-    <option value="Shows">Shows</option>
-  </select>
+<div class="container">
+  <h1>24/7 Time-Slot Broadcast Scheduler</h1>
 
-  <label>2. Filter by Studio (Optional):</label>
-  <input type="text" id="studioInput" placeholder="e.g. Disney India (Leave blank for All)">
-
-  <label>3. Cap by Age Rating (Optional):</label>
-  <input type="text" id="ageRatingInput" placeholder="e.g. U, PG, 13+ (Leave blank for All)">
-
-  <label>4. Default Duration per item (Minutes):</label>
-  <input type="number" id="durationInput" value="90" min="5" placeholder="Default duration if missing in DB">
-
-  <div class="checkbox-container">
-    <input type="checkbox" id="randomizeCheck" checked>
-    <span>Randomize / Shuffle Playlist Order</span>
+  <!-- Channel Info -->
+  <div class="section-title">1. Target Channel</div>
+  <div class="row">
+    <div class="form-group">
+      <label>Select Channel</label>
+      <select id="channelSelect" onchange="onChannelSelectChange()">
+        <option value="">-- Create New Channel --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Channel ID (Slug)</label>
+      <input type="text" id="channelIdInput" placeholder="e.g. disney-hindi, tmkoc-24x7">
+    </div>
   </div>
 
-  <button onclick="generateSchedule()">🚀 Publish Live TV Broadcast</button>
+  <!-- Time Slot Builder -->
+  <div class="section-title">2. Add Time Slot</div>
+  <div class="row">
+    <div class="form-group">
+      <label>Start Time</label>
+      <input type="time" id="slotStart" value="09:00">
+    </div>
+    <div class="form-group">
+      <label>End Time</label>
+      <input type="time" id="slotEnd" value="10:00">
+    </div>
+  </div>
 
-  <div id="status"></div>
+  <div class="row">
+    <div class="form-group">
+      <label>Collection</label>
+      <select id="dbCollection" onchange="loadShowsFromCollection()">
+        <option value="TV Shows">TV Shows</option>
+        <option value="Movies">Movies</option>
+        <option value="Shows">Shows</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Select Show / Movie</label>
+      <select id="showSelect" onchange="onShowSelectChange()">
+        <option value="">Loading shows...</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="form-group" id="playlistGroup" style="display: none;">
+      <label>Select Episode Playlist Range</label>
+      <select id="playlistSelect"></select>
+    </div>
+    <div class="form-group">
+      <label>Sequence Mode</label>
+      <select id="orderMode" onchange="toggleOrderOptions()">
+        <option value="sequential">In Order (Sequential)</option>
+        <option value="random">Randomize / Shuffle</option>
+      </select>
+    </div>
+    <div class="form-group" id="startEpGroup">
+      <label>Start Episode Number/Index</label>
+      <input type="number" id="startEpInput" value="1" min="1">
+    </div>
+  </div>
+
+  <button class="btn-secondary" onclick="addSlotToSchedule()">+ Add Slot to Schedule</button>
+
+  <!-- Scheduled Slots List -->
+  <div class="section-title">3. Scheduled Slots Timeline</div>
+  <div class="slot-list" id="slotsList">
+    <div style="padding: 15px; text-align: center; color: #777; font-size: 13px;">No slots added yet.</div>
+  </div>
+
+  <button onclick="publishMasterSchedule()">Publish Live Channel Schedule</button>
+  <div id="status">Ready to configure slots.</div>
 </div>
 
 <!-- Firebase SDKs -->
@@ -64,6 +135,88 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const YT_API_KEY = "AIzaSyB9esPb8otx99iGcttUGPEbn1Vm0h14l-w";
+
+  let loadedDocsMap = {};
+  let scheduledSlots = [];
+
+  async function loadExistingChannels() {
+    const select = document.getElementById('channelSelect');
+    select.innerHTML = '<option value="">-- Create New Channel --</option>';
+    try {
+      const snap = await db.collection("channels").get();
+      snap.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.id;
+        option.textContent = `${doc.data().channelName || doc.id} (${doc.id})`;
+        select.appendChild(option);
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  async function loadShowsFromCollection() {
+    const colName = document.getElementById('dbCollection').value;
+    const select = document.getElementById('showSelect');
+    select.innerHTML = '<option value="">Loading...</option>';
+    loadedDocsMap = {};
+
+    try {
+      const snap = await db.collection(colName).get();
+      select.innerHTML = '';
+      snap.forEach(doc => {
+        const data = doc.data();
+        loadedDocsMap[doc.id] = data;
+        const option = document.createElement('option');
+        option.value = doc.id;
+        option.textContent = data.Name || doc.id;
+        select.appendChild(option);
+      });
+      onShowSelectChange();
+    } catch(e) { console.error(e); }
+  }
+
+  function onShowSelectChange() {
+    const docId = document.getElementById('showSelect').value;
+    const playlistGroup = document.getElementById('playlistGroup');
+    const playlistSelect = document.getElementById('playlistSelect');
+    
+    if (!docId || !loadedDocsMap[docId]) return;
+    const docData = loadedDocsMap[docId];
+
+    if (docData['Episodes Playlists']) {
+      playlistSelect.innerHTML = '';
+      const playlists = docData['Episodes Playlists'];
+      for (let range in playlists) {
+        if (playlists[range]) {
+          const opt = document.createElement('option');
+          opt.value = playlists[range];
+          opt.textContent = `Episodes Range: ${range}`;
+          playlistSelect.appendChild(opt);
+        }
+      }
+      playlistGroup.style.display = 'block';
+    } else {
+      playlistGroup.style.display = 'none';
+    }
+  }
+
+  function onChannelSelectChange() {
+    const val = document.getElementById('channelSelect').value;
+    if (val) document.getElementById('channelIdInput').value = val;
+  }
+
+  function toggleOrderOptions() {
+    const mode = document.getElementById('orderMode').value;
+    document.getElementById('startEpGroup').style.display = mode === 'sequential' ? 'block' : 'none';
+  }
+
+  function parseISO8601Duration(duration) {
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const hours = parseInt(match[1] || 0);
+    const minutes = parseInt(match[2] || 0);
+    const seconds = parseInt(match[3] || 0);
+    return (hours * 3600) + (minutes * 60) + seconds;
+  }
 
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -73,87 +226,169 @@
     return array;
   }
 
-  async function generateSchedule() {
-    const statusDiv = document.getElementById('status');
-    statusDiv.style.display = "block";
-    statusDiv.style.color = "#fff";
-    statusDiv.innerText = "Querying database...";
+  function extractPlaylistId(url) {
+    if (!url) return null;
+    const match = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    return match ? match[1] : (url.startsWith('PL') || url.startsWith('UU') ? url : null);
+  }
 
-    const collectionName = document.getElementById('collectionSelect').value;
-    const studioFilter = document.getElementById('studioInput').value.trim().toLowerCase();
-    const ageFilter = document.getElementById('ageRatingInput').value.trim().toLowerCase();
-    const defaultDurationSec = parseInt(document.getElementById('durationInput').value || 90) * 60;
-    const shouldRandomize = document.getElementById('randomizeCheck').checked;
+  function extractYouTubeId(url) {
+    if (!url) return null;
+    if (url.length === 11 && !url.includes('/')) return url;
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    return match ? match[1] : null;
+  }
+
+  function addSlotToSchedule() {
+    const startTime = document.getElementById('slotStart').value;
+    const endTime = document.getElementById('slotEnd').value;
+    const showId = document.getElementById('showSelect').value;
+    const docData = loadedDocsMap[showId];
+    const orderMode = document.getElementById('orderMode').value;
+    const startEp = parseInt(document.getElementById('startEpInput').value) || 1;
+
+    let playlistUrl = null;
+    if (docData && docData['Episodes Playlists']) {
+      playlistUrl = document.getElementById('playlistSelect').value;
+    }
+
+    if (!showId) return alert("Select a Show / Movie first.");
+
+    scheduledSlots.push({
+      startTime,
+      endTime,
+      showId,
+      showName: docData ? (docData.Name || showId) : showId,
+      streamUrl: docData ? docData.Stream : null,
+      playlistUrl,
+      orderMode,
+      startEp
+    });
+
+    renderSlotsUI();
+  }
+
+  function removeSlot(index) {
+    scheduledSlots.splice(index, 1);
+    renderSlotsUI();
+  }
+
+  function renderSlotsUI() {
+    const container = document.getElementById('slotsList');
+    if (scheduledSlots.length === 0) {
+      container.innerHTML = '<div style="padding: 15px; text-align: center; color: #777; font-size: 13px;">No slots added yet.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    scheduledSlots.forEach((slot, idx) => {
+      const div = document.createElement('div');
+      div.className = 'slot-item';
+      div.innerHTML = `
+        <div class="slot-info">
+          <span class="time-badge">${slot.startTime} - ${slot.endTime}</span>
+          <div>
+            <strong>${slot.showName}</strong> 
+            <span style="color:#aaa; font-size:12px;">(${slot.orderMode === 'random' ? 'Randomized' : 'Sequential from Ep ' + slot.startEp})</span>
+          </div>
+        </div>
+        <button class="remove-btn" onclick="removeSlot(${idx})">Remove</button>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  async function publishMasterSchedule() {
+    const channelId = document.getElementById('channelIdInput').value.trim().toLowerCase().replace(/\s+/g, '-');
+    const status = document.getElementById('status');
+
+    if (!channelId) return alert("Please enter a Channel ID (Slug)");
+    if (scheduledSlots.length === 0) return alert("Please add at least one time slot.");
+
+    status.style.color = "#fff";
+    status.innerText = "Compiling slot videos & resolving durations...";
 
     try {
-      const snapshot = await db.collection(collectionName).get();
-      if (snapshot.empty) {
-        throw new Error(`No items found in collection '${collectionName}'`);
-      }
+      let masterVideos = [];
 
-      let items = [];
+      for (let slot of scheduledSlots) {
+        let slotVideos = [];
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        
-        // Match Studio filter if provided
-        if (studioFilter && (!data.Studio || !data.Studio.toLowerCase().includes(studioFilter))) {
-          return;
+        // Fetch videos from Playlist if present
+        if (slot.playlistUrl) {
+          const plId = extractPlaylistId(slot.playlistUrl);
+          if (plId) {
+            const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails,snippet&playlistId=${plId}&maxResults=50&key=${YT_API_KEY}`);
+            const plData = await plRes.json();
+            if (plData.items) {
+              const videoIds = plData.items.map(i => i.contentDetails.videoId).join(',');
+              const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${YT_API_KEY}`);
+              const vData = await vRes.json();
+
+              slotVideos = vData.items.map(v => ({
+                id: v.id,
+                title: v.snippet.title,
+                showName: slot.showName,
+                duration: parseISO8601Duration(v.contentDetails.duration)
+              }));
+            }
+          }
+        } 
+        // Single Stream Video
+        else if (slot.streamUrl) {
+          const ytId = extractYouTubeId(slot.streamUrl);
+          if (ytId) {
+            const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ytId}&key=${YT_API_KEY}`);
+            const vData = await vRes.json();
+            if (vData.items && vData.items[0]) {
+              const v = vData.items[0];
+              slotVideos.push({
+                id: v.id,
+                title: v.snippet.title,
+                showName: slot.showName,
+                duration: parseISO8601Duration(v.contentDetails.duration)
+              });
+            }
+          }
         }
 
-        // Match Age Rating filter if provided
-        if (ageFilter && (!data.Age_Rating || !data.Age_Rating.toLowerCase().includes(ageFilter))) {
-          return;
+        // Apply Ordering / Sequential Offset
+        if (slot.orderMode === 'random') {
+          slotVideos = shuffle(slotVideos);
+        } else if (slot.startEp > 1 && slotVideos.length >= slot.startEp) {
+          // Re-order array starting from startEp index
+          const offsetIdx = slot.startEp - 1;
+          slotVideos = [...slotVideos.slice(offsetIdx), ...slotVideos.slice(0, offsetIdx)];
         }
 
-        // Must have a valid video stream URL (Stream or Trailer)
-        const streamUrl = data.Stream || data.Trailer;
-        if (!streamUrl) return;
-
-        items.push({
-          id: doc.id,
-          name: data.Name || doc.id,
-          stream: streamUrl,
-          poster: data['Poster.h'] || data['Poster.v'] || data.Banner || '',
-          logo: data.Logo || '',
-          studio: data.Studio || 'Digital TV',
-          ageRating: data.Age_Rating || 'U',
-          description: data.Discription || '',
-          duration: data.Duration ? parseInt(data.Duration) : defaultDurationSec
-        });
-      });
-
-      if (items.length === 0) {
-        throw new Error("No items matched your studio / age rating filters.");
+        masterVideos.push(...slotVideos);
       }
 
-      // Randomize if requested
-      if (shouldRandomize) {
-        items = shuffle(items);
-      }
+      masterVideos = masterVideos.filter(v => v.duration > 0);
+      const totalDuration = masterVideos.reduce((sum, v) => sum + v.duration, 0);
 
-      const totalDuration = items.reduce((acc, item) => acc + item.duration, 0);
+      status.innerText = "Saving schedule to Firestore...";
 
-      statusDiv.innerText = "Saving schedule to Firestore...";
-
-      // Save global schedule doc
-      await db.collection("schedules").doc("live_tv").set({
+      await db.collection("channels").doc(channelId).set({
+        channelId: channelId,
+        channelName: channelId.toUpperCase().replace(/-/g, ' '),
         epochStartTime: Date.now(),
         totalDuration: totalDuration,
-        items: items,
+        videos: masterVideos,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      statusDiv.innerHTML = `<span style="color:#00ff00;">✅ Schedule Published Successfully!<br>
-      • Matches: <b>${items.length} items</b><br>
-      • Total Loop Duration: <b>${Math.round(totalDuration/3600 * 10)/10} Hours</b></span>`;
+      status.innerHTML = `<span style="color:#00ff00; font-weight:bold;">Success! Channel '${channelId}' published with ${masterVideos.length} videos.<br>Total Timeline Duration: ${Math.round(totalDuration/60)} Mins.</span><br><br>Player URL: <code>2.html?watch=${channelId}</code>`;
+      loadExistingChannels();
 
     } catch (err) {
       console.error(err);
-      statusDiv.style.color = "#ff4444";
-      statusDiv.innerText = "Error: " + err.message;
+      status.style.color = "#ff4444";
+      status.innerText = "Error: " + err.message;
     }
   }
+
+  loadExistingChannels();
+  loadShowsFromCollection();
 </script>
 </body>
 </html>
