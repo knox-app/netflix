@@ -16,7 +16,8 @@
       --accent-blue: #0072d2;
       --text-main: #f9f9f9;
       --text-muted: #8c93a8;
-      --aspect-ratio: 16 / 9;
+      --aspect-horizontal: 16 / 9;
+      --aspect-vertical: 2 / 3;
     }
 
     * {
@@ -34,7 +35,11 @@
       overflow-x: hidden;
     }
 
-    /* ================= HERO HEADER ================= */
+    /* ================= 1. HOME VIEW (HERO & ROWS) ================= */
+    #homeView {
+      transition: opacity 0.25s ease;
+    }
+
     .hero-banner-container {
       position: relative;
       width: 100vw;
@@ -57,12 +62,6 @@
       object-fit: cover;
       object-position: center 25%;
       z-index: 1;
-      opacity: 0;
-      transition: opacity 0.6s ease-in-out;
-    }
-
-    .hero-banner-img.loaded {
-      opacity: 1;
     }
 
     .hero-banner-overlay {
@@ -88,7 +87,6 @@
       margin-top: -60px;
       object-fit: contain;
       filter: drop-shadow(0 12px 25px rgba(0, 0, 0, 0.85));
-      animation: heroFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .hero-title-fallback {
@@ -100,15 +98,8 @@
       text-transform: uppercase;
       text-shadow: 0 8px 30px rgba(0,0,0,0.9);
       margin-top: -60px;
-      animation: heroFadeIn 0.8s ease-out;
     }
 
-    @keyframes heroFadeIn {
-      from { opacity: 0; transform: translateY(15px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ================= MAIN CONTAINER ================= */
     .main-content {
       position: relative;
       z-index: 4;
@@ -116,7 +107,7 @@
       margin-top: -120px;
     }
 
-    /* ================= SUB-STUDIOS GRID ================= */
+    /* Sub-Studios */
     .sub-studios-section {
       margin-bottom: 42px;
     }
@@ -127,6 +118,24 @@
       color: #e4e7eb;
       margin-bottom: 14px;
       letter-spacing: 0.2px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s ease, transform 0.2s ease;
+    }
+
+    .section-title:hover {
+      color: #66fcf1;
+      transform: translateX(4px);
+    }
+
+    .section-title::after {
+      content: '›';
+      font-size: 1.6rem;
+      line-height: 1;
+      opacity: 0.7;
     }
 
     .sub-studio-grid {
@@ -136,7 +145,7 @@
     }
 
     .studio-tile {
-      aspect-ratio: var(--aspect-ratio);
+      aspect-ratio: var(--aspect-horizontal);
       background: linear-gradient(145deg, #1e2130, #131520);
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -164,10 +173,9 @@
       letter-spacing: 1.2px;
     }
 
-    /* ================= CONTENT ROWS & CAROUSEL ================= */
+    /* Content Rows */
     .content-row {
       margin-bottom: 38px;
-      position: relative;
     }
 
     .carousel-wrapper {
@@ -186,11 +194,8 @@
       width: 100%;
     }
 
-    .scroll-container::-webkit-scrollbar {
-      display: none;
-    }
+    .scroll-container::-webkit-scrollbar { display: none; }
 
-    /* Carousel Nav Arrows */
     .carousel-arrow {
       position: absolute;
       top: 50%;
@@ -212,22 +217,16 @@
       border-radius: 6px;
     }
 
-    .carousel-wrapper:hover .carousel-arrow {
-      opacity: 1;
-    }
-
-    .carousel-arrow:hover {
-      background: rgba(0, 114, 210, 0.85);
-    }
-
+    .carousel-wrapper:hover .carousel-arrow { opacity: 1; }
+    .carousel-arrow:hover { background: rgba(0, 114, 210, 0.85); }
     .carousel-arrow.left { left: 0; }
     .carousel-arrow.right { right: 0; }
 
-    /* ================= 16:9 CONTENT CARDS ================= */
+    /* Horizontal Cards (Home Row) */
     .content-card {
       flex: 0 0 calc(20% - 12px);
       min-width: 210px;
-      aspect-ratio: var(--aspect-ratio);
+      aspect-ratio: var(--aspect-horizontal);
       background-color: var(--card-bg);
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -235,13 +234,12 @@
       position: relative;
       cursor: pointer;
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
-      transition: transform 0.25s cubic-bezier(0.2, 0, 0.1, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+      transition: transform 0.25s cubic-bezier(0.2, 0, 0.1, 1), border-color 0.25s ease;
     }
 
     .content-card:hover {
       transform: scale(1.06);
       border-color: rgba(255, 255, 255, 0.85);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9);
       z-index: 10;
     }
 
@@ -250,31 +248,90 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: opacity 0.3s ease;
     }
 
-    .card-info-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 60%);
-      opacity: 0;
+    /* ================= 2. SECTION GRID VIEW (VERTICAL POSTERS) ================= */
+    #sectionDetailView {
+      display: none;
+      padding: 24px 4vw 80px 4vw;
+      min-height: 100vh;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .detail-header {
       display: flex;
-      align-items: flex-end;
-      padding: 10px;
-      transition: opacity 0.25s ease;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      position: sticky;
+      top: 0;
+      background: rgba(15, 16, 23, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 12px 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
 
-    .content-card:hover .card-info-overlay {
-      opacity: 1;
-    }
-
-    .card-title {
-      font-size: 0.85rem;
-      font-weight: 600;
+    .back-btn {
+      background: transparent;
+      border: none;
       color: #fff;
-      white-space: nowrap;
+      font-size: 1.8rem;
+      cursor: pointer;
+      padding: 4px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    .back-btn:hover {
+      transform: translateX(-4px);
+      color: #66fcf1;
+    }
+
+    .detail-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* 3-Column Vertical Grid */
+    .vertical-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .vertical-card {
+      aspect-ratio: var(--aspect-vertical);
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       overflow: hidden;
-      text-overflow: ellipsis;
+      position: relative;
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.5);
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .vertical-card:hover {
+      transform: scale(1.04);
+      border-color: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.85);
+      z-index: 5;
+    }
+
+    .vertical-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     .card-placeholder {
@@ -292,22 +349,12 @@
       text-transform: capitalize;
     }
 
-    /* ================= SKELETON SHIMMER ================= */
-    .skeleton-box {
-      background: linear-gradient(90deg, #161824 25%, #222638 50%, #161824 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
     /* ================= RESPONSIVE ================= */
-    @media (max-width: 1024px) {
-      .content-card { flex: 0 0 calc(28% - 10px); min-width: 190px; }
-      .main-content { margin-top: -100px; }
+    @media (min-width: 1200px) {
+      .vertical-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+      }
     }
 
     @media (max-width: 768px) {
@@ -317,6 +364,9 @@
       .main-content { margin-top: -140px; padding: 0 4vw 40px 4vw; }
       .content-card { flex: 0 0 55%; min-width: 165px; border-radius: 6px; }
       .carousel-arrow { display: none; }
+      .vertical-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .vertical-card { border-radius: 6px; }
+      .detail-title { font-size: 1.25rem; }
     }
 
     @media (max-width: 480px) {
@@ -328,9 +378,8 @@
 </head>
 <body>
 
-  <!-- App Structure -->
-  <div id="app">
-    <!-- Top Hero Banner -->
+  <!-- 1. HOME VIEW -->
+  <div id="homeView">
     <header class="hero-banner-container" id="heroBannerContainer">
       <img id="heroBannerImg" class="hero-banner-img" src="" alt="Banner" />
       <div class="hero-banner-overlay"></div>
@@ -338,17 +387,23 @@
       <h1 id="heroTitle" class="hero-title-fallback" style="display: none;"></h1>
     </header>
 
-    <!-- Main Content -->
     <main class="main-content">
-      <!-- Sub-Studios Row -->
       <section class="sub-studios-section" id="subStudioSection" style="display: none;">
-        <h2 class="section-title">Studios</h2>
+        <h2 class="section-title" style="cursor: default;">Studios</h2>
         <div class="sub-studio-grid" id="subStudioGrid"></div>
       </section>
 
-      <!-- Dynamic Sorted Rows (S1., S2., S3...) -->
       <div id="sectionsContainer"></div>
     </main>
+  </div>
+
+  <!-- 2. SECTION DETAIL VIEW (VERTICAL 3-COLUMN POSTER GRID) -->
+  <div id="sectionDetailView">
+    <div class="detail-header">
+      <button class="back-btn" onclick="closeSectionDetail()">&#8592;</button>
+      <h1 class="detail-title" id="detailSectionTitle">Category</h1>
+    </div>
+    <div class="vertical-grid" id="verticalGridContainer"></div>
   </div>
 
   <script>
@@ -373,8 +428,9 @@
     const activeDocId = subParam || studioParam;
 
     const mediaCache = new Map();
+    let currentSectionsData = [];
 
-    // 3. Parallel Batch Media Resolver
+    // 3. Media Lookup with Poster.h Priority
     async function fetchMediaDetails(id) {
       if (!id || typeof id !== 'string') return null;
       if (mediaCache.has(id)) return mediaCache.get(id);
@@ -388,14 +444,14 @@
 
       for (const key of lookups) {
         try {
-          // Check Movies
+          // Check Movies Collection
           let docSnap = await db.collection('Movies').doc(key).get();
           if (docSnap.exists) {
             const data = docSnap.data();
             mediaCache.set(id, data);
             return data;
           }
-          // Check Shows
+          // Check Shows Collection
           docSnap = await db.collection('Shows').doc(key).get();
           if (docSnap.exists) {
             const data = docSnap.data();
@@ -411,7 +467,23 @@
       return null;
     }
 
-    // 4. Real-Time Firestore Sync
+    // Helper: Resolve Image Priority (Poster.h -> Poster -> Banner -> Tile)
+    function resolvePosterImage(itemDoc) {
+      if (!itemDoc) return null;
+      return (
+        itemDoc['Poster.h'] ||
+        itemDoc?.['Multi-Language']?.['Poster.h'] ||
+        itemDoc.Poster ||
+        itemDoc?.['Multi-Language']?.Poster ||
+        itemDoc.Banner ||
+        itemDoc['Background.jpg'] ||
+        itemDoc.Tile ||
+        itemDoc.Thumbnail ||
+        itemDoc.Image
+      );
+    }
+
+    // 4. Real-Time Listener
     function initRealtimeListener() {
       let parentData = null;
 
@@ -432,15 +504,14 @@
         }
 
         const data = docSnap.data();
-        await renderPage(data, parentData);
+        await renderHomePage(data, parentData);
       }, error => {
         console.error("Firestore Real-time Error:", error);
       });
     }
 
-    // 5. Render Core UI
-    async function renderPage(data, parentData) {
-      // 1. Setup Hero Banner & Logo
+    // 5. Render Main Page
+    async function renderHomePage(data, parentData) {
       const bannerImg = document.getElementById('heroBannerImg');
       const heroLogo = document.getElementById('heroLogo');
       const heroTitle = document.getElementById('heroTitle');
@@ -455,7 +526,6 @@
 
       if (bgUrl) {
         bannerImg.src = bgUrl;
-        bannerImg.onload = () => bannerImg.classList.add('loaded');
         bannerImg.style.display = 'block';
       } else {
         bannerImg.style.display = 'none';
@@ -471,14 +541,14 @@
         heroTitle.style.display = 'block';
       }
 
-      // 2. Render Sub-Studio Grid
+      // Render Sub-Studios
       if (!subParam && data['Sub-Studio'] && Array.isArray(data['Sub-Studio'])) {
         renderSubStudios(data['Sub-Studio']);
       } else {
         document.getElementById('subStudioSection').style.display = 'none';
       }
 
-      // 3. Render S1., S2., S3... Rows
+      // Render S1., S2., S3... Sections
       await renderSections(data);
     }
 
@@ -502,11 +572,10 @@
       const container = document.getElementById('sectionsContainer');
       container.innerHTML = '';
 
-      // Collect & Sort Sections
-      const sections = [];
+      currentSectionsData = [];
       Object.keys(data).forEach(key => {
         if (/^S\d+\./i.test(key.trim())) {
-          sections.push({
+          currentSectionsData.push({
             key: key,
             title: key.replace(/^S\d+\.\s*/i, ''),
             items: Array.isArray(data[key]) ? data[key] : Object.values(data[key] || {})
@@ -514,41 +583,41 @@
         }
       });
 
-      sections.sort((a, b) => {
+      currentSectionsData.sort((a, b) => {
         const numA = parseInt(a.key.match(/^S(\d+)\./i)?.[1] || 9999);
         const numB = parseInt(b.key.match(/^S(\d+)\./i)?.[1] || 9999);
         return numA - numB;
       });
 
-      // Render each row
-      for (const sec of sections) {
+      for (let sIdx = 0; sIdx < currentSectionsData.length; sIdx++) {
+        const sec = currentSectionsData[sIdx];
         const row = document.createElement('div');
         row.className = 'content-row';
 
+        // Clickable Section Title
         const rowTitle = document.createElement('h2');
         rowTitle.className = 'section-title';
         rowTitle.textContent = sec.title;
+        rowTitle.onclick = () => openSectionDetail(sIdx);
         row.appendChild(rowTitle);
 
         const carouselWrapper = document.createElement('div');
         carouselWrapper.className = 'carousel-wrapper';
 
-        // Left Navigation Arrow
         const leftBtn = document.createElement('button');
         leftBtn.className = 'carousel-arrow left';
         leftBtn.innerHTML = '&#10094;';
-        leftBtn.onclick = () => scrollRow(scrollContainer, -600);
+        leftBtn.onclick = () => scrollContainer.scrollBy({ left: -600, behavior: 'smooth' });
 
-        // Right Navigation Arrow
         const rightBtn = document.createElement('button');
         rightBtn.className = 'carousel-arrow right';
         rightBtn.innerHTML = '&#10095;';
-        rightBtn.onclick = () => scrollRow(scrollContainer, 600);
+        rightBtn.onclick = () => scrollContainer.scrollBy({ left: 600, behavior: 'smooth' });
 
         const scrollContainer = document.createElement('div');
         scrollContainer.className = 'scroll-container';
 
-        // Batch load all media items in this section concurrently
+        // Preload metadata
         const mediaDetailsList = await Promise.all(sec.items.map(fetchMediaDetails));
 
         sec.items.forEach((item, idx) => {
@@ -556,29 +625,14 @@
           card.className = 'content-card';
 
           if (typeof item === 'string' && (item.startsWith('http://') || item.startsWith('https://'))) {
-            card.innerHTML = `
-              <img src="${item}" alt="${sec.title}" loading="lazy" />
-              <div class="card-info-overlay"><span class="card-title">${sec.title}</span></div>
-            `;
+            card.innerHTML = `<img src="${item}" alt="${sec.title}" loading="lazy" />`;
           } else {
             const itemDoc = mediaDetailsList[idx];
-            const posterImg = itemDoc ? (
-              itemDoc.Banner || 
-              itemDoc['Background.jpg'] || 
-              itemDoc.Tile || 
-              itemDoc.Thumbnail || 
-              itemDoc?.['Multi-Language']?.Poster || 
-              itemDoc.Poster || 
-              itemDoc.Image
-            ) : null;
-
+            const posterImg = resolvePosterImage(itemDoc);
             const displayName = itemDoc?.['Multi-Language']?.Name || itemDoc?.Name || itemDoc?.Title || item.replace(/-/g, ' ');
 
             if (posterImg) {
-              card.innerHTML = `
-                <img src="${posterImg}" alt="${displayName}" loading="lazy" />
-                <div class="card-info-overlay"><span class="card-title">${displayName}</span></div>
-              `;
+              card.innerHTML = `<img src="${posterImg}" alt="${displayName}" title="${displayName}" loading="lazy" />`;
             } else {
               card.innerHTML = `<div class="card-placeholder"><span>${displayName}</span></div>`;
             }
@@ -596,11 +650,65 @@
       }
     }
 
-    function scrollRow(container, distance) {
-      container.scrollBy({ left: distance, behavior: 'smooth' });
+    // 6. Section Detail View Logic (Vertical Posters Grid)
+    async function openSectionDetail(secIndex) {
+      const sec = currentSectionsData[secIndex];
+      if (!sec) return;
+
+      document.getElementById('homeView').style.display = 'none';
+      const detailView = document.getElementById('sectionDetailView');
+      detailView.style.display = 'block';
+      window.scrollTo(0, 0);
+
+      document.getElementById('detailSectionTitle').textContent = sec.title;
+      const grid = document.getElementById('verticalGridContainer');
+      grid.innerHTML = '<div style="color:var(--text-muted); padding:20px;">Loading section...</div>';
+
+      const mediaDetailsList = await Promise.all(sec.items.map(fetchMediaDetails));
+      grid.innerHTML = '';
+
+      sec.items.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'vertical-card';
+
+        if (typeof item === 'string' && (item.startsWith('http://') || item.startsWith('https://'))) {
+          card.innerHTML = `<img src="${item}" alt="" loading="lazy" />`;
+        } else {
+          const itemDoc = mediaDetailsList[idx];
+          // PRIORITY: Poster.h -> Poster -> Banner -> Tile
+          const posterImg = resolvePosterImage(itemDoc);
+          const displayName = itemDoc?.['Multi-Language']?.Name || itemDoc?.Name || itemDoc?.Title || item.replace(/-/g, ' ');
+
+          if (posterImg) {
+            card.innerHTML = `<img src="${posterImg}" alt="${displayName}" title="${displayName}" loading="lazy" />`;
+          } else {
+            card.innerHTML = `<div class="card-placeholder"><span>${displayName}</span></div>`;
+          }
+        }
+
+        grid.appendChild(card);
+      });
+
+      // Browser history push
+      history.pushState({ view: 'sectionDetail', title: sec.title }, sec.title, `#${encodeURIComponent(sec.title)}`);
     }
 
-    // Start App
+    function closeSectionDetail() {
+      document.getElementById('sectionDetailView').style.display = 'none';
+      document.getElementById('homeView').style.display = 'block';
+      if (location.hash) {
+        history.pushState("", document.title, window.location.pathname + window.location.search);
+      }
+    }
+
+    // Handle Browser Back Button
+    window.onpopstate = function(event) {
+      if (document.getElementById('sectionDetailView').style.display === 'block') {
+        closeSectionDetail();
+      }
+    };
+
+    // Initialize
     initRealtimeListener();
   </script>
 </body>
