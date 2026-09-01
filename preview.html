@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Preview - Hotstar</title>
   
-  <!-- Hindi & Modern Google Fonts -->
+  <!-- Hindi & Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
-  <!-- YouTube IFrame API for Trailer Playback -->
+  <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
@@ -50,7 +50,7 @@
       margin: 0 auto;
     }
 
-    /* Floating Close Button */
+    /* Top Floating Close Button */
     .top-close-bar {
       position: absolute;
       top: 24px;
@@ -69,12 +69,12 @@
       justify-content: center;
       cursor: pointer;
       backdrop-filter: blur(10px);
-      transition: transform 0.15s ease, background 0.15s ease;
+      transition: transform 0.15s ease;
     }
-    .close-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+    .close-btn:active { transform: scale(0.9); }
     .close-btn svg { width: 18px; height: 18px; fill: #fff; }
 
-    /* Hero Box (Banner & Trailer Card) */
+    /* Hero Banner & Trailer Card Box (16:10 / 16:9 Inset Box) */
     .hero-card-box {
       position: relative;
       width: 100%;
@@ -120,7 +120,6 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      border: none;
     }
 
     .trailer-badge {
@@ -136,7 +135,6 @@
       letter-spacing: 0.5px;
       backdrop-filter: blur(6px);
       z-index: 10;
-      transition: opacity 0.3s ease;
     }
 
     /* Content Details */
@@ -158,7 +156,7 @@
 
     /* Fallback Hindi Bold Typography */
     .title-fallback-hindi {
-      font-family: 'Noto Sans Devanagari', 'Outfit', sans-serif;
+      font-family: 'Noto Sans Devanagari', sans-serif;
       font-size: 32px;
       font-weight: 900;
       line-height: 1.2;
@@ -287,7 +285,18 @@
     .action-item.active { color: var(--accent-blue); }
     .action-item svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Sections */
+    /* Keyframe Animation for Watchlist */
+    @keyframes bouncePop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.4) rotate(-12deg); }
+      75% { transform: scale(0.9) rotate(6deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .action-item.animating svg {
+      animation: bouncePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* Section Headings */
     .section-container {
       width: 100%;
       margin-bottom: 26px;
@@ -409,25 +418,55 @@
       cursor: pointer;
     }
 
-    /* Recommendations Grid ("More Like This") */
-    .rec-grid-vertical {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+    /* 16:9 Horizontal Swipeable Recommendations */
+    .rec-scroll-row {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 12px;
+      scrollbar-width: none;
     }
-    .poster-card {
+    .rec-scroll-row::-webkit-scrollbar { display: none; }
+
+    .rec-16-9-card {
+      min-width: 195px;
+      width: 195px;
+      scroll-snap-align: start;
+      text-decoration: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.15s ease;
+    }
+    .rec-16-9-card:active { transform: scale(0.96); }
+    
+    .rec-16-9-thumb {
       position: relative;
-      aspect-ratio: 2/3;
+      width: 100%;
+      aspect-ratio: 16/9;
       border-radius: 10px;
       overflow: hidden;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      cursor: pointer;
-      text-decoration: none;
-      transition: transform 0.15s ease;
+      margin-bottom: 6px;
     }
-    .poster-card:active { transform: scale(0.96); }
-    .poster-card img { width: 100%; height: 100%; object-fit: cover; }
+    .rec-16-9-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .rec-title {
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .rec-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
 
     /* Bottom App Navigation Bar */
     .bottom-app-nav {
@@ -508,7 +547,7 @@
         <div class="trailer-badge" id="trailerBadge" style="display: none;">TRAILER</div>
       </div>
 
-      <!-- Metadata & Details -->
+      <!-- Details -->
       <div class="content-details-wrap">
         <img id="contentLogo" class="brand-logo-img" src="" alt="Logo" style="display: none;">
         <h1 id="contentTitle" class="title-fallback-hindi" style="display: none;">Title</h1>
@@ -555,10 +594,10 @@
         <button class="view-more-btn" id="btnViewMoreEpisodes" style="display: none;">View More</button>
       </div>
 
-      <!-- Recommendations -->
+      <!-- 16:9 Swipe Right Recommendations -->
       <div class="section-container">
         <div class="section-heading">More Like This</div>
-        <div class="rec-grid-vertical" id="recommendationsGrid"></div>
+        <div class="rec-scroll-row" id="recommendationsGrid"></div>
       </div>
 
     </div>
@@ -614,7 +653,7 @@
     const userApp = initializeApp(userConfig, "userApp");
     const userDb = getFirestore(userApp);
 
-    // Global App State
+    // Global State
     let currentItem = null;
     let contentType = 'movie'; // 'movie' | 'show' | 'live'
     let currentCollection = 'Movies';
@@ -660,17 +699,22 @@
       return null;
     }
 
-    async function initPreview() {
-      if (!contentId) {
-        document.getElementById('loader').innerText = "URL Parameter Missing (?preview=DOCUMENT_ID)";
-        return;
-      }
-
-      await loadUserSubscriptionPlan();
-      await fetchContentData(contentId);
+    // Dynamic Real-Time Hindi Transliteration Fallback
+    async function getHindiName(englishName) {
+      if (!englishName) return "कंटेंट";
+      try {
+        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURIComponent(englishName)}`);
+        const data = await res.json();
+        if (data && data[0] && data[0][0] && data[0][0][0]) {
+          return data[0][0][0];
+        }
+      } catch (e) {}
+      return englishName;
     }
 
-    // Check Plan & Authorized Studios from "Plans & Subscriptions"
+    // ==========================================
+    // USER PLANS & AUTHORIZATION VERIFICATION
+    // ==========================================
     async function loadUserSubscriptionPlan() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
@@ -682,6 +726,7 @@
       try {
         let uData = null;
 
+        // Fetch User Record from UARM in question-metabase
         if (currentUser.Lotus) {
           const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
           if (!snap.empty) {
@@ -701,29 +746,33 @@
           if (snap.exists()) uData = snap.data();
         }
 
-        if (!uData) return;
+        if (!uData) {
+          uData = currentUser;
+        }
 
         userWatchlist = uData.Watchlist || [];
 
+        // Check user Plans array (e.g. ["A985D1D235"])
         const userPlanIds = Array.isArray(uData.Plans) ? uData.Plans : (uData.Plan ? [uData.Plan] : []);
 
-        for (const planId of userPlanIds) {
-          if (!planId) continue;
+        const planPromises = userPlanIds.map(async (planId) => {
+          if (!planId) return;
           try {
             let pSnap = await getDoc(doc(userDb, "Plans & Subscriptions", planId));
             if (!pSnap.exists()) {
               pSnap = await getDoc(doc(userDb, "Plans & Subscription", planId));
             }
-
             if (pSnap.exists()) {
               const pData = pSnap.data();
               const studios = Array.isArray(pData.Studio) ? pData.Studio : (pData.Studios || []);
               studios.forEach(s => userAuthorizedStudios.add(String(s).trim().toLowerCase()));
             }
           } catch (err) {
-            console.warn("Plan fetch error:", planId, err);
+            console.warn("Plan error", planId, err);
           }
-        }
+        });
+
+        await Promise.all(planPromises);
       } catch (err) {
         console.warn("Auth check error", err);
       }
@@ -733,9 +782,13 @@
       if (!content) return false;
       const contentStudio = String(content.Studio || content.Partner || '').trim().toLowerCase();
 
+      // If content has no studio restriction or is open
       if (!contentStudio || contentStudio === 'free' || contentStudio === 'open') return true;
+
+      // Direct match
       if (userAuthorizedStudios.has(contentStudio)) return true;
 
+      // Substring fuzzy matching (e.g., "disney india" matches "disney")
       for (const authStudio of userAuthorizedStudios) {
         if (contentStudio.includes(authStudio) || authStudio.includes(contentStudio)) {
           return true;
@@ -777,12 +830,12 @@
         contentType = 'live';
       }
 
-      renderPreviewUI();
+      await renderPreviewUI();
       scheduleTrailerPlayback();
       fetchRecommendations();
     }
 
-    function renderPreviewUI() {
+    async function renderPreviewUI() {
       document.getElementById('loader').style.display = 'none';
       document.getElementById('previewMain').style.display = 'block';
 
@@ -791,19 +844,26 @@
       const bannerUrl = safeUrl(currentItem.Banner || currentItem["Poster.h"] || currentItem.Poster || '');
       bannerImg.src = bannerUrl;
 
-      // 2. Logo OR Bold Hindi Font Fallback
+      // 2. Logo OR Bold Hindi Font Fallback with Error Recovery
       const logoImg = document.getElementById('contentLogo');
       const titleFallback = document.getElementById('contentTitle');
       const logoUrl = safeUrl(currentItem.Logo || currentItem["Logo.png"] || '');
+
+      const applyHindiTitleFallback = async () => {
+        logoImg.style.display = 'none';
+        const rawTitle = currentItem.Name || currentItem.Title || "कंटेंट";
+        const hindiText = currentItem["Hindi Name"] || currentItem.Hindi_Name || await getHindiName(rawTitle);
+        titleFallback.innerText = hindiText;
+        titleFallback.style.display = 'block';
+      };
 
       if (logoUrl) {
         logoImg.src = logoUrl;
         logoImg.style.display = 'block';
         titleFallback.style.display = 'none';
+        logoImg.onerror = () => applyHindiTitleFallback();
       } else {
-        logoImg.style.display = 'none';
-        titleFallback.innerText = currentItem["Hindi Name"] || currentItem.Hindi_Name || currentItem.Name || currentItem.Title || "कंटेंट";
-        titleFallback.style.display = 'block';
+        await applyHindiTitleFallback();
       }
 
       // 3. Blue Trend & Rating Line (#3 in Hindi Today • IMDb 7.4)
@@ -873,6 +933,7 @@
       const ctaBox = document.getElementById('ctaContainer');
       ctaBox.innerHTML = '';
 
+      // Check If Plan Authorizes Content Studio
       if (!hasAccess) {
         ctaBox.innerHTML = `
           <a class="btn-cta btn-cta-subscribe" href="1.html?action=subscribe&studio=${encodeURIComponent(currentItem.Studio || '')}">
@@ -916,11 +977,10 @@
       `;
     }
 
-    // Trailer with Hidden Controls & End Transition back to Banner
+    // Auto Trailer Playback & Reset to Banner on End
     function scheduleTrailerPlayback() {
       const trailerBadge = document.getElementById('trailerBadge');
       const host = document.getElementById('heroTrailerHost');
-      const banner = document.getElementById('heroBanner');
       const trailerUrl = safeUrl(currentItem.Trailer || '');
 
       clearTimeout(trailerTimeout);
@@ -956,7 +1016,7 @@
             events: {
               onReady: (e) => e.target.playVideo(),
               onStateChange: (e) => {
-                // WHEN TRAILER ENDS -> FADE OUT & SHOW BANNER
+                // Return to banner image when trailer finishes
                 if (e.data === YT.PlayerState.ENDED) {
                   host.classList.remove('playing');
                   trailerBadge.style.display = 'none';
@@ -1041,7 +1101,7 @@
       renderEpisodesSection();
     };
 
-    // Watchlist
+    // Watchlist with Bounce Animation
     function updateWatchlistButtonState() {
       const btn = document.getElementById('btnWatchlist');
       const isAdded = userWatchlist.includes(currentItem.id);
@@ -1053,6 +1113,13 @@
     }
 
     document.getElementById('btnWatchlist').onclick = async () => {
+      const btn = document.getElementById('btnWatchlist');
+      
+      // Trigger pop bounce animation
+      btn.classList.remove('animating');
+      void btn.offsetWidth; // Trigger reflow
+      btn.classList.add('animating');
+
       if (!userDocRef) {
         showToast("Please login to save to Watchlist");
         return;
@@ -1074,7 +1141,7 @@
       }
     };
 
-    // Share
+    // Share Action
     document.getElementById('btnShare').onclick = async () => {
       const shareUrl = `${window.location.origin}${window.location.pathname}?preview=${currentItem.id}`;
       if (navigator.share) {
@@ -1091,19 +1158,19 @@
       }
     };
 
-    // Download button action
+    // Download Action
     document.getElementById('btnDownload').onclick = () => {
       showToast("Download started in standard quality");
     };
 
-    // Rate button action
+    // Rate Action
     document.getElementById('btnRate').onclick = () => {
       const btn = document.getElementById('btnRate');
       btn.classList.toggle('active');
       showToast(btn.classList.contains('active') ? "Rated ★★★★★" : "Rating removed");
     };
 
-    // Recommendations Engine ("More Like This")
+    // 16:9 Recommendations Engine (Horizontal Scroll / Swipe Right)
     async function fetchRecommendations() {
       const grid = document.getElementById('recommendationsGrid');
       try {
@@ -1137,11 +1204,16 @@
           return scoreB - scoreA;
         });
 
-        grid.innerHTML = items.slice(0, 12).map(c => {
-          const vPoster = safeUrl(c["Poster.v"] || c.Poster_v || c.Poster || c.Banner || '');
+        grid.innerHTML = items.slice(0, 14).map(c => {
+          const hBanner = safeUrl(c["Poster.h"] || c.Banner || c.Poster || c["Poster.v"] || '');
+          const genres = c.Genres || c.Language || (currentCollection === 'Live TV' ? 'Live TV' : 'Movie');
           return `
-            <a class="poster-card" href="preview.html?preview=${c.id}">
-              <img src="${vPoster}" alt="${c.Name || 'Title'}" loading="lazy">
+            <a class="rec-16-9-card" href="preview.html?preview=${c.id}">
+              <div class="rec-16-9-thumb">
+                <img src="${hBanner}" alt="${c.Name || 'Title'}" loading="lazy">
+              </div>
+              <div class="rec-title">${c.Name || 'Title'}</div>
+              <div class="rec-sub">${genres}</div>
             </a>
           `;
         }).join('');
@@ -1150,8 +1222,12 @@
       }
     }
 
-    // Launch
-    initPreview();
+    // Launch Application
+    async function start() {
+      await loadUserSubscriptionPlan();
+      await fetchContentData(contentId);
+    }
+    start();
   </script>
 </body>
 </html>
