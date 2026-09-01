@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Partner & Studio Admin Panel</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background-color: #0b0c10;
+      color: #c5c6c7;
+      min-height: 100vh;
+      padding: 24px 5vw;
+    }
+
+    h1, h2, h3 {
+      color: #66fcf1;
+      font-weight: 700;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #1f2833;
+      margin-bottom: 25px;
+    }
+
+    .studio-select-bar {
+      background: #1f2833;
+      padding: 18px 24px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    select, input[type="text"] {
+      background: #0b0c10;
+      border: 1px solid #45a29e;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    select {
+      min-width: 240px;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: opacity 0.2s ease, transform 0.1s ease;
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary { background: #45a29e; color: #0b0c10; }
+    .btn-primary:hover { background: #66fcf1; }
+
+    .btn-save { background: #28a745; color: #fff; font-size: 1rem; padding: 12px 24px; }
+    .btn-save:hover { opacity: 0.9; }
+
+    .btn-danger { background: #e63946; color: #fff; }
+    .btn-danger:hover { opacity: 0.85; }
+
+    .btn-secondary { background: #343a40; color: #fff; }
+    .btn-secondary:hover { background: #495057; }
+
+    .btn-sm { padding: 6px 10px; font-size: 0.8rem; }
+
+    /* Studio Details Form */
+    .form-card {
+      background: #141724;
+      border: 1px solid #1f2833;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-top: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      color: #8c93a8;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+
+    .form-group input {
+      width: 100%;
+    }
+
+    /* Section Block */
+    .section-block {
+      background: #121420;
+      border: 1px solid rgba(102, 252, 241, 0.2);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 22px;
+      position: relative;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .section-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .section-badge {
+      background: #45a29e;
+      color: #0b0c10;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    /* 16:9 Tiles Horizontal Grid */
+    .tiles-container {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding: 12px 0;
+      min-height: 160px;
+      align-items: center;
+    }
+
+    .tile-card {
+      flex: 0 0 210px;
+      background: #1a1c29;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tile-img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 4px;
+      object-fit: cover;
+    }
+
+    .tile-name {
+      font-size: 0.8rem;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .tile-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .add-tile-bar {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      align-items: center;
+    }
+
+    .status-msg {
+      margin-left: 15px;
+      font-weight: bold;
+    }
+
+    .filter-badge {
+      font-size: 0.8rem;
+      background: rgba(102, 252, 241, 0.1);
+      color: #66fcf1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(102, 252, 241, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <h1>Partner / Studio Admin Panel</h1>
+    <div>
+      <button class="btn btn-save" onclick="saveToFirestore()">Save Changes to Firestore</button>
+      <span id="statusMsg" class="status-msg"></span>
+    </div>
+  </div>
+
+  <!-- Studio Selection Bar -->
+  <div class="studio-select-bar">
+    <label for="studioSelect" style="font-weight: 600; color: #fff;">Select Partner/Studio:</label>
+    <select id="studioSelect" onchange="onStudioSelected()">
+      <option value="">-- Choose Studio --</option>
+    </select>
+
+    <input type="text" id="newStudioId" placeholder="New ID (e.g. marvel or disney)" />
+    <button class="btn btn-primary" onclick="createNewStudio()">+ Create Studio</button>
+  </div>
+
+  <div id="editorArea" style="display: none;">
+    <!-- Studio Metadata -->
+    <div class="form-card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>Studio Details</h3>
+        <span id="studioFilterBadge" class="filter-badge"></span>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Display Name</label>
+          <input type="text" id="studioName" placeholder="e.g. Disney" />
+        </div>
+        <div class="form-group">
+          <label>Banner Image URL</label>
+          <input type="text" id="studioBanner" placeholder="https://.../Banner.jpg" />
+        </div>
+        <div class="form-group">
+          <label>Logo PNG URL</label>
+          <input type="text" id="studioLogo" placeholder="https://.../Logo.png" />
+        </div>
+        <div class="form-group">
+          <label>Sub-Studios (Comma-separated IDs)</label>
+          <input type="text" id="studioSubStudios" placeholder="disney, marvel, pixar, star-wars" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Sections & Tiles Re-arrangement -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h2>Sections & Tiles Re-arrangement</h2>
+      <button class="btn btn-primary" onclick="addSection()">+ Add New Section</button>
+    </div>
+
+    <div id="sectionsContainer"></div>
+  </div>
+
+  <script>
+    // 1. Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+      measurementId: "G-Y87B8VRQ1N"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let currentDocId = '';
+    let currentDocData = {};
+    let sectionsList = []; // [{ title: "Doraemon", items: ["doraemon-1", ...] }]
+    let allMediaItems = []; // List of all shows and movies across database
+
+    // 2. Initialize
+    async function initAdmin() {
+      await loadAllMedia();
+      await loadPartnersList();
+    }
+
+    // Load all Shows and Movies
+    async function loadAllMedia() {
+      allMediaItems = [];
+      const showsSnap = await db.collection('Shows').get();
+      showsSnap.forEach(doc => allMediaItems.push({ id: doc.id, collectionType: 'Shows', ...doc.data() }));
+
+      const moviesSnap = await db.collection('Movies').get();
+      moviesSnap.forEach(doc => allMediaItems.push({ id: doc.id, collectionType: 'Movies', ...doc.data() }));
+    }
+
+    // Load available Partner/Studio IDs
+    async function loadPartnersList() {
+      const select = document.getElementById('studioSelect');
+      select.innerHTML = '<option value="">-- Choose Studio --</option>';
+
+      const snap = await db.collection('Partners').get();
+      snap.forEach(doc => {
+        const opt = document.createElement('option');
+        opt.value = doc.id;
+        opt.textContent = doc.id + (doc.data().Name ? ` (${doc.data().Name})` : '');
+        select.appendChild(opt);
+      });
+    }
+
+    // 3. Studio Selection
+    async function onStudioSelected() {
+      const docId = document.getElementById('studioSelect').value;
+      if (!docId) {
+        document.getElementById('editorArea').style.display = 'none';
+        return;
+      }
+      currentDocId = docId;
+
+      const docSnap = await db.collection('Partners').doc(docId).get();
+      currentDocData = docSnap.exists ? docSnap.data() : {};
+
+      // Fill Form Inputs
+      document.getElementById('studioName').value = currentDocData.Name || '';
+      document.getElementById('studioBanner').value = currentDocData.Banner || currentDocData['Background.jpg'] || '';
+      document.getElementById('studioLogo').value = currentDocData.Logo || currentDocData['Logo.png'] || '';
+      
+      const subStudios = currentDocData['Sub-Studio'] || [];
+      document.getElementById('studioSubStudios').value = Array.isArray(subStudios) ? subStudios.join(', ') : '';
+
+      document.getElementById('studioFilterBadge').innerText = `Filtered for Studio: "${currentDocId}"`;
+
+      // Extract and Sort Sections (S1., S2., S3.)
+      sectionsList = [];
+      Object.keys(currentDocData).forEach(key => {
+        if (/^S\d+\./i.test(key.trim())) {
+          sectionsList.push({
+            origKey: key,
+            title: key.replace(/^S\d+\.\s*/i, ''),
+            items: Array.isArray(currentDocData[key]) ? [...currentDocData[key]] : []
+          });
+        }
+      });
+
+      sectionsList.sort((a, b) => {
+        const numA = parseInt(a.origKey.match(/^S(\d+)\./i)?.[1] || 9999);
+        const numB = parseInt(b.origKey.match(/^S(\d+)\./i)?.[1] || 9999);
+        return numA - numB;
+      });
+
+      document.getElementById('editorArea').style.display = 'block';
+      renderSectionsUI();
+    }
+
+    function createNewStudio() {
+      const id = document.getElementById('newStudioId').value.trim().toLowerCase();
+      if (!id) return alert('Enter a valid studio ID.');
+      currentDocId = id;
+      currentDocData = { Name: id.toUpperCase(), Banner: '', Logo: '' };
+      sectionsList = [];
+
+      document.getElementById('studioName').value = currentDocData.Name;
+      document.getElementById('studioBanner').value = '';
+      document.getElementById('studioLogo').value = '';
+      document.getElementById('studioSubStudios').value = '';
+      document.getElementById('studioFilterBadge').innerText = `Filtered for Studio: "${currentDocId}"`;
+
+      document.getElementById('editorArea').style.display = 'block';
+      renderSectionsUI();
+    }
+
+    // 4. Filter Media: Belongs to Current Studio & NOT Already Chosen
+    function getAvailableMediaForSelection() {
+      // Collect all IDs already added in any section
+      const alreadyChosenIds = new Set();
+      sectionsList.forEach(sec => {
+        sec.items.forEach(id => alreadyChosenIds.add(id));
+      });
+
+      const currentStudioKey = currentDocId.toLowerCase();
+
+      return allMediaItems.filter(item => {
+        // 1. Exclude already chosen items
+        if (alreadyChosenIds.has(item.id)) return false;
+
+        // 2. Filter by Studio match (Check Studio / Partner / Studio_id fields)
+        const itemStudio = (item.Studio || item.Partner || item.studio || item.partner || item.Studio_id || '').toLowerCase();
+        
+        // If studio field exists on media item, it MUST match current studio
+        if (itemStudio) {
+          return itemStudio === currentStudioKey || itemStudio.includes(currentStudioKey);
+        }
+
+        // If media item has no studio tag, permit adding
+        return true;
+      });
+    }
+
+    // 5. Render Sections & 16:9 Tiles UI
+    function renderSectionsUI() {
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = '';
+
+      const selectableMedia = getAvailableMediaForSelection();
+
+      sectionsList.forEach((sec, sIdx) => {
+        const block = document.createElement('div');
+        block.className = 'section-block';
+
+        // Section Header
+        const header = document.createElement('div');
+        header.className = 'section-header';
+        header.innerHTML = `
+          <div class="section-header-left">
+            <span class="section-badge">S${sIdx + 1}.</span>
+            <input type="text" value="${sec.title}" onchange="updateSectionTitle(${sIdx}, this.value)" style="flex:1;" placeholder="Section Title" />
+          </div>
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="moveSection(${sIdx}, -1)" ${sIdx === 0 ? 'disabled' : ''}>▲ Move Up</button>
+            <button class="btn btn-secondary btn-sm" onclick="moveSection(${sIdx}, 1)" ${sIdx === sectionsList.length - 1 ? 'disabled' : ''}>▼ Move Down</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSection(${sIdx})">Delete Section</button>
+          </div>
+        `;
+        block.appendChild(header);
+
+        // Tiles Scrollable Area
+        const tilesContainer = document.createElement('div');
+        tilesContainer.className = 'tiles-container';
+
+        sec.items.forEach((itemId, tIdx) => {
+          const itemMeta = allMediaItems.find(i => i.id === itemId) || {};
+          const poster = itemMeta.Banner || itemMeta['Background.jpg'] || itemMeta.Tile || itemMeta?.['Multi-Language']?.Poster || itemMeta.Poster || '';
+          const name = itemMeta?.['Multi-Language']?.Name || itemMeta.Name || itemId;
+
+          const card = document.createElement('div');
+          card.className = 'tile-card';
+          card.innerHTML = `
+            <img class="tile-img" src="${poster}" alt="" onerror="this.src='https://via.placeholder.com/300x170?text=16:9+Poster'" />
+            <div class="tile-name" title="${name}">${name}</div>
+            <div class="tile-actions">
+              <button class="btn btn-secondary btn-sm" onclick="moveTile(${sIdx}, ${tIdx}, -1)" ${tIdx === 0 ? 'disabled' : ''}>◀</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTile(${sIdx}, ${tIdx})">✕</button>
+              <button class="btn btn-secondary btn-sm" onclick="moveTile(${sIdx}, ${tIdx}, 1)" ${tIdx === sec.items.length - 1 ? 'disabled' : ''}>▶</button>
+            </div>
+          `;
+          tilesContainer.appendChild(card);
+        });
+
+        block.appendChild(tilesContainer);
+
+        // Add Tile Dropdown with Filtered Items
+        const addTileBar = document.createElement('div');
+        addTileBar.className = 'add-tile-bar';
+        addTileBar.innerHTML = `
+          <select id="selectItem_${sIdx}">
+            <option value="">-- Choose Show/Movie to Add (${selectableMedia.length} available) --</option>
+            ${selectableMedia.map(item => `<option value="${item.id}">${item.id} (${item?.['Multi-Language']?.Name || item.Name || item.collectionType})</option>`).join('')}
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="addTile(${sIdx})">+ Add Tile</button>
+        `;
+        block.appendChild(addTileBar);
+
+        container.appendChild(block);
+      });
+    }
+
+    // 6. Section & Tile Controls
+    function addSection() {
+      sectionsList.push({ title: "New Section", items: [] });
+      renderSectionsUI();
+    }
+
+    function deleteSection(index) {
+      if (confirm('Delete this section?')) {
+        sectionsList.splice(index, 1);
+        renderSectionsUI();
+      }
+    }
+
+    function moveSection(index, direction) {
+      const target = index + direction;
+      if (target < 0 || target >= sectionsList.length) return;
+      const temp = sectionsList[index];
+      sectionsList[index] = sectionsList[target];
+      sectionsList[target] = temp;
+      renderSectionsUI();
+    }
+
+    function updateSectionTitle(index, newTitle) {
+      sectionsList[index].title = newTitle;
+    }
+
+    function addTile(secIndex) {
+      const select = document.getElementById(`selectItem_${secIndex}`);
+      const val = select.value;
+      if (!val) return;
+      sectionsList[secIndex].items.push(val);
+      renderSectionsUI();
+    }
+
+    function deleteTile(secIndex, tileIndex) {
+      sectionsList[secIndex].items.splice(tileIndex, 1);
+      renderSectionsUI();
+    }
+
+    function moveTile(secIndex, tileIndex, direction) {
+      const items = sectionsList[secIndex].items;
+      const target = tileIndex + direction;
+      if (target < 0 || target >= items.length) return;
+      const temp = items[tileIndex];
+      items[tileIndex] = items[target];
+      items[target] = temp;
+      renderSectionsUI();
+    }
+
+    // 7. Save Fresh & Clean Version (Deletes Previous Old Fields Completely)
+    async function saveToFirestore() {
+      if (!currentDocId) return alert('No Studio selected.');
+
+      const status = document.getElementById('statusMsg');
+      status.style.color = '#ffc107';
+      status.innerText = 'Overwriting with fresh version...';
+
+      try {
+        // Build clean payload
+        const subStudiosInput = document.getElementById('studioSubStudios').value.trim();
+        const subStudioArray = subStudiosInput ? subStudiosInput.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+        const freshPayload = {
+          Name: document.getElementById('studioName').value.trim(),
+          Banner: document.getElementById('studioBanner').value.trim(),
+          Logo: document.getElementById('studioLogo').value.trim(),
+          ...(subStudioArray.length > 0 && { 'Sub-Studio': subStudioArray })
+        };
+
+        // Add cleanly numbered S1., S2., S3...
+        sectionsList.forEach((sec, idx) => {
+          const cleanKey = `S${idx + 1}. ${sec.title.trim()}`;
+          freshPayload[cleanKey] = sec.items;
+        });
+
+        // OVERWRITE COMPLETELY (WITHOUT {merge: true}) TO DELETE ALL OLD VERSIONS
+        await db.collection('Partners').doc(currentDocId).set(freshPayload);
+
+        status.style.color = '#28a745';
+        status.innerText = 'Saved Fresh Version Successfully!';
+        setTimeout(() => { status.innerText = ''; }, 3000);
+        await loadPartnersList();
+      } catch (err) {
+        console.error(err);
+        status.style.color = '#e63946';
+        status.innerText = 'Save Failed!';
+      }
+    }
+
+    // Start
+    initAdmin();
+  </script>
+</body>
+</html>
