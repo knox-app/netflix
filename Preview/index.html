@@ -158,10 +158,10 @@
 
     /* Fallback Hindi Bold Typography */
     .title-fallback-hindi {
-      font-family: 'Noto Sans Devanagari', 'Outfit', sans-serif;
+      font-family: 'Noto Sans Devanagari', sans-serif !important;
       font-size: 32px;
       font-weight: 900;
-      line-height: 1.2;
+      line-height: 1.25;
       margin-bottom: 10px;
       color: #ffffff;
       text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
@@ -614,7 +614,7 @@
     const userApp = initializeApp(userConfig, "userApp");
     const userDb = getFirestore(userApp);
 
-    // Global App State
+    // Global State
     let currentItem = null;
     let contentType = 'movie'; // 'movie' | 'show' | 'live'
     let currentCollection = 'Movies';
@@ -644,6 +644,10 @@
       return url.trim().replace(/^http:\/\//i, 'https://');
     }
 
+    function normalizeText(str) {
+      return String(str || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    }
+
     function extractYouTubeId(url) {
       if (!url) return null;
       try {
@@ -660,6 +664,43 @@
       return null;
     }
 
+    // Dynamic Hindi Transliteration for Titles when Logo is missing
+    async function getHindiTitle(englishTitle) {
+      if (!englishTitle) return "कंटेंट";
+      
+      // Check for predefined or stored titles
+      const knownTrans = {
+        "michael": "माइकल",
+        "encanto": "एनकैंतो",
+        "eyes of wakanda": "आइज़ ऑफ़ वकांडा",
+        "moana": "मोआना",
+        "frozen": "फ़्रोज़न",
+        "frozen 2": "फ़्रोज़न 2",
+        "aladdin": "अलादीन",
+        "mulan": "मुलान",
+        "luca": "लूका",
+        "zootopia": "ज़ूटोपिया",
+        "transformers": "ट्रांसफ़ॉर्मर्स",
+        "the lion king": "द लायन किंग",
+        "maleficent": "मैलेफ़िसेंट",
+        "jungle cruise": "जंगल क्रूज़"
+      };
+      
+      const lower = englishTitle.toLowerCase().trim();
+      if (knownTrans[lower]) return knownTrans[lower];
+
+      // Google Transliteration API for dynamic words
+      try {
+        const res = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(englishTitle)}&itc=hi-t-i0-und&num=1`);
+        const data = await res.json();
+        if (data && data[0] === 'SUCCESS' && data[1] && data[1][0] && data[1][0][1] && data[1][0][1][0]) {
+          return data[1][0][1][0];
+        }
+      } catch (e) {}
+
+      return englishTitle;
+    }
+
     async function initPreview() {
       if (!contentId) {
         document.getElementById('loader').innerText = "URL Parameter Missing (?preview=DOCUMENT_ID)";
@@ -670,7 +711,9 @@
       await fetchContentData(contentId);
     }
 
-    // Check Plan & Authorized Studios from "Plans & Subscriptions"
+    // ========================================================
+    // FIXED: USER PLAN & SUBSCRIBED STUDIOS CHECKING
+    // ========================================================
     async function loadUserSubscriptionPlan() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
@@ -680,60 +723,66 @@
       if (!currentUser) return;
 
       try {
-        let uData = null;
-
-        if (currentUser.Lotus) {
-          const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
-          if (!snap.empty) {
-            userDocRef = doc(userDb, "UARM", snap.docs[0].id);
-            uData = snap.docs[0].data();
-          }
-        } else if (currentUser.Email) {
-          const snap = await getDocs(query(collection(userDb, "UARM"), where("Email", "==", currentUser.Email)));
-          if (!snap.empty) {
-            userDocRef = doc(userDb, "UARM", snap.docs[0].id);
-            uData = snap.docs[0].data();
-          }
-        } else if (currentUser.id || currentUser.UARMS_ID) {
-          const uId = currentUser.id || currentUser.UARMS_ID;
-          userDocRef = doc(userDb, "UARM", uId);
-          const snap = await getDoc(userDocRef);
-          if (snap.exists()) uData = snap.data();
+        // Collect Plan IDs from local user object
+        let userPlanIds = [];
+        if (Array.isArray(currentUser.Plans)) {
+          userPlanIds = currentUser.Plans;
+        } else if (currentUser.Plan) {
+          userPlanIds = [currentUser.Plan];
         }
 
-        if (!uData) return;
+        // Also fetch live from question-metabase UARM to ensure fresh plans
+        if (currentUser.Lotus || currentUser.Email) {
+          let qUser = currentUser.Lotus 
+            ? query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus))
+            : query(collection(userDb, "UARM"), where("Email", "==", currentUser.Email));
+          
+          const snap = await getDocs(qUser);
+          if (!snap.empty) {
+            userDocRef = doc(userDb, "UARM", snap.docs[0].id);
+            const liveData = snap.docs[0].data();
+            userWatchlist = liveData.Watchlist || [];
+            if (Array.isArray(liveData.Plans)) {
+              userPlanIds = Array.from(new Set([...userPlanIds, ...liveData.Plans]));
+            }
+          }
+        }
 
-        userWatchlist = uData.Watchlist || [];
-
-        const userPlanIds = Array.isArray(uData.Plans) ? uData.Plans : (uData.Plan ? [uData.Plan] : []);
-
+        // Resolve each plan document in "Plans & Subscriptions"
         for (const planId of userPlanIds) {
           if (!planId) continue;
-          try {
-            let pSnap = await getDoc(doc(userDb, "Plans & Subscriptions", planId));
-            if (!pSnap.exists()) {
-              pSnap = await getDoc(doc(userDb, "Plans & Subscription", planId));
-            }
+          
+          // Check "Plans & Subscriptions" collection
+          let pSnap = await getDoc(doc(userDb, "Plans & Subscriptions", planId));
+          if (!pSnap.exists()) {
+            pSnap = await getDoc(doc(userDb, "Plans & Subscription", planId));
+          }
 
-            if (pSnap.exists()) {
-              const pData = pSnap.data();
-              const studios = Array.isArray(pData.Studio) ? pData.Studio : (pData.Studios || []);
-              studios.forEach(s => userAuthorizedStudios.add(String(s).trim().toLowerCase()));
-            }
-          } catch (err) {
-            console.warn("Plan fetch error:", planId, err);
+          if (pSnap.exists()) {
+            const pData = pSnap.data();
+            const studios = Array.isArray(pData.Studio) ? pData.Studio : (pData.Studios || []);
+            studios.forEach(s => {
+              userAuthorizedStudios.add(normalizeText(s));
+            });
           }
         }
       } catch (err) {
-        console.warn("Auth check error", err);
+        console.warn("Auth verification error:", err);
       }
     }
 
     function checkContentAccess(content) {
       if (!content) return false;
-      const contentStudio = String(content.Studio || content.Partner || '').trim().toLowerCase();
+      const contentStudioRaw = content.Studio || content.Partner || '';
+      const contentStudio = normalizeText(contentStudioRaw);
 
+      // 1. Content is marked free / open
       if (!contentStudio || contentStudio === 'free' || contentStudio === 'open') return true;
+
+      // 2. User has no plans
+      if (userAuthorizedStudios.size === 0) return false;
+
+      // 3. Exact or partial match in user's authorized studios
       if (userAuthorizedStudios.has(contentStudio)) return true;
 
       for (const authStudio of userAuthorizedStudios) {
@@ -741,6 +790,7 @@
           return true;
         }
       }
+
       return false;
     }
 
@@ -777,12 +827,12 @@
         contentType = 'live';
       }
 
-      renderPreviewUI();
+      await renderPreviewUI();
       scheduleTrailerPlayback();
       fetchRecommendations();
     }
 
-    function renderPreviewUI() {
+    async function renderPreviewUI() {
       document.getElementById('loader').style.display = 'none';
       document.getElementById('previewMain').style.display = 'block';
 
@@ -791,22 +841,29 @@
       const bannerUrl = safeUrl(currentItem.Banner || currentItem["Poster.h"] || currentItem.Poster || '');
       bannerImg.src = bannerUrl;
 
-      // 2. Logo OR Bold Hindi Font Fallback
+      // 2. Logo OR Bold Hindi Font Fallback (with error handling)
       const logoImg = document.getElementById('contentLogo');
       const titleFallback = document.getElementById('contentTitle');
       const logoUrl = safeUrl(currentItem.Logo || currentItem["Logo.png"] || '');
+
+      const applyHindiFallback = async () => {
+        logoImg.style.display = 'none';
+        const rawName = currentItem["Hindi Name"] || currentItem.Hindi_Name || currentItem.Name || currentItem.Title || "कंटेंट";
+        const hindiText = await getHindiTitle(rawName);
+        titleFallback.innerText = hindiText;
+        titleFallback.style.display = 'block';
+      };
 
       if (logoUrl) {
         logoImg.src = logoUrl;
         logoImg.style.display = 'block';
         titleFallback.style.display = 'none';
+        logoImg.onerror = applyHindiFallback;
       } else {
-        logoImg.style.display = 'none';
-        titleFallback.innerText = currentItem["Hindi Name"] || currentItem.Hindi_Name || currentItem.Name || currentItem.Title || "कंटेंट";
-        titleFallback.style.display = 'block';
+        await applyHindiFallback();
       }
 
-      // 3. Blue Trend & Rating Line (#3 in Hindi Today • IMDb 7.4)
+      // 3. Blue Trend & Rating Line
       const blueLine = document.getElementById('blueTrendLine');
       const trendText = currentItem.Trending || currentItem.Rank ? `#${currentItem.Trending || currentItem.Rank} in Hindi Today` : '';
       const ratingVal = currentItem.Rating || currentItem.IMDb || currentItem.imdb;
@@ -873,6 +930,7 @@
       const ctaBox = document.getElementById('ctaContainer');
       ctaBox.innerHTML = '';
 
+      // CASE 1: User HAS NOT SUBSCRIBED or Plan does not cover this Studio
       if (!hasAccess) {
         ctaBox.innerHTML = `
           <a class="btn-cta btn-cta-subscribe" href="1.html?action=subscribe&studio=${encodeURIComponent(currentItem.Studio || '')}">
@@ -883,6 +941,7 @@
         return;
       }
 
+      // Check Saved Progress from localStorage
       let resumeKey = currentItem.id;
       if (contentType === 'show' && currentSeasonKey) {
         resumeKey = `${currentItem.id}_${currentSeasonKey}_ep0`;
@@ -890,6 +949,7 @@
       const savedTime = parseFloat(localStorage.getItem(`progress_${resumeKey}`) || '0');
       const hasWatchedBefore = savedTime > 15;
 
+      // CASE 2: User HAS PLAN & has previously started watching
       if (hasWatchedBefore && contentType !== 'live') {
         const subLabel = contentType === 'show' ? 'S1 E1' : '';
         ctaBox.innerHTML = `
@@ -905,6 +965,7 @@
         return;
       }
 
+      // CASE 3: Fresh Watch (Movie / Live / Show)
       let primaryLabel = "Watch Now";
       if (contentType === 'live') primaryLabel = "Watch Live";
       
@@ -920,7 +981,6 @@
     function scheduleTrailerPlayback() {
       const trailerBadge = document.getElementById('trailerBadge');
       const host = document.getElementById('heroTrailerHost');
-      const banner = document.getElementById('heroBanner');
       const trailerUrl = safeUrl(currentItem.Trailer || '');
 
       clearTimeout(trailerTimeout);
@@ -956,7 +1016,6 @@
             events: {
               onReady: (e) => e.target.playVideo(),
               onStateChange: (e) => {
-                // WHEN TRAILER ENDS -> FADE OUT & SHOW BANNER
                 if (e.data === YT.PlayerState.ENDED) {
                   host.classList.remove('playing');
                   trailerBadge.style.display = 'none';
@@ -1091,19 +1150,19 @@
       }
     };
 
-    // Download button action
+    // Download
     document.getElementById('btnDownload').onclick = () => {
       showToast("Download started in standard quality");
     };
 
-    // Rate button action
+    // Rate
     document.getElementById('btnRate').onclick = () => {
       const btn = document.getElementById('btnRate');
       btn.classList.toggle('active');
       showToast(btn.classList.contains('active') ? "Rated ★★★★★" : "Rating removed");
     };
 
-    // Recommendations Engine ("More Like This")
+    // Recommendations Engine
     async function fetchRecommendations() {
       const grid = document.getElementById('recommendationsGrid');
       try {
