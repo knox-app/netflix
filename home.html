@@ -608,6 +608,34 @@
     }
 
     // 2. YouTube-Grade Ranking & Diversity Engine
+    const RANK_WEIGHTS = {
+      studioMatch: 45,
+      genreMatch: 30,
+      languageMatch: 25,
+      ageRatingMatch: 20,
+      lastWatchedMatch: 35,
+      sessionGenre: 15,
+      sessionStudio: 20,
+      watchlist: 40,
+      trailerBoost: 15,
+      recencyMax: 22,
+      recencyHalfLifeYears: 3,   // recency score halves roughly every N years instead of hard-flooring at 0
+      diversityStudioPenalty: 25,
+      diversityGenrePenalty: 18,
+      stableJitterMax: 3         // deterministic micro tie-breaker, see stableHash01()
+    };
+
+    // Deterministic pseudo-random 0..1 derived from a string. Used to break exact
+    // score ties consistently, so Firestore's frequent onSnapshot re-renders don't
+    // visibly reshuffle the carousel every time the same items tie on score.
+    function stableHash01(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) {
+        h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+      }
+      return ((h >>> 0) % 1000) / 1000;
+    }
+
     function rankAndDiversify(items) {
       const nowYear = new Date().getFullYear();
 
@@ -631,41 +659,55 @@
 
         // DPH_ALGO Matching
         if (userAlgoPreferences) {
-          if (userAlgoPreferences.studios.some(st => studio.includes(st) || tags.includes(st))) score += 45;
-          userAlgoPreferences.genres.forEach(g => {
-            if (tags.some(t => t.includes(g))) score += 30;
-          });
-          if (userAlgoPreferences.languages.some(l => lang.includes(l))) score += 25;
-          if (userAlgoPreferences.ageRatings.some(ar => age === ar)) score += 20;
-          userAlgoPreferences.lastWatched.forEach(w => {
-            if (name.includes(w) || tags.includes(w)) score += 35;
-          });
+          if (userAlgoPreferences.studios.some(st => studio.includes(st) || tags.includes(st))) {
+            score += RANK_WEIGHTS.studioMatch;
+          }
+
+          // Genre match now scales with how many preferred genres are present,
+          // with diminishing returns so one tag-stuffed item can't sweep every point.
+          const genreHits = userAlgoPreferences.genres.filter(g => tags.some(t => t.includes(g))).length;
+          if (genreHits > 0) score += RANK_WEIGHTS.genreMatch * (1 - 1 / (genreHits + 1));
+
+          if (userAlgoPreferences.languages.some(l => lang.includes(l))) score += RANK_WEIGHTS.languageMatch;
+          if (userAlgoPreferences.ageRatings.some(ar => age === ar)) score += RANK_WEIGHTS.ageRatingMatch;
+          if (userAlgoPreferences.lastWatched.some(w => name.includes(w) || tags.includes(w))) {
+            score += RANK_WEIGHTS.lastWatchedMatch;
+          }
         }
 
-        // Live Session Reinforcement
-        tags.forEach(t => {
-          if (sessionInteractions.interactedGenres.has(t)) score += 15;
-        });
-        if (sessionInteractions.interactedStudios.has(studio)) score += 20;
+        // Live Session Reinforcement (also diminishing returns across matched genres)
+        const sessionGenreHits = tags.filter(t => sessionInteractions.interactedGenres.has(t)).length;
+        if (sessionGenreHits > 0) score += RANK_WEIGHTS.sessionGenre * (1 - 1 / (sessionGenreHits + 1));
+        if (sessionInteractions.interactedStudios.has(studio)) score += RANK_WEIGHTS.sessionStudio;
 
         // Watchlist
-        if (userWatchlist.includes(item.id)) score += 40;
+        if (userWatchlist.includes(item.id)) score += RANK_WEIGHTS.watchlist;
 
-        // Recency
-        const y = parseInt(safeString(item.Release_Date || item.Year || "2020"));
-        if (!isNaN(y)) score += Math.max(0, 20 - (nowYear - y) * 3);
+        // Recency — exponential decay instead of a hard linear cutoff, so a strong
+        // match from a few years back can still outrank a mediocre new release.
+        const y = parseInt(safeString(item.Release_Date || item.Year || nowYear));
+        if (!isNaN(y)) {
+          const ageYears = Math.max(0, nowYear - y);
+          score += RANK_WEIGHTS.recencyMax * Math.pow(0.5, ageYears / RANK_WEIGHTS.recencyHalfLifeYears);
+        }
 
         // Trailer Boost
-        if (item.Trailer && String(item.Trailer).trim().length > 0) score += 15;
+        if (item.Trailer && String(item.Trailer).trim().length > 0) score += RANK_WEIGHTS.trailerBoost;
 
-        return { item, score };
+        // Deterministic micro-jitter to break exact ties consistently
+        score += stableHash01(item.id || name) * RANK_WEIGHTS.stableJitterMax;
+
+        return { item, score, tags, studio };
       });
 
       scored.sort((a, b) => b.score - a.score);
 
-      // MMR Diversity Filter
+      // MMR-style Diversity Filter — penalizes both studio repeats AND genre-tag
+      // overlap with items already chosen, so the final 8 don't collapse into
+      // "the same two franchises" even when their raw scores are close.
       const selected = [];
       const usedStudios = new Set();
+      const usedTags = new Set();
       const pool = [...scored];
 
       while (pool.length > 0 && selected.length < 8) {
@@ -673,22 +715,26 @@
         let bestScore = -Infinity;
 
         for (let i = 0; i < pool.length; i++) {
-          const cand = pool[i].item;
+          const cand = pool[i];
           let penalty = 0;
-          const s = safeString(cand.Studio || cand.Partner).toLowerCase();
-          if (s && usedStudios.has(s)) penalty += 25;
+          if (cand.studio && usedStudios.has(cand.studio)) penalty += RANK_WEIGHTS.diversityStudioPenalty;
 
-          const finalScore = pool[i].score - penalty;
+          if (cand.tags.length > 0) {
+            const overlap = cand.tags.filter(t => usedTags.has(t)).length;
+            if (overlap > 0) penalty += RANK_WEIGHTS.diversityGenrePenalty * (overlap / cand.tags.length);
+          }
+
+          const finalScore = cand.score - penalty;
           if (finalScore > bestScore) {
             bestScore = finalScore;
             bestIdx = i;
           }
         }
 
-        const chosen = pool.splice(bestIdx, 1)[0].item;
-        selected.push(chosen);
-        const st = safeString(chosen.Studio || chosen.Partner).toLowerCase();
-        if (st) usedStudios.add(st);
+        const chosenEntry = pool.splice(bestIdx, 1)[0];
+        selected.push(chosenEntry.item);
+        if (chosenEntry.studio) usedStudios.add(chosenEntry.studio);
+        chosenEntry.tags.forEach(t => usedTags.add(t));
       }
 
       return selected;
