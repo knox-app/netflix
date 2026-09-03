@@ -5,22 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hotstar Hero Carousel</title>
   
-  <!-- Video Engines for Trailers -->
+  <!-- Video Engine Support -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     :root {
       --bg-dark: #0f1015;
-      --surface-glass: rgba(255, 255, 255, 0.1);
-      --surface-glass-hover: rgba(255, 255, 255, 0.18);
+      --surface-glass: rgba(255, 255, 255, 0.12);
+      --surface-glass-hover: rgba(255, 255, 255, 0.2);
       --accent-blue: #0072ef;
-      --accent-blue-hover: #0060c7;
       --text-main: #ffffff;
       --text-muted: #8f98b2;
       --radius-sm: 6px;
       --radius-md: 10px;
-      --radius-lg: 14px;
     }
 
     * {
@@ -40,7 +38,7 @@
       user-select: none;
     }
 
-    /* Top Navigation Header */
+    /* Top Nav Brand Header */
     .top-header {
       position: absolute;
       top: 0;
@@ -50,29 +48,26 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 28px;
+      padding: 16px 24px;
       background: linear-gradient(180deg, rgba(15, 16, 21, 0.9) 0%, transparent 100%);
       pointer-events: none;
     }
     .brand-logo {
       font-size: 18px;
       font-weight: 800;
-      letter-spacing: -0.3px;
       color: #fff;
       pointer-events: auto;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      letter-spacing: -0.3px;
     }
-    .brand-logo span { color: var(--accent-blue); font-weight: 700; }
+    .brand-logo span { color: var(--accent-blue); }
 
-    /* Carousel Main Stage */
+    /* Hero Carousel Container */
     .carousel-stage {
       position: relative;
       width: 100%;
-      height: 78vh;
-      min-height: 540px;
-      max-height: 720px;
+      height: 80vh;
+      min-height: 520px;
+      max-height: 760px;
       overflow: hidden;
       background: #000;
     }
@@ -93,14 +88,19 @@
       pointer-events: auto;
     }
 
-    /* Media Layers */
+    /* Media Layer - Full Coverage */
     .media-layer {
       position: absolute;
       inset: 0;
+      width: 100%;
+      height: 100%;
       z-index: 1;
       overflow: hidden;
     }
+
     .banner-image {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -111,6 +111,7 @@
       transform: scale(1.04);
     }
 
+    /* Video Trailer: Strictly Fills 100% of the Stage */
     .trailer-video {
       position: absolute;
       inset: 0;
@@ -119,34 +120,43 @@
       object-fit: cover;
       opacity: 0;
       z-index: 2;
-      transition: opacity 0.8s ease;
+      transition: opacity 0.8s ease-in-out;
     }
     .trailer-video.playing { opacity: 1; }
 
+    /* YouTube Trailer Container: 100% Edge-to-Edge Fill */
     .yt-frame-wrapper {
       position: absolute;
-      top: -12%;
-      left: -12%;
-      width: 124%;
-      height: 124%;
+      top: 50%;
+      left: 50%;
+      width: 100vw;
+      height: 56.25vw; /* 16:9 aspect ratio */
+      min-height: 100%;
+      min-width: 177.78vh; /* 16:9 aspect ratio */
+      transform: translate(-50%, -50%);
       opacity: 0;
       z-index: 2;
       pointer-events: none;
       transition: opacity 0.8s ease;
     }
     .yt-frame-wrapper.playing { opacity: 1; }
-    .yt-frame-wrapper iframe { width: 100%; height: 100%; border: none; }
+    .yt-frame-wrapper iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      pointer-events: none;
+    }
 
-    /* Clean Authentic Hotstar Overlays */
+    /* Cinematic Hotstar Overlays */
     .vignette-bottom {
       position: absolute;
       inset: 0;
       z-index: 3;
       background: linear-gradient(
         180deg,
-        rgba(15, 16, 21, 0.2) 0%,
+        rgba(15, 16, 21, 0.1) 0%,
         rgba(15, 16, 21, 0.05) 25%,
-        rgba(15, 16, 21, 0.6) 60%,
+        rgba(15, 16, 21, 0.6) 65%,
         var(--bg-dark) 100%
       );
     }
@@ -157,37 +167,37 @@
       background: linear-gradient(
         90deg,
         rgba(15, 16, 21, 0.95) 0%,
-        rgba(15, 16, 21, 0.7) 35%,
-        rgba(15, 16, 21, 0.2) 65%,
+        rgba(15, 16, 21, 0.75) 30%,
+        rgba(15, 16, 21, 0.15) 65%,
         transparent 100%
       );
     }
 
-    /* Content & Meta Information */
+    /* Slide Content & Typography */
     .slide-info-container {
       position: relative;
       z-index: 5;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      padding: 0 36px 42px;
-      max-width: 580px;
+      padding: 0 40px 48px;
+      max-width: 600px;
     }
 
     .title-logo {
-      max-width: 250px;
-      max-height: 95px;
+      max-width: 240px;
+      max-height: 90px;
       object-fit: contain;
       margin-bottom: 12px;
-      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.85));
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.9));
     }
     .fallback-title {
-      font-size: 32px;
+      font-size: 30px;
       font-weight: 800;
       letter-spacing: -0.5px;
       margin-bottom: 10px;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
       color: #fff;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.9);
     }
 
     .meta-badge-row {
@@ -228,7 +238,7 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       margin-bottom: 22px;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
 
     /* Action Buttons Row */
@@ -244,7 +254,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 12px 26px;
+      padding: 12px 28px;
       border-radius: var(--radius-md);
       background: #ffffff;
       color: #0f1015;
@@ -269,7 +279,7 @@
       border-radius: var(--radius-md);
       background: var(--surface-glass);
       backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       color: #fff;
       display: flex;
       align-items: center;
@@ -280,7 +290,7 @@
     .btn-icon-square:hover { background: var(--surface-glass-hover); }
     .btn-icon-square:active { transform: scale(0.92); }
     .btn-icon-square.active {
-      background: rgba(0, 114, 239, 0.25);
+      background: rgba(0, 114, 239, 0.3);
       border-color: var(--accent-blue);
       color: var(--accent-blue);
     }
@@ -303,15 +313,15 @@
     .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #e50914; animation: blink 1s infinite alternate; }
     @keyframes blink { from { opacity: 0.3; } to { opacity: 1; } }
 
-    /* Bottom-Right Thumbnail Preview Strip (Hotstar Style) */
+    /* Desktop Bottom-Right Thumbnail Preview Strip */
     .preview-strip-container {
       position: absolute;
       bottom: 28px;
-      right: 36px;
+      right: 40px;
       z-index: 10;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       background: rgba(15, 16, 21, 0.55);
       backdrop-filter: blur(12px);
       padding: 6px;
@@ -334,29 +344,50 @@
     .preview-card-item.active {
       opacity: 1;
       border-color: #ffffff;
-      transform: scale(1.06);
+      transform: scale(1.05);
     }
     .preview-card-item img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Mobile Responsive */
+    /* Mobile Indicator Dots (Replaces preview cards on mobile) */
+    .mobile-dots-container {
+      display: none;
+      position: absolute;
+      bottom: 14px;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+    .m-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.35);
+      transition: all 0.25s ease;
+    }
+    .m-dot.active {
+      width: 16px;
+      border-radius: 4px;
+      background: #ffffff;
+    }
+
+    /* Mobile Responsiveness: Clean, Full-Cover Banner, No Vertical Posters */
     @media (max-width: 768px) {
-      .carousel-stage { height: 74vh; }
-      .vignette-left { background: linear-gradient(180deg, transparent 20%, rgba(15, 16, 21, 0.8) 75%, var(--bg-dark) 100%); }
+      .carousel-stage { height: 75vh; }
+      .vignette-left {
+        background: linear-gradient(180deg, transparent 20%, rgba(15, 16, 21, 0.85) 75%, var(--bg-dark) 100%);
+      }
       .slide-info-container {
-        padding: 0 20px 32px;
+        padding: 0 20px 36px;
         max-width: 100%;
         align-items: center;
         text-align: center;
       }
       .button-row { justify-content: center; }
-      .preview-strip-container {
-        right: 50%;
-        transform: translateX(50%);
-        bottom: 12px;
-        padding: 4px;
-        gap: 6px;
-      }
-      .preview-card-item { width: 54px; }
+      .preview-strip-container { display: none !important; }
+      .mobile-dots-container { display: flex; }
     }
 
     /* Toast Notification */
@@ -382,30 +413,33 @@
 </head>
 <body>
 
-  <!-- Top Bar -->
+  <!-- Header -->
   <header class="top-header">
     <div class="brand-logo">Disney+ <span>hotstar</span></div>
   </header>
 
-  <!-- Carousel Viewport -->
+  <!-- Carousel Stage -->
   <div class="carousel-stage" id="carouselStage">
     <div id="slidesViewport"></div>
 
-    <!-- Vignette Shadows -->
+    <!-- Vignettes -->
     <div class="vignette-bottom"></div>
     <div class="vignette-left"></div>
 
-    <!-- Mini Preview Cards Bar (Bottom Right) -->
+    <!-- Desktop Bottom Right Previews -->
     <div class="preview-strip-container" id="previewStrip"></div>
+
+    <!-- Mobile Indicator Dots -->
+    <div class="mobile-dots-container" id="mobileDots"></div>
   </div>
 
-  <div class="toast-box" id="toastBox">Added to Watchlist</div>
+  <div class="toast-box" id="toastBox">Watchlist updated</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firestore Credentials
+    // Firestore Configuration
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -422,7 +456,7 @@
     const authApp = initializeApp(authConfig, "authApp");
     const authDb = getFirestore(authApp);
 
-    // State Variables
+    // State
     let allContent = [];
     let heroCarouselList = [];
     let activeIndex = 0;
@@ -431,14 +465,19 @@
     let currentUser = null;
     let userWatchlist = [];
 
+    // 1. Initialize User & Watchlist
     function initUser() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
-        currentUser = stored ? JSON.parse(stored) : { id: "guest_user", Watchlist: [] };
+        currentUser = stored ? JSON.parse(stored) : null;
+      } catch(e) { currentUser = null; }
+
+      try {
+        const savedWl = localStorage.getItem('hotstar_watchlist');
+        userWatchlist = savedWl ? JSON.parse(savedWl) : (currentUser?.Watchlist || []);
       } catch(e) {
-        currentUser = { id: "guest_user", Watchlist: [] };
+        userWatchlist = currentUser?.Watchlist || [];
       }
-      userWatchlist = currentUser.Watchlist || [];
     }
 
     function showToast(msg) {
@@ -448,42 +487,44 @@
       setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    // Accurate Field Extractors from Firestore Document
-    function getBanner(doc) {
-      return doc["Poster.h"] || doc.Banner || doc.Poster_h || doc.Poster || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80";
+    // 2. Banner Priority Field Extractor (Banner is prioritized everywhere)
+    function getBannerUrl(doc) {
+      return doc.Banner || doc["Poster.h"] || doc.Poster_h || doc.Poster || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80";
     }
-    function getLogo(doc) {
+
+    function getLogoUrl(doc) {
       return doc.Logo || doc["Logo.png"] || "";
     }
+
     function getDescription(doc) {
       return doc.Discription || doc.Description || doc.Story || "Stream this blockbuster title now on Disney+ Hotstar.";
     }
 
-    // Multi-Vector Ranking Algorithm: Recency, Watchlist, Genres & Trailer availability
+    // 3. Multi-Vector Recommendation Algorithm
     function scoreAndRankContent(items) {
       const nowYear = new Date().getFullYear();
 
       return items.map(item => {
         let score = 0;
 
-        // Recency Scoring
+        // Recency Score
         const year = parseInt(item.Release_Date || item.Year || "2021");
         const diff = Math.max(0, nowYear - year);
         if (diff <= 1) score += 35;
         else if (diff <= 3) score += 20;
         else score += 10;
 
-        // Watchlist personal boost
+        // Watchlist affinity
         if (userWatchlist.includes(item.id)) score += 25;
 
-        // High popularity genre boost
+        // Popular genres
         const genres = (item.Genres || "").toLowerCase();
         if (genres.includes("adventure") || genres.includes("fantasy") || genres.includes("action") || genres.includes("comedy")) {
           score += 15;
         }
 
-        // Boost items with active trailers for better carousel preview
-        if (item.Trailer && item.Trailer.trim().length > 0) score += 15;
+        // Prioritize items with active trailers
+        if (item.Trailer && item.Trailer.trim().length > 0) score += 20;
 
         return { item, score };
       })
@@ -491,7 +532,7 @@
       .map(entry => entry.item);
     }
 
-    // Real-Time Listener across Movies, Shows & Live TV
+    // 4. Listen to Firestore
     function fetchContent() {
       const collections = ["Movies", "Shows", "TV Shows", "Live TV"];
       let pool = [];
@@ -499,8 +540,7 @@
       collections.forEach(col => {
         onSnapshot(collection(channelDb, col), (snap) => {
           snap.forEach(d => {
-            const data = d.data();
-            pool.push({ id: d.id, _col: col, ...data });
+            pool.push({ id: d.id, _col: col, ...d.data() });
           });
 
           if (pool.length > 0) {
@@ -509,7 +549,7 @@
             renderCarousel();
           }
         }, () => {
-          // Fallback if network blocked
+          // Fallback mock
           if (allContent.length === 0) {
             allContent = getFallbackData();
             heroCarouselList = scoreAndRankContent(allContent);
@@ -529,7 +569,7 @@
           Language: "Hindi",
           Genres: "Adventure, Fantasy, Family",
           Discription: "When a curious girl follows a talking rabbit into a topsy-turvy world, she must navigate riddles and madness to find her way home.",
-          "Poster.h": "https://img10.hotstar.com/image/upload/f_auto/sources/r1/cms/prod/4288/674288-h",
+          Banner: "https://img10.hotstar.com/image/upload/f_auto,q_auto/sources/r1/cms/prod/6886/1416886-i-0a1cf62c16fe",
           Logo: "https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/8933/808933-t",
           Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
         },
@@ -541,26 +581,28 @@
           Language: "Hindi",
           Genres: "Comedy, Kids, Animation, Sitcom",
           Discription: "A ghost spirit possesses Happy, and Pinaki must defeat it in three challenges within 30 minutes to save his friend.",
-          "Poster.h": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
+          Banner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
           Logo: "",
           Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
         }
       ];
     }
 
-    // Render Hero Carousel Elements
+    // 5. Render Carousel Slides
     function renderCarousel() {
       const viewport = document.getElementById('slidesViewport');
       const previewStrip = document.getElementById('previewStrip');
+      const mobileDots = document.getElementById('mobileDots');
 
       viewport.innerHTML = '';
       previewStrip.innerHTML = '';
+      mobileDots.innerHTML = '';
 
       heroCarouselList.forEach((item, idx) => {
         const isAdded = userWatchlist.includes(item.id);
-        const bannerUrl = getBanner(item);
-        const logoUrl = getLogo(item);
-        const titleText = item.Name || item.Title || "Hotstar Featured";
+        const bannerUrl = getBannerUrl(item);
+        const logoUrl = getLogoUrl(item);
+        const titleText = item.Name || item.Title || "Featured";
         const descText = getDescription(item);
 
         const year = item.Release_Date || item.Year || "2021";
@@ -599,7 +641,7 @@
                 <span>Watch Now</span>
               </a>
 
-              <button class="btn-icon-square ${isAdded ? 'active' : ''}" onclick="window.toggleWatchlist('${item.id}')" title="Watchlist">
+              <button class="btn-icon-square btn-wl-${item.id} ${isAdded ? 'active' : ''}" onclick="window.toggleWatchlist('${item.id}')" title="Watchlist">
                 <svg viewBox="0 0 24 24">
                   ${isAdded 
                     ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' 
@@ -619,18 +661,24 @@
         `;
         viewport.appendChild(slide);
 
-        // Bottom Right Preview Item
+        // Desktop Preview Thumbnail
         const previewCard = document.createElement('div');
         previewCard.className = `preview-card-item ${idx === 0 ? 'active' : ''}`;
         previewCard.onclick = () => jumpToSlide(idx);
         previewCard.innerHTML = `<img src="${bannerUrl}" alt="${titleText}" loading="lazy">`;
         previewStrip.appendChild(previewCard);
+
+        // Mobile Dot
+        const dot = document.createElement('div');
+        dot.className = `m-dot ${idx === 0 ? 'active' : ''}`;
+        dot.onclick = () => jumpToSlide(idx);
+        mobileDots.appendChild(dot);
       });
 
       startBannerToTrailerCycle(0);
     }
 
-    // 6-Second Banner -> Trailer Pipeline
+    // 6. 6-Second Banner -> Edge-to-Edge Trailer Engine
     function startBannerToTrailerCycle(index) {
       clearTimeout(slideTimer);
       stopActiveMedia();
@@ -641,7 +689,7 @@
       const videoEl = document.getElementById(`video_trailer_${index}`);
       const trailerUrl = (item.Trailer || item.trailer || "").trim();
 
-      // Step 1: Display clean Banner + Logo for 6 seconds
+      // Show Banner for 6 seconds
       slideTimer = setTimeout(() => {
         if (trailerUrl) {
           playTrailerVideo(index, trailerUrl, videoEl);
@@ -670,7 +718,7 @@
         const ytHost = document.getElementById(`yt_wrap_${index}`);
         const ytId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=))([\w-]{11})/)?.[1];
         if (ytId) {
-          ytHost.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=0" allow="autoplay"></iframe>`;
+          ytHost.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=0&playsinline=1" allow="autoplay"></iframe>`;
           ytHost.classList.add('playing');
           if (badge) badge.classList.add('show');
           slideTimer = setTimeout(nextSlide, 25000);
@@ -708,14 +756,17 @@
 
       document.querySelectorAll('.carousel-slide').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.preview-card-item').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.m-dot').forEach(d => d.classList.remove('active'));
 
       activeIndex = idx;
 
       const currentSlide = document.getElementById(`slide_${idx}`);
       const currentPreview = document.querySelectorAll('.preview-card-item')[idx];
+      const currentDot = document.querySelectorAll('.m-dot')[idx];
 
       if (currentSlide) currentSlide.classList.add('active');
       if (currentPreview) currentPreview.classList.add('active');
+      if (currentDot) currentDot.classList.add('active');
 
       startBannerToTrailerCycle(idx);
     }
@@ -733,7 +784,7 @@
       }
     };
 
-    // Watchlist Persistence
+    // 7. Watchlist Persistence Fix
     window.toggleWatchlist = async function(id) {
       const idx = userWatchlist.indexOf(id);
       const isRemoving = idx > -1;
@@ -746,6 +797,12 @@
         showToast("Added to Watchlist");
       }
 
+      // Save locally
+      try {
+        localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
+      } catch(e){}
+
+      // Sync Firestore if logged in
       if (currentUser && currentUser.id && currentUser.id !== "guest_user") {
         try {
           const ref = doc(authDb, "UARM", currentUser.id);
@@ -753,11 +810,11 @@
         } catch(e) {}
       }
 
-      const btn = document.querySelector(`#slide_${activeIndex} .btn-icon-square`);
-      if (btn) {
+      // Update all matching watchlist buttons across slides
+      document.querySelectorAll(`.btn-wl-${id}`).forEach(btn => {
         btn.classList.toggle('active', !isRemoving);
         btn.innerHTML = `<svg viewBox="0 0 24 24">${!isRemoving ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}</svg>`;
-      }
+      });
     };
 
     // Run
