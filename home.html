@@ -38,7 +38,7 @@
       user-select: none;
     }
 
-    /* Top Nav Brand Header */
+    /* Top Navigation Header */
     .top-header {
       position: absolute;
       top: 0;
@@ -60,6 +60,18 @@
       letter-spacing: -0.3px;
     }
     .brand-logo span { color: var(--accent-blue); }
+
+    .user-pill-badge {
+      pointer-events: auto;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+    }
 
     /* Hero Carousel Container */
     .carousel-stage {
@@ -88,7 +100,7 @@
       pointer-events: auto;
     }
 
-    /* Media Layer - Full Coverage */
+    /* Media Layer - Full 100% Coverage */
     .media-layer {
       position: absolute;
       inset: 0;
@@ -111,7 +123,7 @@
       transform: scale(1.04);
     }
 
-    /* Video Trailer: Strictly Fills 100% of the Stage */
+    /* Video Trailer: Fills 100% of the Stage */
     .trailer-video {
       position: absolute;
       inset: 0;
@@ -124,15 +136,15 @@
     }
     .trailer-video.playing { opacity: 1; }
 
-    /* YouTube Trailer Container: 100% Edge-to-Edge Fill */
+    /* YouTube Trailer Container: Edge-to-Edge Fill */
     .yt-frame-wrapper {
       position: absolute;
       top: 50%;
       left: 50%;
       width: 100vw;
-      height: 56.25vw; /* 16:9 aspect ratio */
+      height: 56.25vw;
       min-height: 100%;
-      min-width: 177.78vh; /* 16:9 aspect ratio */
+      min-width: 177.78vh;
       transform: translate(-50%, -50%);
       opacity: 0;
       z-index: 2;
@@ -144,10 +156,9 @@
       width: 100%;
       height: 100%;
       border: none;
-      pointer-events: none;
     }
 
-    /* Cinematic Hotstar Overlays */
+    /* Clean Authentic Hotstar Overlays */
     .vignette-bottom {
       position: absolute;
       inset: 0;
@@ -173,7 +184,7 @@
       );
     }
 
-    /* Slide Content & Typography */
+    /* Slide Content & Info */
     .slide-info-container {
       position: relative;
       z-index: 5;
@@ -266,10 +277,7 @@
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
       transition: all 0.2s ease;
     }
-    .btn-main-watch:hover {
-      background: #f0f0f0;
-      transform: scale(1.02);
-    }
+    .btn-main-watch:hover { background: #f0f0f0; transform: scale(1.02); }
     .btn-main-watch:active { transform: scale(0.97); }
     .btn-main-watch svg { width: 15px; height: 15px; fill: currentColor; }
 
@@ -313,7 +321,7 @@
     .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #e50914; animation: blink 1s infinite alternate; }
     @keyframes blink { from { opacity: 0.3; } to { opacity: 1; } }
 
-    /* Desktop Bottom-Right Thumbnail Preview Strip */
+    /* Desktop Bottom-Right Preview Strip */
     .preview-strip-container {
       position: absolute;
       bottom: 28px;
@@ -348,7 +356,7 @@
     }
     .preview-card-item img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Mobile Indicator Dots (Replaces preview cards on mobile) */
+    /* Mobile Indicator Dots (No vertical posters on mobile) */
     .mobile-dots-container {
       display: none;
       position: absolute;
@@ -373,7 +381,6 @@
       background: #ffffff;
     }
 
-    /* Mobile Responsiveness: Clean, Full-Cover Banner, No Vertical Posters */
     @media (max-width: 768px) {
       .carousel-stage { height: 75vh; }
       .vignette-left {
@@ -413,16 +420,16 @@
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- Top Header -->
   <header class="top-header">
     <div class="brand-logo">Disney+ <span>hotstar</span></div>
+    <div class="user-pill-badge" id="userPillBadge">Guest User</div>
   </header>
 
   <!-- Carousel Stage -->
   <div class="carousel-stage" id="carouselStage">
     <div id="slidesViewport"></div>
 
-    <!-- Vignettes -->
     <div class="vignette-bottom"></div>
     <div class="vignette-left"></div>
 
@@ -437,9 +444,9 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firestore Configuration
+    // Firestore Configurations
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -456,7 +463,7 @@
     const authApp = initializeApp(authConfig, "authApp");
     const authDb = getFirestore(authApp);
 
-    // State
+    // State Variables
     let allContent = [];
     let heroCarouselList = [];
     let activeIndex = 0;
@@ -464,20 +471,104 @@
     let isMuted = true;
     let currentUser = null;
     let userWatchlist = [];
+    let userAlgoPreferences = null;
 
-    // 1. Initialize User & Watchlist
-    function initUser() {
+    // =========================================================================
+    // 1. DPH_ALGO PROFILE PARSER
+    // Parses natural language descriptions like:
+    // "he/she like movies form (Pixar, Sony,) he/she prefer (English,) he/she 's
+    //  lastly watched 10 Movies (Encanto, Toystory) he/she like Genres of
+    //  (Animation,Fantasy) he/she confert Age_Rating (U)"
+    // =========================================================================
+    function parseDphAlgoDescription(descStr) {
+      if (!descStr || typeof descStr !== 'string') return null;
+
+      const profile = {
+        studios: [],
+        languages: [],
+        lastWatched: [],
+        genres: [],
+        ageRatings: [],
+        rawTokens: []
+      };
+
+      const clean = descStr.replace(/[\n\r]+/g, ' ');
+
+      // Helper to extract values inside parenthesis based on regex
+      const extractGroup = (regex) => {
+        const match = clean.match(regex);
+        if (match && match[1]) {
+          return match[1]
+            .split(/[,/|•\s]+/)
+            .map(s => s.trim().toLowerCase())
+            .filter(s => s.length > 0);
+        }
+        return [];
+      };
+
+      // 1. Extract Studios/Partners: "movies form (Pixar, Sony,)"
+      profile.studios = extractGroup(/(?:form|from|studio|production)\s*\((.*?)\)/i);
+
+      // 2. Extract Preferred Languages: "prefer (English,)"
+      profile.languages = extractGroup(/(?:prefer|language|lang)\s*\((.*?)\)/i);
+
+      // 3. Extract Recently Watched Titles: "lastly watched 10 Movies (Encanto, Toystory)"
+      profile.lastWatched = extractGroup(/(?:lastly|watched|history|movies)\s*\d*\s*(?:movies|shows)?\s*\((.*?)\)/i);
+
+      // 4. Extract Preferred Genres: "like Genres of (Animation,Fantasy)"
+      profile.genres = extractGroup(/(?:genres|genre|like)\s*(?:of)?\s*\((.*?)\)/i);
+
+      // 5. Extract Age Rating: "confert Age_Rating (U)"
+      profile.ageRatings = extractGroup(/(?:age_rating|rating|confert|comfort)\s*\((.*?)\)/i);
+
+      // 6. Tokenize any remaining keywords for semantic reinforcement
+      profile.rawTokens = clean
+        .toLowerCase()
+        .replace(/[(),]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !['he/she', 'like', 'movies', 'prefer', 'watched', 'lastly'].includes(w));
+
+      return profile;
+    }
+
+    // =========================================================================
+    // 2. MULTI-USER REAL-TIME SYNCHRONIZATION
+    // Listens to logged-in user in Firestore `UARM` collection
+    // =========================================================================
+    function setupUserSessionListener() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
         currentUser = stored ? JSON.parse(stored) : null;
       } catch(e) { currentUser = null; }
 
-      try {
-        const savedWl = localStorage.getItem('hotstar_watchlist');
-        userWatchlist = savedWl ? JSON.parse(savedWl) : (currentUser?.Watchlist || []);
-      } catch(e) {
-        userWatchlist = currentUser?.Watchlist || [];
-      }
+      // Default demo user ID from your screenshot if none logged in
+      const targetUserId = currentUser?.id || currentUser?.Lotus || "7I4d9vmlm9WiUAUneQGByq6JT";
+
+      const userBadge = document.getElementById('userPillBadge');
+
+      onSnapshot(doc(authDb, "UARM", targetUserId), (snap) => {
+        if (snap.exists()) {
+          const udata = snap.data();
+          currentUser = { id: snap.id, ...udata };
+          userWatchlist = udata.Watchlist || [];
+          
+          // Parse DPH_ALGO description field from user document
+          userAlgoPreferences = parseDphAlgoDescription(udata.DPH_ALGO || "");
+
+          const displayName = udata["First Name"] || udata.Email || targetUserId.slice(0, 6);
+          userBadge.innerText = `👤 ${displayName}`;
+
+          // Re-score carousel whenever user account changes or updates
+          if (allContent.length > 0) {
+            heroCarouselList = scoreAndRankContent(allContent).slice(0, 6);
+            renderCarousel();
+          }
+        } else {
+          userBadge.innerText = "Guest Mode";
+        }
+      }, () => {
+        userBadge.innerText = "Guest Mode";
+      });
     }
 
     function showToast(msg) {
@@ -487,44 +578,84 @@
       setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    // 2. Banner Priority Field Extractor (Banner is prioritized everywhere)
+    // Field Extractors (Prioritizes Banner)
     function getBannerUrl(doc) {
       return doc.Banner || doc["Poster.h"] || doc.Poster_h || doc.Poster || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80";
     }
-
     function getLogoUrl(doc) {
       return doc.Logo || doc["Logo.png"] || "";
     }
-
     function getDescription(doc) {
       return doc.Discription || doc.Description || doc.Story || "Stream this blockbuster title now on Disney+ Hotstar.";
     }
 
-    // 3. Multi-Vector Recommendation Algorithm
+    // =========================================================================
+    // 3. PERSONALIZED USER-TO-USER RANKING ALGORITHM
+    // Adapts dynamically per account using DPH_ALGO profile signals
+    // =========================================================================
     function scoreAndRankContent(items) {
       const nowYear = new Date().getFullYear();
 
       return items.map(item => {
         let score = 0;
 
-        // Recency Score
-        const year = parseInt(item.Release_Date || item.Year || "2021");
-        const diff = Math.max(0, nowYear - year);
-        if (diff <= 1) score += 35;
-        else if (diff <= 3) score += 20;
-        else score += 10;
+        const itemName = (item.Name || item.Title || "").toLowerCase();
+        const itemStudio = (item.Studio || item.Partner || "").toLowerCase();
+        const itemLanguage = (item.Language || "").toLowerCase();
+        const itemAgeRating = (item.Age_Rating || item["Age Rating"] || "").toLowerCase();
+        const itemGenres = (item.Genres || "").toLowerCase().split(/[,/|•\s]+/).filter(Boolean);
+        const itemTags = (item.Tags || "").toLowerCase();
 
-        // Watchlist affinity
-        if (userWatchlist.includes(item.id)) score += 25;
+        // -----------------------------------------------------------
+        // A. User DPH_ALGO Profile Matching
+        // -----------------------------------------------------------
+        if (userAlgoPreferences) {
+          // 1. Studio Matching (+30 pts) e.g. Pixar, Sony, Disney
+          if (userAlgoPreferences.studios.some(st => itemStudio.includes(st) || itemTags.includes(st))) {
+            score += 30;
+          }
 
-        // Popular genres
-        const genres = (item.Genres || "").toLowerCase();
-        if (genres.includes("adventure") || genres.includes("fantasy") || genres.includes("action") || genres.includes("comedy")) {
-          score += 15;
+          // 2. Genre Matching (+25 pts per match) e.g. Animation, Fantasy
+          userAlgoPreferences.genres.forEach(g => {
+            if (itemGenres.includes(g) || itemGenres.some(ig => ig.includes(g))) score += 25;
+          });
+
+          // 3. Preferred Language (+20 pts) e.g. English, Hindi
+          if (userAlgoPreferences.languages.some(l => itemLanguage.includes(l) || (item["Multi-Language"] && item["Multi-Language"][l]))) {
+            score += 20;
+          }
+
+          // 4. Age Rating Comfort (+15 pts) e.g. U
+          if (userAlgoPreferences.ageRatings.some(ar => itemAgeRating === ar || itemAgeRating.includes(ar))) {
+            score += 15;
+          }
+
+          // 5. Similarity to Lastly Watched Titles (+25 pts) e.g. Encanto, Toystory
+          userAlgoPreferences.lastWatched.forEach(title => {
+            if (itemName.includes(title) || itemTags.includes(title)) score += 25;
+          });
+
+          // 6. Semantic token boost
+          userAlgoPreferences.rawTokens.forEach(t => {
+            if (itemTags.includes(t) || itemGenres.includes(t)) score += 5;
+          });
         }
 
-        // Prioritize items with active trailers
-        if (item.Trailer && item.Trailer.trim().length > 0) score += 20;
+        // -----------------------------------------------------------
+        // B. General Signals (Watchlist, Recency, Trailer)
+        // -----------------------------------------------------------
+        // Watchlist personal boost (+30 pts)
+        if (userWatchlist.includes(item.id)) score += 30;
+
+        // Recency Score (up to 20 pts)
+        const year = parseInt(item.Release_Date || item.Year || "2021");
+        const diff = Math.max(0, nowYear - year);
+        if (diff <= 1) score += 20;
+        else if (diff <= 3) score += 12;
+        else score += 5;
+
+        // Trailer Boost (for smooth banner-to-trailer auto playback)
+        if (item.Trailer && item.Trailer.trim().length > 0) score += 15;
 
         return { item, score };
       })
@@ -532,7 +663,7 @@
       .map(entry => entry.item);
     }
 
-    // 4. Listen to Firestore
+    // 4. Fetch Firestore Datasets
     function fetchContent() {
       const collections = ["Movies", "Shows", "TV Shows", "Live TV"];
       let pool = [];
@@ -549,7 +680,6 @@
             renderCarousel();
           }
         }, () => {
-          // Fallback mock
           if (allContent.length === 0) {
             allContent = getFallbackData();
             heroCarouselList = scoreAndRankContent(allContent);
@@ -567,6 +697,7 @@
           Release_Date: "2021",
           Age_Rating: "U",
           Language: "Hindi",
+          Studio: "Disney India",
           Genres: "Adventure, Fantasy, Family",
           Discription: "When a curious girl follows a talking rabbit into a topsy-turvy world, she must navigate riddles and madness to find her way home.",
           Banner: "https://img10.hotstar.com/image/upload/f_auto,q_auto/sources/r1/cms/prod/6886/1416886-i-0a1cf62c16fe",
@@ -574,16 +705,30 @@
           Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
         },
         {
+          id: "toystory-4",
+          Name: "Toy Story 4",
+          Release_Date: "2023",
+          Age_Rating: "U",
+          Language: "English",
+          Studio: "Pixar",
+          Genres: "Animation, Comedy, Adventure",
+          Discription: "When a new toy called Forky joins Woody and the gang, a road trip alongside old and new friends reveals how big the world can be.",
+          Banner: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&auto=format&fit=crop&q=80",
+          Logo: "",
+          Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+        },
+        {
           id: "shaitan-ghar",
           Name: "Khali Dimaag Shaitan Ka Ghar",
           Release_Date: "2026",
           Age_Rating: "U",
           Language: "Hindi",
+          Studio: "Sony",
           Genres: "Comedy, Kids, Animation, Sitcom",
           Discription: "A ghost spirit possesses Happy, and Pinaki must defeat it in three challenges within 30 minutes to save his friend.",
           Banner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
           Logo: "",
-          Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+          Trailer: ""
         }
       ];
     }
@@ -784,7 +929,7 @@
       }
     };
 
-    // 7. Watchlist Persistence Fix
+    // 7. Watchlist Persistence
     window.toggleWatchlist = async function(id) {
       const idx = userWatchlist.indexOf(id);
       const isRemoving = idx > -1;
@@ -797,12 +942,10 @@
         showToast("Added to Watchlist");
       }
 
-      // Save locally
       try {
         localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
       } catch(e){}
 
-      // Sync Firestore if logged in
       if (currentUser && currentUser.id && currentUser.id !== "guest_user") {
         try {
           const ref = doc(authDb, "UARM", currentUser.id);
@@ -810,7 +953,6 @@
         } catch(e) {}
       }
 
-      // Update all matching watchlist buttons across slides
       document.querySelectorAll(`.btn-wl-${id}`).forEach(btn => {
         btn.classList.toggle('active', !isRemoving);
         btn.innerHTML = `<svg viewBox="0 0 24 24">${!isRemoving ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}</svg>`;
@@ -818,7 +960,7 @@
     };
 
     // Run
-    initUser();
+    setupUserSessionListener();
     fetchContent();
   </script>
 </body>
