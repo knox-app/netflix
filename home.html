@@ -98,7 +98,7 @@
       height: 100%;
     }
 
-    /* Shimmer Skeleton Loader (Shown while connecting to Firestore) */
+    /* Shimmer Skeleton Loader */
     .skeleton-loader {
       position: absolute;
       inset: 0;
@@ -116,6 +116,19 @@
       border-radius: var(--radius-sm);
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* Error feedback in case database collection is empty */
+    .empty-state-msg {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-muted);
+      font-size: 14px;
+      text-align: center;
+      z-index: 25;
+    }
 
     /* Slide Layer */
     .carousel-slide {
@@ -143,6 +156,7 @@
       height: 100%;
       z-index: 1;
       overflow: hidden;
+      background: #000;
     }
 
     .banner-image {
@@ -392,7 +406,7 @@
     }
     .preview-card-item img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Mobile Dots (No vertical posters) */
+    /* Mobile Dots (No vertical posters on mobile) */
     .mobile-dots-container {
       display: none;
       position: absolute;
@@ -464,7 +478,7 @@
 
   <!-- Carousel Stage -->
   <div class="carousel-stage" id="carouselStage">
-    <!-- Live Skeleton while loading real Firestore data -->
+    <!-- Shimmer Skeleton while loading -->
     <div class="skeleton-loader" id="carouselSkeleton">
       <div class="skeleton-shimmer" style="width: 180px; height: 36px; margin-bottom: 14px;"></div>
       <div class="skeleton-shimmer" style="width: 260px; height: 16px; margin-bottom: 12px;"></div>
@@ -474,6 +488,8 @@
         <div class="skeleton-shimmer" style="width: 44px; height: 44px; border-radius: 10px;"></div>
       </div>
     </div>
+
+    <div class="empty-state-msg" id="emptyStateMsg">No stream documents found in Firestore collections.</div>
 
     <div id="slidesViewport"></div>
 
@@ -491,9 +507,9 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, getDocs, doc, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // Channel DB (Firestore Content: Movies, Shows, Live TV)
+    // Channel DB (Contains Movies, Shows, TV Shows, Live TV)
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -502,7 +518,7 @@
     const channelApp = initializeApp(channelConfig, "channelApp");
     const channelDb = getFirestore(channelApp);
 
-    // Auth DB (Firestore Users: UARM)
+    // Auth DB (Contains UARM with DPH_ALGO & Watchlist)
     const authConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
@@ -512,8 +528,8 @@
     const authApp = initializeApp(authConfig, "authApp");
     const authDb = getFirestore(authApp);
 
-    // Real Data State (No dummy data)
-    let allContent = [];
+    // Live State
+    let contentMap = new Map();
     let heroCarouselList = [];
     let activeIndex = 0;
     let slideTimer = null;
@@ -523,7 +539,19 @@
     let userWatchlist = [];
     let userAlgoPreferences = null;
 
-    // 1. Parse DPH_ALGO from User Document
+    // Helper: Safe String and URL extraction
+    function safeString(val) {
+      if (val === undefined || val === null) return "";
+      if (Array.isArray(val)) return val.join(", ");
+      return String(val);
+    }
+
+    function safeUrl(url) {
+      if (!url || typeof url !== 'string') return "";
+      return url.trim().replace(/^http:\/\//i, 'https://');
+    }
+
+    // 1. DPH_ALGO Profile Parser
     function parseDphAlgoDescription(descStr) {
       if (!descStr || typeof descStr !== 'string') return null;
 
@@ -564,7 +592,67 @@
       return profile;
     }
 
-    // 2. Synchronize Current User Session
+    // 2. Multi-Vector Recommendation Algorithm with Type Safeguards
+    function scoreAndRankContent(items) {
+      const nowYear = new Date().getFullYear();
+
+      return items.map(item => {
+        let score = 0;
+        try {
+          const itemName = safeString(item.Name || item.Title).toLowerCase();
+          const itemStudio = safeString(item.Studio || item.Partner).toLowerCase();
+          const itemLanguage = safeString(item.Language).toLowerCase();
+          const itemAgeRating = safeString(item.Age_Rating || item["Age Rating"]).toLowerCase();
+          
+          let itemGenres = [];
+          if (Array.isArray(item.Genres)) {
+            itemGenres = item.Genres.map(g => String(g).toLowerCase().trim());
+          } else {
+            itemGenres = safeString(item.Genres).toLowerCase().split(/[,/|•\s]+/).filter(Boolean);
+          }
+
+          const itemTags = safeString(item.Tags).toLowerCase();
+
+          // A. DPH_ALGO Profile Matching
+          if (userAlgoPreferences) {
+            if (userAlgoPreferences.studios.some(st => itemStudio.includes(st) || itemTags.includes(st))) score += 35;
+            userAlgoPreferences.genres.forEach(g => {
+              if (itemGenres.includes(g) || itemGenres.some(ig => ig.includes(g))) score += 25;
+            });
+            if (userAlgoPreferences.languages.some(l => itemLanguage.includes(l) || (item["Multi-Language"] && item["Multi-Language"][l]))) score += 20;
+            if (userAlgoPreferences.ageRatings.some(ar => itemAgeRating === ar || itemAgeRating.includes(ar))) score += 15;
+            userAlgoPreferences.lastWatched.forEach(title => {
+              if (itemName.includes(title) || itemTags.includes(title)) score += 25;
+            });
+          }
+
+          // B. Watchlist Boost
+          if (userWatchlist.includes(item.id)) score += 30;
+
+          // C. Recency Boost
+          const year = parseInt(safeString(item.Release_Date || item.Year || "2020"));
+          if (!isNaN(year)) {
+            const diff = Math.max(0, nowYear - year);
+            if (diff <= 1) score += 20;
+            else if (diff <= 3) score += 12;
+            else score += 5;
+          }
+
+          // D. Trailer presence
+          const trailerUrl = safeString(item.Trailer || item.trailer);
+          if (trailerUrl.trim().length > 0) score += 15;
+
+        } catch (err) {
+          console.warn("Ranking item calculation skipped due to format:", err);
+        }
+
+        return { item, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .map(entry => entry.item);
+    }
+
+    // 3. Sync User Session from Login Page (1 (1).html)
     async function initUserSession() {
       const authBtn = document.getElementById('userAuthBtn');
 
@@ -586,11 +674,12 @@
         authBtn.href = "#";
         authBtn.onclick = (e) => {
           e.preventDefault();
-          if (confirm("Switch user account?")) {
+          if (confirm("Switch or login to another account?")) {
             window.location.href = "1 (1).html";
           }
         };
 
+        // Bind listener to user's UARM record
         try {
           let userQuery = null;
           if (currentUser.Lotus) {
@@ -610,7 +699,7 @@
             bindUserLiveListener(userDocId);
           }
         } catch (err) {
-          console.warn("User listener init warning:", err);
+          console.warn("User query warning:", err);
         }
       } else {
         authBtn.innerHTML = `Sign In`;
@@ -629,8 +718,8 @@
           localStorage.setItem('active_user', JSON.stringify(currentUser));
           localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
 
-          if (allContent.length > 0) {
-            heroCarouselList = scoreAndRankContent(allContent).slice(0, 6);
+          if (contentMap.size > 0) {
+            heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
             renderCarousel();
           }
         }
@@ -644,86 +733,64 @@
       setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    // Exact Firestore Field Extractors
     function getBannerUrl(doc) {
-      return doc.Banner || doc["Poster.h"] || doc.Poster_h || doc.Poster || "";
+      return safeUrl(doc.Banner || doc["Poster.h"] || doc.Poster_h || doc.Poster || "");
     }
     function getLogoUrl(doc) {
-      return doc.Logo || doc["Logo.png"] || "";
+      return safeUrl(doc.Logo || doc["Logo.png"] || "");
     }
     function getDescription(doc) {
-      return doc.Discription || doc.Description || doc.Story || "";
+      return safeString(doc.Discription || doc.Description || doc.Story || "");
     }
 
-    // 3. Multi-Vector Recommendation Algorithm with DPH_ALGO & Recency
-    function scoreAndRankContent(items) {
-      const nowYear = new Date().getFullYear();
-
-      return items.map(item => {
-        let score = 0;
-
-        const itemName = (item.Name || item.Title || "").toLowerCase();
-        const itemStudio = (item.Studio || item.Partner || "").toLowerCase();
-        const itemLanguage = (item.Language || "").toLowerCase();
-        const itemAgeRating = (item.Age_Rating || item["Age Rating"] || "").toLowerCase();
-        const itemGenres = (item.Genres || "").toLowerCase().split(/[,/|•\s]+/).filter(Boolean);
-        const itemTags = (item.Tags || "").toLowerCase();
-
-        // A. DPH_ALGO User Profile Signals
-        if (userAlgoPreferences) {
-          if (userAlgoPreferences.studios.some(st => itemStudio.includes(st) || itemTags.includes(st))) score += 35;
-          userAlgoPreferences.genres.forEach(g => {
-            if (itemGenres.includes(g) || itemGenres.some(ig => ig.includes(g))) score += 25;
-          });
-          if (userAlgoPreferences.languages.some(l => itemLanguage.includes(l) || (item["Multi-Language"] && item["Multi-Language"][l]))) score += 20;
-          if (userAlgoPreferences.ageRatings.some(ar => itemAgeRating === ar || itemAgeRating.includes(ar))) score += 15;
-          userAlgoPreferences.lastWatched.forEach(title => {
-            if (itemName.includes(title) || itemTags.includes(title)) score += 25;
-          });
-        }
-
-        // B. Watchlist
-        if (userWatchlist.includes(item.id)) score += 30;
-
-        // C. Recency Score
-        const year = parseInt(item.Release_Date || item.Year || "2020");
-        const diff = Math.max(0, nowYear - year);
-        if (diff <= 1) score += 20;
-        else if (diff <= 3) score += 12;
-        else score += 5;
-
-        // D. Trailer presence
-        if (item.Trailer && item.Trailer.trim().length > 0) score += 15;
-
-        return { item, score };
-      })
-      .sort((a, b) => b.score - a.score)
-      .map(entry => entry.item);
-    }
-
-    // 4. Fetch Real Firestore Documents from Collections
-    function fetchRealFirestoreContent() {
-      const collections = ["Movies", "Shows", "TV Shows", "Live TV"];
-      let poolMap = new Map();
-
-      collections.forEach(col => {
-        onSnapshot(collection(channelDb, col), (snap) => {
+    // 4. Fetch Real Firestore Documents (One-shot getDocs + live onSnapshot)
+    async function fetchRealFirestoreContent() {
+      const collections = ["Movies", "Shows", "TV Shows", "Live TV", "channels"];
+      
+      // Step A: Fast direct fetch
+      for (const col of collections) {
+        try {
+          const snap = await getDocs(collection(channelDb, col));
           snap.forEach(d => {
-            poolMap.set(d.id, { id: d.id, _col: col, ...d.data() });
+            contentMap.set(d.id, { id: d.id, _col: col, ...d.data() });
           });
+        } catch (err) {
+          console.warn(`Fast fetch info on ${col}:`, err);
+        }
+      }
 
-          if (poolMap.size > 0) {
-            allContent = Array.from(poolMap.values());
-            heroCarouselList = scoreAndRankContent(allContent).slice(0, 6);
-            
-            // Hide Skeleton and render genuine Firestore items
-            document.getElementById('carouselSkeleton').style.display = 'none';
-            renderCarousel();
-          }
-        }, (err) => {
-          console.error(`Firestore error on collection ${col}:`, err);
+      // If items exist, render immediately
+      if (contentMap.size > 0) {
+        document.getElementById('carouselSkeleton').style.display = 'none';
+        heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
+        renderCarousel();
+      } else {
+        // Step B: Set live subscription in case rules or sync delayed
+        collections.forEach(col => {
+          onSnapshot(collection(channelDb, col), (snap) => {
+            snap.forEach(d => {
+              contentMap.set(d.id, { id: d.id, _col: col, ...d.data() });
+            });
+
+            if (contentMap.size > 0) {
+              document.getElementById('carouselSkeleton').style.display = 'none';
+              document.getElementById('emptyStateMsg').style.display = 'none';
+              heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
+              renderCarousel();
+            }
+          }, (err) => {
+            console.error(`Collection ${col} listener error:`, err);
+          });
         });
-      });
+
+        // Fail-safe: if database is completely empty after 3 seconds, show empty message
+        setTimeout(() => {
+          if (contentMap.size === 0) {
+            document.getElementById('carouselSkeleton').style.display = 'none';
+            document.getElementById('emptyStateMsg').style.display = 'block';
+          }
+        }, 3000);
+      }
     }
 
     // 5. Render Carousel Viewport
@@ -742,20 +809,20 @@
         const isAdded = userWatchlist.includes(item.id);
         const bannerUrl = getBannerUrl(item);
         const logoUrl = getLogoUrl(item);
-        const titleText = item.Name || item.Title || "Hotstar Stream";
+        const titleText = safeString(item.Name || item.Title || "Hotstar Stream");
         const descText = getDescription(item);
 
-        const year = item.Release_Date || item.Year || "";
-        const age = item.Age_Rating || item["Age Rating"] || "U";
-        const lang = item.Language || "";
-        const genres = item.Genres || "";
+        const year = safeString(item.Release_Date || item.Year);
+        const age = safeString(item.Age_Rating || item["Age Rating"] || "U");
+        const lang = safeString(item.Language);
+        const genres = safeString(item.Genres);
 
         const slide = document.createElement('div');
         slide.className = `carousel-slide ${idx === 0 ? 'active' : ''}`;
         slide.id = `slide_${idx}`;
         slide.innerHTML = `
           <div class="media-layer">
-            <img class="banner-image" src="${bannerUrl}" alt="${titleText}" loading="eager">
+            ${bannerUrl ? `<img class="banner-image" src="${bannerUrl}" alt="${titleText}" loading="eager">` : ''}
             <video class="trailer-video" id="video_trailer_${idx}" playsinline muted></video>
             <div id="yt_wrap_${idx}" class="yt-frame-wrapper"></div>
           </div>
@@ -770,7 +837,6 @@
             </div>
 
             ${genres ? `<div class="genres-text">${genres}</div>` : ''}
-
             ${descText ? `<p class="story-synopsis">${descText}</p>` : ''}
 
             <div class="button-row">
@@ -799,7 +865,7 @@
         `;
         viewport.appendChild(slide);
 
-        if (previewStrip) {
+        if (previewStrip && bannerUrl) {
           const previewCard = document.createElement('div');
           previewCard.className = `preview-card-item ${idx === 0 ? 'active' : ''}`;
           previewCard.onclick = () => jumpToSlide(idx);
@@ -827,7 +893,7 @@
       if (!item) return;
 
       const videoEl = document.getElementById(`video_trailer_${index}`);
-      const trailerUrl = (item.Trailer || item.trailer || "").trim();
+      const trailerUrl = safeString(item.Trailer || item.trailer).trim();
 
       slideTimer = setTimeout(() => {
         if (trailerUrl) {
@@ -951,7 +1017,7 @@
       });
     };
 
-    // Start Live Connections
+    // Run
     initUserSession();
     fetchRealFirestoreContent();
   </script>
