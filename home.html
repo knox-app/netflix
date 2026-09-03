@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hotstar Hero Carousel</title>
   
-  <!-- Video Engine Support -->
+  <!-- Video Engines -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -58,22 +58,29 @@
       color: #fff;
       pointer-events: auto;
       letter-spacing: -0.3px;
+      text-decoration: none;
     }
     .brand-logo span { color: var(--accent-blue); }
 
-    .user-pill-badge {
+    .user-auth-btn {
       pointer-events: auto;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
       backdrop-filter: blur(10px);
-      padding: 4px 12px;
+      padding: 6px 14px;
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s ease;
     }
+    .user-auth-btn:hover { background: rgba(255, 255, 255, 0.22); }
 
-    /* Hero Carousel Container */
+    /* Hero Carousel Stage */
     .carousel-stage {
       position: relative;
       width: 100%;
@@ -84,7 +91,6 @@
       background: #000;
     }
 
-    /* Slides Viewport Host */
     #slidesViewport {
       position: absolute;
       inset: 0;
@@ -92,7 +98,26 @@
       height: 100%;
     }
 
-    /* Individual Slide */
+    /* Shimmer Skeleton Loader (Shown while connecting to Firestore) */
+    .skeleton-loader {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      background: #0d0f14;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 48px 40px;
+    }
+    .skeleton-shimmer {
+      background: linear-gradient(90deg, #151821 25%, #222634 50%, #151821 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* Slide Layer */
     .carousel-slide {
       position: absolute;
       inset: 0;
@@ -110,7 +135,7 @@
       pointer-events: auto;
     }
 
-    /* Media Layer - Full 100% Coverage */
+    /* Media Layers */
     .media-layer {
       position: absolute;
       inset: 0;
@@ -133,7 +158,6 @@
       transform: scale(1.04);
     }
 
-    /* Video Trailer: Fills 100% of the Stage */
     .trailer-video {
       position: absolute;
       inset: 0;
@@ -146,7 +170,6 @@
     }
     .trailer-video.playing { opacity: 1; }
 
-    /* YouTube Trailer Container */
     .yt-frame-wrapper {
       position: absolute;
       top: 50%;
@@ -168,7 +191,7 @@
       border: none;
     }
 
-    /* Clean Authentic Hotstar Overlays */
+    /* Vignettes */
     .vignette-bottom {
       position: absolute;
       inset: 0;
@@ -196,7 +219,7 @@
       );
     }
 
-    /* Slide Content & Info */
+    /* Slide Content & Meta */
     .slide-info-container {
       position: relative;
       z-index: 5;
@@ -264,7 +287,7 @@
       text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
 
-    /* Action Buttons Row */
+    /* Buttons */
     .button-row {
       display: flex;
       align-items: center;
@@ -333,7 +356,7 @@
     .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #e50914; animation: blink 1s infinite alternate; }
     @keyframes blink { from { opacity: 0.3; } to { opacity: 1; } }
 
-    /* Desktop Bottom-Right Preview Strip */
+    /* Desktop Bottom-Right Previews */
     .preview-strip-container {
       position: absolute;
       bottom: 28px;
@@ -369,7 +392,7 @@
     }
     .preview-card-item img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Mobile Indicator Dots */
+    /* Mobile Dots (No vertical posters) */
     .mobile-dots-container {
       display: none;
       position: absolute;
@@ -410,7 +433,7 @@
       .mobile-dots-container { display: flex; }
     }
 
-    /* Toast Notification */
+    /* Toast */
     .toast-box {
       position: fixed;
       top: 24px;
@@ -433,103 +456,74 @@
 </head>
 <body>
 
-  <!-- Top Header -->
+  <!-- Top Header with Auth Link -->
   <header class="top-header">
-    <div class="brand-logo">Disney+ <span>hotstar</span></div>
-    <div class="user-pill-badge" id="userPillBadge">Guest User</div>
+    <a class="brand-logo" href="#">Disney+ <span>hotstar</span></a>
+    <a class="user-auth-btn" id="userAuthBtn" href="1 (1).html">Sign In</a>
   </header>
 
   <!-- Carousel Stage -->
   <div class="carousel-stage" id="carouselStage">
+    <!-- Live Skeleton while loading real Firestore data -->
+    <div class="skeleton-loader" id="carouselSkeleton">
+      <div class="skeleton-shimmer" style="width: 180px; height: 36px; margin-bottom: 14px;"></div>
+      <div class="skeleton-shimmer" style="width: 260px; height: 16px; margin-bottom: 12px;"></div>
+      <div class="skeleton-shimmer" style="width: 380px; height: 14px; margin-bottom: 24px;"></div>
+      <div style="display: flex; gap: 12px;">
+        <div class="skeleton-shimmer" style="width: 130px; height: 44px; border-radius: 10px;"></div>
+        <div class="skeleton-shimmer" style="width: 44px; height: 44px; border-radius: 10px;"></div>
+      </div>
+    </div>
+
     <div id="slidesViewport"></div>
 
     <div class="vignette-bottom"></div>
     <div class="vignette-left"></div>
 
-    <!-- Desktop Bottom Right Previews -->
+    <!-- Desktop Previews -->
     <div class="preview-strip-container" id="previewStrip"></div>
 
-    <!-- Mobile Indicator Dots -->
+    <!-- Mobile Dots -->
     <div class="mobile-dots-container" id="mobileDots"></div>
   </div>
 
   <div class="toast-box" id="toastBox">Watchlist updated</div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // Firestore Configurations
+    // Channel DB (Firestore Content: Movies, Shows, Live TV)
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
       projectId: "internal-systems-46728"
     };
+    const channelApp = initializeApp(channelConfig, "channelApp");
+    const channelDb = getFirestore(channelApp);
+
+    // Auth DB (Firestore Users: UARM)
     const authConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
+      databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "question-metabase"
     };
-
-    const channelApp = initializeApp(channelConfig, "channelApp");
-    const channelDb = getFirestore(channelApp);
     const authApp = initializeApp(authConfig, "authApp");
     const authDb = getFirestore(authApp);
 
-    // Initial Dataset for Instant Synchronous Render (Prevents blank screen)
-    const initialDataset = [
-      {
-        id: "Alice-in-wonderland",
-        Name: "Alice in Wonderland",
-        Release_Date: "2021",
-        Age_Rating: "U",
-        Language: "Hindi",
-        Studio: "Disney India",
-        Genres: "Adventure, Fantasy, Family",
-        Discription: "When a curious girl follows a talking rabbit into a topsy-turvy world, she must navigate riddles and madness to find her way home.",
-        Banner: "https://img10.hotstar.com/image/upload/f_auto,q_auto/sources/r1/cms/prod/6886/1416886-i-0a1cf62c16fe",
-        Logo: "https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/8933/808933-t",
-        Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-      },
-      {
-        id: "shaitan-ghar",
-        Name: "Khali Dimaag Shaitan Ka Ghar",
-        Release_Date: "2026",
-        Age_Rating: "U",
-        Language: "Hindi",
-        Studio: "Sony",
-        Genres: "Comedy, Kids, Animation, Sitcom",
-        Discription: "A ghost spirit possesses Happy, and Pinaki must defeat it in three challenges within 30 minutes to save his friend.",
-        Banner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
-        Logo: "",
-        Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-      },
-      {
-        id: "aladdin_2021",
-        Name: "Aladdin",
-        Release_Date: "2021",
-        Age_Rating: "U/A 13+",
-        Language: "English",
-        Studio: "Disney",
-        Genres: "Drama, Fantasy, Adventure, Romance",
-        Discription: "A street urchin embarks on a magical adventure after finding a lamp that unleashes a wisecracking Genie.",
-        Banner: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&auto=format&fit=crop&q=80",
-        Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Aladdin_2019_logo.svg/500px-Aladdin_2019_logo.svg.png",
-        Trailer: ""
-      }
-    ];
-
-    // State Variables
-    let allContent = [...initialDataset];
-    let heroCarouselList = [...initialDataset];
+    // Real Data State (No dummy data)
+    let allContent = [];
+    let heroCarouselList = [];
     let activeIndex = 0;
     let slideTimer = null;
     let isMuted = true;
     let currentUser = null;
+    let userDocId = null;
     let userWatchlist = [];
     let userAlgoPreferences = null;
 
-    // 1. DPH_ALGO Parser
+    // 1. Parse DPH_ALGO from User Document
     function parseDphAlgoDescription(descStr) {
       if (!descStr || typeof descStr !== 'string') return null;
 
@@ -570,8 +564,10 @@
       return profile;
     }
 
-    // 2. User & Firestore Sync
-    function initUserSession() {
+    // 2. Synchronize Current User Session
+    async function initUserSession() {
+      const authBtn = document.getElementById('userAuthBtn');
+
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
         currentUser = stored ? JSON.parse(stored) : null;
@@ -584,28 +580,60 @@
         userWatchlist = currentUser?.Watchlist || [];
       }
 
-      const targetUserId = currentUser?.id || currentUser?.Lotus || "7I4d9vmlm9WiUAUneQGByq6JT";
-      const userBadge = document.getElementById('userPillBadge');
+      if (currentUser) {
+        const displayName = currentUser["First Name"] || (currentUser.Email ? currentUser.Email.split('@')[0] : "User");
+        authBtn.innerHTML = `👤 ${displayName}`;
+        authBtn.href = "#";
+        authBtn.onclick = (e) => {
+          e.preventDefault();
+          if (confirm("Switch user account?")) {
+            window.location.href = "1 (1).html";
+          }
+        };
 
-      onSnapshot(doc(authDb, "UARM", targetUserId), (snap) => {
-        if (snap.exists()) {
-          const udata = snap.data();
-          currentUser = { id: snap.id, ...udata };
+        try {
+          let userQuery = null;
+          if (currentUser.Lotus) {
+            userQuery = query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus));
+          } else if (currentUser.Email) {
+            userQuery = query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email));
+          }
+
+          if (userQuery) {
+            const snap = await getDocs(userQuery);
+            if (!snap.empty) {
+              userDocId = snap.docs[0].id;
+              bindUserLiveListener(userDocId);
+            }
+          } else if (currentUser.id) {
+            userDocId = currentUser.id;
+            bindUserLiveListener(userDocId);
+          }
+        } catch (err) {
+          console.warn("User listener init warning:", err);
+        }
+      } else {
+        authBtn.innerHTML = `Sign In`;
+        authBtn.href = `1 (1).html?continue=${encodeURIComponent(window.location.href)}`;
+      }
+    }
+
+    function bindUserLiveListener(docId) {
+      onSnapshot(doc(authDb, "UARM", docId), (docSnap) => {
+        if (docSnap.exists()) {
+          const udata = docSnap.data();
+          currentUser = { id: docSnap.id, ...udata };
           userWatchlist = udata.Watchlist || userWatchlist;
           userAlgoPreferences = parseDphAlgoDescription(udata.DPH_ALGO || "");
 
-          const displayName = udata["First Name"] || udata.Email || targetUserId.slice(0, 6);
-          userBadge.innerText = `👤 ${displayName}`;
+          localStorage.setItem('active_user', JSON.stringify(currentUser));
+          localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
 
           if (allContent.length > 0) {
             heroCarouselList = scoreAndRankContent(allContent).slice(0, 6);
             renderCarousel();
           }
-        } else {
-          userBadge.innerText = "Guest Mode";
         }
-      }, () => {
-        userBadge.innerText = "Guest Mode";
       });
     }
 
@@ -616,18 +644,18 @@
       setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    // Field Extractors (Prioritizes Banner)
+    // Exact Firestore Field Extractors
     function getBannerUrl(doc) {
-      return doc.Banner || doc["Poster.h"] || doc.Poster_h || doc.Poster || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80";
+      return doc.Banner || doc["Poster.h"] || doc.Poster_h || doc.Poster || "";
     }
     function getLogoUrl(doc) {
       return doc.Logo || doc["Logo.png"] || "";
     }
     function getDescription(doc) {
-      return doc.Discription || doc.Description || doc.Story || "Stream this blockbuster title now on Disney+ Hotstar.";
+      return doc.Discription || doc.Description || doc.Story || "";
     }
 
-    // 3. Recommendation & Scoring Algorithm
+    // 3. Multi-Vector Recommendation Algorithm with DPH_ALGO & Recency
     function scoreAndRankContent(items) {
       const nowYear = new Date().getFullYear();
 
@@ -641,8 +669,9 @@
         const itemGenres = (item.Genres || "").toLowerCase().split(/[,/|•\s]+/).filter(Boolean);
         const itemTags = (item.Tags || "").toLowerCase();
 
+        // A. DPH_ALGO User Profile Signals
         if (userAlgoPreferences) {
-          if (userAlgoPreferences.studios.some(st => itemStudio.includes(st) || itemTags.includes(st))) score += 30;
+          if (userAlgoPreferences.studios.some(st => itemStudio.includes(st) || itemTags.includes(st))) score += 35;
           userAlgoPreferences.genres.forEach(g => {
             if (itemGenres.includes(g) || itemGenres.some(ig => ig.includes(g))) score += 25;
           });
@@ -653,14 +682,17 @@
           });
         }
 
+        // B. Watchlist
         if (userWatchlist.includes(item.id)) score += 30;
 
-        const year = parseInt(item.Release_Date || item.Year || "2021");
+        // C. Recency Score
+        const year = parseInt(item.Release_Date || item.Year || "2020");
         const diff = Math.max(0, nowYear - year);
         if (diff <= 1) score += 20;
         else if (diff <= 3) score += 12;
         else score += 5;
 
+        // D. Trailer presence
         if (item.Trailer && item.Trailer.trim().length > 0) score += 15;
 
         return { item, score };
@@ -669,33 +701,38 @@
       .map(entry => entry.item);
     }
 
-    // 4. Fetch Firestore Datasets
-    function fetchContent() {
+    // 4. Fetch Real Firestore Documents from Collections
+    function fetchRealFirestoreContent() {
       const collections = ["Movies", "Shows", "TV Shows", "Live TV"];
-      let pool = [];
+      let poolMap = new Map();
 
       collections.forEach(col => {
         onSnapshot(collection(channelDb, col), (snap) => {
           snap.forEach(d => {
-            pool.push({ id: d.id, _col: col, ...d.data() });
+            poolMap.set(d.id, { id: d.id, _col: col, ...d.data() });
           });
 
-          if (pool.length > 0) {
-            allContent = pool;
+          if (poolMap.size > 0) {
+            allContent = Array.from(poolMap.values());
             heroCarouselList = scoreAndRankContent(allContent).slice(0, 6);
+            
+            // Hide Skeleton and render genuine Firestore items
+            document.getElementById('carouselSkeleton').style.display = 'none';
             renderCarousel();
           }
-        }, () => {});
+        }, (err) => {
+          console.error(`Firestore error on collection ${col}:`, err);
+        });
       });
     }
 
-    // 5. Render Carousel Slides (Instantly called)
+    // 5. Render Carousel Viewport
     function renderCarousel() {
       const viewport = document.getElementById('slidesViewport');
       const previewStrip = document.getElementById('previewStrip');
       const mobileDots = document.getElementById('mobileDots');
 
-      if (!viewport) return;
+      if (!viewport || heroCarouselList.length === 0) return;
 
       viewport.innerHTML = '';
       if (previewStrip) previewStrip.innerHTML = '';
@@ -705,20 +742,20 @@
         const isAdded = userWatchlist.includes(item.id);
         const bannerUrl = getBannerUrl(item);
         const logoUrl = getLogoUrl(item);
-        const titleText = item.Name || item.Title || "Featured";
+        const titleText = item.Name || item.Title || "Hotstar Stream";
         const descText = getDescription(item);
 
-        const year = item.Release_Date || item.Year || "2021";
+        const year = item.Release_Date || item.Year || "";
         const age = item.Age_Rating || item["Age Rating"] || "U";
-        const lang = item.Language || "Hindi";
-        const genres = item.Genres || "Drama, Adventure";
+        const lang = item.Language || "";
+        const genres = item.Genres || "";
 
         const slide = document.createElement('div');
         slide.className = `carousel-slide ${idx === 0 ? 'active' : ''}`;
         slide.id = `slide_${idx}`;
         slide.innerHTML = `
           <div class="media-layer">
-            <img class="banner-image" src="${bannerUrl}" alt="${titleText}" loading="eager" onerror="this.src='https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=1200&auto=format&fit=crop&q=80'">
+            <img class="banner-image" src="${bannerUrl}" alt="${titleText}" loading="eager">
             <video class="trailer-video" id="video_trailer_${idx}" playsinline muted></video>
             <div id="yt_wrap_${idx}" class="yt-frame-wrapper"></div>
           </div>
@@ -727,16 +764,14 @@
             ${logoUrl ? `<img class="title-logo" src="${logoUrl}" alt="${titleText}">` : `<h1 class="fallback-title">${titleText}</h1>`}
             
             <div class="meta-badge-row">
-              <span>${year}</span>
-              <span class="dot">●</span>
+              ${year ? `<span>${year}</span><span class="dot">●</span>` : ''}
               <span class="age-badge">${age}</span>
-              <span class="dot">●</span>
-              <span>${lang}</span>
+              ${lang ? `<span class="dot">●</span><span>${lang}</span>` : ''}
             </div>
 
-            <div class="genres-text">${genres}</div>
+            ${genres ? `<div class="genres-text">${genres}</div>` : ''}
 
-            <p class="story-synopsis">${descText}</p>
+            ${descText ? `<p class="story-synopsis">${descText}</p>` : ''}
 
             <div class="button-row">
               <a class="btn-main-watch" href="1.html?watch=${item.id}">
@@ -768,7 +803,7 @@
           const previewCard = document.createElement('div');
           previewCard.className = `preview-card-item ${idx === 0 ? 'active' : ''}`;
           previewCard.onclick = () => jumpToSlide(idx);
-          previewCard.innerHTML = `<img src="${bannerUrl}" alt="${titleText}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=1200&auto=format&fit=crop&q=80'">`;
+          previewCard.innerHTML = `<img src="${bannerUrl}" alt="${titleText}" loading="lazy">`;
           previewStrip.appendChild(previewCard);
         }
 
@@ -783,7 +818,7 @@
       startBannerToTrailerCycle(0);
     }
 
-    // 6. 6-Second Banner -> Edge-to-Edge Trailer Engine
+    // 6. 6-Second Banner -> Edge-to-Edge Trailer Pipeline
     function startBannerToTrailerCycle(index) {
       clearTimeout(slideTimer);
       stopActiveMedia();
@@ -888,7 +923,7 @@
       }
     };
 
-    // 7. Watchlist Toggle
+    // 7. Watchlist Sync with Firestore UARM
     window.toggleWatchlist = async function(id) {
       const idx = userWatchlist.indexOf(id);
       const isRemoving = idx > -1;
@@ -901,13 +936,11 @@
         showToast("Added to Watchlist");
       }
 
-      try {
-        localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
-      } catch(e){}
+      localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
 
-      if (currentUser && currentUser.id && currentUser.id !== "guest_user") {
+      if (userDocId) {
         try {
-          const ref = doc(authDb, "UARM", currentUser.id);
+          const ref = doc(authDb, "UARM", userDocId);
           await updateDoc(ref, { Watchlist: isRemoving ? arrayRemove(id) : arrayUnion(id) });
         } catch(e) {}
       }
@@ -918,10 +951,9 @@
       });
     };
 
-    // Instant Boot
-    renderCarousel();
+    // Start Live Connections
     initUserSession();
-    fetchContent();
+    fetchRealFirestoreContent();
   </script>
 </body>
 </html>
