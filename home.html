@@ -5,15 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hotstar Hero Carousel</title>
   
-  <!-- Video Engines -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     :root {
       --bg-dark: #0f1015;
-      --surface-glass: rgba(255, 255, 255, 0.12);
-      --surface-glass-hover: rgba(255, 255, 255, 0.2);
       --accent-blue: #0072ef;
       --text-main: #ffffff;
       --text-muted: #8f98b2;
@@ -49,11 +46,11 @@
       justify-content: space-between;
       align-items: center;
       padding: 16px 24px;
-      background: linear-gradient(180deg, rgba(15, 16, 21, 0.9) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(15, 16, 21, 0.95) 0%, transparent 100%);
       pointer-events: none;
     }
     .brand-logo {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 800;
       color: #fff;
       pointer-events: auto;
@@ -67,7 +64,7 @@
       font-size: 12px;
       font-weight: 700;
       background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
       padding: 6px 14px;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.18);
@@ -76,20 +73,21 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      transition: background 0.2s ease;
     }
-    .user-auth-btn:hover { background: rgba(255, 255, 255, 0.22); }
 
     /* Hero Carousel Stage */
     .carousel-stage {
       position: relative;
       width: 100%;
-      height: 80vh;
-      min-height: 520px;
-      max-height: 760px;
+      height: 82vh;
+      min-height: 540px;
+      max-height: 780px;
       overflow: hidden;
       background: #000;
+      touch-action: pan-y;
+      cursor: grab;
     }
+    .carousel-stage:active { cursor: grabbing; }
 
     #slidesViewport {
       position: absolute;
@@ -98,7 +96,7 @@
       height: 100%;
     }
 
-    /* Shimmer Skeleton Loader */
+    /* Skeleton Loader */
     .skeleton-loader {
       position: absolute;
       inset: 0;
@@ -117,7 +115,7 @@
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-    /* Slide Layer */
+    /* Carousel Slide */
     .carousel-slide {
       position: absolute;
       inset: 0;
@@ -125,7 +123,7 @@
       height: 100%;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1);
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
@@ -200,9 +198,9 @@
       pointer-events: none;
       background: linear-gradient(
         180deg,
-        rgba(15, 16, 21, 0.1) 0%,
-        rgba(15, 16, 21, 0.05) 25%,
-        rgba(15, 16, 21, 0.6) 65%,
+        rgba(15, 16, 21, 0.05) 0%,
+        rgba(15, 16, 21, 0.1) 25%,
+        rgba(15, 16, 21, 0.7) 65%,
         var(--bg-dark) 100%
       );
     }
@@ -214,37 +212,43 @@
       background: linear-gradient(
         90deg,
         rgba(15, 16, 21, 0.95) 0%,
-        rgba(15, 16, 21, 0.75) 30%,
-        rgba(15, 16, 21, 0.15) 65%,
+        rgba(15, 16, 21, 0.8) 35%,
+        rgba(15, 16, 21, 0.15) 70%,
         transparent 100%
       );
     }
 
-    /* Slide Content & Meta */
+    /* Slide Content */
     .slide-info-container {
       position: relative;
       z-index: 5;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      padding: 0 40px 48px;
-      max-width: 600px;
+      padding: 0 44px 44px;
+      max-width: 620px;
     }
 
-    .title-logo {
-      max-width: 240px;
-      max-height: 90px;
-      object-fit: contain;
+    .title-branding-box {
       margin-bottom: 12px;
-      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.9));
+      min-height: 50px;
+      display: flex;
+      align-items: flex-end;
+    }
+    .title-logo {
+      max-width: 280px;
+      max-height: 110px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 18px rgba(0,0,0,0.95));
+      display: block;
     }
     .fallback-title {
-      font-size: 30px;
+      font-size: 34px;
       font-weight: 800;
       letter-spacing: -0.5px;
-      margin-bottom: 10px;
-      color: #fff;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+      color: #ffffff;
+      text-shadow: 0 2px 14px rgba(0,0,0,0.95);
+      line-height: 1.15;
     }
 
     .meta-badge-row {
@@ -255,40 +259,52 @@
       font-size: 13px;
       font-weight: 700;
       color: #ffffff;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .meta-badge-row .dot {
       font-size: 6px;
       color: var(--text-muted);
     }
     .age-badge {
-      background: rgba(255, 255, 255, 0.16);
-      padding: 1px 6px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 1px 7px;
       border-radius: 4px;
       font-size: 11px;
       font-weight: 800;
     }
 
-    .genres-text {
-      font-size: 13px;
+    /* Tags as Hotstar Pill Badges */
+    .tags-badge-container {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .tag-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #c9d0e2;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
       font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 10px;
+      text-transform: capitalize;
     }
 
     .story-synopsis {
-      font-size: 13px;
+      font-size: 13.5px;
       line-height: 1.45;
-      color: #c9d0e2;
+      color: #d2d8eb;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
       margin-bottom: 22px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.95);
     }
 
-    /* Buttons */
+    /* Action Buttons */
     .button-row {
       display: flex;
       align-items: center;
@@ -314,14 +330,13 @@
       transition: all 0.2s ease;
     }
     .btn-main-watch:hover { background: #f0f0f0; transform: scale(1.02); }
-    .btn-main-watch:active { transform: scale(0.97); }
     .btn-main-watch svg { width: 15px; height: 15px; fill: currentColor; }
 
     .btn-icon-square {
       width: 44px;
       height: 44px;
       border-radius: var(--radius-md);
-      background: var(--surface-glass);
+      background: rgba(255, 255, 255, 0.12);
       backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.16);
       color: #fff;
@@ -331,8 +346,6 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
-    .btn-icon-square:hover { background: var(--surface-glass-hover); }
-    .btn-icon-square:active { transform: scale(0.92); }
     .btn-icon-square.active {
       background: rgba(0, 114, 239, 0.3);
       border-color: var(--accent-blue);
@@ -347,10 +360,10 @@
       font-size: 11px;
       font-weight: 700;
       color: var(--text-muted);
-      background: rgba(0, 0, 0, 0.55);
+      background: rgba(0, 0, 0, 0.6);
       padding: 6px 12px;
       border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.12);
       backdrop-filter: blur(8px);
     }
     .trailer-status-badge.show { display: inline-flex; }
@@ -361,21 +374,21 @@
     .preview-strip-container {
       position: absolute;
       bottom: 28px;
-      right: 40px;
+      right: 44px;
       z-index: 10;
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(15, 16, 21, 0.55);
+      background: rgba(15, 16, 21, 0.6);
       backdrop-filter: blur(12px);
       padding: 6px;
       border-radius: var(--radius-md);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .preview-card-item {
       position: relative;
-      width: 72px;
+      width: 76px;
       aspect-ratio: 16/9;
       border-radius: var(--radius-sm);
       overflow: hidden;
@@ -385,7 +398,6 @@
       border: 1.5px solid transparent;
       background: #111;
     }
-    .preview-card-item:hover { opacity: 0.85; }
     .preview-card-item.active {
       opacity: 1;
       border-color: #ffffff;
@@ -411,6 +423,7 @@
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.35);
       transition: all 0.25s ease;
+      cursor: pointer;
     }
     .m-dot.active {
       width: 16px;
@@ -421,7 +434,7 @@
     @media (max-width: 768px) {
       .carousel-stage { height: 75vh; }
       .vignette-left {
-        background: linear-gradient(180deg, transparent 20%, rgba(15, 16, 21, 0.85) 75%, var(--bg-dark) 100%);
+        background: linear-gradient(180deg, transparent 20%, rgba(15, 16, 21, 0.88) 75%, var(--bg-dark) 100%);
       }
       .slide-info-container {
         padding: 0 20px 36px;
@@ -429,6 +442,7 @@
         align-items: center;
         text-align: center;
       }
+      .title-branding-box { justify-content: center; }
       .button-row { justify-content: center; }
       .preview-strip-container { display: none !important; }
       .mobile-dots-container { display: flex; }
@@ -457,7 +471,7 @@
 </head>
 <body>
 
-  <!-- Top Header with Auth Link -->
+  <!-- Top Header -->
   <header class="top-header">
     <a class="brand-logo" href="#">Disney+ <span>hotstar</span></a>
     <a class="user-auth-btn" id="userAuthBtn" href="1 (1).html">Sign In</a>
@@ -465,7 +479,6 @@
 
   <!-- Carousel Stage -->
   <div class="carousel-stage" id="carouselStage">
-    <!-- Live Skeleton Loader -->
     <div class="skeleton-loader" id="carouselSkeleton">
       <div class="skeleton-shimmer" style="width: 180px; height: 36px; margin-bottom: 14px;"></div>
       <div class="skeleton-shimmer" style="width: 260px; height: 16px; margin-bottom: 12px;"></div>
@@ -481,10 +494,8 @@
     <div class="vignette-bottom"></div>
     <div class="vignette-left"></div>
 
-    <!-- Desktop Previews -->
+    <!-- Previews & Dots -->
     <div class="preview-strip-container" id="previewStrip"></div>
-
-    <!-- Mobile Dots -->
     <div class="mobile-dots-container" id="mobileDots"></div>
   </div>
 
@@ -513,7 +524,7 @@
     const authApp = initializeApp(authConfig, "authApp");
     const authDb = getFirestore(authApp);
 
-    // Dynamic State
+    // State Variables
     let contentMap = new Map();
     let heroCarouselList = [];
     let activeIndex = 0;
@@ -523,38 +534,48 @@
     let userDocId = null;
     let userWatchlist = [];
     let userAlgoPreferences = null;
-    
-    // Live Session Vector (Reinforcement Learning from current page interactions)
+
     let sessionInteractions = {
       interactedGenres: new Set(),
-      interactedStudios: new Set(),
-      dwellCount: 0
+      interactedStudios: new Set()
     };
+
+    // Formatter Helpers
+    function cleanUrl(url) {
+      if (!url || typeof url !== 'string') return "";
+      let u = url.trim();
+      if (u.startsWith('//')) u = 'https:' + u;
+      else if (!u.startsWith('http://') && !u.startsWith('https://')) u = 'https://' + u;
+      return u;
+    }
 
     function safeString(val) {
       if (val === undefined || val === null) return "";
       if (Array.isArray(val)) return val.join(", ");
-      return String(val);
+      return String(val).trim();
     }
 
-    function safeUrl(url) {
-      if (!url || typeof url !== 'string') return "";
-      return url.trim().replace(/^http:\/\//i, 'https://');
+    function tokenize(str) {
+      return safeString(str).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
     }
 
-    function tokenizeText(str) {
-      return (str || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
-        .filter(w => w.length > 2);
+    // Exact Field Resolvers from Screenshot
+    function resolveBanner(d) {
+      return cleanUrl(d.Banner || d["Poster.h"] || d.Poster_h || d.Poster || d.poster || "");
     }
 
-    // =========================================================================
-    // 1. ADVANCED DPH_ALGO PROFILE PARSER
-    // Extracts structured preference vectors + semantic token vocabulary
-    // =========================================================================
-    function parseDphAlgoDescription(descStr) {
+    function resolveLogo(d) {
+      return cleanUrl(d.Logo || d["Logo.png"] || d.logo || d.TitleLogo || "");
+    }
+
+    function resolveTags(d) {
+      const raw = d.Tags || d.tags || d.Genres || d.genres || "";
+      if (Array.isArray(raw)) return raw.map(t => String(t).trim());
+      return String(raw).split(/[,/|•]+/).map(t => t.trim()).filter(Boolean);
+    }
+
+    // 1. DPH_ALGO Profile Parser
+    function parseDphAlgo(descStr) {
       if (!descStr || typeof descStr !== 'string') return null;
 
       const profile = {
@@ -563,7 +584,7 @@
         lastWatched: [],
         genres: [],
         ageRatings: [],
-        affinityTokens: new Set()
+        tokens: new Set()
       };
 
       const clean = descStr.replace(/[\n\r]+/g, ' ');
@@ -571,10 +592,7 @@
       const extractGroup = (regex) => {
         const match = clean.match(regex);
         if (match && match[1]) {
-          return match[1]
-            .split(/[,/|•\s]+/)
-            .map(s => s.trim().toLowerCase())
-            .filter(s => s.length > 0);
+          return match[1].split(/[,/|•\s]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
         }
         return [];
       };
@@ -585,303 +603,258 @@
       profile.genres = extractGroup(/(?:genres|genre|like)\s*(?:of)?\s*\((.*?)\)/i);
       profile.ageRatings = extractGroup(/(?:age_rating|rating|confert|comfort)\s*\((.*?)\)/i);
 
-      // Populate semantic vocabulary tokens
-      tokenizeText(clean).forEach(t => profile.affinityTokens.add(t));
-      profile.studios.forEach(s => tokenizeText(s).forEach(t => profile.affinityTokens.add(t)));
-      profile.genres.forEach(g => tokenizeText(g).forEach(t => profile.affinityTokens.add(t)));
-      profile.lastWatched.forEach(w => tokenizeText(w).forEach(t => profile.affinityTokens.add(t)));
-
+      tokenize(clean).forEach(t => profile.tokens.add(t));
       return profile;
     }
 
-    // =========================================================================
-    // 2. YOUTUBE-STYLE MULTI-VECTOR ALGORITHM (Deep Personalized Scoring)
-    // =========================================================================
-    function scoreAndRankContent(items) {
+    // 2. YouTube-Grade Ranking & Diversity Engine
+    function rankAndDiversify(items) {
       const nowYear = new Date().getFullYear();
 
-      return items.map(item => {
+      // Deduplicate by normalized title
+      const uniqueItems = [];
+      const seen = new Set();
+      for (const item of items) {
+        const titleKey = safeString(item.Name || item.Title).toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!titleKey || seen.has(titleKey)) continue;
+        seen.add(titleKey);
+        uniqueItems.push(item);
+      }
+
+      const scored = uniqueItems.map(item => {
         let score = 0;
-        try {
-          const itemName = safeString(item.Name || item.Title).toLowerCase();
-          const itemStudio = safeString(item.Studio || item.Partner).toLowerCase();
-          const itemLanguage = safeString(item.Language).toLowerCase();
-          const itemAgeRating = safeString(item.Age_Rating || item["Age Rating"]).toLowerCase();
-          
-          let itemGenres = [];
-          if (Array.isArray(item.Genres)) {
-            itemGenres = item.Genres.map(g => String(g).toLowerCase().trim());
-          } else {
-            itemGenres = safeString(item.Genres).toLowerCase().split(/[,/|•\s]+/).filter(Boolean);
-          }
+        const name = safeString(item.Name || item.Title).toLowerCase();
+        const studio = safeString(item.Studio || item.Partner).toLowerCase();
+        const lang = safeString(item.Language).toLowerCase();
+        const age = safeString(item.Age_Rating || item["Age Rating"]).toLowerCase();
+        const tags = resolveTags(item).map(t => t.toLowerCase());
 
-          const itemDescTokens = tokenizeText(item.Discription || item.Description || item.Story);
-          const itemTagsTokens = tokenizeText(item.Tags);
-
-          // -------------------------------------------------------------------
-          // A. User DPH_ALGO Profile Vectors (Max Weight: 120 pts)
-          // -------------------------------------------------------------------
-          if (userAlgoPreferences) {
-            // 1. Studio / Production Affinity (Weight: 40 pts)
-            if (userAlgoPreferences.studios.some(st => itemStudio.includes(st) || itemTagsTokens.includes(st))) {
-              score += 40;
-            }
-
-            // 2. Genre Density Vector (Weight: 35 pts)
-            let genreMatches = 0;
-            userAlgoPreferences.genres.forEach(g => {
-              if (itemGenres.includes(g) || itemGenres.some(ig => ig.includes(g))) genreMatches++;
-            });
-            score += Math.min(35, genreMatches * 20);
-
-            // 3. Language & Audio Preferences (Weight: 20 pts)
-            if (userAlgoPreferences.languages.some(l => itemLanguage.includes(l) || (item["Multi-Language"] && item["Multi-Language"][l]))) {
-              score += 20;
-            }
-
-            // 4. Comfort Age Rating (Weight: 15 pts)
-            if (userAlgoPreferences.ageRatings.some(ar => itemAgeRating === ar || itemAgeRating.includes(ar))) {
-              score += 15;
-            }
-
-            // 5. Historical / Recently Watched Token Affinity (Weight: 30 pts)
-            userAlgoPreferences.lastWatched.forEach(watchedTitle => {
-              if (itemName.includes(watchedTitle) || itemTagsTokens.includes(watchedTitle)) score += 30;
-            });
-
-            // 6. Semantic TF-IDF style Token Overlap (Weight: 20 pts)
-            let tokenOverlap = 0;
-            [...itemDescTokens, ...itemTagsTokens].forEach(tok => {
-              if (userAlgoPreferences.affinityTokens.has(tok)) tokenOverlap++;
-            });
-            score += Math.min(20, tokenOverlap * 4);
-          }
-
-          // -------------------------------------------------------------------
-          // B. Real-Time Session Reinforcement (Live user clicks & dwell)
-          // -------------------------------------------------------------------
-          itemGenres.forEach(g => {
-            if (sessionInteractions.interactedGenres.has(g)) score += 15;
+        // DPH_ALGO Matching
+        if (userAlgoPreferences) {
+          if (userAlgoPreferences.studios.some(st => studio.includes(st) || tags.includes(st))) score += 45;
+          userAlgoPreferences.genres.forEach(g => {
+            if (tags.some(t => t.includes(g))) score += 30;
           });
-          if (sessionInteractions.interactedStudios.has(itemStudio)) score += 20;
-
-          // -------------------------------------------------------------------
-          // C. Personal Watchlist Boost (Weight: 35 pts)
-          // -------------------------------------------------------------------
-          if (userWatchlist.includes(item.id)) score += 35;
-
-          // -------------------------------------------------------------------
-          // D. Recency vs Discovery Curve (Weight: 20 pts)
-          // -------------------------------------------------------------------
-          const year = parseInt(safeString(item.Release_Date || item.Year || "2020"));
-          if (!isNaN(year)) {
-            const age = Math.max(0, nowYear - year);
-            if (age <= 1) score += 20; // Brand new
-            else if (age <= 3) score += 12; // Recent
-            else score += 5; // Classic
-          }
-
-          // -------------------------------------------------------------------
-          // E. Trailer Availability (Weight: 15 pts)
-          // -------------------------------------------------------------------
-          const trailerUrl = safeString(item.Trailer || item.trailer);
-          if (trailerUrl.trim().length > 0) score += 15;
-
-        } catch (err) {
-          console.warn("Ranking computation skipped:", err);
+          if (userAlgoPreferences.languages.some(l => lang.includes(l))) score += 25;
+          if (userAlgoPreferences.ageRatings.some(ar => age === ar)) score += 20;
+          userAlgoPreferences.lastWatched.forEach(w => {
+            if (name.includes(w) || tags.includes(w)) score += 35;
+          });
         }
 
+        // Live Session Reinforcement
+        tags.forEach(t => {
+          if (sessionInteractions.interactedGenres.has(t)) score += 15;
+        });
+        if (sessionInteractions.interactedStudios.has(studio)) score += 20;
+
+        // Watchlist
+        if (userWatchlist.includes(item.id)) score += 40;
+
+        // Recency
+        const y = parseInt(safeString(item.Release_Date || item.Year || "2020"));
+        if (!isNaN(y)) score += Math.max(0, 20 - (nowYear - y) * 3);
+
+        // Trailer Boost
+        if (item.Trailer && String(item.Trailer).trim().length > 0) score += 15;
+
         return { item, score };
-      })
-      .sort((a, b) => b.score - a.score)
-      .map(entry => entry.item);
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+
+      // MMR Diversity Filter
+      const selected = [];
+      const usedStudios = new Set();
+      const pool = [...scored];
+
+      while (pool.length > 0 && selected.length < 8) {
+        let bestIdx = 0;
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < pool.length; i++) {
+          const cand = pool[i].item;
+          let penalty = 0;
+          const s = safeString(cand.Studio || cand.Partner).toLowerCase();
+          if (s && usedStudios.has(s)) penalty += 25;
+
+          const finalScore = pool[i].score - penalty;
+          if (finalScore > bestScore) {
+            bestScore = finalScore;
+            bestIdx = i;
+          }
+        }
+
+        const chosen = pool.splice(bestIdx, 1)[0].item;
+        selected.push(chosen);
+        const st = safeString(chosen.Studio || chosen.Partner).toLowerCase();
+        if (st) usedStudios.add(st);
+      }
+
+      return selected;
     }
 
-    // =========================================================================
-    // 3. REAL-TIME FIREBASE REACTIVE LISTENER
-    // Automatically re-renders in 0.0s when changes occur in Firestore UARM
-    // =========================================================================
-    async function initUserSession() {
-      const authBtn = document.getElementById('userAuthBtn');
-
+    // 3. User Session Listener
+    async function initUser() {
+      const btn = document.getElementById('userAuthBtn');
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
         currentUser = stored ? JSON.parse(stored) : null;
-      } catch(e) { currentUser = null; }
+      } catch(e) {}
 
       try {
-        const savedWl = localStorage.getItem('hotstar_watchlist');
-        userWatchlist = savedWl ? JSON.parse(savedWl) : (currentUser?.Watchlist || []);
-      } catch(e) {
-        userWatchlist = currentUser?.Watchlist || [];
-      }
+        const wl = localStorage.getItem('hotstar_watchlist');
+        userWatchlist = wl ? JSON.parse(wl) : (currentUser?.Watchlist || []);
+      } catch(e) {}
 
       if (currentUser) {
-        const displayName = currentUser["First Name"] || (currentUser.Email ? currentUser.Email.split('@')[0] : "User");
-        authBtn.innerHTML = `👤 ${displayName}`;
-        authBtn.href = "#";
-        authBtn.onclick = (e) => {
+        const name = currentUser["First Name"] || (currentUser.Email ? currentUser.Email.split('@')[0] : "User");
+        btn.innerHTML = `👤 ${name}`;
+        btn.href = "#";
+        btn.onclick = (e) => {
           e.preventDefault();
-          if (confirm("Switch or login to another account?")) {
-            window.location.href = "1 (1).html";
-          }
+          if (confirm("Switch user account?")) window.location.href = "1 (1).html";
         };
 
         try {
-          let userQuery = null;
-          if (currentUser.Lotus) {
-            userQuery = query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus));
-          } else if (currentUser.Email) {
-            userQuery = query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email));
-          }
+          let q = null;
+          if (currentUser.Lotus) q = query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus));
+          else if (currentUser.Email) q = query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email));
 
-          if (userQuery) {
-            const snap = await getDocs(userQuery);
+          if (q) {
+            const snap = await getDocs(q);
             if (!snap.empty) {
               userDocId = snap.docs[0].id;
-              bindUserLiveListener(userDocId);
+              bindUserLive(userDocId);
             }
           } else if (currentUser.id) {
             userDocId = currentUser.id;
-            bindUserLiveListener(userDocId);
+            bindUserLive(userDocId);
           }
-        } catch (err) {
-          console.warn("User query warning:", err);
-        }
+        } catch(e){}
       } else {
-        authBtn.innerHTML = `Sign In`;
-        authBtn.href = `1 (1).html?continue=${encodeURIComponent(window.location.href)}`;
+        btn.innerHTML = `Sign In`;
+        btn.href = `1 (1).html?continue=${encodeURIComponent(window.location.href)}`;
       }
     }
 
-    function bindUserLiveListener(docId) {
-      // Instant Live Snapshot on User Document
-      onSnapshot(doc(authDb, "UARM", docId), (docSnap) => {
-        if (docSnap.exists()) {
-          const udata = docSnap.data();
-          currentUser = { id: docSnap.id, ...udata };
-          userWatchlist = udata.Watchlist || userWatchlist;
-          
-          // Re-parse DPH_ALGO immediately
-          userAlgoPreferences = parseDphAlgoDescription(udata.DPH_ALGO || "");
+    function bindUserLive(docId) {
+      onSnapshot(doc(authDb, "UARM", docId), (s) => {
+        if (s.exists()) {
+          const u = s.data();
+          currentUser = { id: s.id, ...u };
+          userWatchlist = u.Watchlist || userWatchlist;
+          userAlgoPreferences = parseDphAlgo(u.DPH_ALGO || "");
 
           localStorage.setItem('active_user', JSON.stringify(currentUser));
           localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
 
-          // Re-rank content instantly in real-time
           if (contentMap.size > 0) {
-            heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
+            heroCarouselList = rankAndDiversify(Array.from(contentMap.values()));
             renderCarousel();
           }
         }
       });
     }
 
-    function showToast(msg) {
+    function showToast(m) {
       const t = document.getElementById('toastBox');
-      t.innerText = msg;
+      t.innerText = m;
       t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    function getBannerUrl(doc) {
-      return safeUrl(doc.Banner || doc["Poster.h"] || doc.Poster_h || doc.Poster || "");
-    }
-    function getLogoUrl(doc) {
-      return safeUrl(doc.Logo || doc["Logo.png"] || "");
-    }
-    function getDescription(doc) {
-      return safeString(doc.Discription || doc.Description || doc.Story || "");
-    }
-
-    // =========================================================================
-    // 4. FETCH REAL FIRESTORE COLLECTIONS WITH INSTANT SNAPSHOTS
-    // =========================================================================
-    async function fetchRealFirestoreContent() {
+    // 4. Fetch Real Firestore Documents
+    async function fetchContent() {
       const collections = ["Movies", "Shows", "TV Shows", "Live TV", "channels"];
-      
-      // Step A: Fast direct query for 0.0s startup
+
       for (const col of collections) {
         try {
           const snap = await getDocs(collection(channelDb, col));
-          snap.forEach(d => {
-            contentMap.set(d.id, { id: d.id, _col: col, ...d.data() });
-          });
-        } catch (err) {
-          console.warn(`Initial fetch on ${col}:`, err);
-        }
+          snap.forEach(d => contentMap.set(d.id, { id: d.id, _col: col, ...d.data() }));
+        } catch(e){}
       }
 
       if (contentMap.size > 0) {
         document.getElementById('carouselSkeleton').style.display = 'none';
-        heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
+        heroCarouselList = rankAndDiversify(Array.from(contentMap.values()));
         renderCarousel();
       }
 
-      // Step B: Bind real-time listener for ongoing database changes
       collections.forEach(col => {
         onSnapshot(collection(channelDb, col), (snap) => {
-          snap.forEach(d => {
-            contentMap.set(d.id, { id: d.id, _col: col, ...d.data() });
-          });
-
+          snap.forEach(d => contentMap.set(d.id, { id: d.id, _col: col, ...d.data() }));
           if (contentMap.size > 0) {
             document.getElementById('carouselSkeleton').style.display = 'none';
-            heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
+            heroCarouselList = rankAndDiversify(Array.from(contentMap.values()));
             renderCarousel();
           }
         });
       });
     }
 
-    // =========================================================================
-    // 5. RENDER CAROUSEL VIEWPORT
-    // =========================================================================
+    // 5. Render Carousel Viewport
     function renderCarousel() {
       const viewport = document.getElementById('slidesViewport');
-      const previewStrip = document.getElementById('previewStrip');
-      const mobileDots = document.getElementById('mobileDots');
+      const strip = document.getElementById('previewStrip');
+      const dots = document.getElementById('mobileDots');
 
       if (!viewport || heroCarouselList.length === 0) return;
 
       viewport.innerHTML = '';
-      if (previewStrip) previewStrip.innerHTML = '';
-      if (mobileDots) mobileDots.innerHTML = '';
+      if (strip) strip.innerHTML = '';
+      if (dots) dots.innerHTML = '';
 
       heroCarouselList.forEach((item, idx) => {
         const isAdded = userWatchlist.includes(item.id);
-        const bannerUrl = getBannerUrl(item);
-        const logoUrl = getLogoUrl(item);
-        const titleText = safeString(item.Name || item.Title || "Hotstar Stream");
-        const descText = getDescription(item);
-
-        const year = safeString(item.Release_Date || item.Year);
-        const age = safeString(item.Age_Rating || item["Age Rating"] || "U");
+        const bannerUrl = resolveBanner(item);
+        const logoUrl = resolveLogo(item);
+        const titleText = safeString(item.Name || item.Title || "Featured Stream");
+        const descText = safeString(item.Discription || item.Description || item.Story);
+        const year = safeString(item.Release_Date || item.ReleaseDate || item.Year);
+        const age = safeString(item.Age_Rating || item["Age Rating"] || item.Rating || "U");
         const lang = safeString(item.Language);
-        const genres = safeString(item.Genres);
+        const tagList = resolveTags(item).slice(0, 4);
 
         const slide = document.createElement('div');
-        slide.className = `carousel-slide ${idx === 0 ? 'active' : ''}`;
+        slide.className = `carousel-slide ${idx === activeIndex ? 'active' : ''}`;
         slide.id = `slide_${idx}`;
         slide.innerHTML = `
           <div class="media-layer">
-            ${bannerUrl ? `<img class="banner-image" src="${bannerUrl}" alt="${titleText}" loading="eager">` : ''}
+            ${bannerUrl ? `<img class="banner-image" src="${bannerUrl}" alt="${titleText}">` : ''}
             <video class="trailer-video" id="video_trailer_${idx}" playsinline muted></video>
             <div id="yt_wrap_${idx}" class="yt-frame-wrapper"></div>
           </div>
 
           <div class="slide-info-container">
-            ${logoUrl ? `<img class="title-logo" src="${logoUrl}" alt="${titleText}">` : `<h1 class="fallback-title">${titleText}</h1>`}
-            
+            <!-- Guaranteed Title/Logo Visibility -->
+            <div class="title-branding-box">
+              ${logoUrl ? `
+                <img class="title-logo" id="logo_${idx}" src="${logoUrl}" alt="${titleText}" onerror="this.style.display='none'; document.getElementById('fb_${idx}').style.display='block';">
+                <h1 class="fallback-title" id="fb_${idx}" style="display:none;">${titleText}</h1>
+              ` : `
+                <h1 class="fallback-title">${titleText}</h1>
+              `}
+            </div>
+
+            <!-- Metadata Badges -->
             <div class="meta-badge-row">
               ${year ? `<span>${year}</span><span class="dot">●</span>` : ''}
               <span class="age-badge">${age}</span>
               ${lang ? `<span class="dot">●</span><span>${lang}</span>` : ''}
             </div>
 
-            ${genres ? `<div class="genres-text">${genres}</div>` : ''}
+            <!-- Tags Badges -->
+            ${tagList.length > 0 ? `
+              <div class="tags-badge-container">
+                ${tagList.map(t => `<span class="tag-pill">${t}</span>`).join('')}
+              </div>
+            ` : ''}
+
+            <!-- Description -->
             ${descText ? `<p class="story-synopsis">${descText}</p>` : ''}
 
+            <!-- CTA Buttons -->
             <div class="button-row">
               <a class="btn-main-watch" href="1.html?watch=${item.id}" onclick="window.recordInteraction('${item.id}', 'watch')">
                 <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -908,85 +881,76 @@
         `;
         viewport.appendChild(slide);
 
-        if (previewStrip && bannerUrl) {
-          const previewCard = document.createElement('div');
-          previewCard.className = `preview-card-item ${idx === 0 ? 'active' : ''}`;
-          previewCard.onclick = () => {
+        if (strip && bannerUrl) {
+          const c = document.createElement('div');
+          c.className = `preview-card-item ${idx === activeIndex ? 'active' : ''}`;
+          c.onclick = () => {
             window.recordInteraction(item.id, 'click');
-            jumpToSlide(idx);
+            jumpTo(idx);
           };
-          previewCard.innerHTML = `<img src="${bannerUrl}" alt="${titleText}" loading="lazy">`;
-          previewStrip.appendChild(previewCard);
+          c.innerHTML = `<img src="${bannerUrl}" alt="${titleText}">`;
+          strip.appendChild(c);
         }
 
-        if (mobileDots) {
-          const dot = document.createElement('div');
-          dot.className = `m-dot ${idx === 0 ? 'active' : ''}`;
-          dot.onclick = () => {
+        if (dots) {
+          const d = document.createElement('div');
+          d.className = `m-dot ${idx === activeIndex ? 'active' : ''}`;
+          d.onclick = () => {
             window.recordInteraction(item.id, 'click');
-            jumpToSlide(idx);
+            jumpTo(idx);
           };
-          mobileDots.appendChild(dot);
+          dots.appendChild(d);
         }
       });
 
-      startBannerToTrailerCycle(0);
+      startCycle(activeIndex);
     }
 
-    // =========================================================================
-    // 6. 6-SECOND BANNER -> TRAILER PIPELINE
-    // =========================================================================
-    function startBannerToTrailerCycle(index) {
+    // 6. 6-Second Banner to Edge-to-Edge Trailer
+    function startCycle(i) {
       clearTimeout(slideTimer);
-      stopActiveMedia();
+      stopMedia();
 
-      const item = heroCarouselList[index];
+      const item = heroCarouselList[i];
       if (!item) return;
 
-      const videoEl = document.getElementById(`video_trailer_${index}`);
-      const trailerUrl = safeString(item.Trailer || item.trailer).trim();
+      const vid = document.getElementById(`video_trailer_${i}`);
+      const tUrl = cleanUrl(item.Trailer || item.trailer);
 
       slideTimer = setTimeout(() => {
-        if (trailerUrl) {
-          playTrailerVideo(index, trailerUrl, videoEl);
-        } else {
-          nextSlide();
-        }
+        if (tUrl) playTrailer(i, tUrl, vid);
+        else next();
       }, 6000);
     }
 
-    function playTrailerVideo(index, url, videoEl) {
-      const muteBtn = document.getElementById(`mute_btn_${index}`);
-      const badge = document.getElementById(`trailer_badge_${index}`);
+    function playTrailer(i, url, vid) {
+      const mute = document.getElementById(`mute_btn_${i}`);
+      const badge = document.getElementById(`trailer_badge_${i}`);
 
       if (url.includes('.mp4') || url.includes('.m3u8')) {
-        videoEl.src = url;
-        videoEl.muted = isMuted;
-        videoEl.play().then(() => {
-          videoEl.classList.add('playing');
-          if (muteBtn) muteBtn.style.display = 'flex';
+        vid.src = url;
+        vid.muted = isMuted;
+        vid.play().then(() => {
+          vid.classList.add('playing');
+          if (mute) mute.style.display = 'flex';
           if (badge) badge.classList.add('show');
-        }).catch(() => nextSlide());
+        }).catch(() => next());
 
-        videoEl.onended = () => nextSlide();
-        videoEl.onerror = () => nextSlide();
+        vid.onended = () => next();
+        vid.onerror = () => next();
       } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        const ytHost = document.getElementById(`yt_wrap_${index}`);
-        const ytId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=))([\w-]{11})/)?.[1];
-        if (ytId) {
-          ytHost.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=0&playsinline=1" allow="autoplay"></iframe>`;
-          ytHost.classList.add('playing');
+        const yt = document.getElementById(`yt_wrap_${i}`);
+        const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=))([\w-]{11})/)?.[1];
+        if (id) {
+          yt.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=0&playsinline=1" allow="autoplay"></iframe>`;
+          yt.classList.add('playing');
           if (badge) badge.classList.add('show');
-          slideTimer = setTimeout(nextSlide, 25000);
-        } else {
-          nextSlide();
-        }
-      } else {
-        nextSlide();
-      }
+          slideTimer = setTimeout(next, 25000);
+        } else next();
+      } else next();
     }
 
-    function stopActiveMedia() {
+    function stopMedia() {
       document.querySelectorAll('.trailer-video').forEach(v => {
         v.pause();
         v.removeAttribute('src');
@@ -1000,15 +964,19 @@
       document.querySelectorAll('.trailer-status-badge').forEach(b => b.classList.remove('show'));
     }
 
-    function nextSlide() {
+    function next() {
       if (heroCarouselList.length === 0) return;
-      const next = (activeIndex + 1) % heroCarouselList.length;
-      jumpToSlide(next);
+      jumpTo((activeIndex + 1) % heroCarouselList.length);
     }
 
-    function jumpToSlide(idx) {
+    function prev() {
+      if (heroCarouselList.length === 0) return;
+      jumpTo((activeIndex - 1 + heroCarouselList.length) % heroCarouselList.length);
+    }
+
+    function jumpTo(idx) {
       clearTimeout(slideTimer);
-      stopActiveMedia();
+      stopMedia();
 
       document.querySelectorAll('.carousel-slide').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.preview-card-item').forEach(p => p.classList.remove('active'));
@@ -1016,43 +984,82 @@
 
       activeIndex = idx;
 
-      const currentSlide = document.getElementById(`slide_${idx}`);
-      const currentPreview = document.querySelectorAll('.preview-card-item')[idx];
-      const currentDot = document.querySelectorAll('.m-dot')[idx];
+      const s = document.getElementById(`slide_${idx}`);
+      const p = document.querySelectorAll('.preview-card-item')[idx];
+      const d = document.querySelectorAll('.m-dot')[idx];
 
-      if (currentSlide) currentSlide.classList.add('active');
-      if (currentPreview) currentPreview.classList.add('active');
-      if (currentDot) currentDot.classList.add('active');
+      if (s) s.classList.add('active');
+      if (p) p.classList.add('active');
+      if (d) d.classList.add('active');
 
-      startBannerToTrailerCycle(idx);
+      startCycle(idx);
     }
 
-    // Live Interaction Reinforcement
-    window.recordInteraction = function(id, type) {
+    // 7. Touch & Mouse Swipe Engine
+    const stage = document.getElementById('carouselStage');
+    let startX = 0, startY = 0, endX = 0, swiping = false;
+
+    stage.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      swiping = true;
+    }, { passive: true });
+
+    stage.addEventListener('touchmove', (e) => {
+      if (!swiping) return;
+      endX = e.touches[0].clientX;
+    }, { passive: true });
+
+    stage.addEventListener('touchend', (e) => {
+      if (!swiping) return;
+      swiping = false;
+      const dx = endX - startX;
+      const dy = Math.abs(e.changedTouches[0].clientY - startY);
+      if (Math.abs(dx) > 45 && Math.abs(dx) > dy) {
+        if (dx < 0) next();
+        else prev();
+      }
+      startX = 0; endX = 0;
+    }, { passive: true });
+
+    let mDown = false;
+    stage.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button') || e.target.closest('a')) return;
+      mDown = true;
+      startX = e.clientX;
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!mDown) return;
+      mDown = false;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 60) {
+        if (dx < 0) next();
+        else prev();
+      }
+    });
+
+    // Interactions
+    window.recordInteraction = function(id, t) {
       const item = contentMap.get(id);
       if (!item) return;
-
-      let itemGenres = Array.isArray(item.Genres) ? item.Genres : safeString(item.Genres).split(/[,/|•\s]+/);
-      itemGenres.forEach(g => sessionInteractions.interactedGenres.add(g.toLowerCase().trim()));
-
-      const studio = safeString(item.Studio || item.Partner).toLowerCase().trim();
-      if (studio) sessionInteractions.interactedStudios.add(studio);
+      resolveTags(item).forEach(tag => sessionInteractions.interactedGenres.add(tag.toLowerCase()));
+      const s = safeString(item.Studio || item.Partner).toLowerCase();
+      if (s) sessionInteractions.interactedStudios.add(s);
     };
 
-    // Audio Mute Toggle
     window.toggleMute = function(idx) {
       const vid = document.getElementById(`video_trailer_${idx}`);
-      const muteBtn = document.getElementById(`mute_btn_${idx}`);
+      const btn = document.getElementById(`mute_btn_${idx}`);
       if (vid) {
         isMuted = !isMuted;
         vid.muted = isMuted;
-        muteBtn.innerHTML = isMuted 
+        btn.innerHTML = isMuted 
           ? '<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>'
           : '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
       }
     };
 
-    // 7. Watchlist Sync with Firestore UARM
     window.toggleWatchlist = async function(id) {
       window.recordInteraction(id, 'watchlist');
       const idx = userWatchlist.indexOf(id);
@@ -1070,20 +1077,21 @@
 
       if (userDocId) {
         try {
-          const ref = doc(authDb, "UARM", userDocId);
-          await updateDoc(ref, { Watchlist: isRemoving ? arrayRemove(id) : arrayUnion(id) });
-        } catch(e) {}
+          await updateDoc(doc(authDb, "UARM", userDocId), {
+            Watchlist: isRemoving ? arrayRemove(id) : arrayUnion(id)
+          });
+        } catch(e){}
       }
 
-      document.querySelectorAll(`.btn-wl-${id}`).forEach(btn => {
-        btn.classList.toggle('active', !isRemoving);
-        btn.innerHTML = `<svg viewBox="0 0 24 24">${!isRemoving ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}</svg>`;
+      document.querySelectorAll(`.btn-wl-${id}`).forEach(b => {
+        b.classList.toggle('active', !isRemoving);
+        b.innerHTML = `<svg viewBox="0 0 24 24">${!isRemoving ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}</svg>`;
       });
     };
 
-    // Boot
-    initUserSession();
-    fetchRealFirestoreContent();
+    // Run
+    initUser();
+    fetchContent();
   </script>
 </body>
 </html>
