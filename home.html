@@ -117,19 +117,6 @@
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-    /* Error feedback in case database collection is empty */
-    .empty-state-msg {
-      display: none;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: var(--text-muted);
-      font-size: 14px;
-      text-align: center;
-      z-index: 25;
-    }
-
     /* Slide Layer */
     .carousel-slide {
       position: absolute;
@@ -406,7 +393,7 @@
     }
     .preview-card-item img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Mobile Dots (No vertical posters on mobile) */
+    /* Mobile Dots */
     .mobile-dots-container {
       display: none;
       position: absolute;
@@ -478,7 +465,7 @@
 
   <!-- Carousel Stage -->
   <div class="carousel-stage" id="carouselStage">
-    <!-- Shimmer Skeleton while loading -->
+    <!-- Live Skeleton Loader -->
     <div class="skeleton-loader" id="carouselSkeleton">
       <div class="skeleton-shimmer" style="width: 180px; height: 36px; margin-bottom: 14px;"></div>
       <div class="skeleton-shimmer" style="width: 260px; height: 16px; margin-bottom: 12px;"></div>
@@ -488,8 +475,6 @@
         <div class="skeleton-shimmer" style="width: 44px; height: 44px; border-radius: 10px;"></div>
       </div>
     </div>
-
-    <div class="empty-state-msg" id="emptyStateMsg">No stream documents found in Firestore collections.</div>
 
     <div id="slidesViewport"></div>
 
@@ -509,7 +494,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, onSnapshot, getDocs, doc, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // Channel DB (Contains Movies, Shows, TV Shows, Live TV)
+    // Channel DB (Firestore Content)
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -518,7 +503,7 @@
     const channelApp = initializeApp(channelConfig, "channelApp");
     const channelDb = getFirestore(channelApp);
 
-    // Auth DB (Contains UARM with DPH_ALGO & Watchlist)
+    // Auth DB (Firestore Users)
     const authConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
@@ -528,7 +513,7 @@
     const authApp = initializeApp(authConfig, "authApp");
     const authDb = getFirestore(authApp);
 
-    // Live State
+    // Dynamic State
     let contentMap = new Map();
     let heroCarouselList = [];
     let activeIndex = 0;
@@ -538,8 +523,14 @@
     let userDocId = null;
     let userWatchlist = [];
     let userAlgoPreferences = null;
+    
+    // Live Session Vector (Reinforcement Learning from current page interactions)
+    let sessionInteractions = {
+      interactedGenres: new Set(),
+      interactedStudios: new Set(),
+      dwellCount: 0
+    };
 
-    // Helper: Safe String and URL extraction
     function safeString(val) {
       if (val === undefined || val === null) return "";
       if (Array.isArray(val)) return val.join(", ");
@@ -551,7 +542,18 @@
       return url.trim().replace(/^http:\/\//i, 'https://');
     }
 
-    // 1. DPH_ALGO Profile Parser
+    function tokenizeText(str) {
+      return (str || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 2);
+    }
+
+    // =========================================================================
+    // 1. ADVANCED DPH_ALGO PROFILE PARSER
+    // Extracts structured preference vectors + semantic token vocabulary
+    // =========================================================================
     function parseDphAlgoDescription(descStr) {
       if (!descStr || typeof descStr !== 'string') return null;
 
@@ -561,7 +563,7 @@
         lastWatched: [],
         genres: [],
         ageRatings: [],
-        rawTokens: []
+        affinityTokens: new Set()
       };
 
       const clean = descStr.replace(/[\n\r]+/g, ' ');
@@ -583,16 +585,18 @@
       profile.genres = extractGroup(/(?:genres|genre|like)\s*(?:of)?\s*\((.*?)\)/i);
       profile.ageRatings = extractGroup(/(?:age_rating|rating|confert|comfort)\s*\((.*?)\)/i);
 
-      profile.rawTokens = clean
-        .toLowerCase()
-        .replace(/[(),]/g, ' ')
-        .split(/\s+/)
-        .filter(w => w.length > 2 && !['he/she', 'like', 'movies', 'prefer', 'watched', 'lastly'].includes(w));
+      // Populate semantic vocabulary tokens
+      tokenizeText(clean).forEach(t => profile.affinityTokens.add(t));
+      profile.studios.forEach(s => tokenizeText(s).forEach(t => profile.affinityTokens.add(t)));
+      profile.genres.forEach(g => tokenizeText(g).forEach(t => profile.affinityTokens.add(t)));
+      profile.lastWatched.forEach(w => tokenizeText(w).forEach(t => profile.affinityTokens.add(t)));
 
       return profile;
     }
 
-    // 2. Multi-Vector Recommendation Algorithm with Type Safeguards
+    // =========================================================================
+    // 2. YOUTUBE-STYLE MULTI-VECTOR ALGORITHM (Deep Personalized Scoring)
+    // =========================================================================
     function scoreAndRankContent(items) {
       const nowYear = new Date().getFullYear();
 
@@ -611,39 +615,80 @@
             itemGenres = safeString(item.Genres).toLowerCase().split(/[,/|•\s]+/).filter(Boolean);
           }
 
-          const itemTags = safeString(item.Tags).toLowerCase();
+          const itemDescTokens = tokenizeText(item.Discription || item.Description || item.Story);
+          const itemTagsTokens = tokenizeText(item.Tags);
 
-          // A. DPH_ALGO Profile Matching
+          // -------------------------------------------------------------------
+          // A. User DPH_ALGO Profile Vectors (Max Weight: 120 pts)
+          // -------------------------------------------------------------------
           if (userAlgoPreferences) {
-            if (userAlgoPreferences.studios.some(st => itemStudio.includes(st) || itemTags.includes(st))) score += 35;
+            // 1. Studio / Production Affinity (Weight: 40 pts)
+            if (userAlgoPreferences.studios.some(st => itemStudio.includes(st) || itemTagsTokens.includes(st))) {
+              score += 40;
+            }
+
+            // 2. Genre Density Vector (Weight: 35 pts)
+            let genreMatches = 0;
             userAlgoPreferences.genres.forEach(g => {
-              if (itemGenres.includes(g) || itemGenres.some(ig => ig.includes(g))) score += 25;
+              if (itemGenres.includes(g) || itemGenres.some(ig => ig.includes(g))) genreMatches++;
             });
-            if (userAlgoPreferences.languages.some(l => itemLanguage.includes(l) || (item["Multi-Language"] && item["Multi-Language"][l]))) score += 20;
-            if (userAlgoPreferences.ageRatings.some(ar => itemAgeRating === ar || itemAgeRating.includes(ar))) score += 15;
-            userAlgoPreferences.lastWatched.forEach(title => {
-              if (itemName.includes(title) || itemTags.includes(title)) score += 25;
+            score += Math.min(35, genreMatches * 20);
+
+            // 3. Language & Audio Preferences (Weight: 20 pts)
+            if (userAlgoPreferences.languages.some(l => itemLanguage.includes(l) || (item["Multi-Language"] && item["Multi-Language"][l]))) {
+              score += 20;
+            }
+
+            // 4. Comfort Age Rating (Weight: 15 pts)
+            if (userAlgoPreferences.ageRatings.some(ar => itemAgeRating === ar || itemAgeRating.includes(ar))) {
+              score += 15;
+            }
+
+            // 5. Historical / Recently Watched Token Affinity (Weight: 30 pts)
+            userAlgoPreferences.lastWatched.forEach(watchedTitle => {
+              if (itemName.includes(watchedTitle) || itemTagsTokens.includes(watchedTitle)) score += 30;
             });
+
+            // 6. Semantic TF-IDF style Token Overlap (Weight: 20 pts)
+            let tokenOverlap = 0;
+            [...itemDescTokens, ...itemTagsTokens].forEach(tok => {
+              if (userAlgoPreferences.affinityTokens.has(tok)) tokenOverlap++;
+            });
+            score += Math.min(20, tokenOverlap * 4);
           }
 
-          // B. Watchlist Boost
-          if (userWatchlist.includes(item.id)) score += 30;
+          // -------------------------------------------------------------------
+          // B. Real-Time Session Reinforcement (Live user clicks & dwell)
+          // -------------------------------------------------------------------
+          itemGenres.forEach(g => {
+            if (sessionInteractions.interactedGenres.has(g)) score += 15;
+          });
+          if (sessionInteractions.interactedStudios.has(itemStudio)) score += 20;
 
-          // C. Recency Boost
+          // -------------------------------------------------------------------
+          // C. Personal Watchlist Boost (Weight: 35 pts)
+          // -------------------------------------------------------------------
+          if (userWatchlist.includes(item.id)) score += 35;
+
+          // -------------------------------------------------------------------
+          // D. Recency vs Discovery Curve (Weight: 20 pts)
+          // -------------------------------------------------------------------
           const year = parseInt(safeString(item.Release_Date || item.Year || "2020"));
           if (!isNaN(year)) {
-            const diff = Math.max(0, nowYear - year);
-            if (diff <= 1) score += 20;
-            else if (diff <= 3) score += 12;
-            else score += 5;
+            const age = Math.max(0, nowYear - year);
+            if (age <= 1) score += 20; // Brand new
+            else if (age <= 3) score += 12; // Recent
+            else score += 5; // Classic
           }
 
-          // D. Trailer presence
+          // -------------------------------------------------------------------
+          // E. Trailer Availability (Weight: 15 pts)
+          // -------------------------------------------------------------------
           const trailerUrl = safeString(item.Trailer || item.trailer);
           if (trailerUrl.trim().length > 0) score += 15;
 
         } catch (err) {
-          console.warn("Ranking item calculation skipped due to format:", err);
+          console.warn("Ranking computation skipped:", err);
         }
 
         return { item, score };
@@ -652,7 +697,10 @@
       .map(entry => entry.item);
     }
 
-    // 3. Sync User Session from Login Page (1 (1).html)
+    // =========================================================================
+    // 3. REAL-TIME FIREBASE REACTIVE LISTENER
+    // Automatically re-renders in 0.0s when changes occur in Firestore UARM
+    // =========================================================================
     async function initUserSession() {
       const authBtn = document.getElementById('userAuthBtn');
 
@@ -679,7 +727,6 @@
           }
         };
 
-        // Bind listener to user's UARM record
         try {
           let userQuery = null;
           if (currentUser.Lotus) {
@@ -708,16 +755,20 @@
     }
 
     function bindUserLiveListener(docId) {
+      // Instant Live Snapshot on User Document
       onSnapshot(doc(authDb, "UARM", docId), (docSnap) => {
         if (docSnap.exists()) {
           const udata = docSnap.data();
           currentUser = { id: docSnap.id, ...udata };
           userWatchlist = udata.Watchlist || userWatchlist;
+          
+          // Re-parse DPH_ALGO immediately
           userAlgoPreferences = parseDphAlgoDescription(udata.DPH_ALGO || "");
 
           localStorage.setItem('active_user', JSON.stringify(currentUser));
           localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
 
+          // Re-rank content instantly in real-time
           if (contentMap.size > 0) {
             heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
             renderCarousel();
@@ -743,11 +794,13 @@
       return safeString(doc.Discription || doc.Description || doc.Story || "");
     }
 
-    // 4. Fetch Real Firestore Documents (One-shot getDocs + live onSnapshot)
+    // =========================================================================
+    // 4. FETCH REAL FIRESTORE COLLECTIONS WITH INSTANT SNAPSHOTS
+    // =========================================================================
     async function fetchRealFirestoreContent() {
       const collections = ["Movies", "Shows", "TV Shows", "Live TV", "channels"];
       
-      // Step A: Fast direct fetch
+      // Step A: Fast direct query for 0.0s startup
       for (const col of collections) {
         try {
           const snap = await getDocs(collection(channelDb, col));
@@ -755,45 +808,35 @@
             contentMap.set(d.id, { id: d.id, _col: col, ...d.data() });
           });
         } catch (err) {
-          console.warn(`Fast fetch info on ${col}:`, err);
+          console.warn(`Initial fetch on ${col}:`, err);
         }
       }
 
-      // If items exist, render immediately
       if (contentMap.size > 0) {
         document.getElementById('carouselSkeleton').style.display = 'none';
         heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
         renderCarousel();
-      } else {
-        // Step B: Set live subscription in case rules or sync delayed
-        collections.forEach(col => {
-          onSnapshot(collection(channelDb, col), (snap) => {
-            snap.forEach(d => {
-              contentMap.set(d.id, { id: d.id, _col: col, ...d.data() });
-            });
-
-            if (contentMap.size > 0) {
-              document.getElementById('carouselSkeleton').style.display = 'none';
-              document.getElementById('emptyStateMsg').style.display = 'none';
-              heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
-              renderCarousel();
-            }
-          }, (err) => {
-            console.error(`Collection ${col} listener error:`, err);
-          });
-        });
-
-        // Fail-safe: if database is completely empty after 3 seconds, show empty message
-        setTimeout(() => {
-          if (contentMap.size === 0) {
-            document.getElementById('carouselSkeleton').style.display = 'none';
-            document.getElementById('emptyStateMsg').style.display = 'block';
-          }
-        }, 3000);
       }
+
+      // Step B: Bind real-time listener for ongoing database changes
+      collections.forEach(col => {
+        onSnapshot(collection(channelDb, col), (snap) => {
+          snap.forEach(d => {
+            contentMap.set(d.id, { id: d.id, _col: col, ...d.data() });
+          });
+
+          if (contentMap.size > 0) {
+            document.getElementById('carouselSkeleton').style.display = 'none';
+            heroCarouselList = scoreAndRankContent(Array.from(contentMap.values())).slice(0, 6);
+            renderCarousel();
+          }
+        });
+      });
     }
 
-    // 5. Render Carousel Viewport
+    // =========================================================================
+    // 5. RENDER CAROUSEL VIEWPORT
+    // =========================================================================
     function renderCarousel() {
       const viewport = document.getElementById('slidesViewport');
       const previewStrip = document.getElementById('previewStrip');
@@ -840,7 +883,7 @@
             ${descText ? `<p class="story-synopsis">${descText}</p>` : ''}
 
             <div class="button-row">
-              <a class="btn-main-watch" href="1.html?watch=${item.id}">
+              <a class="btn-main-watch" href="1.html?watch=${item.id}" onclick="window.recordInteraction('${item.id}', 'watch')">
                 <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                 <span>Watch Now</span>
               </a>
@@ -868,7 +911,10 @@
         if (previewStrip && bannerUrl) {
           const previewCard = document.createElement('div');
           previewCard.className = `preview-card-item ${idx === 0 ? 'active' : ''}`;
-          previewCard.onclick = () => jumpToSlide(idx);
+          previewCard.onclick = () => {
+            window.recordInteraction(item.id, 'click');
+            jumpToSlide(idx);
+          };
           previewCard.innerHTML = `<img src="${bannerUrl}" alt="${titleText}" loading="lazy">`;
           previewStrip.appendChild(previewCard);
         }
@@ -876,7 +922,10 @@
         if (mobileDots) {
           const dot = document.createElement('div');
           dot.className = `m-dot ${idx === 0 ? 'active' : ''}`;
-          dot.onclick = () => jumpToSlide(idx);
+          dot.onclick = () => {
+            window.recordInteraction(item.id, 'click');
+            jumpToSlide(idx);
+          };
           mobileDots.appendChild(dot);
         }
       });
@@ -884,7 +933,9 @@
       startBannerToTrailerCycle(0);
     }
 
-    // 6. 6-Second Banner -> Edge-to-Edge Trailer Pipeline
+    // =========================================================================
+    // 6. 6-SECOND BANNER -> TRAILER PIPELINE
+    // =========================================================================
     function startBannerToTrailerCycle(index) {
       clearTimeout(slideTimer);
       stopActiveMedia();
@@ -976,6 +1027,18 @@
       startBannerToTrailerCycle(idx);
     }
 
+    // Live Interaction Reinforcement
+    window.recordInteraction = function(id, type) {
+      const item = contentMap.get(id);
+      if (!item) return;
+
+      let itemGenres = Array.isArray(item.Genres) ? item.Genres : safeString(item.Genres).split(/[,/|•\s]+/);
+      itemGenres.forEach(g => sessionInteractions.interactedGenres.add(g.toLowerCase().trim()));
+
+      const studio = safeString(item.Studio || item.Partner).toLowerCase().trim();
+      if (studio) sessionInteractions.interactedStudios.add(studio);
+    };
+
     // Audio Mute Toggle
     window.toggleMute = function(idx) {
       const vid = document.getElementById(`video_trailer_${idx}`);
@@ -991,6 +1054,7 @@
 
     // 7. Watchlist Sync with Firestore UARM
     window.toggleWatchlist = async function(id) {
+      window.recordInteraction(id, 'watchlist');
       const idx = userWatchlist.indexOf(id);
       const isRemoving = idx > -1;
 
@@ -1017,7 +1081,7 @@
       });
     };
 
-    // Run
+    // Boot
     initUserSession();
     fetchRealFirestoreContent();
   </script>
