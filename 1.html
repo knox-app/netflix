@@ -47,22 +47,9 @@
       contain: layout style;
     }
 
-    /* Top Nav Bar */
-    .top-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      background: #090a0e;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .top-nav .brand { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
-    .top-nav .brand span { color: var(--accent-blue); }
-    .user-pill { font-size: 11px; background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 20px; color: var(--text-muted); }
-
     .main-wrapper { max-width: 1200px; margin: 0 auto; }
 
-    /* Video Player Root Container */
+    /* Video Player Root Container (Attached to Top) */
     .player-container {
       position: relative;
       width: 100%;
@@ -75,7 +62,6 @@
     }
 
     /* Landscape / Fullscreen Mode */
-    body.landscape-mode .top-nav, 
     body.landscape-mode .details-wrapper {
       display: none !important;
     }
@@ -804,11 +790,6 @@
 </head>
 <body>
 
-<div class="top-nav">
-  <div class="brand">⚡ Hotstar<span>TV</span></div>
-  <div class="user-pill" id="userPill">Checking user...</div>
-</div>
-
 <div id="loader" class="loader-box">Loading stream...</div>
 
 <div id="appContent" style="display: none;">
@@ -1049,7 +1030,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS (Uses algorithmic ranking) -->
+      <!-- MORE LIKE THIS (Never empty algorithm recommendations) -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1107,7 +1088,7 @@
   let availableHlsLevels = [];
   let lastProgressSave = 0;
 
-  // In-Memory Item Cache for Fast Switching
+  // In-Memory Item Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
 
   let showDocData = null;
@@ -1151,6 +1132,29 @@
   function getPosterH(c) {
     if (!c) return '';
     return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster || c["Logo.png"] || c.Logo || '');
+  }
+
+  // Dynamic Duration Parser (124 -> 2h 4m, 24 -> 24m)
+  function formatDynamicDuration(raw) {
+    if (!raw) return '';
+    if (typeof raw === 'string' && (raw.includes('h') || raw.includes('m') || raw.includes(':'))) return raw;
+    const num = parseInt(raw);
+    if (isNaN(num) || num <= 0) return '';
+    if (num < 60) return `${num}m`;
+    const h = (num / 60) | 0;
+    const m = num % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  // Dynamic Language Counter & Labeler
+  function getDynamicLanguageString(item) {
+    if (!item) return '1 Language';
+    const multi = item["Multi-Language"] || item.multiLanguage || item.MultiLanguage;
+    if (multi && typeof multi === 'object') {
+      const count = Object.keys(multi).length + 1;
+      return `${count} Languages`;
+    }
+    return item.Language ? `${item.Language}` : '1 Language';
   }
 
   function formatTime(seconds) {
@@ -1274,7 +1278,6 @@
 
   function startListeningDoc(docId, targetCol) {
     const loader = document.getElementById('loader');
-    const userPill = document.getElementById('userPill');
 
     try {
       const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
@@ -1307,10 +1310,7 @@
       loader.style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
 
-      if (!currentUser) {
-        userPill.innerText = "Guest Mode";
-      } else {
-        userPill.innerText = currentUser["First Name"] ? `👤 ${currentUser["First Name"]}` : `👤 ${currentUser.Email || 'User'}`;
+      if (currentUser) {
         initWatchlistState();
       }
 
@@ -1324,9 +1324,9 @@
         
         let subText = currentChannel.Genres || currentChannel.Language || "Live TV";
         if (contentType === 'movie') {
-          const year = currentChannel.Year || currentChannel["Release Year"] || "2023";
-          const dur = currentChannel.Duration || "1h 41m";
-          const langs = currentChannel["Multi-Language"] ? `${Object.keys(currentChannel["Multi-Language"]).length + 1} Languages` : "1 Language";
+          const year = currentChannel.Year || currentChannel["Release Year"] || "2024";
+          const dur = formatDynamicDuration(currentChannel.Duration || currentChannel.duration) || "1h 45m";
+          const langs = getDynamicLanguageString(currentChannel);
           subText = `${year} • ${dur} • ${langs}`;
         }
         document.getElementById('chLangSub').innerText = subText;
@@ -1406,7 +1406,6 @@
           updateWatchlistUI(true);
           showToast("Added to Watchlist");
         }
-        // Refresh recommendations with updated watchlist affinity
         if (currentChannel) {
           listenToRecommendations(currentDocId, contentType === 'show' ? 'Shows' : (contentType === 'movie' ? 'Movies' : 'Live TV'));
         }
@@ -1538,18 +1537,21 @@
     const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
     const limit = showAllEpisodesVertical ? epList.length : 3;
 
-    epListEl.innerHTML = epList.slice(0, limit).map((ep, idx) => `
-      <div onclick="window.selectEpisode(${idx})" class="ep-item-card">
-        <div class="ep-thumb-box">
-          <img src="${getPosterH(showDocData)}" alt="${ep.Name}" loading="lazy">
-          <div class="ep-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+    epListEl.innerHTML = epList.slice(0, limit).map((ep, idx) => {
+      const epDur = formatDynamicDuration(ep.Duration || ep.duration) || '24m';
+      return `
+        <div onclick="window.selectEpisode(${idx})" class="ep-item-card">
+          <div class="ep-thumb-box">
+            <img src="${getPosterH(showDocData)}" alt="${ep.Name}" loading="lazy">
+            <div class="ep-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="ep-info-box">
+            <div class="ep-item-title">${ep.Name || `Episode ${idx + 1}`}</div>
+            <div class="ep-item-meta">S${seasonNum} E${idx + 1} • ${epDur}</div>
+          </div>
         </div>
-        <div class="ep-info-box">
-          <div class="ep-item-title">${ep.Name || `Episode ${idx + 1}`}</div>
-          <div class="ep-item-meta">S${seasonNum} E${idx + 1} • ${ep.Duration || '23m'}</div>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     if (epList.length > 3) {
       viewMoreBtn.style.display = 'flex';
@@ -1702,6 +1704,7 @@
       return;
     }
 
+    // Handles .m3u8, .mp4, and .mkv streams
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
@@ -2487,59 +2490,48 @@
     autoDetectAndInitContent(newId);
   };
 
-  // =========================================================================
-  // SMART MULTI-VECTOR RECOMMENDATION ALGORITHM (YouTube / Hotstar style)
-  // Evaluates Genres, Tags, Description Tokens, Studio, Language, Ratings & Watchlist
-  // =========================================================================
+  // Robust Multi-Vector Algorithm with Guaranteed Fallback
   function computeRelevanceScore(target, candidate, watchlistIds) {
-    if (!target || !candidate) return 0;
-    let score = 0;
+    if (!target || !candidate) return 1;
+    let score = 1; // Base score ensuring no exclusion
 
-    // Helper tokenizers
     const toArr = (v) => Array.isArray(v) ? v : (v ? String(v).split(/[,/|•\s]+/).filter(Boolean) : []);
     const cleanTokens = (str) => (str || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
 
-    // 1. Genres & Sub-genres Matching (35% Weight)
+    // 1. Genres & Sub-genres
     const targetGenres = toArr(target.Genres || target.Genre).map(g => g.toLowerCase().trim());
     const candGenres = toArr(candidate.Genres || candidate.Genre).map(g => g.toLowerCase().trim());
     targetGenres.forEach(g => {
       if (candGenres.some(cg => cg === g || cg.includes(g) || g.includes(cg))) score += 35;
     });
 
-    // 2. Tags & "Blue Tags" Matching (25% Weight)
+    // 2. Tags
     const targetTags = [...toArr(target.Tags), ...toArr(target["Blue Tags"])].map(t => t.toLowerCase().trim());
     const candTags = [...toArr(candidate.Tags), ...toArr(candidate["Blue Tags"])].map(t => t.toLowerCase().trim());
     targetTags.forEach(t => {
       if (candTags.some(ct => ct === t || ct.includes(t))) score += 25;
     });
 
-    // 3. Studio / Network / Partner Affinity (15% Weight)
+    // 3. Studio / Partner
     const targetStudio = (target.Partner || target.Studio || '').toLowerCase().trim();
     const candStudio = (candidate.Partner || candidate.Studio || '').toLowerCase().trim();
     if (targetStudio && candStudio && (targetStudio === candStudio || candStudio.includes(targetStudio))) {
       score += 15;
     }
 
-    // 4. Target Language Affinity (10% Weight)
+    // 4. Language
     const targetLang = (target.Language || '').toLowerCase().trim();
     const candLang = (candidate.Language || '').toLowerCase().trim();
     if (targetLang && candLang && targetLang === candLang) {
       score += 10;
     }
 
-    // 5. Age Rating & Content Tier Matching (10% Weight)
-    const targetRating = (target["Age Rating"] || target.AgeRating || target.Rating || '').toLowerCase().trim();
-    const candRating = (candidate["Age Rating"] || candidate.AgeRating || candidate.Rating || '').toLowerCase().trim();
-    if (targetRating && candRating && targetRating === candRating) {
-      score += 10;
-    }
-
-    // 6. User Watchlist / Personalization Boost (20% Weight)
+    // 5. Watchlist Personalization
     if (watchlistIds && watchlistIds.includes(candidate.id)) {
       score += 20;
     }
 
-    // 7. Description & Title Semantic Overlap (15% Weight)
+    // 6. Token Overlap
     const targetTokens = [...cleanTokens(target.Description), ...cleanTokens(target.Name)];
     const candTokens = new Set([...cleanTokens(candidate.Description), ...cleanTokens(candidate.Name)]);
     let overlapCount = 0;
@@ -2562,19 +2554,17 @@
     sec1Heading.innerText = "More Like This";
 
     const processAndRenderRecommendations = (items) => {
-      const candidates = items.filter(c => c.id !== excludeId);
+      let candidates = items.filter(c => c.id !== excludeId);
+      if (candidates.length === 0) candidates = items;
 
-      // Score and rank all items via the recommendation algorithm
       const scoredItems = candidates.map(c => ({
         item: c,
         score: computeRelevanceScore(currentChannel, c, userWatchlist)
       }));
 
-      // Sort descending by relevance score
       scoredItems.sort((a, b) => b.score - a.score);
       const rankedList = scoredItems.map(s => s.item);
 
-      // 1. Portrait 16:9 Banner Recommendation Cards
       recGrid.innerHTML = rankedList.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="banner-card">
           <div class="banner-thumb-box">
@@ -2586,7 +2576,6 @@
         </div>
       `).join('');
 
-      // 2. Landscape "Watch Next" Drawer Cards
       drawerCardsRow.innerHTML = rankedList.map(c => `
         <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
           <div class="watch-card-thumb-wrap">
@@ -2599,7 +2588,6 @@
       `).join('');
     };
 
-    // Instant initial render from in-memory cache
     if (cachedCollectionData[fetchCol] && cachedCollectionData[fetchCol].length > 0) {
       processAndRenderRecommendations(cachedCollectionData[fetchCol]);
     }
