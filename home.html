@@ -619,24 +619,63 @@
     }
 
     // 1. DPH_ALGO Profile Parser
-    function parseDphAlgo(descStr) {
-      if (!descStr || typeof descStr !== 'string') return null;
+    //
+    // Preferred format going forward — a native Firestore map field on the user
+    // doc, e.g.:
+    //   DPH_ALGO: {
+    //     studios: ["HBO"],
+    //     languages: ["Hindi"],
+    //     lastWatched: ["Hoppers"],
+    //     genres: ["superhero"],
+    //     ageRatings: ["U/A 13+"]
+    //   }
+    // This is just a Firestore map — no JSON.stringify needed, write it directly.
+    //
+    // Still accepts the old free-text sentence format on existing user docs
+    // ("he/she like movies form (HBO), ...") so nothing already written breaks.
+    // That legacy path had a real bug: it split every field on "/" and on
+    // whitespace to support multiple values, which also shredded any single
+    // value that legitimately contains those characters — "U/A 13+" became
+    // ["u","a","13+"] and could never match again, and "Science Fiction" became
+    // ["science","fiction"]. Fixed below by only splitting on commas (and only
+    // splitting age ratings on commas, never "/").
+    function normalizeList(val) {
+      if (Array.isArray(val)) return val.map(v => safeString(v).trim().toLowerCase()).filter(Boolean);
+      return safeString(val).split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+    }
+
+    function parseDphAlgo(raw) {
+      if (!raw) return null;
+
+      // Structured format: a Firestore map field.
+      if (typeof raw === 'object' && !Array.isArray(raw)) {
+        const profile = {
+          studios: normalizeList(raw.studios),
+          languages: normalizeList(raw.languages),
+          lastWatched: normalizeList(raw.lastWatched),
+          genres: normalizeList(raw.genres),
+          ageRatings: normalizeList(raw.ageRatings),
+          tokens: new Set()
+        };
+        [...profile.studios, ...profile.languages, ...profile.lastWatched, ...profile.genres, ...profile.ageRatings]
+          .forEach(v => tokenize(v).forEach(t => profile.tokens.add(t)));
+        return profile;
+      }
+
+      // Legacy free-text sentence format.
+      if (typeof raw !== 'string') return null;
 
       const profile = {
-        studios: [],
-        languages: [],
-        lastWatched: [],
-        genres: [],
-        ageRatings: [],
-        tokens: new Set()
+        studios: [], languages: [], lastWatched: [], genres: [], ageRatings: [], tokens: new Set()
       };
 
-      const clean = descStr.replace(/[\n\r]+/g, ' ');
+      const clean = raw.replace(/[\n\r]+/g, ' ');
 
-      const extractGroup = (regex) => {
+      const extractGroup = (regex, allowSlashSplit = true) => {
         const match = clean.match(regex);
         if (match && match[1]) {
-          return match[1].split(/[,/|•\s]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+          const splitter = allowSlashSplit ? /[,/|•]+/ : /[,|•]+/;
+          return match[1].split(splitter).map(s => s.trim().toLowerCase()).filter(Boolean);
         }
         return [];
       };
@@ -645,7 +684,8 @@
       profile.languages = extractGroup(/(?:prefer|language|lang)\s*\((.*?)\)/i);
       profile.lastWatched = extractGroup(/(?:lastly|watched|history|movies)\s*\d*\s*(?:movies|shows)?\s*\((.*?)\)/i);
       profile.genres = extractGroup(/(?:genres|genre|like)\s*(?:of)?\s*\((.*?)\)/i);
-      profile.ageRatings = extractGroup(/(?:age_rating|rating|confert|comfort)\s*\((.*?)\)/i);
+      // Age ratings never split on "/" — "U/A 13+" is one value, not three.
+      profile.ageRatings = extractGroup(/(?:age_rating|rating|confert|comfort)\s*\((.*?)\)/i, false);
 
       tokenize(clean).forEach(t => profile.tokens.add(t));
       return profile;
