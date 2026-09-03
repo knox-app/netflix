@@ -3,26 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Disney+ Hotstar</title>
+  <title>Hotstar Hero Carousel</title>
   
-  <!-- HLS.js & YouTube API for Trailers and Stream Previews -->
+  <!-- HLS & YouTube Support for Trailers -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     :root {
-      --bg-color: #0c0f17;
-      --surface-color: #161822;
-      --surface-elevated: #1e2230;
+      --bg-dark: #090a10;
       --accent-blue: #0072ef;
-      --accent-gradient: linear-gradient(90deg, #0072ef 0%, #a4009a 100%);
+      --accent-gradient: linear-gradient(90deg, #0072ef 0%, #b80093 100%);
       --text-main: #ffffff;
       --text-muted: #8f98b2;
-      --text-dim: #5a6275;
-      --nav-height: 64px;
+      --text-dim: #5c6275;
       --radius-sm: 8px;
       --radius-md: 12px;
-      --radius-lg: 18px;
     }
 
     * {
@@ -35,16 +31,19 @@
     }
 
     body {
-      background-color: var(--bg-color);
+      background-color: var(--bg-dark);
       color: var(--text-main);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
       overflow-x: hidden;
-      padding-bottom: calc(var(--nav-height) + 20px);
       user-select: none;
     }
 
-    /* Top App Bar */
-    .top-bar {
+    /* Top Brand & Status */
+    .top-header {
       position: absolute;
       top: 0;
       left: 0;
@@ -54,58 +53,36 @@
       justify-content: space-between;
       align-items: center;
       padding: 16px 20px;
-      background: linear-gradient(180deg, rgba(12,15,23,0.9) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(9, 10, 16, 0.85) 0%, transparent 100%);
       pointer-events: none;
     }
-    .brand-logo-wrap {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      pointer-events: auto;
-    }
-    .brand-logo-text {
-      font-size: 18px;
+    .brand-title {
+      font-size: 19px;
       font-weight: 800;
-      letter-spacing: -0.5px;
       color: #fff;
-    }
-    .brand-logo-text span {
-      color: #1f80e0;
-      font-weight: 700;
-    }
-    .top-actions {
-      display: flex;
-      gap: 16px;
       pointer-events: auto;
     }
-    .cast-btn {
-      background: none;
-      border: none;
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .cast-btn svg { width: 24px; height: 24px; fill: currentColor; }
+    .brand-title span { color: var(--accent-blue); }
 
-    /* Hero Carousel Container */
-    .hero-carousel {
+    /* Carousel Wrapper */
+    .carousel-root {
       position: relative;
       width: 100%;
-      height: 72vh;
-      min-height: 520px;
-      max-height: 640px;
+      max-width: 1200px;
+      height: 75vh;
+      min-height: 540px;
+      max-height: 680px;
       overflow: hidden;
-      background: #05070a;
+      background: #000;
     }
 
+    /* Individual Slide */
     .carousel-slide {
       position: absolute;
       inset: 0;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.6s ease-in-out;
+      transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
@@ -115,157 +92,160 @@
       pointer-events: auto;
     }
 
-    /* Media Background & Trailer Canvas */
-    .slide-media-wrap {
+    /* Background Media Layer */
+    .slide-media-layer {
       position: absolute;
       inset: 0;
       z-index: 1;
+      overflow: hidden;
     }
     .slide-banner-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center top;
+      object-position: center 20%;
       transition: transform 6s cubic-bezier(0.25, 1, 0.5, 1);
     }
     .carousel-slide.active .slide-banner-img {
-      transform: scale(1.04);
+      transform: scale(1.05);
     }
-    .slide-trailer-video {
+
+    .slide-video-trailer {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       opacity: 0;
-      transition: opacity 0.8s ease-in-out;
       z-index: 2;
+      transition: opacity 0.8s ease-in-out;
     }
-    .slide-trailer-video.playing {
+    .slide-video-trailer.playing {
       opacity: 1;
     }
 
-    .slide-yt-frame {
+    .slide-yt-container {
       position: absolute;
-      top: -10%;
-      left: -10%;
-      width: 120%;
-      height: 120%;
-      border: none;
+      top: -15%;
+      left: -15%;
+      width: 130%;
+      height: 130%;
       opacity: 0;
+      z-index: 2;
       pointer-events: none;
       transition: opacity 0.8s ease;
-      z-index: 2;
     }
-    .slide-yt-frame.playing {
+    .slide-yt-container.playing {
       opacity: 1;
     }
+    .slide-yt-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
 
-    /* Cinematic Gradient Overlays */
-    .hero-vignette {
+    /* Cinematic Gradient Vignettes */
+    .vignette-overlay {
       position: absolute;
       inset: 0;
       z-index: 3;
       background: linear-gradient(
         180deg,
-        rgba(12, 15, 23, 0.2) 0%,
-        rgba(12, 15, 23, 0) 30%,
-        rgba(12, 15, 23, 0.7) 65%,
-        var(--bg-color) 98%
+        rgba(9, 10, 16, 0.3) 0%,
+        rgba(9, 10, 16, 0) 25%,
+        rgba(9, 10, 16, 0.6) 60%,
+        var(--bg-dark) 98%
       );
     }
-    .hero-radial-glow {
+    .purple-mist-glow {
       position: absolute;
       inset: 0;
       z-index: 3;
-      background: radial-gradient(circle at center 60%, transparent 40%, rgba(12, 15, 23, 0.8) 100%);
+      background: radial-gradient(circle at 60% 65%, rgba(140, 20, 180, 0.25) 0%, transparent 65%);
     }
 
-    /* Content Info */
-    .slide-details {
+    /* Content & Meta Information */
+    .slide-content {
       position: relative;
       z-index: 5;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      text-align: center;
-      padding: 0 24px 28px;
+      align-items: flex-start;
+      text-align: left;
+      padding: 0 24px 34px;
+      max-width: 620px;
     }
 
     .title-logo-img {
-      max-width: 220px;
-      max-height: 85px;
+      max-width: 240px;
+      max-height: 90px;
       object-fit: contain;
-      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8));
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.8));
     }
     .title-text-fallback {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 800;
       letter-spacing: -0.5px;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
       margin-bottom: 8px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
     }
 
     .meta-pills-row {
       display: flex;
       align-items: center;
-      justify-content: center;
       flex-wrap: wrap;
       gap: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #fff;
       margin-bottom: 8px;
     }
     .meta-pills-row span.dot {
       font-size: 8px;
-      opacity: 0.6;
+      color: var(--text-muted);
+      margin: 0 2px;
     }
 
     .genre-row {
       display: flex;
       align-items: center;
-      justify-content: center;
+      flex-wrap: wrap;
       gap: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 14px;
-      opacity: 0.9;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+      opacity: 0.95;
     }
     .genre-row span.pipe { color: var(--text-dim); }
 
     .story-desc {
-      font-size: 12px;
-      line-height: 1.4;
-      color: #c9d1e0;
-      max-width: 520px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: #d1d6e6;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      margin-bottom: 18px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      margin-bottom: 20px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
 
-    /* Primary CTAs */
-    .hero-cta-group {
+    /* Buttons Row */
+    .cta-row {
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 12px;
       width: 100%;
-      max-width: 360px;
     }
 
-    .btn-watch-primary {
-      flex: 1;
+    .btn-watch {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 12px 20px;
+      padding: 12px 24px;
       border-radius: var(--radius-md);
       background: var(--accent-gradient);
       color: #fff;
@@ -274,22 +254,22 @@
       border: none;
       cursor: pointer;
       text-decoration: none;
-      box-shadow: 0 4px 18px rgba(0, 114, 239, 0.4);
+      box-shadow: 0 4px 18px rgba(0, 114, 239, 0.45);
       transition: transform 0.15s ease, filter 0.15s ease;
     }
-    .btn-watch-primary:active {
-      transform: scale(0.97);
+    .btn-watch:active {
+      transform: scale(0.96);
       filter: brightness(1.1);
     }
-    .btn-watch-primary svg { width: 16px; height: 16px; fill: currentColor; }
+    .btn-watch svg { width: 16px; height: 16px; fill: currentColor; }
 
-    .btn-watchlist-toggle {
-      width: 46px;
-      height: 46px;
+    .btn-watchlist {
+      width: 44px;
+      height: 44px;
       border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.22);
       color: #fff;
       display: flex;
       align-items: center;
@@ -297,23 +277,24 @@
       cursor: pointer;
       transition: background 0.15s ease, transform 0.15s ease;
     }
-    .btn-watchlist-toggle:active { transform: scale(0.92); }
-    .btn-watchlist-toggle.active {
+    .btn-watchlist:active { transform: scale(0.92); }
+    .btn-watchlist.active {
       background: rgba(0, 114, 239, 0.35);
       border-color: var(--accent-blue);
       color: var(--accent-blue);
     }
-    .btn-watchlist-toggle svg { width: 22px; height: 22px; fill: currentColor; }
+    .btn-watchlist svg { width: 20px; height: 20px; fill: currentColor; }
 
-    /* Carousel Pagination Indicators */
+    /* Indicator Dots */
     .carousel-indicators {
       position: absolute;
-      bottom: 6px;
+      bottom: 12px;
       left: 0;
       right: 0;
       z-index: 10;
       display: flex;
       justify-content: center;
+      align-items: center;
       gap: 6px;
     }
     .indicator-dot {
@@ -321,386 +302,76 @@
       height: 5px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.3);
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
     }
     .indicator-dot.active {
-      width: 16px;
+      width: 18px;
       border-radius: 4px;
       background: #ffffff;
     }
 
-    /* Category Floating Pills */
-    .category-pills-bar {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      padding: 12px 20px 4px;
-      margin-top: -6px;
-      position: relative;
-      z-index: 12;
-    }
-    .category-pill-box {
-      display: inline-flex;
-      background: rgba(26, 30, 42, 0.85);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 30px;
-      padding: 4px 6px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-    .category-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 13px;
-      font-weight: 700;
-      padding: 7px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .category-btn.active {
-      background: rgba(255, 255, 255, 0.16);
-      color: #ffffff;
-    }
-
-    /* Content Rows */
-    .content-sections-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 26px;
-      margin-top: 14px;
-    }
-    .section-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding-left: 16px;
-    }
-    .section-title {
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: 0.2px;
-      color: #fff;
-    }
-
-    .horizontal-row-scroll {
-      display: flex;
-      gap: 12px;
-      overflow-x: auto;
-      padding-right: 16px;
-      scrollbar-width: none;
-    }
-    .horizontal-row-scroll::-webkit-scrollbar { display: none; }
-
-    /* Continue Watching Card */
-    .cw-card {
-      min-width: 175px;
-      width: 175px;
-      background: var(--surface-color);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      text-decoration: none;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      cursor: pointer;
-      transition: transform 0.15s ease;
-    }
-    .cw-card:active { transform: scale(0.97); }
-
-    .cw-thumb-box {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16/9;
-      background: #000;
-    }
-    .cw-thumb-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .cw-play-badge {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.3);
-    }
-    .cw-play-badge svg {
-      width: 28px;
-      height: 28px;
-      fill: #fff;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
-    }
-    .cw-progress-bar-bg {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: rgba(255,255,255,0.25);
-    }
-    .cw-progress-bar-fill {
-      height: 100%;
-      background: var(--accent-blue);
-      width: 45%;
-    }
-
-    .cw-info-box {
-      padding: 8px 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-    .cw-texts { min-width: 0; flex: 1; }
-    .cw-ep-tag {
-      font-size: 12px;
-      font-weight: 700;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .cw-status-sub {
-      font-size: 11px;
-      color: var(--accent-blue);
-      font-weight: 600;
-      margin-top: 2px;
-    }
-    .cw-more-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 0 0 0 6px;
-    }
-    .cw-more-btn svg { width: 16px; height: 16px; fill: currentColor; }
-
-    /* Standard Poster/Banner Card */
-    .media-card {
-      min-width: 135px;
-      width: 135px;
-      display: flex;
-      flex-direction: column;
-      text-decoration: none;
-      color: #fff;
-      cursor: pointer;
-      transition: transform 0.15s ease;
-    }
-    .media-card:active { transform: scale(0.96); }
-
-    .media-card-thumb-wrap {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 2/3;
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      background: var(--surface-color);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .media-card-thumb-wrap.landscape-thumb {
-      aspect-ratio: 16/9;
-    }
-    .media-card-thumb-wrap img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .media-card-badge {
-      position: absolute;
-      top: 6px;
-      left: 6px;
-      background: rgba(0, 114, 239, 0.85);
-      font-size: 9px;
-      font-weight: 800;
-      padding: 2px 5px;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
-
-    .media-card-title {
-      font-size: 12.5px;
-      font-weight: 700;
-      margin-top: 6px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .media-card-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Bottom Navigation Bar */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: var(--nav-height);
-      background: rgba(12, 15, 23, 0.95);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 100;
-      padding: 0 10px;
-    }
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: color 0.15s ease;
-      flex: 1;
-    }
-    .nav-item.active {
-      color: #ffffff;
-    }
-    .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
-    .nav-avatar-img {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 1px solid rgba(255,255,255,0.3);
-    }
-
-    /* Toast Notification */
+    /* Toast */
     .toast-pill {
       position: fixed;
-      bottom: calc(var(--nav-height) + 16px);
+      top: 24px;
       left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: rgba(22, 24, 34, 0.95);
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(20, 24, 35, 0.95);
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 8px 18px;
-      border-radius: 30px;
+      border-radius: 20px;
       font-size: 12px;
       font-weight: 700;
       color: #fff;
       opacity: 0;
       pointer-events: none;
-      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-      z-index: 200;
+      transition: all 0.25s ease;
+      z-index: 100;
     }
     .toast-pill.show {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+
+    @media (max-width: 600px) {
+      .slide-content {
+        align-items: center;
+        text-align: center;
+        padding: 0 20px 28px;
+      }
+      .cta-row {
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
 
-  <!-- Top Status & Cast Bar -->
-  <header class="top-bar">
-    <div class="brand-logo-wrap">
-      <span class="brand-logo-text">Disney+ <span>hotstar</span></span>
-    </div>
-    <div class="top-actions">
-      <button class="cast-btn" title="Cast to screen">
-        <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-      </button>
-    </div>
+  <!-- Top App Brand -->
+  <header class="top-header">
+    <div class="brand-title">Disney+ <span>hotstar</span></div>
   </header>
 
-  <!-- Hero Banner / Trailer Carousel -->
-  <div class="hero-carousel" id="heroCarousel">
-    <div id="carouselSlidesHost"></div>
+  <!-- Hero Carousel Module -->
+  <div class="carousel-root" id="heroCarousel">
+    <div id="slidesHost"></div>
 
-    <div class="hero-vignette"></div>
-    <div class="hero-radial-glow"></div>
+    <div class="vignette-overlay"></div>
+    <div class="purple-mist-glow"></div>
 
     <!-- Indicator Dots -->
     <div class="carousel-indicators" id="carouselIndicators"></div>
   </div>
 
-  <!-- Category Pills (All, TV, Movies, Originals) -->
-  <div class="category-pills-bar">
-    <div class="category-pill-box">
-      <button class="category-btn active" data-filter="all">All</button>
-      <button class="category-btn" data-filter="Shows">TV</button>
-      <button class="category-btn" data-filter="Movies">Movies</button>
-      <button class="category-btn" data-filter="Originals">Originals</button>
-    </div>
-  </div>
-
-  <!-- Main Scrollable Feed Sections -->
-  <main class="content-sections-wrapper" id="mainFeed">
-
-    <!-- Continue Watching Row -->
-    <section class="section-container" id="secContinueWatching">
-      <h2 class="section-title" id="cwSectionTitle">Continue Watching for User</h2>
-      <div class="horizontal-row-scroll" id="cwList"></div>
-    </section>
-
-    <!-- Personalized Recommendations (Hybrid Algorithm) -->
-    <section class="section-container">
-      <h2 class="section-title">Recommended for You</h2>
-      <div class="horizontal-row-scroll" id="recList"></div>
-    </section>
-
-    <!-- Trending Movies -->
-    <section class="section-container">
-      <h2 class="section-title">Blockbuster Movies</h2>
-      <div class="horizontal-row-scroll" id="moviesList"></div>
-    </section>
-
-    <!-- Popular TV Shows -->
-    <section class="section-container">
-      <h2 class="section-title">Popular Shows</h2>
-      <div class="horizontal-row-scroll" id="showsList"></div>
-    </section>
-
-  </main>
-
   <!-- Toast Notification -->
   <div class="toast-pill" id="toastPill">Added to Watchlist</div>
 
-  <!-- Bottom Navigation Bar -->
-  <nav class="bottom-nav">
-    <a class="nav-item active" href="#">
-      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-      <span>Home</span>
-    </a>
-    <a class="nav-item" href="#">
-      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <span>Search</span>
-    </a>
-    <a class="nav-item" href="#">
-      <svg viewBox="0 0 24 24"><path d="M12 2l-1.41 1.41L16.17 9H4v2h12.17l-5.58 5.59L12 18l8-8z"/></svg>
-      <span>New & Hot</span>
-    </a>
-    <a class="nav-item" href="#">
-      <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-      <span>Downloads</span>
-    </a>
-    <a class="nav-item" href="#">
-      <img class="nav-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profile">
-      <span>My Space</span>
-    </a>
-  </nav>
-
-  <!-- Firebase & App Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, collection, onSnapshot, getDocs, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firestore Configurations
+    // Firestore Configuration
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -717,164 +388,63 @@
     const authApp = initializeApp(authConfig, "authApp");
     const authDb = getFirestore(authApp);
 
-    // App State
-    let databaseData = {
-      "Movies": [],
-      "Shows": [],
-      "Live TV": []
-    };
-    let currentUser = null;
-    let userWatchlist = [];
-    let currentCategoryFilter = 'all';
-
-    // Carousel State
+    // State Variables
+    let rawItems = [];
     let carouselItems = [];
     let currentSlideIdx = 0;
     let slideTimer = null;
-    let trailerVideoEl = null;
+    let currentUser = null;
+    let userWatchlist = [];
 
-    // 1. Initial Load & User Auth Sync
+    // 1. Initialize User & Watchlist
     function initUser() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
-        currentUser = stored ? JSON.parse(stored) : { "First Name": "Reuben", id: "guest_user", Watchlist: [] };
+        currentUser = stored ? JSON.parse(stored) : { id: "guest_user", Watchlist: [] };
       } catch(e) {
-        currentUser = { "First Name": "Reuben", id: "guest_user", Watchlist: [] };
+        currentUser = { id: "guest_user", Watchlist: [] };
       }
-
-      const name = currentUser["First Name"] || "User";
-      document.getElementById('cwSectionTitle').innerText = `Continue Watching for ${name}`;
       userWatchlist = currentUser.Watchlist || [];
     }
 
-    // Toast Alert
     function showToast(msg) {
       const el = document.getElementById('toastPill');
       el.innerText = msg;
       el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 2200);
+      setTimeout(() => el.classList.remove('show'), 2000);
     }
 
-    // Helper URLs
-    function getBannerImg(item) {
-      return item["Poster.h"] || item.Poster_h || item.poster_h || item.Banner || item.banner || item.Poster || item.Logo || "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80";
+    function getBanner(item) {
+      return item["Poster.h"] || item.Poster_h || item.poster_h || item.Banner || item.banner || item.Poster || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80";
     }
-    function getPosterImg(item) {
-      return item.Poster || item["Poster.v"] || item.poster || getBannerImg(item);
-    }
-    function getLogoImg(item) {
+
+    function getLogo(item) {
       return item["Logo.png"] || item.Logo || item.logo || "";
     }
 
-    // 2. Fetch Datasets with Firestore Real-time Listeners
-    function startDataListeners() {
-      const collections = ["Movies", "Shows", "Live TV"];
-      let loadedCount = 0;
-
-      collections.forEach(colName => {
-        onSnapshot(collection(channelDb, colName), (snap) => {
-          const list = [];
-          snap.forEach(d => list.push({ id: d.id, _collection: colName, ...d.data() }));
-          databaseData[colName] = list;
-          loadedCount++;
-
-          if (loadedCount >= collections.length || list.length > 0) {
-            refreshFeed();
-          }
-        }, (err) => {
-          console.warn(`Firestore read fallback for ${colName}:`, err);
-          // Fallback demo data if offline / permission denied
-          injectDemoFallbackData();
-          refreshFeed();
-        });
-      });
-    }
-
-    function injectDemoFallbackData() {
-      if (databaseData.Movies.length === 0) {
-        databaseData.Movies = [
-          {
-            id: "aladdin_2021",
-            Name: "Aladdin",
-            Year: "2021",
-            Duration: "2h 8m",
-            Language: "English",
-            "Multi-Language": { Hindi: "yes", Tamil: "yes" },
-            Genres: "Drama, Fantasy, Adventure, Romance",
-            Tags: ["Magic", "Genie", "Disney", "Musical"],
-            Description: "A kindhearted street urchin named Aladdin embarks on a magical adventure after finding a lamp that unleashes a wisecracking Genie.",
-            "Poster.h": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&auto=format&fit=crop&q=80",
-            Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Aladdin_2019_logo.svg/500px-Aladdin_2019_logo.svg.png",
-            Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-          },
-          {
-            id: "mandalorian",
-            Name: "The Mandalorian",
-            Year: "2023",
-            Duration: "45m",
-            Language: "English",
-            Genres: "Action, Sci-Fi, Adventure",
-            Tags: ["Star Wars", "Bounty Hunter", "Space"],
-            Description: "The travels of a lone bounty hunter in the outer reaches of the galaxy, far from the authority of the New Republic.",
-            "Poster.h": "https://images.unsplash.com/photo-1579566346927-c68383817a25?w=1200&auto=format&fit=crop&q=80",
-            Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-          },
-          {
-            id: "shaitan_ghar",
-            Name: "Khali Dimaag Shaitan Ka Ghar",
-            Year: "2026",
-            Duration: "46m",
-            Language: "Hindi",
-            Genres: "Comedy, Kids, Animation, Sitcom",
-            Tags: ["Ghost", "Bhoot Bandhus", "Challenges"],
-            Description: "A ghost spirit possesses Happy, and Pinaki must defeat it in three challenges within 30 minutes to save his friend.",
-            "Poster.h": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
-            Trailer: ""
-          }
-        ];
-      }
-    }
-
-    // =========================================================================
-    // 3. ADVANCED MULTI-VECTOR RECOMMENDATION ALGORITHM
-    // Scores and balances New Releases, Tag Overlap, Genre, Language & Watchlist
-    // =========================================================================
-    function getPersonalizedRankings(allItems, targetContext = null) {
+    // 2. Multi-Vector Recommendation Algorithm for Carousel Selection
+    function rankContentForCarousel(items) {
       const nowYear = new Date().getFullYear();
 
-      return allItems.map(item => {
+      return items.map(item => {
         let score = 0;
 
-        // 1. Recency & Freshness Boost (Max 30 pts)
-        const itemYear = parseInt(item.Year || item["Release Year"] || "2020");
-        const age = Math.max(0, nowYear - itemYear);
-        if (age <= 1) score += 30; // Brand New
-        else if (age <= 3) score += 18; // Recent
-        else score += 8; // Classic baseline
+        // Recency Score (up to 30 pts)
+        const year = parseInt(item.Year || item["Release Year"] || "2020");
+        const age = Math.max(0, nowYear - year);
+        if (age <= 1) score += 30;
+        else if (age <= 3) score += 18;
+        else score += 10;
 
-        // 2. User Watchlist Affinity (25 pts)
-        if (userWatchlist.includes(item.id)) {
-          score += 25;
+        // Watchlist Affinity (20 pts)
+        if (userWatchlist.includes(item.id)) score += 20;
+
+        // High priority genres & studio tags
+        const genres = (item.Genres || item.Genre || "").toLowerCase();
+        if (genres.includes("animation") || genres.includes("action") || genres.includes("comedy") || genres.includes("drama")) {
+          score += 15;
         }
-
-        // 3. Genre & Tag Similarity Matrix
-        const itemGenres = (item.Genres || item.Genre || "").toLowerCase().split(/[,/|•\s]+/).filter(Boolean);
-        const itemTags = (item.Tags || []).map(t => String(t).toLowerCase());
-
-        if (targetContext) {
-          const targetGenres = (targetContext.Genres || "").toLowerCase().split(/[,/|•\s]+/);
-          itemGenres.forEach(g => {
-            if (targetGenres.includes(g)) score += 20;
-          });
-          const targetTags = (targetContext.Tags || []).map(t => String(t).toLowerCase());
-          itemTags.forEach(t => {
-            if (targetTags.includes(t)) score += 15;
-          });
-        } else {
-          // General audience weights for core Hotstar genres
-          if (itemGenres.includes("action") || itemGenres.includes("drama") || itemGenres.includes("comedy")) score += 12;
-          if (item.Language === "Hindi" || item.Language === "English") score += 10;
-        }
+        if (item.Trailer || item.trailer) score += 10; // Prioritize items with rich preview trailers
 
         return { item, score };
       })
@@ -882,74 +452,100 @@
       .map(entry => entry.item);
     }
 
-    // 4. Render Main Content & Feeds
-    function refreshFeed() {
-      const allPool = [...databaseData.Movies, ...databaseData.Shows, ...databaseData["Live TV"]];
-      if (allPool.length === 0) return;
+    // 3. Listen to Firestore or Fallback Data
+    function startDataListener() {
+      const collections = ["Movies", "Shows", "Live TV"];
+      let pool = [];
 
-      // Filtered views
-      let filteredPool = allPool;
-      if (currentCategoryFilter === "Movies") filteredPool = databaseData.Movies;
-      else if (currentCategoryFilter === "Shows") filteredPool = databaseData.Shows;
-      else if (currentCategoryFilter === "Originals") filteredPool = allPool.filter(x => (x.Tags || []).includes("Disney") || (x.Studio || '').includes("Disney"));
-
-      // 1. Setup Hero Carousel (Top 5 Ranked)
-      carouselItems = getPersonalizedRankings(filteredPool).slice(0, 5);
-      renderHeroCarousel();
-
-      // 2. Setup Continue Watching Row
-      renderContinueWatching();
-
-      // 3. Setup Recommended For You Row
-      const recs = getPersonalizedRankings(filteredPool);
-      renderScrollRow('recList', recs, false);
-
-      // 4. Blockbuster Movies
-      renderScrollRow('moviesList', databaseData.Movies, false);
-
-      // 5. Popular Shows
-      renderScrollRow('showsList', databaseData.Shows, true);
+      collections.forEach(colName => {
+        onSnapshot(collection(channelDb, colName), (snap) => {
+          snap.forEach(d => pool.push({ id: d.id, _collection: colName, ...d.data() }));
+          if (pool.length > 0) {
+            rawItems = pool;
+            carouselItems = rankContentForCarousel(rawItems).slice(0, 6);
+            renderCarousel();
+          }
+        }, () => {
+          // Fallback demo data
+          if (rawItems.length === 0) {
+            rawItems = getDemoDataset();
+            carouselItems = rankContentForCarousel(rawItems);
+            renderCarousel();
+          }
+        });
+      });
     }
 
-    // 5. Carousel Rendering with 6-Second Banner & Trailer Engine
-    function renderHeroCarousel() {
-      const host = document.getElementById('carouselSlidesHost');
+    function getDemoDataset() {
+      return [
+        {
+          id: "shaitan_ghar",
+          Name: "Khali Dimaag Shaitan Ka Ghar",
+          Year: "2026",
+          Duration: "46m",
+          Language: "Hindi",
+          "Age Rating": "U",
+          "Multi-Language": { Hindi: "1", Tamil: "1", Telugu: "1", Kannada: "1", Malayalam: "1", Bengali: "1", Marathi: "1" },
+          Genres: "Comedy, Kids, Animation, Sitcom",
+          Description: "A ghost spirit possesses Happy, and Pinaki must defeat it in three challenges within 30 minutes to save his friend.",
+          "Poster.h": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
+          Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Aladdin_2019_logo.svg/500px-Aladdin_2019_logo.svg.png",
+          Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+        },
+        {
+          id: "aladdin_2021",
+          Name: "Aladdin",
+          Year: "2021",
+          Duration: "2h 8m",
+          Language: "English",
+          "Age Rating": "U/A 13+",
+          "Multi-Language": { Hindi: "1", Tamil: "1", Telugu: "1" },
+          Genres: "Drama, Fantasy, Adventure, Romance",
+          Description: "A street urchin embarks on a magical adventure after finding a lamp that unleashes a wisecracking Genie.",
+          "Poster.h": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&auto=format&fit=crop&q=80",
+          Trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+        }
+      ];
+    }
+
+    // 4. Render Carousel Slides and Indicators
+    function renderCarousel() {
+      const host = document.getElementById('slidesHost');
       const indicators = document.getElementById('carouselIndicators');
 
       host.innerHTML = '';
       indicators.innerHTML = '';
-      currentSlideIdx = 0;
 
       carouselItems.forEach((item, idx) => {
         const isAdded = userWatchlist.includes(item.id);
-        const logoUrl = getLogoImg(item);
-        const bannerUrl = getBannerImg(item);
+        const bannerUrl = getBanner(item);
+        const logoUrl = getLogo(item);
         const titleText = item.Name || item.Title || "Hotstar Special";
 
-        const year = item.Year || "2024";
+        const year = item.Year || "2026";
         const rating = item["Age Rating"] || item.Rating || "U";
-        const duration = item.Duration || "2h 10m";
+        const duration = item.Duration || "46m";
         const langs = item["Multi-Language"] ? `${Object.keys(item["Multi-Language"]).length + 1} Languages` : (item.Language || "Hindi");
 
-        const genres = (item.Genres || "Action, Drama").split(',').map(g => g.trim()).slice(0, 3);
+        const genres = (item.Genres || "Comedy, Kids, Animation").split(',').map(g => g.trim()).slice(0, 4);
 
         const slide = document.createElement('div');
         slide.className = `carousel-slide ${idx === 0 ? 'active' : ''}`;
         slide.id = `slide_${idx}`;
         slide.innerHTML = `
-          <div class="slide-media-wrap">
+          <div class="slide-media-layer">
             <img class="slide-banner-img" src="${bannerUrl}" alt="${titleText}" loading="eager">
-            <video class="slide-trailer-video" id="video_${idx}" playsinline muted></video>
-            <div id="yt_host_${idx}" class="slide-yt-frame"></div>
+            <video class="slide-video-trailer" id="trailer_vid_${idx}" playsinline muted></video>
+            <div id="yt_frame_${idx}" class="slide-yt-container"></div>
           </div>
 
-          <div class="slide-details">
+          <div class="slide-content">
             ${logoUrl ? `<img class="title-logo-img" src="${logoUrl}" alt="${titleText}">` : `<h1 class="title-text-fallback">${titleText}</h1>`}
             
             <div class="meta-pills-row">
-              <span>${item.Language || 'English'}</span>
-              <span class="dot">•</span>
               <span>${year}</span>
+              <span class="dot">•</span>
+              <span>${rating}</span>
               <span class="dot">•</span>
               <span>${duration}</span>
               <span class="dot">•</span>
@@ -960,14 +556,14 @@
               ${genres.join(' <span class="pipe">|</span> ')}
             </div>
 
-            <p class="story-desc">${item.Description || "Experience this critically acclaimed streaming blockbuster now streaming exclusively on Disney+ Hotstar."}</p>
+            <p class="story-desc">${item.Description || "Stream this blockbuster title now on Disney+ Hotstar."}</p>
 
-            <div class="hero-cta-group">
-              <a class="btn-watch-primary" href="1.html?watch=${item.id}">
+            <div class="cta-row">
+              <a class="btn-watch" href="1.html?watch=${item.id}">
                 <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                <span>Watch Now</span>
+                <span>Upgrade to Watch</span>
               </a>
-              <button class="btn-watchlist-toggle ${isAdded ? 'active' : ''}" onclick="window.toggleWatchlist('${item.id}')" title="Add to Watchlist">
+              <button class="btn-watchlist ${isAdded ? 'active' : ''}" onclick="window.toggleWatchlist('${item.id}')" title="Watchlist">
                 <svg viewBox="0 0 24 24">
                   ${isAdded 
                     ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' 
@@ -979,40 +575,38 @@
         `;
         host.appendChild(slide);
 
-        // Indicator Dot
+        // Indicator
         const dot = document.createElement('div');
         dot.className = `indicator-dot ${idx === 0 ? 'active' : ''}`;
         dot.onclick = () => jumpToSlide(idx);
         indicators.appendChild(dot);
       });
 
-      startSlideLifecycle(0);
+      startSlideCycle(0);
     }
 
-    // Auto Playback Lifecycle: 6s Banner -> Trailer -> Next Slide
-    function startSlideLifecycle(index) {
+    // 5. 6-Second Banner & Trailer Engine
+    function startSlideCycle(idx) {
       clearTimeout(slideTimer);
-      stopCurrentTrailers();
+      stopTrailers();
 
-      const item = carouselItems[index];
+      const item = carouselItems[idx];
       if (!item) return;
 
-      const slideEl = document.getElementById(`slide_${index}`);
-      const videoEl = document.getElementById(`video_${index}`);
+      const videoEl = document.getElementById(`trailer_vid_${idx}`);
       const trailerUrl = item.Trailer || item.trailer || "";
 
-      // Step 1: Display static banner image for exactly 6 seconds
+      // Show Banner for 6 seconds
       slideTimer = setTimeout(() => {
         if (trailerUrl) {
-          playTrailer(index, trailerUrl, videoEl, slideEl);
+          playTrailerMedia(idx, trailerUrl, videoEl);
         } else {
-          // If no trailer, seamlessly advance to next slide
           nextSlide();
         }
       }, 6000);
     }
 
-    function playTrailer(index, url, videoEl, slideEl) {
+    function playTrailerMedia(idx, url, videoEl) {
       if (url.includes('.mp4') || url.includes('.m3u8')) {
         videoEl.src = url;
         videoEl.muted = true;
@@ -1022,15 +616,13 @@
 
         videoEl.onended = () => nextSlide();
         videoEl.onerror = () => nextSlide();
-      } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        // Embed YouTube trailer
-        const ytHost = document.getElementById(`yt_host_${index}`);
-        const ytId = extractYouTubeId(url);
+      } else if (url.includes('youtube') || url.includes('youtu.be')) {
+        const ytHost = document.getElementById(`yt_frame_${idx}`);
+        const ytId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=))([\w-]{11})/)?.[1];
         if (ytId) {
-          ytHost.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=0&enablejsapi=1" allow="autoplay" allowfullscreen></iframe>`;
+          ytHost.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=0" allow="autoplay"></iframe>`;
           ytHost.classList.add('playing');
-          // Wait 25s for trailer or switch
-          slideTimer = setTimeout(nextSlide, 25000);
+          slideTimer = setTimeout(nextSlide, 20000);
         } else {
           nextSlide();
         }
@@ -1039,21 +631,16 @@
       }
     }
 
-    function extractYouTubeId(url) {
-      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-      return match ? match[1] : null;
-    }
-
-    function stopCurrentTrailers() {
-      document.querySelectorAll('.slide-trailer-video').forEach(v => {
+    function stopTrailers() {
+      document.querySelectorAll('.slide-video-trailer').forEach(v => {
         v.pause();
         v.removeAttribute('src');
         v.load();
         v.classList.remove('playing');
       });
-      document.querySelectorAll('.slide-yt-frame').forEach(f => {
-        f.innerHTML = '';
-        f.classList.remove('playing');
+      document.querySelectorAll('.slide-yt-container').forEach(y => {
+        y.innerHTML = '';
+        y.classList.remove('playing');
       });
     }
 
@@ -1065,145 +652,52 @@
 
     function jumpToSlide(idx) {
       clearTimeout(slideTimer);
-      stopCurrentTrailers();
+      stopTrailers();
 
       document.querySelectorAll('.carousel-slide').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.indicator-dot').forEach(d => d.classList.remove('active'));
 
       currentSlideIdx = idx;
 
-      const targetSlide = document.getElementById(`slide_${idx}`);
-      const targetDot = document.querySelectorAll('.indicator-dot')[idx];
+      const slide = document.getElementById(`slide_${idx}`);
+      const dot = document.querySelectorAll('.indicator-dot')[idx];
 
-      if (targetSlide) targetSlide.classList.add('active');
-      if (targetDot) targetDot.classList.add('active');
+      if (slide) slide.classList.add('active');
+      if (dot) dot.classList.add('active');
 
-      startSlideLifecycle(idx);
+      startSlideCycle(idx);
     }
 
-    // 6. Continue Watching Row Implementation
-    function renderContinueWatching() {
-      const listEl = document.getElementById('cwList');
-      const sampleCW = [
-        {
-          id: "mandalorian",
-          title: "The Mandalorian",
-          epTag: "S10 E1",
-          statusSub: "New Season",
-          progress: "40%",
-          banner: "https://images.unsplash.com/photo-1579566346927-c68383817a25?w=600&auto=format&fit=crop&q=80"
-        },
-        {
-          id: "imagineering",
-          title: "The Imagineering Story",
-          epTag: "S10 E12",
-          statusSub: "New Episode",
-          progress: "75%",
-          banner: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80"
-        },
-        {
-          id: "khali_dimaag",
-          title: "Khali Dimaag Shaitan Ka Ghar",
-          epTag: "S1 E3",
-          statusSub: "30m remaining",
-          progress: "60%",
-          banner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80"
-        }
-      ];
-
-      listEl.innerHTML = sampleCW.map(item => `
-        <div class="cw-card" onclick="window.location.href='1.html?watch=${item.id}'">
-          <div class="cw-thumb-box">
-            <img src="${item.banner}" alt="${item.title}" loading="lazy">
-            <div class="cw-play-badge">
-              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </div>
-            <div class="cw-progress-bar-bg">
-              <div class="cw-progress-bar-fill" style="width: ${item.progress};"></div>
-            </div>
-          </div>
-          <div class="cw-info-box">
-            <div class="cw-texts">
-              <div class="cw-ep-tag">${item.epTag}</div>
-              <div class="cw-status-sub">${item.statusSub}</div>
-            </div>
-            <button class="cw-more-btn" onclick="event.stopPropagation(); window.showToast('Episode options');">
-              <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // 7. Generic Horizontal Scroll List Renderer
-    function renderScrollRow(elementId, items, isLandscape = false) {
-      const container = document.getElementById(elementId);
-      if (!container) return;
-
-      container.innerHTML = items.slice(0, 10).map(item => {
-        const thumb = isLandscape ? getBannerImg(item) : getPosterImg(item);
-        const title = item.Name || item.Title || "Title";
-        const sub = item.Genres || item.Language || "Hotstar Special";
-
-        return `
-          <div class="media-card" onclick="window.location.href='1.html?watch=${item.id}'">
-            <div class="media-card-thumb-wrap ${isLandscape ? 'landscape-thumb' : ''}">
-              <img src="${thumb}" alt="${title}" loading="lazy">
-              ${(item.Tags || []).includes("Disney") ? '<span class="media-card-badge">Original</span>' : ''}
-            </div>
-            <div class="media-card-title">${title}</div>
-            <div class="media-card-sub">${sub}</div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // 8. Watchlist Toggle Handler
+    // 6. Watchlist Toggle
     window.toggleWatchlist = async function(id) {
-      const index = userWatchlist.indexOf(id);
-      const isRemoving = index > -1;
+      const idx = userWatchlist.indexOf(id);
+      const isRemoving = idx > -1;
 
       if (isRemoving) {
-        userWatchlist.splice(index, 1);
+        userWatchlist.splice(idx, 1);
         showToast("Removed from Watchlist");
       } else {
         userWatchlist.push(id);
         showToast("Added to Watchlist");
       }
 
-      // Sync with Firestore if user registered
       if (currentUser && currentUser.id && currentUser.id !== "guest_user") {
         try {
-          const userRef = doc(authDb, "UARM", currentUser.id);
-          await updateDoc(userRef, {
-            Watchlist: isRemoving ? arrayRemove(id) : arrayUnion(id)
-          });
-        } catch(e) {}
+          const uRef = doc(authDb, "UARM", currentUser.id);
+          await updateDoc(uRef, { Watchlist: isRemoving ? arrayRemove(id) : arrayUnion(id) });
+        } catch(e){}
       }
 
-      // Re-render hero button state
-      const btn = document.querySelector(`#slide_${currentSlideIdx} .btn-watchlist-toggle`);
+      const btn = document.querySelector(`#slide_${currentSlideIdx} .btn-watchlist`);
       if (btn) {
         btn.classList.toggle('active', !isRemoving);
         btn.innerHTML = `<svg viewBox="0 0 24 24">${!isRemoving ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}</svg>`;
       }
     };
 
-    // 9. Category Pill Filtering
-    document.querySelectorAll('.category-btn').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentCategoryFilter = btn.dataset.filter;
-        refreshFeed();
-      };
-    });
-
-    window.showToast = showToast;
-
-    // Start App
+    // Run
     initUser();
-    startDataListeners();
+    startDataListener();
   </script>
 </body>
 </html>
