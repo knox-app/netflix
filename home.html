@@ -540,6 +540,50 @@
       interactedStudios: new Set()
     };
 
+    // Impression history: when an item was last shown in the carousel, used to
+    // penalize recently-shown items so the SAME top scorers don't pin themselves
+    // to the carousel on every visit.
+    //
+    // impressionHistory is a frozen snapshot loaded ONCE per page load and never
+    // mutated afterward — it's read-only input to scoring for the whole session.
+    // This matters because rankAndDiversify re-runs many times per session
+    // (Firestore's onSnapshot fires on every live content update, plus an initial
+    // burst of calls on load). If "shown" got recorded into the same object the
+    // penalty reads from, an item would penalize itself on the very next re-run
+    // and the carousel would visibly reshuffle for no user-facing reason.
+    //
+    // What's actually shown this session goes into pendingImpressions instead,
+    // and only gets written to localStorage (debounced) for the *next* session
+    // to read as its starting snapshot.
+    let impressionHistory = {};
+    let pendingImpressions = {};
+
+    function loadImpressionHistory() {
+      try {
+        const raw = localStorage.getItem('hotstar_impressions');
+        impressionHistory = raw ? JSON.parse(raw) : {};
+      } catch (e) { impressionHistory = {}; }
+    }
+
+    let impressionFlushTimer = null;
+    function scheduleImpressionRecord(ids) {
+      const now = Date.now();
+      ids.forEach(id => { pendingImpressions[id] = now; });
+      clearTimeout(impressionFlushTimer);
+      impressionFlushTimer = setTimeout(flushImpressions, 2500);
+    }
+
+    function flushImpressions() {
+      const now = Date.now();
+      const cutoff = now - 7 * 24 * 3600 * 1000; // forget impressions older than a week
+      const merged = { ...impressionHistory, ...pendingImpressions };
+      Object.keys(merged).forEach(id => { if (merged[id] < cutoff) delete merged[id]; });
+      try { localStorage.setItem('hotstar_impressions', JSON.stringify(merged)); } catch (e) {}
+      // Deliberately not reassigning impressionHistory here — this session's own
+      // scoring stays on its original snapshot; the merged set only takes effect
+      // starting next page load.
+    }
+
     // Formatter Helpers
     function cleanUrl(url) {
       if (!url || typeof url !== 'string') return "";
@@ -622,7 +666,10 @@
       recencyHalfLifeYears: 3,   // recency score halves roughly every N years instead of hard-flooring at 0
       diversityStudioPenalty: 25,
       diversityGenrePenalty: 18,
-      stableJitterMax: 3         // deterministic micro tie-breaker, see stableHash01()
+      stableJitterMax: 3,        // deterministic micro tie-breaker, see stableHash01()
+      repeatPenaltyMax: 55,      // pushes recently-shown items down so the carousel rotates
+      repeatHalfLifeHours: 16,   // a shown item recovers to half-penalty after this many hours
+      maxPerStudio: 2            // hard cap: never more than N slides from the same studio
     };
 
     // Deterministic pseudo-random 0..1 derived from a string. Used to break exact
@@ -694,6 +741,16 @@
         // Trailer Boost
         if (item.Trailer && String(item.Trailer).trim().length > 0) score += RANK_WEIGHTS.trailerBoost;
 
+        // Repeat-impression penalty — the actual fix for "same content keeps
+        // repeating": without this, a high-scoring item re-wins on every single
+        // load forever. This pushes it down right after it's shown, then lets it
+        // decay back up over ~16h so it can rotate back in on a later visit.
+        const lastShown = impressionHistory[item.id];
+        if (lastShown) {
+          const hoursSince = (Date.now() - lastShown) / 3600000;
+          score -= RANK_WEIGHTS.repeatPenaltyMax * Math.pow(0.5, hoursSince / RANK_WEIGHTS.repeatHalfLifeHours);
+        }
+
         // Deterministic micro-jitter to break exact ties consistently
         score += stableHash01(item.id || name) * RANK_WEIGHTS.stableJitterMax;
 
@@ -708,35 +765,51 @@
       const selected = [];
       const usedStudios = new Set();
       const usedTags = new Set();
+      const studioCounts = new Map();
       const pool = [...scored];
 
       while (pool.length > 0 && selected.length < 8) {
         let bestIdx = 0;
         let bestScore = -Infinity;
 
-        for (let i = 0; i < pool.length; i++) {
-          const cand = pool[i];
-          let penalty = 0;
-          if (cand.studio && usedStudios.has(cand.studio)) penalty += RANK_WEIGHTS.diversityStudioPenalty;
+        // Pass 1: respect the hard per-studio cap.
+        // Pass 2 (only if every remaining candidate is capped-out): ignore the cap
+        // so we can still fill all 8 slots rather than under-filling the carousel.
+        let foundIdx = -1;
+        for (let enforceCap = true, done = false; !done; enforceCap = false) {
+          for (let i = 0; i < pool.length; i++) {
+            const cand = pool[i];
+            const studioCount = cand.studio ? (studioCounts.get(cand.studio) || 0) : 0;
+            if (enforceCap && studioCount >= RANK_WEIGHTS.maxPerStudio) continue;
 
-          if (cand.tags.length > 0) {
-            const overlap = cand.tags.filter(t => usedTags.has(t)).length;
-            if (overlap > 0) penalty += RANK_WEIGHTS.diversityGenrePenalty * (overlap / cand.tags.length);
-          }
+            let penalty = 0;
+            if (cand.studio && usedStudios.has(cand.studio)) penalty += RANK_WEIGHTS.diversityStudioPenalty;
 
-          const finalScore = cand.score - penalty;
-          if (finalScore > bestScore) {
-            bestScore = finalScore;
-            bestIdx = i;
+            if (cand.tags.length > 0) {
+              const overlap = cand.tags.filter(t => usedTags.has(t)).length;
+              if (overlap > 0) penalty += RANK_WEIGHTS.diversityGenrePenalty * (overlap / cand.tags.length);
+            }
+
+            const finalScore = cand.score - penalty;
+            if (finalScore > bestScore) {
+              bestScore = finalScore;
+              foundIdx = i;
+            }
           }
+          done = foundIdx !== -1 || !enforceCap;
         }
+        bestIdx = foundIdx !== -1 ? foundIdx : 0;
 
         const chosenEntry = pool.splice(bestIdx, 1)[0];
         selected.push(chosenEntry.item);
-        if (chosenEntry.studio) usedStudios.add(chosenEntry.studio);
+        if (chosenEntry.studio) {
+          usedStudios.add(chosenEntry.studio);
+          studioCounts.set(chosenEntry.studio, (studioCounts.get(chosenEntry.studio) || 0) + 1);
+        }
         chosenEntry.tags.forEach(t => usedTags.add(t));
       }
 
+      scheduleImpressionRecord(selected.map(s => s.id));
       return selected;
     }
 
@@ -1136,6 +1209,7 @@
     };
 
     // Run
+    loadImpressionHistory();
     initUser();
     fetchContent();
   </script>
