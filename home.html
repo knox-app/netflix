@@ -151,10 +151,6 @@
       height: 100%;
       object-fit: cover;
       object-position: center top;
-      transition: transform 6s cubic-bezier(0.25, 1, 0.5, 1);
-    }
-    .carousel-slide.active .banner-image {
-      transform: scale(1.04);
     }
 
     .trailer-video {
@@ -615,10 +611,29 @@
     }
 
     function resolveTags(d) {
-      const raw = d.Tags || d.tags || d.Genres || d.genres || "";
-      if (Array.isArray(raw)) return raw.map(t => String(t).trim());
+      const toList = raw => {
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw.map(t => String(t).trim());
+        return String(raw).split(/[,/|•]+/).map(t => t.trim()).filter(Boolean);
+      };
+      // Genres and Tags are separate fields in Firestore with different
+      // vocabularies (e.g. Genres: "Animation, Fantasy" vs Tags: "family,
+      // magic") — merge both instead of only reading whichever exists first.
+      const merged = [...toList(d.Genres || d.genres), ...toList(d.Tags || d.tags)];
+      return [...new Set(merged)];
+    }
+
+    // Language is stored as an array in Firestore (e.g. ["Hindi", "English"]).
+    // safeString(array) technically "worked" by accident via Array.toString(),
+    // but joined with no spaces and matched by loose substring — this resolves
+    // it properly, and also accepts a plain string for docs that don't use the
+    // array format.
+    function resolveLanguages(d) {
+      const raw = d.Language || d.language || d.Languages || "";
+      if (Array.isArray(raw)) return raw.map(t => String(t).trim()).filter(Boolean);
       return String(raw).split(/[,/|•]+/).map(t => t.trim()).filter(Boolean);
     }
+
 
     // 1. DPH_ALGO Profile Parser
     // Preferred format: a native Firestore map, e.g.
@@ -683,11 +698,11 @@
 
     // 2. YouTube-Grade Ranking & Diversity Engine
     const RANK_WEIGHTS = {
-      studioMatch: 45,
-      genreMatch: 30,
-      languageMatch: 25,
-      ageRatingMatch: 20,
-      lastWatchedMatch: 35,
+      studioMatch: 90,
+      genreMatch: 55,
+      languageMatch: 40,
+      ageRatingMatch: 30,
+      lastWatchedMatch: 55,
       sessionGenre: 15,
       sessionStudio: 20,
       watchlist: 40,
@@ -734,7 +749,7 @@
         let score = 0;
         const name = safeString(item.Name || item.Title).toLowerCase();
         const studio = safeString(item.Studio || item.Partner).toLowerCase();
-        const lang = safeString(item.Language).toLowerCase();
+        const langs = resolveLanguages(item).map(l => l.toLowerCase());
         const age = safeString(item.Age_Rating || item["Age Rating"]).toLowerCase();
         const tags = resolveTags(item).map(t => t.toLowerCase());
 
@@ -749,7 +764,7 @@
           const genreHits = userAlgoPreferences.genres.filter(g => tags.some(t => t.includes(g))).length;
           if (genreHits > 0) score += RANK_WEIGHTS.genreMatch * (1 - 1 / (genreHits + 1));
 
-          if (userAlgoPreferences.languages.some(l => lang.includes(l))) score += RANK_WEIGHTS.languageMatch;
+          if (userAlgoPreferences.languages.some(l => langs.some(il => il.includes(l)))) score += RANK_WEIGHTS.languageMatch;
           if (userAlgoPreferences.ageRatings.some(ar => age === ar)) score += RANK_WEIGHTS.ageRatingMatch;
           if (userAlgoPreferences.lastWatched.some(w => name.includes(w) || tags.includes(w))) {
             score += RANK_WEIGHTS.lastWatchedMatch;
@@ -858,6 +873,27 @@
       return isNaN(year) ? 0 : year * 1e10; // ordinal fallback when all we have is a bare year
     }
 
+    // Indian certification hierarchy, low to high restriction. An item whose
+    // rating we don't recognize is never blocked (we'd rather show it than
+    // guess wrong); a profile whose stated ratings we don't recognize doesn't
+    // filter anything either.
+    const AGE_RATING_RANK = { 'u': 0, 'u/a 7+': 1, 'u/a 13+': 2, 'u/a 16+': 3, 'a': 4, 's': 4 };
+    function ageRatingRank(val) {
+      const key = safeString(val).toLowerCase().trim();
+      return key in AGE_RATING_RANK ? AGE_RATING_RANK[key] : null;
+    }
+    // DPH_ALGO's ageRatings is treated as "any of these are fine" — the ceiling
+    // is the least restrictive one stated, and anything stricter is excluded
+    // outright rather than just scored lower.
+    function passesAgeCeiling(item) {
+      if (!userAlgoPreferences || userAlgoPreferences.ageRatings.length === 0) return true;
+      const itemRank = ageRatingRank(item.Age_Rating || item["Age Rating"]);
+      if (itemRank === null) return true;
+      const ranks = userAlgoPreferences.ageRatings.map(ageRatingRank).filter(r => r !== null);
+      if (ranks.length === 0) return true;
+      return itemRank <= Math.max(...ranks);
+    }
+
     function getAddedTimestamp(item) {
       return toEpochMs(item.Added_On || item.AddedOn || item.CreatedAt || item.createdAt ||
         item.Date_Added || item.Release_Date || item.Year);
@@ -866,16 +902,27 @@
     // Home page: first CAROUSEL_CONFIG.newReleaseSlots slides are the newest
     // catalog additions (unranked, purely chronological); the rest are the
     // personalized/diversified picks from rankAndDiversify.
+    //
+    // Two bugs fixed here:
+    // - TV channels/live TV were being mixed into a movie/show carousel.
+    // - Items with no real date field all tied at timestamp 0, and since sort
+    //   is stable, ties kept the original Firestore query order forever — so
+    //   whichever undated titles happened to load first (e.g. "Alice in
+    //   Wonderland") were permanently stuck in the "newest" slots. Undated
+    //   items are no longer eligible for that bucket; they still show up
+    //   normally through the recommended/rotated pool below.
     function buildHeroCarousel(items) {
       const seen = new Set();
       const uniqueItems = items.filter(item => {
+        if (!passesAgeCeiling(item)) return false;
         const key = safeString(item.Name || item.Title).toLowerCase().replace(/[^a-z0-9]/g, '');
         if (!key || seen.has(key)) return false;
         seen.add(key);
         return true;
       });
 
-      const newest = [...uniqueItems]
+      const newest = uniqueItems
+        .filter(item => getAddedTimestamp(item) > 0)
         .sort((a, b) => getAddedTimestamp(b) - getAddedTimestamp(a))
         .slice(0, CAROUSEL_CONFIG.newReleaseSlots);
 
@@ -962,7 +1009,7 @@
 
     // 4. Fetch Real Firestore Documents
     async function fetchContent() {
-      const collections = ["Movies", "Shows", "TV Shows", "Live TV", "channels"];
+      const collections = ["Movies", "Shows", "TV Shows"]; // Live TV / channels excluded — not part of the movie/show carousel
 
       for (const col of collections) {
         try {
@@ -1012,8 +1059,8 @@
         const titleText = safeString(item.Name || item.Title || "Featured Stream");
         const descText = safeString(item.Discription || item.Description || item.Story);
         const year = safeString(item.Release_Date || item.ReleaseDate || item.Year);
-        const age = safeString(item.Age_Rating || item["Age Rating"] || item.Rating || "U");
-        const lang = safeString(item.Language);
+        const age = safeString(item.Age_Rating || item["Age Rating"] || "U");
+        const lang = resolveLanguages(item).join(', ');
         const tagList = resolveTags(item).slice(0, 4);
 
         const slide = document.createElement('div');
@@ -1061,7 +1108,7 @@
                 <span>Watch Now</span>
               </a>
 
-              <button class="btn-icon-square btn-wl-${item.id} ${isAdded ? 'active' : ''}" onclick="window.toggleWatchlist('${item.id}')" title="Watchlist">
+              <button class="btn-icon-square ${isAdded ? 'active' : ''}" data-wl-id="${item.id}" onclick="window.toggleWatchlist('${item.id}')" title="Watchlist">
                 <svg viewBox="0 0 24 24">
                   ${isAdded 
                     ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' 
@@ -1266,33 +1313,49 @@
       }
     };
 
+    function wlIconSvg(added) {
+      return `<svg viewBox="0 0 24 24">${added
+        ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>'
+        : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}</svg>`;
+    }
+
     window.toggleWatchlist = async function(id) {
       window.recordInteraction(id, 'watchlist');
       const idx = userWatchlist.indexOf(id);
       const isRemoving = idx > -1;
 
-      if (isRemoving) {
-        userWatchlist.splice(idx, 1);
-        showToast("Removed from Watchlist");
-      } else {
-        userWatchlist.push(id);
-        showToast("Added to Watchlist");
-      }
+      if (isRemoving) userWatchlist.splice(idx, 1);
+      else userWatchlist.push(id);
 
       localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
 
-      if (userDocId) {
-        try {
-          await updateDoc(doc(authDb, "UARM", userDocId), {
-            Watchlist: isRemoving ? arrayRemove(id) : arrayUnion(id)
-          });
-        } catch(e){}
+      document.querySelectorAll(`[data-wl-id="${id}"]`).forEach(b => {
+        b.classList.toggle('active', !isRemoving);
+        b.innerHTML = wlIconSvg(!isRemoving);
+      });
+
+      if (!userDocId) {
+        showToast((isRemoving ? "Removed" : "Added") + " (sign in to sync across devices)");
+        return;
       }
 
-      document.querySelectorAll(`.btn-wl-${id}`).forEach(b => {
-        b.classList.toggle('active', !isRemoving);
-        b.innerHTML = `<svg viewBox="0 0 24 24">${!isRemoving ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}</svg>`;
-      });
+      try {
+        await updateDoc(doc(authDb, "UARM", userDocId), {
+          Watchlist: isRemoving ? arrayRemove(id) : arrayUnion(id)
+        });
+        showToast(isRemoving ? "Removed from Watchlist" : "Added to Watchlist");
+      } catch (e) {
+        // Revert the optimistic local update so the UI matches what's actually saved.
+        if (isRemoving) userWatchlist.push(id);
+        else userWatchlist.splice(userWatchlist.indexOf(id), 1);
+        localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
+        document.querySelectorAll(`[data-wl-id="${id}"]`).forEach(b => {
+          b.classList.toggle('active', isRemoving);
+          b.innerHTML = wlIconSvg(isRemoving);
+        });
+        showToast("Couldn't save — check your connection and try again");
+        console.error('Watchlist update failed:', e);
+      }
     };
 
     // Run
