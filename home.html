@@ -527,6 +527,15 @@
     // State Variables
     let contentMap = new Map();
     let heroCarouselList = [];
+
+    let lastCarouselKey = '';
+    function selectionChanged(list) {
+      const key = list.map(i => i.id).join(',');
+      if (key === lastCarouselKey) return false;
+      lastCarouselKey = key;
+      return true;
+    }
+
     let activeIndex = 0;
     let slideTimer = null;
     let isMuted = true;
@@ -540,21 +549,14 @@
       interactedStudios: new Set()
     };
 
-    // Impression history: when an item was last shown in the carousel, used to
-    // penalize recently-shown items so the SAME top scorers don't pin themselves
-    // to the carousel on every visit.
-    //
-    // impressionHistory is a frozen snapshot loaded ONCE per page load and never
-    // mutated afterward — it's read-only input to scoring for the whole session.
-    // This matters because rankAndDiversify re-runs many times per session
-    // (Firestore's onSnapshot fires on every live content update, plus an initial
-    // burst of calls on load). If "shown" got recorded into the same object the
-    // penalty reads from, an item would penalize itself on the very next re-run
-    // and the carousel would visibly reshuffle for no user-facing reason.
-    //
-    // What's actually shown this session goes into pendingImpressions instead,
-    // and only gets written to localStorage (debounced) for the *next* session
-    // to read as its starting snapshot.
+    // impressionHistory: frozen snapshot of "last shown" times, loaded once per
+    // page load and never mutated afterward — read-only input for the repeat
+    // penalty below. Must stay frozen because rankAndDiversify re-runs many
+    // times per session (onSnapshot fires on every live update); if "shown" fed
+    // back into the same object, an item would penalize itself on the very next
+    // re-run and the carousel would reshuffle for no reason. This session's own
+    // impressions go into pendingImpressions and are only persisted (debounced)
+    // for the *next* session to read.
     let impressionHistory = {};
     let pendingImpressions = {};
 
@@ -619,26 +621,14 @@
     }
 
     // 1. DPH_ALGO Profile Parser
-    //
-    // Preferred format going forward — a native Firestore map field on the user
-    // doc, e.g.:
-    //   DPH_ALGO: {
-    //     studios: ["HBO"],
-    //     languages: ["Hindi"],
-    //     lastWatched: ["Hoppers"],
-    //     genres: ["superhero"],
-    //     ageRatings: ["U/A 13+"]
-    //   }
-    // This is just a Firestore map — no JSON.stringify needed, write it directly.
-    //
-    // Still accepts the old free-text sentence format on existing user docs
-    // ("he/she like movies form (HBO), ...") so nothing already written breaks.
-    // That legacy path had a real bug: it split every field on "/" and on
-    // whitespace to support multiple values, which also shredded any single
-    // value that legitimately contains those characters — "U/A 13+" became
-    // ["u","a","13+"] and could never match again, and "Science Fiction" became
-    // ["science","fiction"]. Fixed below by only splitting on commas (and only
-    // splitting age ratings on commas, never "/").
+    // Preferred format: a native Firestore map, e.g.
+    //   DPH_ALGO: { studios: ["HBO"], languages: ["Hindi"], lastWatched: ["Hoppers"],
+    //               genres: ["superhero"], ageRatings: ["U/A 13+"] }
+    // Also still accepts the old free-text sentence format on existing docs
+    // ("he/she like movies form (HBO), ..."). Legacy parsing previously split
+    // every field on "/" and whitespace, which shredded values that legitimately
+    // contain them ("U/A 13+" -> ["u","a","13+"], "Science Fiction" ->
+    // ["science","fiction"]). Fixed to split on commas only.
     function normalizeList(val) {
       if (Array.isArray(val)) return val.map(v => safeString(v).trim().toLowerCase()).filter(Boolean);
       return safeString(val).split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
@@ -703,14 +693,18 @@
       watchlist: 40,
       trailerBoost: 15,
       recencyMax: 22,
-      recencyHalfLifeYears: 3,   // recency score halves roughly every N years instead of hard-flooring at 0
+      recencyHalfLifeYears: 3,
       diversityStudioPenalty: 25,
       diversityGenrePenalty: 18,
-      stableJitterMax: 3,        // deterministic micro tie-breaker, see stableHash01()
-      repeatPenaltyMax: 55,      // pushes recently-shown items down so the carousel rotates
-      repeatHalfLifeHours: 16,   // a shown item recovers to half-penalty after this many hours
-      maxPerStudio: 2            // hard cap: never more than N slides from the same studio
+      stableJitterMax: 3,
+      repeatPenaltyMax: 55,
+      repeatHalfLifeHours: 16,
+      maxPerStudio: 2
     };
+
+    // Home page layout: first slides are newest additions (unranked), the rest
+    // are the personalized/diversified picks below.
+    const CAROUSEL_CONFIG = { newReleaseSlots: 3, totalSlides: 9 };
 
     // Deterministic pseudo-random 0..1 derived from a string. Used to break exact
     // score ties consistently, so Firestore's frequent onSnapshot re-renders don't
@@ -723,7 +717,7 @@
       return ((h >>> 0) % 1000) / 1000;
     }
 
-    function rankAndDiversify(items) {
+    function rankAndDiversify(items, limit = 8) {
       const nowYear = new Date().getFullYear();
 
       // Deduplicate by normalized title
@@ -799,22 +793,20 @@
 
       scored.sort((a, b) => b.score - a.score);
 
-      // MMR-style Diversity Filter — penalizes both studio repeats AND genre-tag
-      // overlap with items already chosen, so the final 8 don't collapse into
-      // "the same two franchises" even when their raw scores are close.
+      // MMR-style diversity filter: penalizes studio repeats and genre-tag
+      // overlap with items already chosen.
       const selected = [];
       const usedStudios = new Set();
       const usedTags = new Set();
       const studioCounts = new Map();
       const pool = [...scored];
 
-      while (pool.length > 0 && selected.length < 8) {
+      while (pool.length > 0 && selected.length < limit) {
         let bestIdx = 0;
         let bestScore = -Infinity;
 
-        // Pass 1: respect the hard per-studio cap.
-        // Pass 2 (only if every remaining candidate is capped-out): ignore the cap
-        // so we can still fill all 8 slots rather than under-filling the carousel.
+        // Pass 1 respects the per-studio cap; pass 2 (only if every remaining
+        // candidate is capped-out) ignores it so slots still get filled.
         let foundIdx = -1;
         for (let enforceCap = true, done = false; !done; enforceCap = false) {
           for (let i = 0; i < pool.length; i++) {
@@ -851,6 +843,48 @@
 
       scheduleImpressionRecord(selected.map(s => s.id));
       return selected;
+    }
+
+    // Turns any timestamp-ish field (Firestore Timestamp, ISO string, bare year)
+    // into an epoch-ms-comparable number for "newest first" sorting.
+    function toEpochMs(val) {
+      if (!val) return 0;
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (typeof val.seconds === 'number') return val.seconds * 1000;
+      if (val instanceof Date) return val.getTime();
+      const parsed = Date.parse(val);
+      if (!isNaN(parsed)) return parsed;
+      const year = parseInt(safeString(val));
+      return isNaN(year) ? 0 : year * 1e10; // ordinal fallback when all we have is a bare year
+    }
+
+    function getAddedTimestamp(item) {
+      return toEpochMs(item.Added_On || item.AddedOn || item.CreatedAt || item.createdAt ||
+        item.Date_Added || item.Release_Date || item.Year);
+    }
+
+    // Home page: first CAROUSEL_CONFIG.newReleaseSlots slides are the newest
+    // catalog additions (unranked, purely chronological); the rest are the
+    // personalized/diversified picks from rankAndDiversify.
+    function buildHeroCarousel(items) {
+      const seen = new Set();
+      const uniqueItems = items.filter(item => {
+        const key = safeString(item.Name || item.Title).toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const newest = [...uniqueItems]
+        .sort((a, b) => getAddedTimestamp(b) - getAddedTimestamp(a))
+        .slice(0, CAROUSEL_CONFIG.newReleaseSlots);
+
+      const newestIds = new Set(newest.map(i => i.id));
+      const remainingPool = uniqueItems.filter(i => !newestIds.has(i.id));
+      const recommendedCount = Math.max(0, CAROUSEL_CONFIG.totalSlides - newest.length);
+      const recommended = rankAndDiversify(remainingPool, recommendedCount);
+
+      return [...newest, ...recommended];
     }
 
     // 3. User Session Listener
@@ -909,8 +943,11 @@
           localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
 
           if (contentMap.size > 0) {
-            heroCarouselList = rankAndDiversify(Array.from(contentMap.values()));
-            renderCarousel();
+            const next = buildHeroCarousel(Array.from(contentMap.values()));
+            if (selectionChanged(next)) {
+              heroCarouselList = next;
+              renderCarousel();
+            }
           }
         }
       });
@@ -936,7 +973,8 @@
 
       if (contentMap.size > 0) {
         document.getElementById('carouselSkeleton').style.display = 'none';
-        heroCarouselList = rankAndDiversify(Array.from(contentMap.values()));
+        heroCarouselList = buildHeroCarousel(Array.from(contentMap.values()));
+        selectionChanged(heroCarouselList);
         renderCarousel();
       }
 
@@ -945,8 +983,11 @@
           snap.forEach(d => contentMap.set(d.id, { id: d.id, _col: col, ...d.data() }));
           if (contentMap.size > 0) {
             document.getElementById('carouselSkeleton').style.display = 'none';
-            heroCarouselList = rankAndDiversify(Array.from(contentMap.values()));
-            renderCarousel();
+            const next = buildHeroCarousel(Array.from(contentMap.values()));
+            if (selectionChanged(next)) {
+              heroCarouselList = next;
+              renderCarousel();
+            }
           }
         });
       });
@@ -1159,6 +1200,12 @@
     let startX = 0, startY = 0, endX = 0, swiping = false;
 
     stage.addEventListener('touchstart', (e) => {
+      // A tap on a button/link must never be treated as a swipe start — if it
+      // were, next()/prev() could fire mid-tap, the carousel advances, and the
+      // browser's coordinate-based click hit-test then lands on whatever slide
+      // just slid into that spot instead of the one actually tapped. This is
+      // the "Watch Now opens the wrong title" bug.
+      if (e.target.closest('button') || e.target.closest('a')) { swiping = false; return; }
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       swiping = true;
