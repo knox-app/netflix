@@ -3,1365 +3,571 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hotstar Hero Carousel</title>
+  <title>Disney+ Hotstar</title>
   
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="https://www.youtube.com/iframe_api"></script>
-
   <style>
     :root {
       --bg-dark: #0f1015;
+      --card-bg: #161822;
       --accent-blue: #0072ef;
       --text-main: #ffffff;
       --text-muted: #8f98b2;
-      --radius-sm: 6px;
-      --radius-md: 10px;
+      --border-color: rgba(255, 255, 255, 0.1);
     }
-
     * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+      box-sizing: border-box; margin: 0; padding: 0;
       font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
       -webkit-tap-highlight-color: transparent;
-      outline: none;
     }
-
     body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      min-height: 100vh;
-      overflow-x: hidden;
-      user-select: none;
+      background-color: var(--bg-dark); color: var(--text-main);
+      overflow-x: hidden; padding-bottom: 60px;
     }
 
-    /* Top Navigation Header */
-    .top-header {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 50;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 24px;
-      background: linear-gradient(180deg, rgba(15, 16, 21, 0.95) 0%, transparent 100%);
-      pointer-events: none;
+    /* Top Brand Navigation */
+    .nav-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; position: sticky; top: 0; z-index: 100;
+      background: linear-gradient(180deg, rgba(15,16,21,0.95) 0%, rgba(15,16,21,0.7) 80%, transparent 100%);
+      backdrop-filter: blur(10px);
     }
-    .brand-logo {
-      font-size: 19px;
-      font-weight: 800;
-      color: #fff;
-      pointer-events: auto;
-      letter-spacing: -0.3px;
-      text-decoration: none;
-    }
-    .brand-logo span { color: var(--accent-blue); }
+    .logo-container { display: flex; align-items: center; gap: 8px; }
+    .brand-svg { height: 28px; fill: #fff; }
 
-    .user-auth-btn {
-      pointer-events: auto;
-      font-size: 12px;
-      font-weight: 700;
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(12px);
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      color: #fff;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    /* Carousel Top Section */
+    .hero-carousel {
+      position: relative; width: 100%; aspect-ratio: 16/10;
+      max-height: 580px; overflow: hidden; background: #000;
     }
-
-    /* Hero Carousel Stage */
-    .carousel-stage {
-      position: relative;
-      width: 100%;
-      height: 82vh;
-      min-height: 540px;
-      max-height: 780px;
-      overflow: hidden;
-      background: #000;
-      touch-action: pan-y;
-      cursor: grab;
+    .carousel-track { width: 100%; height: 100%; position: relative; }
+    .slide-item {
+      position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s ease;
+      display: flex; flex-direction: column; justify-content: flex-end;
     }
-    .carousel-stage:active { cursor: grabbing; }
-
-    #slidesViewport {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Skeleton Loader */
-    .skeleton-loader {
-      position: absolute;
-      inset: 0;
-      z-index: 20;
-      background: #0d0f14;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 48px 40px;
-    }
-    .skeleton-shimmer {
-      background: linear-gradient(90deg, #151821 25%, #222634 50%, #151821 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: var(--radius-sm);
-    }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-    /* Carousel Slide */
-    .carousel-slide {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
-    .carousel-slide.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    /* Media Layers */
-    .media-layer {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
+    .slide-item.active { opacity: 1; z-index: 2; }
+    
+    .media-backdrop {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
       z-index: 1;
-      overflow: hidden;
-      background: #000;
+    }
+    .video-trailer-engine {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+      z-index: 2; display: none; background: #000;
+    }
+    .trailer-iframe {
+      position: absolute; inset: 0; width: 100%; height: 100%; border: none; z-index: 2; display: none;
     }
 
-    .banner-image {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center top;
+    .slide-overlay-gradient {
+      position: absolute; inset: 0; z-index: 3;
+      background: linear-gradient(0deg, var(--bg-dark) 4%, rgba(15,16,21,0.6) 40%, rgba(15,16,21,0.1) 80%, rgba(15,16,21,0.7) 100%);
     }
 
-    .trailer-video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0;
-      z-index: 2;
-      transition: opacity 0.8s ease-in-out;
+    .slide-content-box {
+      position: relative; z-index: 4; display: flex; flex-direction: column;
+      align-items: center; text-align: center; padding: 0 20px 24px;
     }
-    .trailer-video.playing { opacity: 1; }
-
-    .yt-frame-wrapper {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 100vw;
-      height: 56.25vw;
-      min-height: 100%;
-      min-width: 177.78vh;
-      transform: translate(-50%, -50%);
-      opacity: 0;
-      z-index: 2;
-      pointer-events: none;
-      transition: opacity 0.8s ease;
+    .title-logo-img {
+      max-height: 70px; max-width: 65%; object-fit: contain; margin-bottom: 12px;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
     }
-    .yt-frame-wrapper.playing { opacity: 1; }
-    .yt-frame-wrapper iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
+    .title-fallback-text {
+      font-size: 26px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.8); margin-bottom: 8px;
+    }
+    .slide-meta-row {
+      display: flex; align-items: center; gap: 8px; font-size: 12px;
+      color: var(--text-muted); font-weight: 600; margin-bottom: 14px;
+    }
+    .slide-meta-row span:not(:last-child)::after {
+      content: "•"; margin-left: 8px; color: var(--border-color);
     }
 
-    /* Vignettes */
-    .vignette-bottom {
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-      pointer-events: none;
-      background: linear-gradient(
-        180deg,
-        rgba(15, 16, 21, 0.05) 0%,
-        rgba(15, 16, 21, 0.1) 25%,
-        rgba(15, 16, 21, 0.7) 65%,
-        var(--bg-dark) 100%
-      );
+    .slide-action-row { display: flex; align-items: center; gap: 12px; }
+    .btn-watch-now {
+      background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(16px); color: #fff; border-radius: 28px;
+      padding: 10px 28px; font-size: 14px; font-weight: 700; text-decoration: none;
+      display: flex; align-items: center; gap: 8px; transition: 0.15s ease;
     }
-    .vignette-left {
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-      pointer-events: none;
-      background: linear-gradient(
-        90deg,
-        rgba(15, 16, 21, 0.95) 0%,
-        rgba(15, 16, 21, 0.8) 35%,
-        rgba(15, 16, 21, 0.15) 70%,
-        transparent 100%
-      );
+    .btn-watch-now:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.28); }
+    .btn-add-list {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: 0.15s ease;
     }
+    .btn-add-list:active { transform: scale(0.92); }
+    .btn-add-list.active { color: var(--accent-blue); border-color: var(--accent-blue); }
 
-    /* Slide Content */
-    .slide-info-container {
-      position: relative;
-      z-index: 5;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 0 44px 44px;
-      max-width: 620px;
+    /* Carousel Navigation Dots */
+    .dots-container {
+      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+      z-index: 5; display: flex; gap: 6px;
     }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: 0.3s; }
+    .dot.active { width: 14px; border-radius: 3px; background: #fff; }
 
-    .title-branding-box {
-      margin-bottom: 12px;
-      min-height: 50px;
-      display: flex;
-      align-items: flex-end;
+    /* Horizontal Containers & Sections */
+    .section-wrap { padding: 18px 0 6px 16px; }
+    .section-header {
+      font-size: 16px; font-weight: 700; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between; padding-right: 16px;
     }
-    .title-logo {
-      max-width: 280px;
-      max-height: 110px;
-      object-fit: contain;
-      filter: drop-shadow(0 4px 18px rgba(0,0,0,0.95));
-      display: block;
+    .horizontal-scroll {
+      display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none;
+      padding-right: 16px; padding-bottom: 6px;
     }
-    .fallback-title {
-      font-size: 34px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: #ffffff;
-      text-shadow: 0 2px 14px rgba(0,0,0,0.95);
-      line-height: 1.15;
-    }
+    .horizontal-scroll::-webkit-scrollbar { display: none; }
 
-    .meta-badge-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      color: #ffffff;
-      margin-bottom: 10px;
+    /* Continue Watching Card */
+    .cw-card {
+      min-width: 200px; width: 200px; text-decoration: none; color: #fff;
+      display: flex; flex-direction: column; cursor: pointer;
     }
-    .meta-badge-row .dot {
-      font-size: 6px;
-      color: var(--text-muted);
+    .cw-thumb-box {
+      position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px;
+      overflow: hidden; background: var(--card-bg);
     }
-    .age-badge {
-      background: rgba(255, 255, 255, 0.2);
-      padding: 1px 7px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 800;
+    .cw-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
+    .cw-play-badge {
+      position: absolute; bottom: 8px; left: 8px; width: 26px; height: 26px;
+      border-radius: 50%; background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center;
     }
+    .cw-play-badge svg { width: 11px; height: 11px; fill: #fff; margin-left: 2px; }
+    .cw-progress-line {
+      position: absolute; bottom: 0; left: 0; height: 3.5px; background: var(--accent-blue);
+    }
+    .cw-title {
+      font-size: 13px; font-weight: 700; margin-top: 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .cw-time-left { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
-    /* Tags as Hotstar Pill Badges */
-    .tags-badge-container {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 12px;
+    /* Dynamic Standard 16:9 Item Card */
+    .poster-card {
+      min-width: 170px; width: 170px; text-decoration: none; color: #fff;
+      display: flex; flex-direction: column; transition: transform 0.15s ease;
     }
-    .tag-pill {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: #c9d0e2;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: capitalize;
+    .poster-card:active { transform: scale(0.96); }
+    .poster-box {
+      position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px;
+      overflow: hidden; background: var(--card-bg); border: 1px solid var(--border-color);
     }
+    .poster-box img.main-img { width: 100%; height: 100%; object-fit: cover; }
+    .poster-box img.logo-badge {
+      position: absolute; top: 6px; right: 6px; width: 24px; height: 24px;
+      object-fit: contain; background: rgba(0,0,0,0.6); border-radius: 4px; padding: 2px;
+    }
+    .poster-title {
+      font-size: 12.5px; font-weight: 600; margin-top: 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .poster-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
 
-    .story-synopsis {
-      font-size: 13.5px;
-      line-height: 1.45;
-      color: #d2d8eb;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      margin-bottom: 22px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.95);
-    }
-
-    /* Action Buttons */
-    .button-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-    }
-
-    .btn-main-watch {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 28px;
-      border-radius: var(--radius-md);
-      background: #ffffff;
-      color: #0f1015;
-      font-size: 14px;
-      font-weight: 800;
-      border: none;
-      cursor: pointer;
-      text-decoration: none;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-      transition: all 0.2s ease;
-    }
-    .btn-main-watch:hover { background: #f0f0f0; transform: scale(1.02); }
-    .btn-main-watch svg { width: 15px; height: 15px; fill: currentColor; }
-
-    .btn-icon-square {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .btn-icon-square.active {
-      background: rgba(0, 114, 239, 0.3);
-      border-color: var(--accent-blue);
-      color: var(--accent-blue);
-    }
-    .btn-icon-square svg { width: 20px; height: 20px; fill: currentColor; }
-
-    .trailer-status-badge {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      background: rgba(0, 0, 0, 0.6);
-      padding: 6px 12px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(8px);
-    }
-    .trailer-status-badge.show { display: inline-flex; }
-    .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #e50914; animation: blink 1s infinite alternate; }
-    @keyframes blink { from { opacity: 0.3; } to { opacity: 1; } }
-
-    /* Desktop Bottom-Right Previews */
-    .preview-strip-container {
-      position: absolute;
-      bottom: 28px;
-      right: 44px;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(15, 16, 21, 0.6);
-      backdrop-filter: blur(12px);
-      padding: 6px;
-      border-radius: var(--radius-md);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-
-    .preview-card-item {
-      position: relative;
-      width: 76px;
-      aspect-ratio: 16/9;
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      cursor: pointer;
-      opacity: 0.5;
-      transition: all 0.25s ease;
-      border: 1.5px solid transparent;
-      background: #111;
-    }
-    .preview-card-item.active {
-      opacity: 1;
-      border-color: #ffffff;
-      transform: scale(1.05);
-    }
-    .preview-card-item img { width: 100%; height: 100%; object-fit: cover; }
-
-    /* Mobile Dots */
-    .mobile-dots-container {
-      display: none;
-      position: absolute;
-      bottom: 14px;
-      left: 0;
-      right: 0;
-      z-index: 10;
-      justify-content: center;
-      align-items: center;
-      gap: 6px;
-    }
-    .m-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.35);
-      transition: all 0.25s ease;
-      cursor: pointer;
-    }
-    .m-dot.active {
-      width: 16px;
-      border-radius: 4px;
-      background: #ffffff;
-    }
-
-    @media (max-width: 768px) {
-      .carousel-stage { height: 75vh; }
-      .vignette-left {
-        background: linear-gradient(180deg, transparent 20%, rgba(15, 16, 21, 0.88) 75%, var(--bg-dark) 100%);
-      }
-      .slide-info-container {
-        padding: 0 20px 36px;
-        max-width: 100%;
-        align-items: center;
-        text-align: center;
-      }
-      .title-branding-box { justify-content: center; }
-      .button-row { justify-content: center; }
-      .preview-strip-container { display: none !important; }
-      .mobile-dots-container { display: flex; }
-    }
-
-    /* Toast */
-    .toast-box {
-      position: fixed;
-      top: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-30px);
-      background: rgba(22, 24, 34, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      padding: 8px 18px;
-      border-radius: 30px;
-      font-size: 12px;
-      font-weight: 700;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.25s ease;
-      z-index: 100;
-    }
-    .toast-box.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    /* Empty/Loader State */
+    .loader { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
   </style>
 </head>
 <body>
 
-  <!-- Top Header -->
-  <header class="top-header">
-    <a class="brand-logo" href="#">Disney+ <span>hotstar</span></a>
-    <a class="user-auth-btn" id="userAuthBtn" href="1 (1).html">Sign In</a>
+  <!-- App Header -->
+  <header class="nav-bar">
+    <div class="logo-container">
+      <svg class="brand-svg" viewBox="0 0 120 30">
+        <path d="M12 4C6 4 2 8 2 15s4 11 10 11c4 0 7-2 9-5l-3-2c-1.5 2-3.5 3-6 3-4.5 0-7-3.5-7-7s2.5-7 7-7c2.5 0 4.5 1 6 3l3-2C19 6 16 4 12 4z"/>
+        <text x="32" y="21" fill="#fff" font-size="14" font-weight="900" letter-spacing="1">HOTSTAR</text>
+      </svg>
+    </div>
   </header>
 
-  <!-- Carousel Stage -->
-  <div class="carousel-stage" id="carouselStage">
-    <div class="skeleton-loader" id="carouselSkeleton">
-      <div class="skeleton-shimmer" style="width: 180px; height: 36px; margin-bottom: 14px;"></div>
-      <div class="skeleton-shimmer" style="width: 260px; height: 16px; margin-bottom: 12px;"></div>
-      <div class="skeleton-shimmer" style="width: 380px; height: 14px; margin-bottom: 24px;"></div>
-      <div style="display: flex; gap: 12px;">
-        <div class="skeleton-shimmer" style="width: 130px; height: 44px; border-radius: 10px;"></div>
-        <div class="skeleton-shimmer" style="width: 44px; height: 44px; border-radius: 10px;"></div>
-      </div>
-    </div>
-
-    <div id="slidesViewport"></div>
-
-    <div class="vignette-bottom"></div>
-    <div class="vignette-left"></div>
-
-    <!-- Previews & Dots -->
-    <div class="preview-strip-container" id="previewStrip"></div>
-    <div class="mobile-dots-container" id="mobileDots"></div>
+  <!-- Hero Banner Carousel -->
+  <div class="hero-carousel" id="heroCarousel">
+    <div class="carousel-track" id="carouselTrack"></div>
+    <div class="dots-container" id="carouselDots"></div>
   </div>
 
-  <div class="toast-box" id="toastBox">Watchlist updated</div>
+  <!-- Continue Watching Section -->
+  <div class="section-wrap" id="continueWatchingWrap" style="display: none;">
+    <div class="section-header" id="cwUserHeading">Continue Watching</div>
+    <div class="horizontal-scroll" id="cwItemsScroll"></div>
+  </div>
+
+  <!-- Dynamic Admin Generated Sections -->
+  <div id="dynamicSectionsHost">
+    <div class="loader">Loading Hotstar Feed...</div>
+  </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, getDocs, doc, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Channel DB (Firestore Content)
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
-      projectId: "internal-systems-46728"
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b"
     };
     const channelApp = initializeApp(channelConfig, "channelApp");
-    const channelDb = getFirestore(channelApp);
+    const db = getFirestore(channelApp);
 
-    // Auth DB (Firestore Users)
     const authConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
-      databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "question-metabase"
     };
     const authApp = initializeApp(authConfig, "authApp");
     const authDb = getFirestore(authApp);
 
-    // State Variables
-    let contentMap = new Map();
-    let heroCarouselList = [];
-
-    let lastCarouselKey = '';
-    function selectionChanged(list) {
-      const key = list.map(i => i.id).join(',');
-      if (key === lastCarouselKey) return false;
-      lastCarouselKey = key;
-      return true;
-    }
-
-    let activeIndex = 0;
-    let slideTimer = null;
-    let isMuted = true;
     let currentUser = null;
-    let userDocId = null;
+    let userDocRef = null;
     let userWatchlist = [];
-    let userAlgoPreferences = null;
+    let carouselItems = [];
+    let currentSlide = 0;
+    let slideTimer = null;
 
-    let sessionInteractions = {
-      interactedGenres: new Set(),
-      interactedStudios: new Set()
-    };
+    // Detect Page Doc ID from URL e.g. 2.html?home?=home or 2.html?page=movies
+    const params = new URLSearchParams(window.location.search);
+    const pageId = window.location.search.split('?=')[1] || params.get('page') || 'default';
 
-    // impressionHistory: frozen snapshot of "last shown" times, loaded once per
-    // page load and never mutated afterward — read-only input for the repeat
-    // penalty below. Must stay frozen because rankAndDiversify re-runs many
-    // times per session (onSnapshot fires on every live update); if "shown" fed
-    // back into the same object, an item would penalize itself on the very next
-    // re-run and the carousel would reshuffle for no reason. This session's own
-    // impressions go into pendingImpressions and are only persisted (debounced)
-    // for the *next* session to read.
-    let impressionHistory = {};
-    let pendingImpressions = {};
+    initApp();
 
-    function loadImpressionHistory() {
-      try {
-        const raw = localStorage.getItem('hotstar_impressions');
-        impressionHistory = raw ? JSON.parse(raw) : {};
-      } catch (e) { impressionHistory = {}; }
+    async function initApp() {
+      await loadUserData();
+      await fetchPageConfigAndBuild(pageId);
+      renderContinueWatching();
     }
 
-    let impressionFlushTimer = null;
-    function scheduleImpressionRecord(ids) {
-      const now = Date.now();
-      ids.forEach(id => { pendingImpressions[id] = now; });
-      clearTimeout(impressionFlushTimer);
-      impressionFlushTimer = setTimeout(flushImpressions, 2500);
-    }
-
-    function flushImpressions() {
-      const now = Date.now();
-      const cutoff = now - 7 * 24 * 3600 * 1000; // forget impressions older than a week
-      const merged = { ...impressionHistory, ...pendingImpressions };
-      Object.keys(merged).forEach(id => { if (merged[id] < cutoff) delete merged[id]; });
-      try { localStorage.setItem('hotstar_impressions', JSON.stringify(merged)); } catch (e) {}
-      // Deliberately not reassigning impressionHistory here — this session's own
-      // scoring stays on its original snapshot; the merged set only takes effect
-      // starting next page load.
-    }
-
-    // Formatter Helpers
-    function cleanUrl(url) {
-      if (!url || typeof url !== 'string') return "";
-      let u = url.trim();
-      if (u.startsWith('//')) u = 'https:' + u;
-      else if (!u.startsWith('http://') && !u.startsWith('https://')) u = 'https://' + u;
-      return u;
-    }
-
-    function safeString(val) {
-      if (val === undefined || val === null) return "";
-      if (Array.isArray(val)) return val.join(", ");
-      return String(val).trim();
-    }
-
-    function tokenize(str) {
-      return safeString(str).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
-    }
-
-    // Exact Field Resolvers from Screenshot
-    function resolveBanner(d) {
-      return cleanUrl(d.Banner || d["Poster.h"] || d.Poster_h || d.Poster || d.poster || "");
-    }
-
-    function resolveLogo(d) {
-      return cleanUrl(d.Logo || d["Logo.png"] || d.logo || d.TitleLogo || "");
-    }
-
-    function resolveTags(d) {
-      const toList = raw => {
-        if (!raw) return [];
-        if (Array.isArray(raw)) return raw.map(t => String(t).trim());
-        return String(raw).split(/[,/|•]+/).map(t => t.trim()).filter(Boolean);
-      };
-      // Genres and Tags are separate fields in Firestore with different
-      // vocabularies (e.g. Genres: "Animation, Fantasy" vs Tags: "family,
-      // magic") — merge both instead of only reading whichever exists first.
-      const merged = [...toList(d.Genres || d.genres), ...toList(d.Tags || d.tags)];
-      return [...new Set(merged)];
-    }
-
-    // Language is stored as an array in Firestore (e.g. ["Hindi", "English"]).
-    // safeString(array) technically "worked" by accident via Array.toString(),
-    // but joined with no spaces and matched by loose substring — this resolves
-    // it properly, and also accepts a plain string for docs that don't use the
-    // array format.
-    function resolveLanguages(d) {
-      const raw = d.Language || d.language || d.Languages || "";
-      if (Array.isArray(raw)) return raw.map(t => String(t).trim()).filter(Boolean);
-      return String(raw).split(/[,/|•]+/).map(t => t.trim()).filter(Boolean);
-    }
-
-
-    // 1. DPH_ALGO Profile Parser
-    // Preferred format: a native Firestore map, e.g.
-    //   DPH_ALGO: { studios: ["HBO"], languages: ["Hindi"], lastWatched: ["Hoppers"],
-    //               genres: ["superhero"], ageRatings: ["U/A 13+"] }
-    // Also still accepts the old free-text sentence format on existing docs
-    // ("he/she like movies form (HBO), ..."). Legacy parsing previously split
-    // every field on "/" and whitespace, which shredded values that legitimately
-    // contain them ("U/A 13+" -> ["u","a","13+"], "Science Fiction" ->
-    // ["science","fiction"]). Fixed to split on commas only.
-    function normalizeList(val) {
-      if (Array.isArray(val)) return val.map(v => safeString(v).trim().toLowerCase()).filter(Boolean);
-      return safeString(val).split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
-    }
-
-    function parseDphAlgo(raw) {
-      if (!raw) return null;
-
-      // Structured format: a Firestore map field.
-      if (typeof raw === 'object' && !Array.isArray(raw)) {
-        const profile = {
-          studios: normalizeList(raw.studios),
-          languages: normalizeList(raw.languages),
-          lastWatched: normalizeList(raw.lastWatched),
-          genres: normalizeList(raw.genres),
-          ageRatings: normalizeList(raw.ageRatings),
-          tokens: new Set()
-        };
-        [...profile.studios, ...profile.languages, ...profile.lastWatched, ...profile.genres, ...profile.ageRatings]
-          .forEach(v => tokenize(v).forEach(t => profile.tokens.add(t)));
-        return profile;
-      }
-
-      // Legacy free-text sentence format.
-      if (typeof raw !== 'string') return null;
-
-      const profile = {
-        studios: [], languages: [], lastWatched: [], genres: [], ageRatings: [], tokens: new Set()
-      };
-
-      const clean = raw.replace(/[\n\r]+/g, ' ');
-
-      const extractGroup = (regex, allowSlashSplit = true) => {
-        const match = clean.match(regex);
-        if (match && match[1]) {
-          const splitter = allowSlashSplit ? /[,/|•]+/ : /[,|•]+/;
-          return match[1].split(splitter).map(s => s.trim().toLowerCase()).filter(Boolean);
-        }
-        return [];
-      };
-
-      profile.studios = extractGroup(/(?:form|from|studio|production)\s*\((.*?)\)/i);
-      profile.languages = extractGroup(/(?:prefer|language|lang)\s*\((.*?)\)/i);
-      profile.lastWatched = extractGroup(/(?:lastly|watched|history|movies)\s*\d*\s*(?:movies|shows)?\s*\((.*?)\)/i);
-      profile.genres = extractGroup(/(?:genres|genre|like)\s*(?:of)?\s*\((.*?)\)/i);
-      // Age ratings never split on "/" — "U/A 13+" is one value, not three.
-      profile.ageRatings = extractGroup(/(?:age_rating|rating|confert|comfort)\s*\((.*?)\)/i, false);
-
-      tokenize(clean).forEach(t => profile.tokens.add(t));
-      return profile;
-    }
-
-    // 2. YouTube-Grade Ranking & Diversity Engine
-    const RANK_WEIGHTS = {
-      studioMatch: 90,
-      genreMatch: 55,
-      languageMatch: 40,
-      ageRatingMatch: 30,
-      lastWatchedMatch: 55,
-      sessionGenre: 15,
-      sessionStudio: 20,
-      watchlist: 40,
-      trailerBoost: 15,
-      recencyMax: 22,
-      recencyHalfLifeYears: 3,
-      diversityStudioPenalty: 25,
-      diversityGenrePenalty: 18,
-      stableJitterMax: 3,
-      repeatPenaltyMax: 55,
-      repeatHalfLifeHours: 16,
-      maxPerStudio: 2
-    };
-
-    // Home page layout: first slides are newest additions (unranked), the rest
-    // are the personalized/diversified picks below.
-    const CAROUSEL_CONFIG = { newReleaseSlots: 3, totalSlides: 9 };
-
-    // Deterministic pseudo-random 0..1 derived from a string. Used to break exact
-    // score ties consistently, so Firestore's frequent onSnapshot re-renders don't
-    // visibly reshuffle the carousel every time the same items tie on score.
-    function stableHash01(str) {
-      let h = 0;
-      for (let i = 0; i < str.length; i++) {
-        h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-      }
-      return ((h >>> 0) % 1000) / 1000;
-    }
-
-    function rankAndDiversify(items, limit = 8) {
-      const nowYear = new Date().getFullYear();
-
-      // Deduplicate by normalized title
-      const uniqueItems = [];
-      const seen = new Set();
-      for (const item of items) {
-        const titleKey = safeString(item.Name || item.Title).toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (!titleKey || seen.has(titleKey)) continue;
-        seen.add(titleKey);
-        uniqueItems.push(item);
-      }
-
-      const scored = uniqueItems.map(item => {
-        let score = 0;
-        const name = safeString(item.Name || item.Title).toLowerCase();
-        const studio = safeString(item.Studio || item.Partner).toLowerCase();
-        const langs = resolveLanguages(item).map(l => l.toLowerCase());
-        const age = safeString(item.Age_Rating || item["Age Rating"]).toLowerCase();
-        const tags = resolveTags(item).map(t => t.toLowerCase());
-
-        // DPH_ALGO Matching
-        if (userAlgoPreferences) {
-          if (userAlgoPreferences.studios.some(st => studio.includes(st) || tags.includes(st))) {
-            score += RANK_WEIGHTS.studioMatch;
-          }
-
-          // Genre match now scales with how many preferred genres are present,
-          // with diminishing returns so one tag-stuffed item can't sweep every point.
-          const genreHits = userAlgoPreferences.genres.filter(g => tags.some(t => t.includes(g))).length;
-          if (genreHits > 0) score += RANK_WEIGHTS.genreMatch * (1 - 1 / (genreHits + 1));
-
-          if (userAlgoPreferences.languages.some(l => langs.some(il => il.includes(l)))) score += RANK_WEIGHTS.languageMatch;
-          if (userAlgoPreferences.ageRatings.some(ar => age === ar)) score += RANK_WEIGHTS.ageRatingMatch;
-          if (userAlgoPreferences.lastWatched.some(w => name.includes(w) || tags.includes(w))) {
-            score += RANK_WEIGHTS.lastWatchedMatch;
-          }
-        }
-
-        // Live Session Reinforcement (also diminishing returns across matched genres)
-        const sessionGenreHits = tags.filter(t => sessionInteractions.interactedGenres.has(t)).length;
-        if (sessionGenreHits > 0) score += RANK_WEIGHTS.sessionGenre * (1 - 1 / (sessionGenreHits + 1));
-        if (sessionInteractions.interactedStudios.has(studio)) score += RANK_WEIGHTS.sessionStudio;
-
-        // Watchlist
-        if (userWatchlist.includes(item.id)) score += RANK_WEIGHTS.watchlist;
-
-        // Recency — exponential decay instead of a hard linear cutoff, so a strong
-        // match from a few years back can still outrank a mediocre new release.
-        const y = parseInt(safeString(item.Release_Date || item.Year || nowYear));
-        if (!isNaN(y)) {
-          const ageYears = Math.max(0, nowYear - y);
-          score += RANK_WEIGHTS.recencyMax * Math.pow(0.5, ageYears / RANK_WEIGHTS.recencyHalfLifeYears);
-        }
-
-        // Trailer Boost
-        if (item.Trailer && String(item.Trailer).trim().length > 0) score += RANK_WEIGHTS.trailerBoost;
-
-        // Repeat-impression penalty — the actual fix for "same content keeps
-        // repeating": without this, a high-scoring item re-wins on every single
-        // load forever. This pushes it down right after it's shown, then lets it
-        // decay back up over ~16h so it can rotate back in on a later visit.
-        const lastShown = impressionHistory[item.id];
-        if (lastShown) {
-          const hoursSince = (Date.now() - lastShown) / 3600000;
-          score -= RANK_WEIGHTS.repeatPenaltyMax * Math.pow(0.5, hoursSince / RANK_WEIGHTS.repeatHalfLifeHours);
-        }
-
-        // Deterministic micro-jitter to break exact ties consistently
-        score += stableHash01(item.id || name) * RANK_WEIGHTS.stableJitterMax;
-
-        return { item, score, tags, studio };
-      });
-
-      scored.sort((a, b) => b.score - a.score);
-
-      // MMR-style diversity filter: penalizes studio repeats and genre-tag
-      // overlap with items already chosen.
-      const selected = [];
-      const usedStudios = new Set();
-      const usedTags = new Set();
-      const studioCounts = new Map();
-      const pool = [...scored];
-
-      while (pool.length > 0 && selected.length < limit) {
-        let bestIdx = 0;
-        let bestScore = -Infinity;
-
-        // Pass 1 respects the per-studio cap; pass 2 (only if every remaining
-        // candidate is capped-out) ignores it so slots still get filled.
-        let foundIdx = -1;
-        for (let enforceCap = true, done = false; !done; enforceCap = false) {
-          for (let i = 0; i < pool.length; i++) {
-            const cand = pool[i];
-            const studioCount = cand.studio ? (studioCounts.get(cand.studio) || 0) : 0;
-            if (enforceCap && studioCount >= RANK_WEIGHTS.maxPerStudio) continue;
-
-            let penalty = 0;
-            if (cand.studio && usedStudios.has(cand.studio)) penalty += RANK_WEIGHTS.diversityStudioPenalty;
-
-            if (cand.tags.length > 0) {
-              const overlap = cand.tags.filter(t => usedTags.has(t)).length;
-              if (overlap > 0) penalty += RANK_WEIGHTS.diversityGenrePenalty * (overlap / cand.tags.length);
-            }
-
-            const finalScore = cand.score - penalty;
-            if (finalScore > bestScore) {
-              bestScore = finalScore;
-              foundIdx = i;
-            }
-          }
-          done = foundIdx !== -1 || !enforceCap;
-        }
-        bestIdx = foundIdx !== -1 ? foundIdx : 0;
-
-        const chosenEntry = pool.splice(bestIdx, 1)[0];
-        selected.push(chosenEntry.item);
-        if (chosenEntry.studio) {
-          usedStudios.add(chosenEntry.studio);
-          studioCounts.set(chosenEntry.studio, (studioCounts.get(chosenEntry.studio) || 0) + 1);
-        }
-        chosenEntry.tags.forEach(t => usedTags.add(t));
-      }
-
-      scheduleImpressionRecord(selected.map(s => s.id));
-      return selected;
-    }
-
-    // Turns any timestamp-ish field (Firestore Timestamp, ISO string, bare year)
-    // into an epoch-ms-comparable number for "newest first" sorting.
-    function toEpochMs(val) {
-      if (!val) return 0;
-      if (typeof val.toMillis === 'function') return val.toMillis();
-      if (typeof val.seconds === 'number') return val.seconds * 1000;
-      if (val instanceof Date) return val.getTime();
-      const parsed = Date.parse(val);
-      if (!isNaN(parsed)) return parsed;
-      const year = parseInt(safeString(val));
-      return isNaN(year) ? 0 : year * 1e10; // ordinal fallback when all we have is a bare year
-    }
-
-    // Indian certification hierarchy, low to high restriction. An item whose
-    // rating we don't recognize is never blocked (we'd rather show it than
-    // guess wrong); a profile whose stated ratings we don't recognize doesn't
-    // filter anything either.
-    const AGE_RATING_RANK = { 'u': 0, 'u/a 7+': 1, 'u/a 13+': 2, 'u/a 16+': 3, 'a': 4, 's': 4 };
-    function ageRatingRank(val) {
-      const key = safeString(val).toLowerCase().trim();
-      return key in AGE_RATING_RANK ? AGE_RATING_RANK[key] : null;
-    }
-    // DPH_ALGO's ageRatings is treated as "any of these are fine" — the ceiling
-    // is the least restrictive one stated, and anything stricter is excluded
-    // outright rather than just scored lower.
-    function passesAgeCeiling(item) {
-      if (!userAlgoPreferences || userAlgoPreferences.ageRatings.length === 0) return true;
-      const itemRank = ageRatingRank(item.Age_Rating || item["Age Rating"]);
-      if (itemRank === null) return true;
-      const ranks = userAlgoPreferences.ageRatings.map(ageRatingRank).filter(r => r !== null);
-      if (ranks.length === 0) return true;
-      return itemRank <= Math.max(...ranks);
-    }
-
-    function getAddedTimestamp(item) {
-      return toEpochMs(item.Added_On || item.AddedOn || item.CreatedAt || item.createdAt ||
-        item.Date_Added || item.Release_Date || item.Year);
-    }
-
-    // Home page: first CAROUSEL_CONFIG.newReleaseSlots slides are the newest
-    // catalog additions (unranked, purely chronological); the rest are the
-    // personalized/diversified picks from rankAndDiversify.
-    //
-    // Two bugs fixed here:
-    // - TV channels/live TV were being mixed into a movie/show carousel.
-    // - Items with no real date field all tied at timestamp 0, and since sort
-    //   is stable, ties kept the original Firestore query order forever — so
-    //   whichever undated titles happened to load first (e.g. "Alice in
-    //   Wonderland") were permanently stuck in the "newest" slots. Undated
-    //   items are no longer eligible for that bucket; they still show up
-    //   normally through the recommended/rotated pool below.
-    function buildHeroCarousel(items) {
-      const seen = new Set();
-      const uniqueItems = items.filter(item => {
-        if (!passesAgeCeiling(item)) return false;
-        const key = safeString(item.Name || item.Title).toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (!key || seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-
-      const newest = uniqueItems
-        .filter(item => getAddedTimestamp(item) > 0)
-        .sort((a, b) => getAddedTimestamp(b) - getAddedTimestamp(a))
-        .slice(0, CAROUSEL_CONFIG.newReleaseSlots);
-
-      const newestIds = new Set(newest.map(i => i.id));
-      const remainingPool = uniqueItems.filter(i => !newestIds.has(i.id));
-      const recommendedCount = Math.max(0, CAROUSEL_CONFIG.totalSlides - newest.length);
-      const recommended = rankAndDiversify(remainingPool, recommendedCount);
-
-      return [...newest, ...recommended];
-    }
-
-    // 3. User Session Listener
-    async function initUser() {
-      const btn = document.getElementById('userAuthBtn');
+    async function loadUserData() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
         currentUser = stored ? JSON.parse(stored) : null;
-      } catch(e) {}
-
-      try {
-        const wl = localStorage.getItem('hotstar_watchlist');
-        userWatchlist = wl ? JSON.parse(wl) : (currentUser?.Watchlist || []);
-      } catch(e) {}
-
-      if (currentUser) {
-        const name = currentUser["First Name"] || (currentUser.Email ? currentUser.Email.split('@')[0] : "User");
-        btn.innerHTML = `👤 ${name}`;
-        btn.href = "#";
-        btn.onclick = (e) => {
-          e.preventDefault();
-          if (confirm("Switch user account?")) window.location.href = "1 (1).html";
-        };
-
-        try {
-          let q = null;
-          if (currentUser.Lotus) q = query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus));
-          else if (currentUser.Email) q = query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email));
-
+        if (currentUser) {
+          const q = currentUser.Lotus 
+            ? query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus))
+            : (currentUser.Email ? query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email)) : null);
+          
           if (q) {
             const snap = await getDocs(q);
             if (!snap.empty) {
-              userDocId = snap.docs[0].id;
-              bindUserLive(userDocId);
-            }
-          } else if (currentUser.id) {
-            userDocId = currentUser.id;
-            bindUserLive(userDocId);
-          }
-        } catch(e){}
-      } else {
-        btn.innerHTML = `Sign In`;
-        btn.href = `1 (1).html?continue=${encodeURIComponent(window.location.href)}`;
-      }
-    }
-
-    function bindUserLive(docId) {
-      onSnapshot(doc(authDb, "UARM", docId), (s) => {
-        if (s.exists()) {
-          const u = s.data();
-          currentUser = { id: s.id, ...u };
-          userWatchlist = u.Watchlist || userWatchlist;
-          userAlgoPreferences = parseDphAlgo(u.DPH_ALGO || "");
-
-          localStorage.setItem('active_user', JSON.stringify(currentUser));
-          localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
-
-          if (contentMap.size > 0) {
-            const next = buildHeroCarousel(Array.from(contentMap.values()));
-            if (selectionChanged(next)) {
-              heroCarouselList = next;
-              renderCarousel();
+              userDocRef = doc(authDb, "UARM", snap.docs[0].id);
+              userWatchlist = snap.docs[0].data().Watchlist || [];
             }
           }
         }
-      });
+      } catch(e) {}
     }
 
-    function showToast(m) {
-      const t = document.getElementById('toastBox');
-      t.innerText = m;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 2000);
+    async function fetchPageConfigAndBuild(pId) {
+      try {
+        let pageSnap = await getDoc(doc(db, "Systems", pId));
+        if (!pageSnap.exists()) {
+          pageSnap = await getDoc(doc(db, "Systems", "default"));
+        }
+
+        if (!pageSnap.exists()) {
+          document.getElementById('dynamicSectionsHost').innerHTML = '<div class="loader">Page layout not configured.</div>';
+          return;
+        }
+
+        const pageData = pageSnap.data();
+        
+        // Setup Carousel IDs
+        const cIds = pageData.Carousel || (pageData.S1 && pageData.S1.Content) || ["aladdin", "dhurandhar-134114"];
+        await loadCarouselContent(cIds);
+
+        // Render Dynamic Sections
+        const sections = pageData.Sections || [];
+        await renderSectionsFromRules(sections);
+      } catch (err) {
+        document.getElementById('dynamicSectionsHost').innerHTML = `<div class="loader">Failed to load feed: ${err.message}</div>`;
+      }
     }
 
-    // 4. Fetch Real Firestore Documents
-    async function fetchContent() {
-      const collections = ["Movies", "Shows", "TV Shows"]; // Live TV / channels excluded — not part of the movie/show carousel
+    function safeUrl(url) {
+      return (url || '').trim().replace(/^http:\/\//i, 'https://');
+    }
 
-      for (const col of collections) {
-        try {
-          const snap = await getDocs(collection(channelDb, col));
-          snap.forEach(d => contentMap.set(d.id, { id: d.id, _col: col, ...d.data() }));
-        } catch(e){}
-      }
+    function getThumb(c) {
+      return safeUrl(c.Banner || c["Poster.h"] || c.Poster_h || c.Poster || c.Logo || '');
+    }
 
-      if (contentMap.size > 0) {
-        document.getElementById('carouselSkeleton').style.display = 'none';
-        heroCarouselList = buildHeroCarousel(Array.from(contentMap.values()));
-        selectionChanged(heroCarouselList);
-        renderCarousel();
-      }
+    async function loadCarouselContent(idList) {
+      const collectionsToCheck = ["Movies", "Shows", "Live TV", "TV Shows", "Sports"];
+      carouselItems = [];
 
-      collections.forEach(col => {
-        onSnapshot(collection(channelDb, col), (snap) => {
-          snap.forEach(d => contentMap.set(d.id, { id: d.id, _col: col, ...d.data() }));
-          if (contentMap.size > 0) {
-            document.getElementById('carouselSkeleton').style.display = 'none';
-            const next = buildHeroCarousel(Array.from(contentMap.values()));
-            if (selectionChanged(next)) {
-              heroCarouselList = next;
-              renderCarousel();
+      for (const id of idList) {
+        for (const col of collectionsToCheck) {
+          try {
+            const s = await getDoc(doc(db, col, id));
+            if (s.exists()) {
+              carouselItems.push({ id: s.id, col, ...s.data() });
+              break;
             }
-          }
-        });
-      });
+          } catch(e) {}
+        }
+      }
+
+      if (carouselItems.length === 0) {
+        document.getElementById('heroCarousel').style.display = 'none';
+        return;
+      }
+
+      buildCarouselUI();
+      startCarouselLoop();
     }
 
-    // 5. Render Carousel Viewport
-    function renderCarousel() {
-      const viewport = document.getElementById('slidesViewport');
-      const strip = document.getElementById('previewStrip');
-      const dots = document.getElementById('mobileDots');
+    function buildCarouselUI() {
+      const track = document.getElementById('carouselTrack');
+      const dots = document.getElementById('carouselDots');
+      track.innerHTML = '';
+      dots.innerHTML = '';
 
-      if (!viewport || heroCarouselList.length === 0) return;
-
-      viewport.innerHTML = '';
-      if (strip) strip.innerHTML = '';
-      if (dots) dots.innerHTML = '';
-
-      heroCarouselList.forEach((item, idx) => {
+      carouselItems.forEach((item, idx) => {
         const isAdded = userWatchlist.includes(item.id);
-        const bannerUrl = resolveBanner(item);
-        const logoUrl = resolveLogo(item);
-        const titleText = safeString(item.Name || item.Title || "Featured Stream");
-        const descText = safeString(item.Discription || item.Description || item.Story);
-        const year = safeString(item.Release_Date || item.ReleaseDate || item.Year);
-        const age = safeString(item.Age_Rating || item["Age Rating"] || "U");
-        const lang = resolveLanguages(item).join(', ');
-        const tagList = resolveTags(item).slice(0, 4);
+        const logo = safeUrl(item["Logo.png"] || item.Logo);
+        const name = item.Name || item.Title || "Hotstar Special";
+        const lang = item.Language || "Hindi";
+        const year = item.Year || item.Release_Date || "2024";
+        const genres = (item.Genres || item.Genre || "Action").split(',').slice(0, 2).join(' • ');
 
-        const slide = document.createElement('div');
-        slide.className = `carousel-slide ${idx === activeIndex ? 'active' : ''}`;
-        slide.id = `slide_${idx}`;
-        slide.innerHTML = `
-          <div class="media-layer">
-            ${bannerUrl ? `<img class="banner-image" src="${bannerUrl}" alt="${titleText}">` : ''}
-            <video class="trailer-video" id="video_trailer_${idx}" playsinline muted></video>
-            <div id="yt_wrap_${idx}" class="yt-frame-wrapper"></div>
-          </div>
-
-          <div class="slide-info-container">
-            <!-- Guaranteed Title/Logo Visibility -->
-            <div class="title-branding-box">
-              ${logoUrl ? `
-                <img class="title-logo" id="logo_${idx}" src="${logoUrl}" alt="${titleText}" onerror="this.style.display='none'; document.getElementById('fb_${idx}').style.display='block';">
-                <h1 class="fallback-title" id="fb_${idx}" style="display:none;">${titleText}</h1>
-              ` : `
-                <h1 class="fallback-title">${titleText}</h1>
-              `}
-            </div>
-
-            <!-- Metadata Badges -->
-            <div class="meta-badge-row">
-              ${year ? `<span>${year}</span><span class="dot">●</span>` : ''}
-              <span class="age-badge">${age}</span>
-              ${lang ? `<span class="dot">●</span><span>${lang}</span>` : ''}
-            </div>
-
-            <!-- Tags Badges -->
-            ${tagList.length > 0 ? `
-              <div class="tags-badge-container">
-                ${tagList.map(t => `<span class="tag-pill">${t}</span>`).join('')}
+        track.innerHTML += `
+          <div class="slide-item ${idx === 0 ? 'active' : ''}" id="slide-${idx}">
+            <img class="media-backdrop" src="${getThumb(item)}" alt="${name}">
+            <video class="video-trailer-engine" id="trailer-video-${idx}" playsinline muted loop></video>
+            <iframe class="trailer-iframe" id="trailer-iframe-${idx}"></iframe>
+            <div class="slide-overlay-gradient"></div>
+            
+            <div class="slide-content-box">
+              ${logo ? `<img class="title-logo-img" src="${logo}" alt="${name}">` : `<div class="title-fallback-text">${name}</div>`}
+              <div class="slide-meta-row">
+                <span>${lang}</span>
+                <span>${year}</span>
+                <span>${genres}</span>
               </div>
-            ` : ''}
-
-            <!-- Description -->
-            ${descText ? `<p class="story-synopsis">${descText}</p>` : ''}
-
-            <!-- CTA Buttons -->
-            <div class="button-row">
-              <a class="btn-main-watch" href="1.html?watch=${item.id}" onclick="window.recordInteraction('${item.id}', 'watch')">
-                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                <span>Watch Now</span>
-              </a>
-
-              <button class="btn-icon-square ${isAdded ? 'active' : ''}" data-wl-id="${item.id}" onclick="window.toggleWatchlist('${item.id}')" title="Watchlist">
-                <svg viewBox="0 0 24 24">
-                  ${isAdded 
-                    ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' 
-                    : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}
-                </svg>
-              </button>
-
-              <button class="btn-icon-square" id="mute_btn_${idx}" onclick="window.toggleMute(${idx})" style="display:none;" title="Mute/Unmute">
-                <svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
-              </button>
-
-              <div class="trailer-status-badge" id="trailer_badge_${idx}">
-                <div class="pulse-dot"></div> Trailer
+              <div class="slide-action-row">
+                <a class="btn-watch-now" href="1.html?watch=${item.id}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  Watch Now
+                </a>
+                <button class="btn-add-list ${isAdded ? 'active' : ''}" onclick="window.toggleWatchlist(event, '${item.id}')" title="Watchlist">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    ${isAdded ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
         `;
-        viewport.appendChild(slide);
-
-        if (strip && bannerUrl) {
-          const c = document.createElement('div');
-          c.className = `preview-card-item ${idx === activeIndex ? 'active' : ''}`;
-          c.onclick = () => {
-            window.recordInteraction(item.id, 'click');
-            jumpTo(idx);
-          };
-          c.innerHTML = `<img src="${bannerUrl}" alt="${titleText}">`;
-          strip.appendChild(c);
-        }
-
-        if (dots) {
-          const d = document.createElement('div');
-          d.className = `m-dot ${idx === activeIndex ? 'active' : ''}`;
-          d.onclick = () => {
-            window.recordInteraction(item.id, 'click');
-            jumpTo(idx);
-          };
-          dots.appendChild(d);
-        }
+        dots.innerHTML += `<div class="dot ${idx === 0 ? 'active' : ''}"></div>`;
       });
-
-      startCycle(activeIndex);
     }
 
-    // 6. 6-Second Banner to Edge-to-Edge Trailer
-    function startCycle(i) {
+    function startCarouselLoop() {
       clearTimeout(slideTimer);
-      stopMedia();
+      const item = carouselItems[currentSlide];
+      const trailerUrl = safeUrl(item.Trailer || item.trailer || '');
+      
+      const vEl = document.getElementById(`trailer-video-${currentSlide}`);
+      const iEl = document.getElementById(`trailer-iframe-${currentSlide}`);
 
-      const item = heroCarouselList[i];
-      if (!item) return;
-
-      const vid = document.getElementById(`video_trailer_${i}`);
-      const tUrl = cleanUrl(item.Trailer || item.trailer);
-
+      // Step 1: Display Banner for 6 seconds
       slideTimer = setTimeout(() => {
-        if (tUrl) playTrailer(i, tUrl, vid);
-        else next();
+        // Step 2: If trailer available play trailer, else proceed to next slide
+        if (trailerUrl) {
+          if (trailerUrl.includes('youtube.com') || trailerUrl.includes('youtu.be')) {
+            const ytId = trailerUrl.split('v=')[1] || trailerUrl.split('/').pop();
+            iEl.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1`;
+            iEl.style.display = 'block';
+          } else {
+            vEl.src = trailerUrl;
+            vEl.style.display = 'block';
+            vEl.play().catch(() => {});
+          }
+
+          // Let trailer play for 14 seconds before moving
+          slideTimer = setTimeout(nextSlide, 14000);
+        } else {
+          nextSlide();
+        }
       }, 6000);
     }
 
-    function playTrailer(i, url, vid) {
-      const mute = document.getElementById(`mute_btn_${i}`);
-      const badge = document.getElementById(`trailer_badge_${i}`);
+    function nextSlide() {
+      const vEl = document.getElementById(`trailer-video-${currentSlide}`);
+      const iEl = document.getElementById(`trailer-iframe-${currentSlide}`);
+      if (vEl) { vEl.pause(); vEl.style.display = 'none'; vEl.removeAttribute('src'); }
+      if (iEl) { iEl.src = ''; iEl.style.display = 'none'; }
 
-      if (url.includes('.mp4') || url.includes('.m3u8')) {
-        vid.src = url;
-        vid.muted = isMuted;
-        vid.play().then(() => {
-          vid.classList.add('playing');
-          if (mute) mute.style.display = 'flex';
-          if (badge) badge.classList.add('show');
-        }).catch(() => next());
+      document.getElementById(`slide-${currentSlide}`).classList.remove('active');
+      document.querySelectorAll('.dot')[currentSlide].classList.remove('active');
 
-        vid.onended = () => next();
-        vid.onerror = () => next();
-      } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        const yt = document.getElementById(`yt_wrap_${i}`);
-        const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=))([\w-]{11})/)?.[1];
-        if (id) {
-          yt.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=0&playsinline=1" allow="autoplay"></iframe>`;
-          yt.classList.add('playing');
-          if (badge) badge.classList.add('show');
-          slideTimer = setTimeout(next, 25000);
-        } else next();
-      } else next();
+      currentSlide = (currentSlide + 1) % carouselItems.length;
+
+      document.getElementById(`slide-${currentSlide}`).classList.add('active');
+      document.querySelectorAll('.dot')[currentSlide].classList.add('active');
+
+      startCarouselLoop();
     }
 
-    function stopMedia() {
-      document.querySelectorAll('.trailer-video').forEach(v => {
-        v.pause();
-        v.removeAttribute('src');
-        v.load();
-        v.classList.remove('playing');
-      });
-      document.querySelectorAll('.yt-frame-wrapper').forEach(y => {
-        y.innerHTML = '';
-        y.classList.remove('playing');
-      });
-      document.querySelectorAll('.trailer-status-badge').forEach(b => b.classList.remove('show'));
-    }
-
-    function next() {
-      if (heroCarouselList.length === 0) return;
-      jumpTo((activeIndex + 1) % heroCarouselList.length);
-    }
-
-    function prev() {
-      if (heroCarouselList.length === 0) return;
-      jumpTo((activeIndex - 1 + heroCarouselList.length) % heroCarouselList.length);
-    }
-
-    function jumpTo(idx) {
-      clearTimeout(slideTimer);
-      stopMedia();
-
-      document.querySelectorAll('.carousel-slide').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.preview-card-item').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.m-dot').forEach(d => d.classList.remove('active'));
-
-      activeIndex = idx;
-
-      const s = document.getElementById(`slide_${idx}`);
-      const p = document.querySelectorAll('.preview-card-item')[idx];
-      const d = document.querySelectorAll('.m-dot')[idx];
-
-      if (s) s.classList.add('active');
-      if (p) p.classList.add('active');
-      if (d) d.classList.add('active');
-
-      startCycle(idx);
-    }
-
-    // 7. Touch & Mouse Swipe Engine
-    const stage = document.getElementById('carouselStage');
-    let startX = 0, startY = 0, endX = 0, swiping = false;
-
-    stage.addEventListener('touchstart', (e) => {
-      // A tap on a button/link must never be treated as a swipe start — if it
-      // were, next()/prev() could fire mid-tap, the carousel advances, and the
-      // browser's coordinate-based click hit-test then lands on whatever slide
-      // just slid into that spot instead of the one actually tapped. This is
-      // the "Watch Now opens the wrong title" bug.
-      if (e.target.closest('button') || e.target.closest('a')) { swiping = false; return; }
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-      swiping = true;
-    }, { passive: true });
-
-    stage.addEventListener('touchmove', (e) => {
-      if (!swiping) return;
-      endX = e.touches[0].clientX;
-    }, { passive: true });
-
-    stage.addEventListener('touchend', (e) => {
-      if (!swiping) return;
-      swiping = false;
-      const dx = endX - startX;
-      const dy = Math.abs(e.changedTouches[0].clientY - startY);
-      if (Math.abs(dx) > 45 && Math.abs(dx) > dy) {
-        if (dx < 0) next();
-        else prev();
-      }
-      startX = 0; endX = 0;
-    }, { passive: true });
-
-    let mDown = false;
-    stage.addEventListener('mousedown', (e) => {
-      if (e.target.closest('button') || e.target.closest('a')) return;
-      mDown = true;
-      startX = e.clientX;
-    });
-
-    window.addEventListener('mouseup', (e) => {
-      if (!mDown) return;
-      mDown = false;
-      const dx = e.clientX - startX;
-      if (Math.abs(dx) > 60) {
-        if (dx < 0) next();
-        else prev();
-      }
-    });
-
-    // Interactions
-    window.recordInteraction = function(id, t) {
-      const item = contentMap.get(id);
-      if (!item) return;
-      resolveTags(item).forEach(tag => sessionInteractions.interactedGenres.add(tag.toLowerCase()));
-      const s = safeString(item.Studio || item.Partner).toLowerCase();
-      if (s) sessionInteractions.interactedStudios.add(s);
-    };
-
-    window.toggleMute = function(idx) {
-      const vid = document.getElementById(`video_trailer_${idx}`);
-      const btn = document.getElementById(`mute_btn_${idx}`);
-      if (vid) {
-        isMuted = !isMuted;
-        vid.muted = isMuted;
-        btn.innerHTML = isMuted 
-          ? '<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>'
-          : '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
+    window.toggleWatchlist = async (e, id) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const btn = e.currentTarget;
+      const isAdded = btn.classList.contains('active');
+      
+      if (userDocRef) {
+        if (isAdded) {
+          await updateDoc(userDocRef, { Watchlist: arrayRemove(id) });
+          userWatchlist = userWatchlist.filter(item => item !== id);
+          btn.classList.remove('active');
+          btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
+        } else {
+          await updateDoc(userDocRef, { Watchlist: arrayUnion(id) });
+          userWatchlist.push(id);
+          btn.classList.add('active');
+          btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+        }
+      } else {
+        btn.classList.toggle('active');
       }
     };
 
-    function wlIconSvg(added) {
-      return `<svg viewBox="0 0 24 24">${added
-        ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>'
-        : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}</svg>`;
-    }
+    function renderContinueWatching() {
+      const cwWrap = document.getElementById('continueWatchingWrap');
+      const cwScroll = document.getElementById('cwItemsScroll');
+      const heading = document.getElementById('cwUserHeading');
 
-    window.toggleWatchlist = async function(id) {
-      window.recordInteraction(id, 'watchlist');
-      const idx = userWatchlist.indexOf(id);
-      const isRemoving = idx > -1;
+      if (currentUser && currentUser.Name) {
+        heading.innerText = `Continue Watching for ${currentUser.Name.split(' ')[0]}...`;
+      }
 
-      if (isRemoving) userWatchlist.splice(idx, 1);
-      else userWatchlist.push(id);
-
-      localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
-
-      document.querySelectorAll(`[data-wl-id="${id}"]`).forEach(b => {
-        b.classList.toggle('active', !isRemoving);
-        b.innerHTML = wlIconSvg(!isRemoving);
-      });
-
-      if (!userDocId) {
-        showToast((isRemoving ? "Removed" : "Added") + " (sign in to sync across devices)");
+      const progressKeys = Object.keys(localStorage).filter(k => k.startsWith('progress_'));
+      if (progressKeys.length === 0) {
+        cwWrap.style.display = 'none';
         return;
       }
 
-      try {
-        await updateDoc(doc(authDb, "UARM", userDocId), {
-          Watchlist: isRemoving ? arrayRemove(id) : arrayUnion(id)
-        });
-        showToast(isRemoving ? "Removed from Watchlist" : "Added to Watchlist");
-      } catch (e) {
-        // Revert the optimistic local update so the UI matches what's actually saved.
-        if (isRemoving) userWatchlist.push(id);
-        else userWatchlist.splice(userWatchlist.indexOf(id), 1);
-        localStorage.setItem('hotstar_watchlist', JSON.stringify(userWatchlist));
-        document.querySelectorAll(`[data-wl-id="${id}"]`).forEach(b => {
-          b.classList.toggle('active', isRemoving);
-          b.innerHTML = wlIconSvg(isRemoving);
-        });
-        showToast("Couldn't save — check your connection and try again");
-        console.error('Watchlist update failed:', e);
-      }
-    };
+      cwWrap.style.display = 'block';
+      cwScroll.innerHTML = '';
 
-    // Run
-    loadImpressionHistory();
-    initUser();
-    fetchContent();
+      progressKeys.slice(0, 8).forEach(async (key) => {
+        const docId = key.replace('progress_', '').split('_')[0];
+        const progressSeconds = parseFloat(localStorage.getItem(key)) || 0;
+        if (progressSeconds < 10) return;
+
+        // Try getting cached item or fetch
+        for (const col of ["Movies", "Shows", "TV Shows", "Live TV"]) {
+          try {
+            const snap = await getDoc(doc(db, col, docId));
+            if (snap.exists()) {
+              const item = snap.data();
+              const percent = Math.min(95, Math.max(10, (progressSeconds / 5400) * 100)); // Estimated visual progress
+              cwScroll.innerHTML += `
+                <a class="cw-card" href="1.html?watch=${docId}">
+                  <div class="cw-thumb-box">
+                    <img src="${getThumb(item)}" alt="${item.Name}">
+                    <div class="cw-play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+                    <div class="cw-progress-line" style="width: ${percent}%"></div>
+                  </div>
+                  <div class="cw-title">${item.Name || 'Video'}</div>
+                  <div class="cw-time-left">${Math.max(1, Math.round((5400 - progressSeconds)/60))}m left</div>
+                </a>
+              `;
+              break;
+            }
+          } catch(e) {}
+        }
+      });
+    }
+
+    async function renderSectionsFromRules(sections) {
+      const host = document.getElementById('dynamicSectionsHost');
+      if (sections.length === 0) {
+        host.innerHTML = '';
+        return;
+      }
+
+      host.innerHTML = '';
+
+      for (const [idx, sec] of sections.entries()) {
+        const secContainerId = `sec-scroll-${idx}`;
+        host.innerHTML += `
+          <div class="section-wrap">
+            <div class="section-header">${sec.title}</div>
+            <div class="horizontal-scroll" id="${secContainerId}">
+              <div style="color:var(--text-muted); font-size:12px;">Loading...</div>
+            </div>
+          </div>
+        `;
+
+        // Load & Filter Content from selected collections
+        loadSectionData(sec, secContainerId);
+      }
+    }
+
+    async function loadSectionData(sec, containerId) {
+      let pool = [];
+      for (const col of sec.collections) {
+        try {
+          const snap = await getDocs(collection(db, col));
+          snap.forEach(d => pool.push({ id: d.id, _col: col, ...d.data() }));
+        } catch(e) {}
+      }
+
+      // Dynamic Filtering
+      if (sec.genre) {
+        const gList = sec.genre.toLowerCase().split(',').map(s => s.trim());
+        pool = pool.filter(i => {
+          const itemGenres = (i.Genres || i.Genre || '').toLowerCase();
+          return gList.some(g => itemGenres.includes(g));
+        });
+      }
+
+      if (sec.language) {
+        const lList = sec.language.toLowerCase().split(',').map(s => s.trim());
+        pool = pool.filter(i => lList.some(l => (i.Language || '').toLowerCase().includes(l)));
+      }
+
+      if (sec.studio) {
+        const sList = sec.studio.toLowerCase().split(',').map(s => s.trim());
+        pool = pool.filter(i => sList.some(st => (i.Studio || i.Partner || '').toLowerCase().includes(st)));
+      }
+
+      if (sec.ageRating) {
+        pool = pool.filter(i => (i.Age_Rating || i.AgeRating || '').toLowerCase() === sec.ageRating.toLowerCase());
+      }
+
+      // Dynamic Ordering
+      if (sec.order === 'newest') {
+        pool.sort((a, b) => parseInt(b.Release_Date || b.Year || 0) - parseInt(a.Release_Date || a.Year || 0));
+      } else if (sec.order === 'oldest') {
+        pool.sort((a, b) => parseInt(a.Release_Date || a.Year || 0) - parseInt(b.Release_Date || b.Year || 0));
+      } else if (sec.order === 'rating') {
+        pool.sort((a, b) => parseFloat(b.Rating || 0) - parseFloat(a.Rating || 0));
+      }
+
+      const finalList = pool.slice(0, sec.limit || 15);
+      const scrollEl = document.getElementById(containerId);
+
+      if (finalList.length === 0) {
+        scrollEl.innerHTML = '<div style="color:var(--text-muted); font-size:12px;">No matching content.</div>';
+        return;
+      }
+
+      scrollEl.innerHTML = finalList.map(item => `
+        <a class="poster-card" href="1.html?watch=${item.id}">
+          <div class="poster-box">
+            <img class="main-img" src="${getThumb(item)}" alt="${item.Name || 'Item'}" loading="lazy">
+            <img class="logo-badge" src="${safeUrl(item["Logo.png"] || item.Logo || item.Poster)}" loading="lazy">
+          </div>
+          <div class="poster-title">${item.Name || 'Title'}</div>
+          <div class="poster-sub">${item.Genres || item.Language || item._col}</div>
+        </a>
+      `).join('');
+    }
   </script>
 </body>
 </html>
