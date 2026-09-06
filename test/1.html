@@ -2,234 +2,869 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - 24/7 TV Time-Slot Scheduler</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Disney+ Hotstar</title>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- HLS.js for trailer playback -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 20px; }
-    .card { background: #1e1e1e; padding: 25px; border-radius: 8px; max-width: 800px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-    .slot-row { background: #2a2a2a; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff0000; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    label { font-size: 12px; font-weight: bold; color: #bbb; display: block; margin-top: 8px; }
-    input { width: 100%; padding: 10px; margin-top: 3px; border-radius: 4px; border: none; background: #3d3d3d; color: #fff; box-sizing: border-box; }
-    button { padding: 12px 20px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; font-size: 15px; }
-    .btn-add { background: #007bff; color: white; margin-top: 10px; }
-    .btn-save { background: #ff0000; color: white; width: 100%; margin-top: 20px; }
-    .btn-remove { background: #d9534f; color: white; padding: 5px 10px; font-size: 12px; float: right; margin-top: -5px; }
-    #status { margin-top: 15px; font-size: 14px; word-break: break-all; line-height: 1.4; }
+    :root {
+      --bg: #0f1015;
+      --card-bg: #161822;
+      --primary: #0072ef;
+      --text: #ffffff;
+      --text-muted: #8f98b2;
+      --border: #1e2230;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Hero Carousel (Matching Hotstar Reference Image) */
+    .hero-carousel-container {
+      position: relative;
+      width: 100%;
+      height: 72vh;
+      min-height: 480px;
+      max-height: 700px;
+      background: #000;
+      overflow: hidden;
+    }
+
+    .hero-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease-in-out;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .hero-slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .hero-media-wrapper {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .hero-media-wrapper img, 
+    .hero-media-wrapper video,
+    .hero-media-wrapper iframe {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      border: none;
+    }
+    .hero-media-wrapper iframe {
+      transform: scale(1.35); /* Eliminates YouTube letterboxing */
+      pointer-events: none;
+    }
+
+    .hero-overlay-gradient {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: linear-gradient(0deg, var(--bg) 0%, rgba(15,16,21,0.7) 35%, transparent 75%),
+                  linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 20%);
+    }
+
+    /* Hotstar Watermark Top Left */
+    .hero-watermark {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.9;
+    }
+    .hero-watermark img { height: 26px; }
+
+    /* Top Right Cast Icon */
+    .hero-cast-icon {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 5;
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      opacity: 0.85;
+    }
+    .hero-cast-icon svg { width: 24px; height: 24px; fill: currentColor; }
+
+    /* Center Content Info */
+    .hero-content {
+      position: relative;
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 20px 24px;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .hero-logo-img {
+      max-height: 75px;
+      max-width: 80%;
+      object-fit: contain;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
+    }
+    .hero-fallback-title {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    }
+
+    .hero-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #d1d6e6;
+      margin-bottom: 18px;
+    }
+    .hero-meta-row span.dot { font-size: 8px; opacity: 0.6; }
+
+    .hero-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-watch-now {
+      flex: 1;
+      max-width: 240px;
+      height: 48px;
+      background: #252833;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .btn-watch-now:active { transform: scale(0.97); background: #323644; }
+    .btn-watch-now svg { width: 18px; height: 18px; fill: #fff; }
+
+    .btn-hero-watchlist {
+      width: 48px;
+      height: 48px;
+      background: #252833;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .btn-hero-watchlist:active { transform: scale(0.95); }
+    .btn-hero-watchlist.active { color: var(--primary); border-color: var(--primary); }
+    .btn-hero-watchlist svg { width: 22px; height: 22px; fill: currentColor; }
+
+    /* Carousel Indicator Dots */
+    .hero-indicators {
+      display: flex;
+      gap: 6px;
+      margin-top: 18px;
+      align-items: center;
+    }
+    .hero-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transition: all 0.25s ease;
+    }
+    .hero-dot.active {
+      width: 8px;
+      height: 8px;
+      background: #fff;
+    }
+
+    /* Page Content Rows */
+    .main-content {
+      padding: 10px 0 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .section-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .section-head {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      padding: 0 16px;
+      letter-spacing: 0.3px;
+    }
+
+    .cards-row-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 0 16px;
+      scrollbar-width: none;
+    }
+    .cards-row-scroll::-webkit-scrollbar { display: none; }
+
+    /* Continue Watching Card (Image 1 Style) */
+    .cw-card {
+      min-width: 220px;
+      width: 220px;
+      text-decoration: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+    .cw-thumb-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #151821;
+      border: 1px solid var(--border);
+    }
+    .cw-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
+    .cw-play-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      width: 22px;
+      height: 22px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cw-play-badge svg { width: 10px; height: 10px; fill: #fff; margin-left: 1px; }
+
+    .cw-progress-track {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3.5px;
+      background: rgba(255,255,255,0.25);
+    }
+    .cw-progress-fill {
+      height: 100%;
+      background: var(--primary);
+    }
+
+    .cw-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-top: 8px;
+    }
+    .cw-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+    .cw-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Standard Shelf Card */
+    .shelf-card {
+      min-width: 150px;
+      width: 150px;
+      text-decoration: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.15s ease;
+    }
+    .shelf-card:active { transform: scale(0.96); }
+    .shelf-thumb-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+    }
+    .shelf-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
+    .shelf-logo-badge {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      background: rgba(0,0,0,0.65);
+      border-radius: 4px;
+      padding: 2px;
+    }
+    .shelf-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .shelf-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .toast-box {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18,20,26,0.92);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .toast-box.show { opacity: 1; }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>24/7 TV Channel Scheduler</h2>
-  <p style="color: #aaa; font-size: 13px;">Define time slots for your stream schedule (e.g. 14:00 to 14:30 for Doraemon).</p>
-  
-  <div id="slotsContainer">
-    <!-- Default Slot Row -->
-    <div class="slot-row">
-      <button class="btn-remove" onclick="removeSlot(this)">Remove Slot</button>
-      <div class="grid">
-        <div>
-          <label>Start Time (HH:MM 24h format):</label>
-          <input type="time" class="start-time" value="14:00">
-        </div>
-        <div>
-          <label>End Time (HH:MM 24h format):</label>
-          <input type="time" class="end-time" value="14:30">
-        </div>
-      </div>
-      <label>YouTube Playlist or Channel URL / Handle:</label>
-      <input type="text" class="source-input" placeholder="e.g. Playlist URL, Channel URL, or @handle">
-      
-      <label>Title Keyword Filter (Optional):</label>
-      <input type="text" class="filter-input" placeholder="e.g. doraemon, episode">
+<div id="app">
+  <!-- Top Hero Carousel -->
+  <div class="hero-carousel-container" id="heroCarousel">
+    <div class="hero-watermark">
+      <img src="https://img10.hotstar.com/image/upload/f_auto,q_90,w_256/v1656431456/web-images/logo-d-plus.svg" alt="Disney+ hotstar">
     </div>
+    <button class="hero-cast-icon" title="Cast">
+      <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+    </button>
+    <div id="heroSlidesWrapper"></div>
   </div>
 
-  <button class="btn-add" onclick="addSlot()">+ Add Another Time Slot</button>
-  <button class="btn-save" onclick="saveFullSchedule()">Publish 24/7 Schedule to Firestore</button>
-  <div id="status"></div>
+  <div class="main-content">
+    <!-- Continue Watching Row -->
+    <div class="section-wrap" id="continueWatchingSection" style="display:none;">
+      <div class="section-head" id="cwHeading">Continue Watching</div>
+      <div class="cards-row-scroll" id="continueWatchingList"></div>
+    </div>
+
+    <!-- Dynamic Shelves from Firebase (S1, S2, etc.) -->
+    <div id="dynamicShelvesContainer"></div>
+  </div>
 </div>
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<div class="toast-box" id="toast">Watchlist Updated</div>
 
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
     authDomain: "internal-systems-46728.firebaseapp.com",
     projectId: "internal-systems-46728",
     storageBucket: "internal-systems-46728.firebasestorage.app",
     messagingSenderId: "172177452674",
-    appId: "1:172177452674:web:155a2417da5531dd7ece9b",
-    measurementId: "G-Y87B8VRQ1N"
+    appId: "1:172177452674:web:155a2417da5531dd7ece9b"
   };
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const YT_API_KEY = "AIzaSyB9esPb8otx99iGcttUGPEbn1Vm0h14l-w";
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  function parseISO8601Duration(duration) {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    return (parseInt(match[1] || 0) * 3600) + (parseInt(match[2] || 0) * 60) + parseInt(match[3] || 0);
+  let currentUser = null;
+  let userWatchlist = [];
+  let userDocRef = null;
+
+  // In-memory dataset cache
+  let allContent = {
+    "Movies": [],
+    "Shows": [],
+    "TV Shows": [],
+    "Live TV": [],
+    "Sports": []
+  };
+
+  let heroItems = [];
+  let activeSlideIdx = 0;
+  let heroTimer = null;
+  let trailerPlayer = null;
+
+  function safeUrl(u) {
+    if (!u) return '';
+    return u.trim().replace(/^http:\/\//i, 'https://');
   }
 
-  function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
+  function getPosterH(item) {
+    return safeUrl(item["Poster.h"] || item.Poster_h || item.poster_h || item.Banner || item.banner || item.Poster || item["Logo.png"] || '');
   }
 
-  function timeToMinutes(timeStr) {
-    const [h, m] = timeStr.split(':').map(Number);
-    return (h * 60) + m;
+  function getLogo(item) {
+    return safeUrl(item["Logo.png"] || item.Logo || item.logo || '');
   }
 
-  function addSlot() {
-    const container = document.getElementById('slotsContainer');
-    const div = document.createElement('div');
-    div.className = 'slot-row';
-    div.innerHTML = `
-      <button class="btn-remove" onclick="removeSlot(this)">Remove Slot</button>
-      <div class="grid">
-        <div>
-          <label>Start Time (HH:MM 24h format):</label>
-          <input type="time" class="start-time" value="14:30">
-        </div>
-        <div>
-          <label>End Time (HH:MM 24h format):</label>
-          <input type="time" class="end-time" value="15:00">
-        </div>
-      </div>
-      <label>YouTube Playlist or Channel URL / Handle:</label>
-      <input type="text" class="source-input" placeholder="e.g. Playlist URL, Channel URL, or @handle">
-      
-      <label>Title Keyword Filter (Optional):</label>
-      <input type="text" class="filter-input" placeholder="e.g. shinchan, episode">
-    `;
-    container.appendChild(div);
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
   }
 
-  function removeSlot(btn) {
-    const rows = document.querySelectorAll('.slot-row');
-    if (rows.length > 1) {
-      btn.closest('.slot-row').remove();
-    } else {
-      alert("At least one time slot is required.");
-    }
-  }
-
-  async function resolveToPlaylistId(input) {
-    input = input.trim();
-    let playlistMatch = input.match(/[?&]list=([a-zA-Z0-9_-]+)/);
-    if (playlistMatch) return playlistMatch[1];
-    if ((input.startsWith('PL') || input.startsWith('UU')) && input.length >= 18) return input;
-
-    let channelId = input.startsWith('UC') && input.length === 24 ? input : null;
-    if (!channelId) {
-      let handleMatch = input.match(/@([\w.-]+)/);
-      let handle = handleMatch ? handleMatch[1] : (input.startsWith('@') ? input.slice(1) : null);
-
-      if (handle) {
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${handle}&key=${YT_API_KEY}`);
-        const data = await res.json();
-        if (data.items && data.items.length > 0) return data.items[0].contentDetails.relatedPlaylists.uploads;
+  function extractYouTubeId(url) {
+    if (!url) return null;
+    try {
+      const u = new URL(url.trim());
+      if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('/')[0];
+      if (u.hostname.includes('youtube.com')) {
+        if (u.pathname === '/watch') return u.searchParams.get('v');
+        if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
       }
-
-      let channelMatch = input.match(/channel\/(UC[\w-]+)/);
-      if (channelMatch) channelId = channelMatch[1];
+    } catch(e) {
+      if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
     }
-
-    if (channelId) {
-      const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YT_API_KEY}`);
-      const chData = await chRes.json();
-      if (chData.items && chData.items.length > 0) return chData.items[0].contentDetails.relatedPlaylists.uploads;
-    }
-
-    throw new Error("Could not resolve Playlist/Channel ID for input: " + input);
+    return null;
   }
 
-  async function saveFullSchedule() {
-    const statusDiv = document.getElementById('status');
-    statusDiv.style.color = "#fff";
-    statusDiv.innerText = "Processing schedule time slots...";
+  // --- Watchlist Handlers ---
+  async function initAuth() {
+    try {
+      const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
+      currentUser = stored ? JSON.parse(stored) : null;
+    } catch(e){}
 
-    const slotRows = document.querySelectorAll('.slot-row');
-    const processedSlots = [];
+    if (currentUser) {
+      try {
+        let q = null;
+        if (currentUser.Lotus) q = query(collection(db, "UARM"), where("Lotus", "==", currentUser.Lotus));
+        else if (currentUser.Email) q = query(collection(db, "UARM"), where("Email", "==", currentUser.Email));
+        else if (currentUser.id) userDocRef = doc(db, "UARM", currentUser.id);
+
+        if (q) {
+          const s = await getDocs(q);
+          if (!s.empty) {
+            userDocRef = doc(db, "UARM", s.docs[0].id);
+            userWatchlist = s.docs[0].data().Watchlist || [];
+          }
+        } else if (userDocRef) {
+          const s = await getDoc(userDocRef);
+          if (s.exists()) userWatchlist = s.data().Watchlist || [];
+        }
+      } catch(e){}
+    } else {
+      userWatchlist = JSON.parse(localStorage.getItem('guest_watchlist') || '[]');
+    }
+  }
+
+  window.toggleWatchlist = async function(docId) {
+    const isAdded = userWatchlist.includes(docId);
+    if (isAdded) {
+      userWatchlist = userWatchlist.filter(id => id !== docId);
+      if (userDocRef) await updateDoc(userDocRef, { Watchlist: arrayRemove(docId) });
+      else localStorage.setItem('guest_watchlist', JSON.stringify(userWatchlist));
+      showToast("Removed from Watchlist");
+    } else {
+      userWatchlist.push(docId);
+      if (userDocRef) await updateDoc(userDocRef, { Watchlist: arrayUnion(docId) });
+      else localStorage.setItem('guest_watchlist', JSON.stringify(userWatchlist));
+      showToast("Added to Watchlist");
+    }
+    updateWatchlistButtons();
+  };
+
+  function updateWatchlistButtons() {
+    document.querySelectorAll('.btn-hero-watchlist').forEach(btn => {
+      const id = btn.dataset.id;
+      const added = userWatchlist.includes(id);
+      btn.classList.toggle('active', added);
+      btn.innerHTML = added 
+        ? `<svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>`
+        : `<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`;
+    });
+  }
+
+  // --- Load Content & Continue Watching ---
+  async function loadDatabase() {
+    const collectionsToFetch = ["Movies", "Shows", "TV Shows", "Live TV", "Sports"];
+    for (const col of collectionsToFetch) {
+      try {
+        const snap = await getDocs(collection(db, col));
+        snap.forEach(d => {
+          allContent[col].push({ id: d.id, _collection: col, ...d.data() });
+        });
+      } catch(e){}
+    }
+  }
+
+  function renderContinueWatching() {
+    const cwSection = document.getElementById('continueWatchingSection');
+    const cwList = document.getElementById('continueWatchingList');
+    const nameHeading = document.getElementById('cwHeading');
+
+    if (currentUser?.Name) {
+      nameHeading.innerText = `Continue Watching for ${currentUser.Name}`;
+    }
+
+    const items = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith('progress_')) {
+        const docId = key.replace('progress_', '').split('_')[0];
+        const time = parseFloat(localStorage.getItem(key) || '0');
+        if (time > 15) {
+          // Find item
+          let found = null;
+          for (const col in allContent) {
+            found = allContent[col].find(x => x.id === docId);
+            if (found) break;
+          }
+          if (found && !items.some(it => it.item.id === found.id)) {
+            items.push({ item: found, time });
+          }
+        }
+      }
+    }
+
+    if (items.length === 0) {
+      cwSection.style.display = 'none';
+      return;
+    }
+
+    cwSection.style.display = 'flex';
+    cwList.innerHTML = items.map(({ item, time }) => {
+      const banner = getPosterH(item);
+      const title = item.Name || item.Title || 'Continue Watching';
+      const durationSec = 7200; // estimated duration fallback
+      const percent = Math.min(100, (time / durationSec) * 100);
+      const minsLeft = Math.max(1, Math.round((durationSec - time) / 60));
+
+      return `
+        <div class="cw-card" onclick="location.href='1.html?watch=${item.id}'">
+          <div class="cw-thumb-box">
+            <img src="${banner}" alt="${title}" loading="lazy">
+            <div class="cw-play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+            <div class="cw-progress-track">
+              <div class="cw-progress-fill" style="width: ${percent}%;"></div>
+            </div>
+          </div>
+          <div class="cw-info-row">
+            <div>
+              <div class="cw-title">${title}</div>
+              <div class="cw-sub">${minsLeft}m left</div>
+            </div>
+            <svg style="width:16px; height:16px; fill:var(--text-muted); margin-top:2px;" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // --- Hero Carousel with Banner (6s) -> Trailer -> Next Loop ---
+  function setupHeroCarousel() {
+    // Pick 5 random items excluding Live TV
+    const pool = [...allContent.Movies, ...allContent.Shows, ...allContent["TV Shows"]];
+    if (pool.length === 0) return;
+
+    heroItems = pool.sort(() => 0.5 - Math.random()).slice(0, 5);
+    const wrapper = document.getElementById('heroSlidesWrapper');
+
+    wrapper.innerHTML = heroItems.map((item, idx) => {
+      const banner = getPosterH(item);
+      const logo = getLogo(item);
+      const name = item.Name || item.Title || 'Hotstar Special';
+      const year = item.Release_Date || item.Year || '2023';
+      const rating = item.Age_Rating || 'U/A 13+';
+      const genres = (item.Genres || 'Drama').split(',')[0].trim();
+      const lang = item.Language || 'English';
+
+      return `
+        <div class="hero-slide ${idx === 0 ? 'active' : ''}" id="heroSlide_${idx}">
+          <div class="hero-media-wrapper" id="heroMedia_${idx}">
+            <img src="${banner}" alt="${name}">
+          </div>
+          <div class="hero-overlay-gradient"></div>
+          <div class="hero-content">
+            ${logo ? `<img class="hero-logo-img" src="${logo}" alt="${name}">` : `<div class="hero-fallback-title">${name}</div>`}
+            
+            <div class="hero-meta-row">
+              <span>${lang}</span>
+              <span class="dot">•</span>
+              <span>${year}</span>
+              <span class="dot">•</span>
+              <span>${genres}</span>
+              <span class="dot">•</span>
+              <span>${rating}</span>
+            </div>
+
+            <div class="hero-actions-row">
+              <a href="1.html?watch=${item.id}" class="btn-watch-now">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                Watch Now
+              </a>
+              <button class="btn-hero-watchlist" data-id="${item.id}" onclick="toggleWatchlist('${item.id}')">
+                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              </button>
+            </div>
+
+            <div class="hero-indicators">
+              ${heroItems.map((_, dotIdx) => `<div class="hero-dot ${dotIdx === idx ? 'active' : ''}"></div>`).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    updateWatchlistButtons();
+    startCarouselSequence(0);
+  }
+
+  function startCarouselSequence(index) {
+    clearTimeout(heroTimer);
+    activeSlideIdx = index;
+
+    document.querySelectorAll('.hero-slide').forEach((s, idx) => {
+      s.classList.toggle('active', idx === index);
+    });
+
+    const currentItem = heroItems[index];
+    const mediaWrap = document.getElementById(`heroMedia_${index}`);
+    const banner = getPosterH(currentItem);
+
+    // Reset back to static banner first
+    mediaWrap.innerHTML = `<img src="${banner}" alt="${currentItem.Name}">`;
+
+    // Hotstar logic: Show banner for 6 seconds, then switch to Trailer
+    heroTimer = setTimeout(() => {
+      const trailer = currentItem.Trailer || currentItem.trailer;
+      if (trailer && trailer.trim().length > 4) {
+        playHeroTrailer(mediaWrap, trailer.trim(), () => {
+          advanceToNextSlide();
+        });
+      } else {
+        advanceToNextSlide();
+      }
+    }, 6000);
+  }
+
+  function playHeroTrailer(container, trailerUrl, onEndCallback) {
+    const ytId = extractYouTubeId(trailerUrl);
+
+    if (ytId) {
+      container.innerHTML = `<div id="ytTrailerTarget"></div>`;
+      trailerPlayer = new YT.Player('ytTrailerTarget', {
+        videoId: ytId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          mute: 1,
+          playsinline: 1,
+          rel: 0
+        },
+        events: {
+          onReady: (e) => e.target.playVideo(),
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.ENDED) {
+              onEndCallback();
+            }
+          }
+        }
+      });
+      // Safety advance in 30 seconds if trailer is long
+      heroTimer = setTimeout(onEndCallback, 30000);
+    } else {
+      // HTML5 / Direct Video Trailer
+      container.innerHTML = `
+        <video autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;">
+          <source src="${safeUrl(trailerUrl)}">
+        </video>
+      `;
+      const videoEl = container.querySelector('video');
+      videoEl.onended = onEndCallback;
+      videoEl.onerror = onEndCallback;
+      heroTimer = setTimeout(onEndCallback, 25000);
+    }
+  }
+
+  function advanceToNextSlide() {
+    const next = (activeSlideIdx + 1) % heroItems.length;
+    startCarouselSequence(next);
+  }
+
+  // --- Dynamic Shelves Loader ---
+  async function loadPageSections(pageId) {
+    const container = document.getElementById('dynamicShelvesContainer');
+    container.innerHTML = '';
 
     try {
-      for (let i = 0; i < slotRows.length; i++) {
-        const row = slotRows[i];
-        const startTime = row.querySelector('.start-time').value;
-        const endTime = row.querySelector('.end-time').value;
-        const sourceInput = row.querySelector('.source-input').value;
-        const filterInput = row.querySelector('.filter-input').value.trim().toLowerCase();
-
-        if (!startTime || !endTime || !sourceInput) {
-          throw new Error(`Slot #${i+1} is missing Start Time, End Time, or Source URL.`);
-        }
-
-        statusDiv.innerText = `Processing Slot #${i+1} (${startTime} - ${endTime})...`;
-
-        const playlistId = await resolveToPlaylistId(sourceInput);
-        const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=50&key=${YT_API_KEY}`);
-        const plData = await plRes.json();
-
-        if (!plData.items || plData.items.length === 0) {
-          throw new Error(`No videos found in Playlist for Slot #${i+1}`);
-        }
-
-        const videoIds = plData.items.map(item => item.contentDetails.videoId).join(',');
-        const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${YT_API_KEY}`);
-        const vData = await vRes.json();
-
-        const keywords = filterInput ? filterInput.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
-
-        let videos = vData.items.map(v => ({
-          id: v.id,
-          title: v.snippet.title,
-          duration: parseISO8601Duration(v.contentDetails.duration)
-        })).filter(v => {
-          if (v.duration <= 0) return false;
-          if (keywords.length === 0) return true;
-          const titleLower = v.title.toLowerCase();
-          return keywords.some(keyword => titleLower.includes(keyword));
-        });
-
-        if (videos.length === 0) {
-          throw new Error(`Slot #${i+1}: No videos matched your filter keyword(s).`);
-        }
-
-        videos = shuffleArray(videos);
-        const totalDuration = videos.reduce((acc, v) => acc + v.duration, 0);
-
-        processedSlots.push({
-          startTimeStr: startTime,
-          endTimeStr: endTime,
-          startMinutes: timeToMinutes(startTime),
-          endMinutes: timeToMinutes(endTime),
-          videos: videos,
-          totalDuration: totalDuration
-        });
+      const pageSnap = await getDoc(doc(db, "Systems", pageId));
+      if (!pageSnap.exists()) {
+        container.innerHTML = `<div style="padding:20px; color:var(--text-muted);">Page "${pageId}" not configured in Systems collection.</div>`;
+        return;
       }
 
-      statusDiv.innerText = "Saving complete TV schedule to Firestore...";
+      const pageData = pageSnap.data();
+      let sectionKeyIdx = 1;
 
-      await db.collection("schedules").doc("main").set({
-        slots: processedSlots,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      statusDiv.innerHTML = `<span style="color:#00ff00;">Success! Saved ${processedSlots.length} time-slot(s) to Firestore schedule.</span>`;
-
-    } catch (err) {
-      console.error(err);
-      statusDiv.style.color = "#ff4444";
-      statusDiv.innerText = "Error: " + err.message;
+      while (pageData[`S${sectionKeyIdx}`]) {
+        const secConfig = pageData[`S${sectionKeyIdx}`];
+        renderSingleSection(secConfig, container);
+        sectionKeyIdx++;
+      }
+    } catch(e) {
+      console.error(e);
     }
   }
+
+  function renderSingleSection(config, container) {
+    const targetCollections = config.Collections || ["Movies"];
+    let pool = [];
+
+    targetCollections.forEach(col => {
+      if (allContent[col]) {
+        pool.push(...allContent[col]);
+      }
+    });
+
+    // Apply Filter Rules
+    let filtered = pool.filter(item => {
+      // Genres
+      if (config.Genres && config.Genres.length > 0) {
+        const itemGenres = (item.Genres || item.Genre || '').toLowerCase();
+        const hasGenre = config.Genres.some(g => itemGenres.includes(g.toLowerCase()));
+        if (!hasGenre) return false;
+      }
+      // Languages
+      if (config.Languages && config.Languages.length > 0) {
+        const itemLang = (item.Language || '').toLowerCase();
+        const hasLang = config.Languages.some(l => itemLang.includes(l.toLowerCase()));
+        if (!hasLang) return false;
+      }
+      // Studios
+      if (config.Studios && config.Studios.length > 0) {
+        const itemStudio = (item.Studio || item.Partner || '').toLowerCase();
+        const hasStudio = config.Studios.some(s => itemStudio.includes(s.toLowerCase()));
+        if (!hasStudio) return false;
+      }
+      // Age Rating
+      if (config.AgeRating && config.AgeRating.trim()) {
+        const rating = (item.Age_Rating || item.Rating || '').toLowerCase();
+        if (!rating.includes(config.AgeRating.toLowerCase())) return false;
+      }
+      // Franchise / Tags
+      if (config.Franchise && config.Franchise.trim()) {
+        const tags = `${item.Tags || ''} ${item.Name || ''}`.toLowerCase();
+        if (!tags.includes(config.Franchise.toLowerCase())) return false;
+      }
+      return true;
+    });
+
+    // Sorting
+    if (config.Order === 'old') {
+      filtered.sort((a, b) => parseInt(a.Release_Date || a.Year || 0) - parseInt(b.Release_Date || b.Year || 0));
+    } else if (config.Order === 'rating') {
+      filtered.sort((a, b) => parseFloat(b.Rating || 0) - parseFloat(a.Rating || 0));
+    } else {
+      // Newest
+      filtered.sort((a, b) => parseInt(b.Release_Date || b.Year || 2024) - parseInt(a.Release_Date || a.Year || 2024));
+    }
+
+    if (filtered.length === 0) return;
+
+    const shelf = document.createElement('div');
+    shelf.className = 'section-wrap';
+    shelf.innerHTML = `
+      <div class="section-head">${config.Name || 'Trending'}</div>
+      <div class="cards-row-scroll">
+        ${filtered.map(item => `
+          <div class="shelf-card" onclick="location.href='1.html?watch=${item.id}'">
+            <div class="shelf-thumb-box">
+              <img src="${getPosterH(item)}" alt="${item.Name}" loading="lazy">
+              ${item["Logo.png"] || item.Logo ? `<img class="shelf-logo-badge" src="${safeUrl(item["Logo.png"] || item.Logo)}">` : ''}
+            </div>
+            <div class="shelf-title">${item.Name || item.Title || 'Title'}</div>
+            <div class="shelf-sub">${item.Genres || item.Language || 'Video'}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(shelf);
+  }
+
+  // --- Bootstrap Routine ---
+  async function initApp() {
+    await initAuth();
+    await loadDatabase();
+
+    const pageId = (window.location.hash || '#default').replace('#', '') || 'default';
+
+    setupHeroCarousel();
+    renderContinueWatching();
+    loadPageSections(pageId);
+  }
+
+  window.addEventListener('hashchange', () => {
+    const pageId = (window.location.hash || '#default').replace('#', '') || 'default';
+    loadPageSections(pageId);
+  });
+
+  initApp();
 </script>
 </body>
 </html>
