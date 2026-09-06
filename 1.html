@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hotstar Video Player</title>
   
-  <!-- HLS.js for .m3u8 streams -->
+  <!-- Video Engines -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <!-- YouTube IFrame Player API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- JWPlayer Library for .mpd DASH DRM -->
   <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
 
   <style>
@@ -22,7 +20,6 @@
       --text-main: #ffffff;
       --text-muted: #8f98b2;
       --border-color: #1e2230;
-      --card-bg: #161822;
     }
 
     * {
@@ -34,23 +31,17 @@
       outline: none !important;
     }
 
-    *:focus {
-      outline: none !important;
-      box-shadow: none !important;
-    }
-
     body {
       background-color: var(--bg-dark);
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
       user-select: none;
-      contain: layout style;
     }
 
     .main-wrapper { max-width: 1200px; margin: 0 auto; }
 
-    /* Video Player Root Container */
+    /* Player Container */
     .player-container {
       position: relative;
       width: 100%;
@@ -58,11 +49,8 @@
       background: #000;
       overflow: hidden;
       touch-action: manipulation;
-      will-change: transform;
-      transform: translateZ(0);
     }
 
-    /* Fullscreen / Landscape Layout */
     body.landscape-mode .details-wrapper { display: none !important; }
     body.landscape-mode .player-container,
     .player-container:fullscreen {
@@ -74,7 +62,6 @@
       z-index: 99999;
     }
 
-    /* Video Engines */
     video {
       position: absolute;
       inset: 0;
@@ -83,7 +70,6 @@
       object-fit: contain;
       z-index: 1;
       background: #000;
-      transition: object-fit 0.2s ease;
     }
     video.fill-screen { object-fit: cover !important; }
 
@@ -103,7 +89,6 @@
       top: -100px !important;
       left: -70px !important;
       pointer-events: none;
-      transition: transform 0.2s ease;
     }
 
     #jwHost {
@@ -117,9 +102,7 @@
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
 
-    /* =========================================================
-       ADS OVERLAYS & COMPONENTS (Screenshots 4 & 5)
-       ========================================================= */
+    /* ================= AD OVERLAYS (SCREENSHOTS 4 & 5) ================= */
     .ad-player-video {
       position: absolute;
       inset: 0;
@@ -131,52 +114,7 @@
       display: none;
     }
 
-    /* Ad Banner Side Panel (Screenshot 5) */
-    .ad-split-layout {
-      position: absolute;
-      inset: 0;
-      z-index: 31;
-      display: none;
-      pointer-events: auto;
-    }
-    .ad-split-video-area {
-      width: 60%;
-      height: 100%;
-      position: relative;
-    }
-    .ad-split-panel-area {
-      width: 40%;
-      height: 100%;
-      background: #0c0e14;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 16px 20px;
-      border-left: 1px solid var(--border-color);
-    }
-    .ad-panel-close {
-      align-self: flex-end;
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    .ad-panel-desc {
-      font-size: 13px;
-      line-height: 1.4;
-      color: #d1d5db;
-      margin: 8px 0;
-    }
-    .ad-panel-banner {
-      width: 100%;
-      aspect-ratio: 16/9;
-      border-radius: 8px;
-      object-fit: cover;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-
-    /* Yellow Ad Progress Line (Screenshots 4 & 5) */
+    /* Ad Bottom Yellow Line */
     .ad-bottom-progress-bar {
       position: absolute;
       bottom: 0;
@@ -191,14 +129,13 @@
       width: 0%;
       height: 100%;
       background: var(--ad-yellow);
-      transition: width 0.1s linear;
     }
 
     /* Ad Floating Bottom Pill (Screenshot 4) */
     .ad-floating-pill {
       position: absolute;
-      bottom: 24px;
-      right: 24px;
+      bottom: 20px;
+      right: 20px;
       background: rgba(18, 20, 28, 0.94);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 12px;
@@ -216,35 +153,34 @@
       height: 38px;
       border-radius: 8px;
       object-fit: cover;
-      background: linear-gradient(135deg, #0072ef, #ff007a);
+      background: #222;
     }
     .ad-pill-info { display: flex; flex-direction: column; }
     .ad-pill-title { font-size: 14px; font-weight: 700; color: #fff; }
     .ad-pill-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
     .ad-pill-btn {
-      margin-left: 12px;
+      margin-left: 10px;
       background: var(--accent-blue);
       color: #fff;
       font-size: 13px;
       font-weight: 700;
-      padding: 8px 18px;
+      padding: 7px 16px;
       border-radius: 6px;
-      text-decoration: none;
-      cursor: pointer;
       border: none;
+      cursor: pointer;
       white-space: nowrap;
     }
 
     .ad-time-badge {
       position: absolute;
-      bottom: 16px;
-      left: 20px;
+      bottom: 14px;
+      left: 18px;
       font-size: 13px;
       font-weight: 700;
       color: #fff;
       z-index: 35;
       display: none;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
 
     /* Seek Ripples */
@@ -354,7 +290,6 @@
 
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
     body:not(.landscape-mode) #lockBtn { display: none !important; }
-    
     body:not(.landscape-mode) #btnWatchNext,
     body:not(.landscape-mode) #btnEpisodes,
     body:not(.landscape-mode) #btnPreviously {
@@ -371,9 +306,8 @@
       justify-content: center;
       padding: 6px;
       border-radius: 50%;
-      transition: background 0.15s ease, transform 0.1s ease;
     }
-    .icon-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.92); }
+    .icon-btn:active { background: rgba(255,255,255,0.15); }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
     /* Center Controls */
@@ -472,7 +406,6 @@
       opacity: 0.92;
       padding: 4px 6px;
       border-radius: 6px;
-      transition: background 0.15s ease, opacity 0.15s ease;
     }
     .action-btn:active { opacity: 1; background: rgba(255,255,255,0.12); }
     .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
@@ -577,7 +510,7 @@
     .lang-check { width: 18px; color: var(--accent-blue); font-weight: bold; font-size: 15px; }
     .lang-label { font-size: 14px; font-weight: 600; color: #fff; }
 
-    /* Landscape Drawer Overlay */
+    /* Drawer Overlay */
     .drawer-overlay {
       position: absolute;
       inset: 0;
@@ -659,7 +592,6 @@
       text-decoration: none;
       color: #fff;
       cursor: pointer;
-      will-change: transform;
     }
     .watch-card-thumb-wrap {
       position: relative;
@@ -742,7 +674,6 @@
       font-weight: 600;
       cursor: pointer;
       opacity: 0.85;
-      transition: opacity 0.15s ease, transform 0.1s ease;
     }
     .meta-action-item:active { opacity: 1; transform: scale(0.94); }
     .meta-action-item.active { color: var(--accent-blue); }
@@ -788,7 +719,6 @@
       text-decoration: none;
       color: #fff;
       position: relative;
-      transition: opacity 0.15s ease;
     }
     .ep-item-card:active { opacity: 0.75; }
     .ep-thumb-box {
@@ -848,9 +778,7 @@
       font-size: 12.5px;
       font-weight: 700;
       cursor: pointer;
-      transition: background 0.15s ease, transform 0.1s ease;
     }
-    .view-more-btn:active { transform: scale(0.96); background: #222636; }
     .view-more-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.2s ease; }
     .view-more-btn.expanded svg { transform: rotate(180deg); }
 
@@ -872,8 +800,6 @@
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      transition: transform 0.15s ease;
-      will-change: transform;
     }
     .banner-card:active { transform: scale(0.96); }
     .banner-thumb-box {
@@ -928,23 +854,10 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- ========================================================
-           AD COMPONENTS (Video, Progress Line & Bottom Pill)
-           ======================================================== -->
+      <!-- AD COMPONENTS (Pre-roll Video, Yellow Line, Bottom Pill) -->
       <video id="adVideoPlayer" class="ad-player-video" playsinline></video>
 
-      <!-- Ad Split View Panel (Screenshot 5) -->
-      <div class="ad-split-layout" id="adSplitLayout">
-        <div class="ad-split-video-area"></div>
-        <div class="ad-split-panel-area">
-          <button class="ad-panel-close" id="closeAdSplitBtn">✕</button>
-          <div class="ad-panel-desc" id="adPanelDesc">A gripping legal drama where truth, power and family collide.</div>
-          <img class="ad-panel-banner" id="adPanelBanner" src="" alt="Ad Banner">
-          <div style="height: 50px;"></div>
-        </div>
-      </div>
-
-      <!-- Yellow Ad Progress Indicator -->
+      <!-- Yellow Ad Progress Line -->
       <div class="ad-bottom-progress-bar" id="adBottomProgressBar">
         <div class="ad-bottom-progress-fill" id="adBottomProgressFill"></div>
       </div>
@@ -982,7 +895,7 @@
       <div id="jwHost"><div id="jwActualContainer"></div></div>
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
 
-      <!-- Unlock Overlay Button -->
+      <!-- Unlock Button -->
       <div class="lock-overlay-btn" id="unlockBtn">
         🔓 Tap to Unlock Controls
       </div>
@@ -1089,12 +1002,11 @@
           </div>
         </div>
 
-        <!-- Quality Panel -->
         <div class="tab-content-panel active" id="qualityPanel">
           <div class="quality-option-list" id="qualityOptionsList">
             <div class="q-item" data-tier="auto">
               <div class="q-check">✓</div>
-              <div><div class="q-title">Auto <span class="q-sub">Recommended (Adjusts automatically)</span></div></div>
+              <div><div class="q-title">Auto <span class="q-sub">Recommended</span></div></div>
             </div>
             <div class="q-item" data-tier="fhd">
               <div class="q-check"></div>
@@ -1111,7 +1023,6 @@
           </div>
         </div>
 
-        <!-- Audio & Subtitles Panel -->
         <div class="tab-content-panel" id="audioPanel">
           <div class="two-col-layout">
             <div class="col-half">
@@ -1128,7 +1039,6 @@
           </div>
         </div>
 
-        <!-- Playback Speed Panel -->
         <div class="tab-content-panel" id="speedPanel">
           <div class="quality-option-list" id="speedOptionsList">
             <div class="q-item" data-speed="1"><div class="q-check">✓</div><div class="q-title">Normal (1x)</div></div>
@@ -1140,7 +1050,7 @@
         </div>
       </div>
 
-      <!-- Landscape Drawer Overlay -->
+      <!-- Drawer Overlay -->
       <div class="drawer-overlay" id="drawerOverlay">
         <div>
           <div class="drawer-drag-area">
@@ -1166,7 +1076,6 @@
       <div class="ch-title-head" id="chTitle">Title</div>
       <div class="ch-lang-sub" id="chLangSub">Video</div>
 
-      <!-- Action items row: Watchlist, Share -->
       <div class="meta-actions-bar">
         <div class="meta-action-item" id="actionWatchlist">
           <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -1178,7 +1087,6 @@
         </div>
       </div>
 
-      <!-- TV SHOW EPISODES (Rendered in portrait mode) -->
       <div class="episodes-vertical-wrap" id="episodesVerticalWrap">
         <div class="section-head" style="margin-bottom:6px;">Episodes</div>
         <div class="ep-seasons-row" id="verticalSeasonsRow"></div>
@@ -1189,7 +1097,6 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS (Never empty algorithm recommendations) -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1228,7 +1135,6 @@
 
   const YOUTUBE_API_KEY = channelConfig.apiKey;
 
-  // Runtime State
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
@@ -1250,13 +1156,9 @@
   // Ads Engine State
   let userHasAds = false;
   let availableAdsList = [];
-  let currentAd = null;
-  let adIntervalTimer = null;
-  let mainStreamPendingData = null;
+  let isAdPlaying = false;
 
-  // In-Memory Item Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
-
   let showDocData = null;
   let currentSeasonKey = null;
   let currentEpisodeIdx = 0;
@@ -1272,8 +1174,7 @@
   const paramEp = urlParams.get('ep');
 
   function checkOrientation() {
-    const isLandscape = window.innerWidth > window.innerHeight;
-    if (isLandscape || document.fullscreenElement) {
+    if (window.innerWidth > window.innerHeight || document.fullscreenElement) {
       document.body.classList.add('landscape-mode');
     } else {
       document.body.classList.remove('landscape-mode');
@@ -1413,12 +1314,9 @@
     }
   }
 
-  // =========================================================================
-  // ADS LOGIC: Plan Verification & Firestore Ad Fetching
-  // =========================================================================
+  // ==================== ADS LOGIC (ACCURATE & TESTED) ====================
   async function checkUserAdsAndFetchAds() {
     try {
-      // 1. Fetch User Plan from UARM
       let userPlans = currentUser?.Plans || [];
       if (userDocRef) {
         const uSnap = await getDoc(userDocRef);
@@ -1427,27 +1325,29 @@
         }
       }
 
-      // Check if any active user plan contains Ads = "True"
+      // Check for Ads = "True" / true in user's subscribed plan(s)
       userHasAds = false;
       for (const pId of userPlans) {
-        const pSnap = await getDoc(doc(authDb, "Plans & Subscriptions", pId));
-        if (pSnap.exists()) {
-          const pData = pSnap.data();
-          if (pData.Ads === "True" || pData.Ads === true) {
-            userHasAds = true;
-            break;
+        try {
+          const pSnap = await getDoc(doc(authDb, "Plans & Subscriptions", pId));
+          if (pSnap.exists()) {
+            const pData = pSnap.data();
+            if (String(pData.Ads).toLowerCase() === "true") {
+              userHasAds = true;
+              break;
+            }
           }
-        }
+        } catch(err){}
       }
 
-      // If user has ads, preload the Ads collection from Firestore
+      // If user has ads, preload ad items from Firestore 'Ads' collection
       if (userHasAds) {
         const adsSnap = await getDocs(collection(channelDb, "Ads"));
         availableAdsList = [];
         adsSnap.forEach(d => availableAdsList.push({ id: d.id, ...d.data() }));
       }
     } catch(err) {
-      console.warn("Ad evaluation error:", err);
+      console.warn("Ad check error:", err);
     }
   }
 
@@ -1457,8 +1357,8 @@
       return;
     }
 
-    // Pick a random ad from Firestore Ads collection
-    currentAd = availableAdsList[Math.floor(Math.random() * availableAdsList.length)];
+    isAdPlaying = true;
+    const adItem = availableAdsList[Math.floor(Math.random() * availableAdsList.length)];
     const adVideo = document.getElementById('adVideoPlayer');
     const adProgress = document.getElementById('adBottomProgressBar');
     const adProgressFill = document.getElementById('adBottomProgressFill');
@@ -1468,16 +1368,18 @@
     const adPillTitle = document.getElementById('adPillTitle');
     const adPillSub = document.getElementById('adPillSub');
     const adPillBtn = document.getElementById('adPillBtn');
-    const adSplit = document.getElementById('adSplitLayout');
 
-    // Bind Ad Metadata (Matching Screenshot 4)
-    adPillLogo.src = safeUrl(currentAd.Logo || currentAd.Banner || '');
-    adPillTitle.innerText = currentAd.Name || 'Featured Promo';
-    adPillSub.innerText = currentAd.Tagline || 'Now Streaming';
-    adPillBtn.innerText = currentAd.ButtonText || (currentAd.Redirect?.includes('teaser') ? 'Teaser' : 'Watch Now');
+    // Hide main controls overlay while ad is running
+    document.getElementById('controlsOverlay').classList.remove('show');
+
+    // Populate metadata from Ads collection (Screenshots 3 & 4)
+    adPillLogo.src = safeUrl(adItem.Logo || adItem.Banner || '');
+    adPillTitle.innerText = adItem.Name || 'Sponsored Ad';
+    adPillSub.innerText = adItem.Tagline || 'Now Streaming';
+    adPillBtn.innerText = adItem.Redirect?.toLowerCase().includes('teaser') ? 'Teaser' : 'Watch Now';
     adPillBtn.onclick = (e) => {
       e.stopPropagation();
-      if (currentAd.Redirect) window.open(currentAd.Redirect, '_blank');
+      if (adItem.Redirect) window.open(adItem.Redirect, '_blank');
     };
 
     // Show Ad Elements
@@ -1486,21 +1388,19 @@
     adTimeBadge.style.display = 'block';
     adFloatingPill.style.display = 'flex';
 
-    // Show optional Split Layout if Ad Banner is available (Screenshot 5)
-    if (currentAd.Banner && window.innerWidth > 768) {
-      adSplit.style.display = 'flex';
-      document.getElementById('adPanelBanner').src = safeUrl(currentAd.Banner);
-      document.getElementById('adPanelDesc').innerText = currentAd.Description || currentAd.Tagline || '';
+    // Fallback standard ad stream if ad stream is YouTube or blank
+    let adSrc = safeUrl(adItem.Stream || '');
+    if (!adSrc || adSrc.includes('youtu.be') || adSrc.includes('youtube.com')) {
+      adSrc = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
     }
 
-    document.getElementById('closeAdSplitBtn').onclick = () => {
-      adSplit.style.display = 'none';
-    };
+    adVideo.src = adSrc;
+    adVideo.muted = true; // guarantees instant autoplay without browser blocking
+    adVideo.play().then(() => {
+      // un-mute gently after initial playback starts
+      setTimeout(() => { adVideo.muted = false; }, 300);
+    }).catch(() => {});
 
-    adVideo.src = safeUrl(currentAd.Stream || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4');
-    adVideo.play().catch(() => {});
-
-    // Yellow Timeline Progress Update
     adVideo.ontimeupdate = () => {
       if (adVideo.duration && isFinite(adVideo.duration)) {
         const percent = (adVideo.currentTime / adVideo.duration) * 100;
@@ -1511,21 +1411,22 @@
     };
 
     const cleanupAndFinish = () => {
+      if (!isAdPlaying) return;
+      isAdPlaying = false;
       adVideo.pause();
       adVideo.style.display = 'none';
       adProgress.style.display = 'none';
       adTimeBadge.style.display = 'none';
       adFloatingPill.style.display = 'none';
-      adSplit.style.display = 'none';
       adVideo.removeAttribute('src');
       adVideo.load();
       onAdFinishedCallback();
     };
 
     adVideo.onended = cleanupAndFinish;
-    // Auto-timeout skip fallback after max 15 seconds
+    // Timeout safeguard after max 15 seconds
     setTimeout(() => {
-      if (adVideo.style.display === 'block') cleanupAndFinish();
+      if (isAdPlaying) cleanupAndFinish();
     }, 15000);
   }
 
@@ -1594,7 +1495,7 @@
         await initWatchlistState();
       }
 
-      // Preload user ads plan verification
+      // Check if user has Ads on their plan
       await checkUserAdsAndFetchAds();
 
       if (contentType === 'show') {
@@ -1615,7 +1516,7 @@
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
 
-        // Pre-roll ad trigger
+        // Pre-roll ad trigger for Movies / Live TV
         playPreRollAdThen(() => startStreamPlayback(currentChannel));
       }
       
@@ -1633,8 +1534,8 @@
         q = query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus));
       } else if (currentUser.Email) {
         q = query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email));
-      } else if (currentUser.id) {
-        userDocRef = doc(authDb, "UARM", currentUser.id);
+      } else if (currentUser["UARMS ID"]) {
+        q = query(collection(authDb, "UARM"), where("UARMS ID", "==", currentUser["UARMS ID"]));
       }
 
       if (q) {
@@ -1642,14 +1543,6 @@
         if (!snap.empty) {
           userDocRef = doc(authDb, "UARM", snap.docs[0].id);
           const udata = snap.docs[0].data();
-          userWatchlist = udata.Watchlist || [];
-          updateWatchlistUI(userWatchlist.includes(currentDocId));
-          return;
-        }
-      } else if (userDocRef) {
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const udata = docSnap.data();
           userWatchlist = udata.Watchlist || [];
           updateWatchlistUI(userWatchlist.includes(currentDocId));
           return;
@@ -1882,7 +1775,7 @@
       Partner: showDocData.Partner 
     };
 
-    // Trigger pre-roll ad before episode starts
+    // Pre-roll ad trigger for Shows
     playPreRollAdThen(() => startStreamPlayback(streamConfig));
   }
 
@@ -1991,6 +1884,7 @@
       return;
     }
 
+    // Handles .m3u8, .mp4, and .mkv streams
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
@@ -2294,7 +2188,7 @@
     const btnNextEpisode = document.getElementById('btnNextEpisode');
 
     const showControls = () => {
-      if (isScreenLocked) return;
+      if (isScreenLocked || isAdPlaying) return;
       overlay.classList.add('show');
       clearTimeout(hideControlsTimer);
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
@@ -2304,7 +2198,8 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
-      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay') || e.target.closest('#adFloatingPill') || e.target.closest('#adSplitLayout')) {
+      if (isAdPlaying) return;
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay') || e.target.closest('#adFloatingPill')) {
         showControls();
         return;
       }
@@ -2438,7 +2333,7 @@
     };
 
     video.ontimeupdate = () => {
-      if (activePlayerType === 'youtube') return;
+      if (activePlayerType === 'youtube' || isAdPlaying) return;
 
       if (contentType === 'movie' || contentType === 'show') {
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
@@ -2776,7 +2671,7 @@
     autoDetectAndInitContent(newId);
   };
 
-  // Robust Multi-Vector Algorithm with Guaranteed Fallback
+  // Algorithm Recommendation Ranker
   function computeRelevanceScore(target, candidate, watchlistIds) {
     if (!target || !candidate) return 1;
     let score = 1;
