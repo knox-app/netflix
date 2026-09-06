@@ -1,573 +1,728 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Disney+ Hotstar</title>
-  
-  <style>
-    :root {
-      --bg-dark: #0f1015;
-      --card-bg: #161822;
-      --accent-blue: #0072ef;
-      --text-main: #ffffff;
-      --text-muted: #8f98b2;
-      --border-color: rgba(255, 255, 255, 0.1);
-    }
-    * {
-      box-sizing: border-box; margin: 0; padding: 0;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    body {
-      background-color: var(--bg-dark); color: var(--text-main);
-      overflow-x: hidden; padding-bottom: 60px;
-    }
-
-    /* Top Brand Navigation */
-    .nav-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 20px; position: sticky; top: 0; z-index: 100;
-      background: linear-gradient(180deg, rgba(15,16,21,0.95) 0%, rgba(15,16,21,0.7) 80%, transparent 100%);
-      backdrop-filter: blur(10px);
-    }
-    .logo-container { display: flex; align-items: center; gap: 8px; }
-    .brand-svg { height: 28px; fill: #fff; }
-
-    /* Carousel Top Section */
-    .hero-carousel {
-      position: relative; width: 100%; aspect-ratio: 16/10;
-      max-height: 580px; overflow: hidden; background: #000;
-    }
-    .carousel-track { width: 100%; height: 100%; position: relative; }
-    .slide-item {
-      position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s ease;
-      display: flex; flex-direction: column; justify-content: flex-end;
-    }
-    .slide-item.active { opacity: 1; z-index: 2; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StreamHotstar - Home</title>
+    <!-- Icons & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    .media-backdrop {
-      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-      z-index: 1;
-    }
-    .video-trailer-engine {
-      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-      z-index: 2; display: none; background: #000;
-    }
-    .trailer-iframe {
-      position: absolute; inset: 0; width: 100%; height: 100%; border: none; z-index: 2; display: none;
-    }
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-    .slide-overlay-gradient {
-      position: absolute; inset: 0; z-index: 3;
-      background: linear-gradient(0deg, var(--bg-dark) 4%, rgba(15,16,21,0.6) 40%, rgba(15,16,21,0.1) 80%, rgba(15,16,21,0.7) 100%);
-    }
+    <style>
+        :root {
+            --bg-main: #090a0e;
+            --bg-card: #151821;
+            --bg-modal: #16181f;
+            --text-primary: #ffffff;
+            --text-secondary: #8f98b2;
+            --accent-blue: #1c64f2;
+            --border-color: #242838;
+        }
 
-    .slide-content-box {
-      position: relative; z-index: 4; display: flex; flex-direction: column;
-      align-items: center; text-align: center; padding: 0 20px 24px;
-    }
-    .title-logo-img {
-      max-height: 70px; max-width: 65%; object-fit: contain; margin-bottom: 12px;
-      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
-    }
-    .title-fallback-text {
-      font-size: 26px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.8); margin-bottom: 8px;
-    }
-    .slide-meta-row {
-      display: flex; align-items: center; gap: 8px; font-size: 12px;
-      color: var(--text-muted); font-weight: 600; margin-bottom: 14px;
-    }
-    .slide-meta-row span:not(:last-child)::after {
-      content: "•"; margin-left: 8px; color: var(--border-color);
-    }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    .slide-action-row { display: flex; align-items: center; gap: 12px; }
-    .btn-watch-now {
-      background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255,255,255,0.25);
-      backdrop-filter: blur(16px); color: #fff; border-radius: 28px;
-      padding: 10px 28px; font-size: 14px; font-weight: 700; text-decoration: none;
-      display: flex; align-items: center; gap: 8px; transition: 0.15s ease;
-    }
-    .btn-watch-now:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.28); }
-    .btn-add-list {
-      width: 42px; height: 42px; border-radius: 50%;
-      background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255,255,255,0.2);
-      color: #fff; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: 0.15s ease;
-    }
-    .btn-add-list:active { transform: scale(0.92); }
-    .btn-add-list.active { color: var(--accent-blue); border-color: var(--accent-blue); }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            padding-bottom: 75px; /* space for bottom nav */
+        }
 
-    /* Carousel Navigation Dots */
-    .dots-container {
-      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-      z-index: 5; display: flex; gap: 6px;
-    }
-    .dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: 0.3s; }
-    .dot.active { width: 14px; border-radius: 3px; background: #fff; }
+        /* Top Bar */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(9, 10, 14, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-    /* Horizontal Containers & Sections */
-    .section-wrap { padding: 18px 0 6px 16px; }
-    .section-header {
-      font-size: 16px; font-weight: 700; margin-bottom: 12px;
-      display: flex; align-items: center; justify-content: space-between; padding-right: 16px;
-    }
-    .horizontal-scroll {
-      display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none;
-      padding-right: 16px; padding-bottom: 6px;
-    }
-    .horizontal-scroll::-webkit-scrollbar { display: none; }
+        .brand-logo {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-    /* Continue Watching Card */
-    .cw-card {
-      min-width: 200px; width: 200px; text-decoration: none; color: #fff;
-      display: flex; flex-direction: column; cursor: pointer;
-    }
-    .cw-thumb-box {
-      position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px;
-      overflow: hidden; background: var(--card-bg);
-    }
-    .cw-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
-    .cw-play-badge {
-      position: absolute; bottom: 8px; left: 8px; width: 26px; height: 26px;
-      border-radius: 50%; background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.4);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .cw-play-badge svg { width: 11px; height: 11px; fill: #fff; margin-left: 2px; }
-    .cw-progress-line {
-      position: absolute; bottom: 0; left: 0; height: 3.5px; background: var(--accent-blue);
-    }
-    .cw-title {
-      font-size: 13px; font-weight: 700; margin-top: 6px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .cw-time-left { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .top-icons {
+            display: flex;
+            gap: 16px;
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
 
-    /* Dynamic Standard 16:9 Item Card */
-    .poster-card {
-      min-width: 170px; width: 170px; text-decoration: none; color: #fff;
-      display: flex; flex-direction: column; transition: transform 0.15s ease;
-    }
-    .poster-card:active { transform: scale(0.96); }
-    .poster-box {
-      position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px;
-      overflow: hidden; background: var(--card-bg); border: 1px solid var(--border-color);
-    }
-    .poster-box img.main-img { width: 100%; height: 100%; object-fit: cover; }
-    .poster-box img.logo-badge {
-      position: absolute; top: 6px; right: 6px; width: 24px; height: 24px;
-      object-fit: contain; background: rgba(0,0,0,0.6); border-radius: 4px; padding: 2px;
-    }
-    .poster-title {
-      font-size: 12.5px; font-weight: 600; margin-top: 6px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .poster-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+        /* Section Containers */
+        .section-wrap {
+            margin-top: 20px;
+            padding-left: 14px;
+        }
 
-    /* Empty/Loader State */
-    .loader { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
-  </style>
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-right: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #f1f3f7;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-title i {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* 16:9 Horizontal Carousel */
+        .carousel-track {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding-right: 14px;
+            scrollbar-width: none;
+        }
+        .carousel-track::-webkit-scrollbar {
+            display: none;
+        }
+
+        .card-16-9 {
+            flex: 0 0 240px;
+            position: relative;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-card);
+            transition: transform 0.2s ease;
+        }
+
+        .card-16-9:active {
+            transform: scale(0.97);
+        }
+
+        .poster-container {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #1c202e;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .poster-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Continue Watching Item Styling */
+        .cw-card {
+            flex: 0 0 220px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .cw-poster {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            position: relative;
+        }
+
+        .cw-poster img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .cw-progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3.5px;
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .cw-progress-fill {
+            height: 100%;
+            background: #3b82f6;
+            width: 65%;
+        }
+
+        .cw-info {
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cw-text {
+            overflow: hidden;
+        }
+
+        .cw-title {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 160px;
+        }
+
+        .cw-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .cw-dots-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 16px;
+            padding: 6px;
+            cursor: pointer;
+        }
+
+        /* ========================================================
+           FULLSCREEN SECTION GRID VIEW (16:9 FORMAT)
+        ======================================================== */
+        .grid-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-main);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .grid-page.active {
+            display: flex;
+        }
+
+        .grid-header {
+            position: sticky;
+            top: 0;
+            background: rgba(9, 10, 14, 0.98);
+            backdrop-filter: blur(10px);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 10;
+        }
+
+        .grid-header i {
+            font-size: 19px;
+            cursor: pointer;
+        }
+
+        .grid-header h2 {
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .grid-content {
+            padding: 14px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        @media (min-width: 600px) {
+            .grid-content {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 900px) {
+            .grid-content {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .grid-item {
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-card);
+        }
+
+        .grid-item .poster-16-9 {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #1c202e;
+            overflow: hidden;
+        }
+
+        .grid-item .poster-16-9 img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .grid-item .item-name {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ========================================================
+           BOTTOM SHEET (3-DOTS ACTION MODAL)
+        ======================================================== */
+        .bottom-sheet-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: none;
+            justify-content: flex-end;
+            flex-direction: column;
+        }
+
+        .bottom-sheet-backdrop.active {
+            display: flex;
+        }
+
+        .bottom-sheet {
+            background: #171922;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 20px 18px 30px;
+            transform: translateY(100%);
+            transition: transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+        }
+
+        .bottom-sheet-backdrop.active .bottom-sheet {
+            transform: translateY(0);
+        }
+
+        .sheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 10px;
+        }
+
+        .sheet-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 85%;
+        }
+
+        .sheet-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .sheet-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sheet-action-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 6px;
+            color: #e2e8f0;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.15s ease;
+        }
+
+        .sheet-action-row:active {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .sheet-action-row i {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* Bottom Nav (JioHotstar Style) */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: 60px;
+            background: rgba(9, 10, 14, 0.98);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 40;
+        }
+
+        .nav-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .nav-tab.active {
+            color: #ffffff;
+        }
+
+        .nav-tab i {
+            font-size: 18px;
+        }
+    </style>
 </head>
 <body>
 
-  <!-- App Header -->
-  <header class="nav-bar">
-    <div class="logo-container">
-      <svg class="brand-svg" viewBox="0 0 120 30">
-        <path d="M12 4C6 4 2 8 2 15s4 11 10 11c4 0 7-2 9-5l-3-2c-1.5 2-3.5 3-6 3-4.5 0-7-3.5-7-7s2.5-7 7-7c2.5 0 4.5 1 6 3l3-2C19 6 16 4 12 4z"/>
-        <text x="32" y="21" fill="#fff" font-size="14" font-weight="900" letter-spacing="1">HOTSTAR</text>
-      </svg>
+    <!-- Top App Bar -->
+    <div class="top-nav">
+        <div class="brand-logo">JioHotstar</div>
+        <div class="top-icons">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <i class="fa-regular fa-bell"></i>
+        </div>
     </div>
-  </header>
 
-  <!-- Hero Banner Carousel -->
-  <div class="hero-carousel" id="heroCarousel">
-    <div class="carousel-track" id="carouselTrack"></div>
-    <div class="dots-container" id="carouselDots"></div>
-  </div>
+    <!-- 1. CONTINUE WATCHING SECTION -->
+    <div class="section-wrap" id="cwSectionWrap">
+        <div class="section-header">
+            <div class="section-title">Continue Watching</div>
+        </div>
+        <div class="carousel-track" id="cwTrack">
+            <!-- Rendered dynamically -->
+        </div>
+    </div>
 
-  <!-- Continue Watching Section -->
-  <div class="section-wrap" id="continueWatchingWrap" style="display: none;">
-    <div class="section-header" id="cwUserHeading">Continue Watching</div>
-    <div class="horizontal-scroll" id="cwItemsScroll"></div>
-  </div>
-
-  <!-- Dynamic Admin Generated Sections -->
-  <div id="dynamicSectionsHost">
-    <div class="loader">Loading Hotstar Feed...</div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const channelConfig = {
-      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
-      authDomain: "internal-systems-46728.firebaseapp.com",
-      projectId: "internal-systems-46728",
-      storageBucket: "internal-systems-46728.firebasestorage.app",
-      messagingSenderId: "172177452674",
-      appId: "1:172177452674:web:155a2417da5531dd7ece9b"
-    };
-    const channelApp = initializeApp(channelConfig, "channelApp");
-    const db = getFirestore(channelApp);
-
-    const authConfig = {
-      apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
-      authDomain: "question-metabase.firebaseapp.com",
-      projectId: "question-metabase"
-    };
-    const authApp = initializeApp(authConfig, "authApp");
-    const authDb = getFirestore(authApp);
-
-    let currentUser = null;
-    let userDocRef = null;
-    let userWatchlist = [];
-    let carouselItems = [];
-    let currentSlide = 0;
-    let slideTimer = null;
-
-    // Detect Page Doc ID from URL e.g. 2.html?home?=home or 2.html?page=movies
-    const params = new URLSearchParams(window.location.search);
-    const pageId = window.location.search.split('?=')[1] || params.get('page') || 'default';
-
-    initApp();
-
-    async function initApp() {
-      await loadUserData();
-      await fetchPageConfigAndBuild(pageId);
-      renderContinueWatching();
-    }
-
-    async function loadUserData() {
-      try {
-        const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
-        currentUser = stored ? JSON.parse(stored) : null;
-        if (currentUser) {
-          const q = currentUser.Lotus 
-            ? query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus))
-            : (currentUser.Email ? query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email)) : null);
-          
-          if (q) {
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-              userDocRef = doc(authDb, "UARM", snap.docs[0].id);
-              userWatchlist = snap.docs[0].data().Watchlist || [];
-            }
-          }
-        }
-      } catch(e) {}
-    }
-
-    async function fetchPageConfigAndBuild(pId) {
-      try {
-        let pageSnap = await getDoc(doc(db, "Systems", pId));
-        if (!pageSnap.exists()) {
-          pageSnap = await getDoc(doc(db, "Systems", "default"));
-        }
-
-        if (!pageSnap.exists()) {
-          document.getElementById('dynamicSectionsHost').innerHTML = '<div class="loader">Page layout not configured.</div>';
-          return;
-        }
-
-        const pageData = pageSnap.data();
-        
-        // Setup Carousel IDs
-        const cIds = pageData.Carousel || (pageData.S1 && pageData.S1.Content) || ["aladdin", "dhurandhar-134114"];
-        await loadCarouselContent(cIds);
-
-        // Render Dynamic Sections
-        const sections = pageData.Sections || [];
-        await renderSectionsFromRules(sections);
-      } catch (err) {
-        document.getElementById('dynamicSectionsHost').innerHTML = `<div class="loader">Failed to load feed: ${err.message}</div>`;
-      }
-    }
-
-    function safeUrl(url) {
-      return (url || '').trim().replace(/^http:\/\//i, 'https://');
-    }
-
-    function getThumb(c) {
-      return safeUrl(c.Banner || c["Poster.h"] || c.Poster_h || c.Poster || c.Logo || '');
-    }
-
-    async function loadCarouselContent(idList) {
-      const collectionsToCheck = ["Movies", "Shows", "Live TV", "TV Shows", "Sports"];
-      carouselItems = [];
-
-      for (const id of idList) {
-        for (const col of collectionsToCheck) {
-          try {
-            const s = await getDoc(doc(db, col, id));
-            if (s.exists()) {
-              carouselItems.push({ id: s.id, col, ...s.data() });
-              break;
-            }
-          } catch(e) {}
-        }
-      }
-
-      if (carouselItems.length === 0) {
-        document.getElementById('heroCarousel').style.display = 'none';
-        return;
-      }
-
-      buildCarouselUI();
-      startCarouselLoop();
-    }
-
-    function buildCarouselUI() {
-      const track = document.getElementById('carouselTrack');
-      const dots = document.getElementById('carouselDots');
-      track.innerHTML = '';
-      dots.innerHTML = '';
-
-      carouselItems.forEach((item, idx) => {
-        const isAdded = userWatchlist.includes(item.id);
-        const logo = safeUrl(item["Logo.png"] || item.Logo);
-        const name = item.Name || item.Title || "Hotstar Special";
-        const lang = item.Language || "Hindi";
-        const year = item.Year || item.Release_Date || "2024";
-        const genres = (item.Genres || item.Genre || "Action").split(',').slice(0, 2).join(' • ');
-
-        track.innerHTML += `
-          <div class="slide-item ${idx === 0 ? 'active' : ''}" id="slide-${idx}">
-            <img class="media-backdrop" src="${getThumb(item)}" alt="${name}">
-            <video class="video-trailer-engine" id="trailer-video-${idx}" playsinline muted loop></video>
-            <iframe class="trailer-iframe" id="trailer-iframe-${idx}"></iframe>
-            <div class="slide-overlay-gradient"></div>
-            
-            <div class="slide-content-box">
-              ${logo ? `<img class="title-logo-img" src="${logo}" alt="${name}">` : `<div class="title-fallback-text">${name}</div>`}
-              <div class="slide-meta-row">
-                <span>${lang}</span>
-                <span>${year}</span>
-                <span>${genres}</span>
-              </div>
-              <div class="slide-action-row">
-                <a class="btn-watch-now" href="1.html?watch=${item.id}">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                  Watch Now
-                </a>
-                <button class="btn-add-list ${isAdded ? 'active' : ''}" onclick="window.toggleWatchlist(event, '${item.id}')" title="Watchlist">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    ${isAdded ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'}
-                  </svg>
-                </button>
-              </div>
+    <!-- 2. NEW ON JIOHOTSTAR (16:9 CAROUSEL - NO LOGO) -->
+    <div class="section-wrap">
+        <div class="section-header" onclick="openSectionGrid('New on JioHotstar')">
+            <div class="section-title">
+                New on JioHotstar <i class="fa-solid fa-chevron-right"></i>
             </div>
-          </div>
-        `;
-        dots.innerHTML += `<div class="dot ${idx === 0 ? 'active' : ''}"></div>`;
-      });
-    }
+        </div>
+        <div class="carousel-track" id="newOnHotstarTrack">
+            <!-- Rendered dynamically -->
+        </div>
+    </div>
 
-    function startCarouselLoop() {
-      clearTimeout(slideTimer);
-      const item = carouselItems[currentSlide];
-      const trailerUrl = safeUrl(item.Trailer || item.trailer || '');
-      
-      const vEl = document.getElementById(`trailer-video-${currentSlide}`);
-      const iEl = document.getElementById(`trailer-iframe-${currentSlide}`);
+    <!-- 3. TRENDING MOVIES (16:9 CAROUSEL - NO LOGO) -->
+    <div class="section-wrap">
+        <div class="section-header" onclick="openSectionGrid('Trending Movies')">
+            <div class="section-title">
+                Trending Movies <i class="fa-solid fa-chevron-right"></i>
+            </div>
+        </div>
+        <div class="carousel-track" id="trendingTrack">
+            <!-- Rendered dynamically -->
+        </div>
+    </div>
 
-      // Step 1: Display Banner for 6 seconds
-      slideTimer = setTimeout(() => {
-        // Step 2: If trailer available play trailer, else proceed to next slide
-        if (trailerUrl) {
-          if (trailerUrl.includes('youtube.com') || trailerUrl.includes('youtu.be')) {
-            const ytId = trailerUrl.split('v=')[1] || trailerUrl.split('/').pop();
-            iEl.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1`;
-            iEl.style.display = 'block';
-          } else {
-            vEl.src = trailerUrl;
-            vEl.style.display = 'block';
-            vEl.play().catch(() => {});
-          }
+    <!-- ========================================================
+         FULLSCREEN 16:9 GRID VIEW PAGE
+    ======================================================== -->
+    <div class="grid-page" id="sectionGridPage">
+        <div class="grid-header">
+            <i class="fa-solid fa-arrow-left" onclick="closeSectionGrid()"></i>
+            <h2 id="gridPageTitle">Section Name</h2>
+        </div>
+        <div class="grid-content" id="gridContent">
+            <!-- 16:9 Grid Cards Rendered Here -->
+        </div>
+    </div>
 
-          // Let trailer play for 14 seconds before moving
-          slideTimer = setTimeout(nextSlide, 14000);
-        } else {
-          nextSlide();
-        }
-      }, 6000);
-    }
+    <!-- ========================================================
+         CONTINUE WATCHING 3-DOTS BOTTOM SHEET
+    ======================================================== -->
+    <div class="bottom-sheet-backdrop" id="bottomSheetModal" onclick="closeBottomSheet(event)">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-header">
+                <div class="sheet-title" id="sheetMovieTitle">Movie Title</div>
+                <button class="sheet-close-btn" onclick="closeBottomSheet()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="sheet-actions">
+                <div class="sheet-action-row" onclick="onViewMoreDetails()">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>View More Details</span>
+                </div>
+                <div class="sheet-action-row" onclick="onRemoveFromContinueWatching()">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Remove from Continue Watching</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    function nextSlide() {
-      const vEl = document.getElementById(`trailer-video-${currentSlide}`);
-      const iEl = document.getElementById(`trailer-iframe-${currentSlide}`);
-      if (vEl) { vEl.pause(); vEl.style.display = 'none'; vEl.removeAttribute('src'); }
-      if (iEl) { iEl.src = ''; iEl.style.display = 'none'; }
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+        <div class="nav-tab">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Search</span>
+        </div>
+        <div class="nav-tab active">
+            <i class="fa-solid fa-house"></i>
+            <span>Home</span>
+        </div>
+        <div class="nav-tab">
+            <i class="fa-solid fa-tv"></i>
+            <span>TV</span>
+        </div>
+        <div class="nav-tab">
+            <i class="fa-regular fa-circle-user"></i>
+            <span>My Space</span>
+        </div>
+    </div>
 
-      document.getElementById(`slide-${currentSlide}`).classList.remove('active');
-      document.querySelectorAll('.dot')[currentSlide].classList.remove('active');
-
-      currentSlide = (currentSlide + 1) % carouselItems.length;
-
-      document.getElementById(`slide-${currentSlide}`).classList.add('active');
-      document.querySelectorAll('.dot')[currentSlide].classList.add('active');
-
-      startCarouselLoop();
-    }
-
-    window.toggleWatchlist = async (e, id) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const btn = e.currentTarget;
-      const isAdded = btn.classList.contains('active');
-      
-      if (userDocRef) {
-        if (isAdded) {
-          await updateDoc(userDocRef, { Watchlist: arrayRemove(id) });
-          userWatchlist = userWatchlist.filter(item => item !== id);
-          btn.classList.remove('active');
-          btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
-        } else {
-          await updateDoc(userDocRef, { Watchlist: arrayUnion(id) });
-          userWatchlist.push(id);
-          btn.classList.add('active');
-          btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
-        }
-      } else {
-        btn.classList.toggle('active');
-      }
+<script>
+    // Firebase Config (internal-systems-46728)
+    const firebaseConfig = {
+        apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+        authDomain: "internal-systems-46728.firebaseapp.com",
+        projectId: "internal-systems-46728",
+        storageBucket: "internal-systems-46728.firebasestorage.app",
+        messagingSenderId: "172177452674",
+        appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+        measurementId: "G-Y87B8VRQ1N"
     };
 
-    function renderContinueWatching() {
-      const cwWrap = document.getElementById('continueWatchingWrap');
-      const cwScroll = document.getElementById('cwItemsScroll');
-      const heading = document.getElementById('cwUserHeading');
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-      if (currentUser && currentUser.Name) {
-        heading.innerText = `Continue Watching for ${currentUser.Name.split(' ')[0]}...`;
-      }
+    let allMoviesList = [];
+    let selectedCWItem = null;
 
-      const progressKeys = Object.keys(localStorage).filter(k => k.startsWith('progress_'));
-      if (progressKeys.length === 0) {
-        cwWrap.style.display = 'none';
-        return;
-      }
-
-      cwWrap.style.display = 'block';
-      cwScroll.innerHTML = '';
-
-      progressKeys.slice(0, 8).forEach(async (key) => {
-        const docId = key.replace('progress_', '').split('_')[0];
-        const progressSeconds = parseFloat(localStorage.getItem(key)) || 0;
-        if (progressSeconds < 10) return;
-
-        // Try getting cached item or fetch
-        for (const col of ["Movies", "Shows", "TV Shows", "Live TV"]) {
-          try {
-            const snap = await getDoc(doc(db, col, docId));
-            if (snap.exists()) {
-              const item = snap.data();
-              const percent = Math.min(95, Math.max(10, (progressSeconds / 5400) * 100)); // Estimated visual progress
-              cwScroll.innerHTML += `
-                <a class="cw-card" href="1.html?watch=${docId}">
-                  <div class="cw-thumb-box">
-                    <img src="${getThumb(item)}" alt="${item.Name}">
-                    <div class="cw-play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
-                    <div class="cw-progress-line" style="width: ${percent}%"></div>
-                  </div>
-                  <div class="cw-title">${item.Name || 'Video'}</div>
-                  <div class="cw-time-left">${Math.max(1, Math.round((5400 - progressSeconds)/60))}m left</div>
-                </a>
-              `;
-              break;
-            }
-          } catch(e) {}
+    // Default Continue Watching state (persisted in localStorage)
+    const DEFAULT_CW_ITEMS = [
+        {
+            docId: "dhurandhar-the-revenge",
+            name: "Dhurandhar The Revenge",
+            posterH: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=60",
+            timeLeft: "2h 58m left",
+            progress: 60
+        },
+        {
+            docId: "alice-in-wonderland",
+            name: "Alice in Wonderland",
+            posterH: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=60",
+            timeLeft: "45m left",
+            progress: 40
         }
-      });
-    }
+    ];
 
-    async function renderSectionsFromRules(sections) {
-      const host = document.getElementById('dynamicSectionsHost');
-      if (sections.length === 0) {
-        host.innerHTML = '';
-        return;
-      }
+    let continueWatchingList = JSON.parse(localStorage.getItem('cw_list')) || DEFAULT_CW_ITEMS;
 
-      host.innerHTML = '';
-
-      for (const [idx, sec] of sections.entries()) {
-        const secContainerId = `sec-scroll-${idx}`;
-        host.innerHTML += `
-          <div class="section-wrap">
-            <div class="section-header">${sec.title}</div>
-            <div class="horizontal-scroll" id="${secContainerId}">
-              <div style="color:var(--text-muted); font-size:12px;">Loading...</div>
-            </div>
-          </div>
-        `;
-
-        // Load & Filter Content from selected collections
-        loadSectionData(sec, secContainerId);
-      }
-    }
-
-    async function loadSectionData(sec, containerId) {
-      let pool = [];
-      for (const col of sec.collections) {
+    // Load Data from Firestore
+    async function loadMovies() {
         try {
-          const snap = await getDocs(collection(db, col));
-          snap.forEach(d => pool.push({ id: d.id, _col: col, ...d.data() }));
-        } catch(e) {}
-      }
+            const snapshot = await db.collection('Movies').get();
+            allMoviesList = snapshot.docs.map(doc => ({
+                docId: doc.id,
+                ...doc.data()
+            }));
 
-      // Dynamic Filtering
-      if (sec.genre) {
-        const gList = sec.genre.toLowerCase().split(',').map(s => s.trim());
-        pool = pool.filter(i => {
-          const itemGenres = (i.Genres || i.Genre || '').toLowerCase();
-          return gList.some(g => itemGenres.includes(g));
-        });
-      }
-
-      if (sec.language) {
-        const lList = sec.language.toLowerCase().split(',').map(s => s.trim());
-        pool = pool.filter(i => lList.some(l => (i.Language || '').toLowerCase().includes(l)));
-      }
-
-      if (sec.studio) {
-        const sList = sec.studio.toLowerCase().split(',').map(s => s.trim());
-        pool = pool.filter(i => sList.some(st => (i.Studio || i.Partner || '').toLowerCase().includes(st)));
-      }
-
-      if (sec.ageRating) {
-        pool = pool.filter(i => (i.Age_Rating || i.AgeRating || '').toLowerCase() === sec.ageRating.toLowerCase());
-      }
-
-      // Dynamic Ordering
-      if (sec.order === 'newest') {
-        pool.sort((a, b) => parseInt(b.Release_Date || b.Year || 0) - parseInt(a.Release_Date || a.Year || 0));
-      } else if (sec.order === 'oldest') {
-        pool.sort((a, b) => parseInt(a.Release_Date || a.Year || 0) - parseInt(b.Release_Date || b.Year || 0));
-      } else if (sec.order === 'rating') {
-        pool.sort((a, b) => parseFloat(b.Rating || 0) - parseFloat(a.Rating || 0));
-      }
-
-      const finalList = pool.slice(0, sec.limit || 15);
-      const scrollEl = document.getElementById(containerId);
-
-      if (finalList.length === 0) {
-        scrollEl.innerHTML = '<div style="color:var(--text-muted); font-size:12px;">No matching content.</div>';
-        return;
-      }
-
-      scrollEl.innerHTML = finalList.map(item => `
-        <a class="poster-card" href="1.html?watch=${item.id}">
-          <div class="poster-box">
-            <img class="main-img" src="${getThumb(item)}" alt="${item.Name || 'Item'}" loading="lazy">
-            <img class="logo-badge" src="${safeUrl(item["Logo.png"] || item.Logo || item.Poster)}" loading="lazy">
-          </div>
-          <div class="poster-title">${item.Name || 'Title'}</div>
-          <div class="poster-sub">${item.Genres || item.Language || item._col}</div>
-        </a>
-      `).join('');
+            renderContinueWatching();
+            renderCarousel('newOnHotstarTrack', allMoviesList);
+            renderCarousel('trendingTrack', allMoviesList.slice().reverse());
+        } catch (e) {
+            console.error("Error fetching Firestore:", e);
+            renderContinueWatching();
+        }
     }
-  </script>
+
+    // Render Carousel with ONLY Poster.h (NO LOGOS)
+    function renderCarousel(trackId, movies) {
+        const track = document.getElementById(trackId);
+        if (!track) return;
+        track.innerHTML = '';
+
+        movies.forEach(movie => {
+            const posterUrl = movie["Poster.h"] || movie.Poster_h || movie.Poster || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=60";
+            const movieName = movie.Name || movie.docId.replace(/-/g, ' ');
+
+            const card = document.createElement('div');
+            card.className = 'card-16-9';
+            card.onclick = () => navigateToPreview(movie.docId);
+
+            card.innerHTML = `
+                <div class="poster-container">
+                    <img src="${posterUrl}" alt="${movieName}" loading="lazy" />
+                </div>
+            `;
+            track.appendChild(card);
+        });
+    }
+
+    // Render Continue Watching Carousel
+    function renderContinueWatching() {
+        const track = document.getElementById('cwTrack');
+        const wrap = document.getElementById('cwSectionWrap');
+        if (!track) return;
+
+        if (continueWatchingList.length === 0) {
+            wrap.style.display = 'none';
+            return;
+        } else {
+            wrap.style.display = 'block';
+        }
+
+        track.innerHTML = '';
+        continueWatchingList.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'cw-card';
+            card.innerHTML = `
+                <div class="cw-poster" onclick="navigateToPreview('${item.docId}')">
+                    <img src="${item.posterH}" alt="${item.name}">
+                    <div class="cw-progress-bar">
+                        <div class="cw-progress-fill" style="width: ${item.progress || 50}%"></div>
+                    </div>
+                </div>
+                <div class="cw-info">
+                    <div class="cw-text" onclick="navigateToPreview('${item.docId}')">
+                        <div class="cw-title">${item.name}</div>
+                        <div class="cw-time">${item.timeLeft || 'Playing'}</div>
+                    </div>
+                    <button class="cw-dots-btn" onclick="openBottomSheet('${item.docId}', '${item.name.replace(/'/g, "\\'")}')">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                </div>
+            `;
+            track.appendChild(card);
+        });
+    }
+
+    // ==========================================
+    // 16:9 GRID VIEW (On Section Name Click)
+    // ==========================================
+    function openSectionGrid(sectionTitle) {
+        document.getElementById('gridPageTitle').innerText = sectionTitle;
+        const gridContent = document.getElementById('gridContent');
+        gridContent.innerHTML = '';
+
+        allMoviesList.forEach(movie => {
+            const posterUrl = movie["Poster.h"] || movie.Poster_h || movie.Poster || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=60";
+            const movieName = movie.Name || movie.docId.replace(/-/g, ' ');
+
+            const gridItem = document.createElement('div');
+            gridItem.className = 'grid-item';
+            gridItem.onclick = () => navigateToPreview(movie.docId);
+
+            // 16:9 Format Grid Item
+            gridItem.innerHTML = `
+                <div class="poster-16-9">
+                    <img src="${posterUrl}" alt="${movieName}" loading="lazy" />
+                </div>
+                <div class="item-name">${movieName}</div>
+            `;
+            gridContent.appendChild(gridItem);
+        });
+
+        document.getElementById('sectionGridPage').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSectionGrid() {
+        document.getElementById('sectionGridPage').classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+
+    // ==========================================
+    // CONTINUE WATCHING BOTTOM SHEET MODAL
+    // ==========================================
+    function openBottomSheet(docId, movieName) {
+        selectedCWItem = { docId, name: movieName };
+        document.getElementById('sheetMovieTitle').innerText = movieName;
+        document.getElementById('bottomSheetModal').classList.add('active');
+    }
+
+    function closeBottomSheet(e) {
+        if (e && e.target && e.target.id !== 'bottomSheetModal' && !e.target.closest('.sheet-close-btn')) return;
+        document.getElementById('bottomSheetModal').classList.remove('active');
+        selectedCWItem = null;
+    }
+
+    // View More Details -> preview#<docId>
+    function onViewMoreDetails() {
+        if (!selectedCWItem) return;
+        const docId = selectedCWItem.docId;
+        closeBottomSheet();
+        navigateToPreview(docId);
+    }
+
+    // Remove from Continue Watching
+    function onRemoveFromContinueWatching() {
+        if (!selectedCWItem) return;
+        const docId = selectedCWItem.docId;
+        continueWatchingList = continueWatchingList.filter(item => item.docId !== docId);
+        localStorage.setItem('cw_list', JSON.stringify(continueWatchingList));
+        renderContinueWatching();
+        closeBottomSheet();
+    }
+
+    // Navigation Helper to preview#
+    function navigateToPreview(docId) {
+        window.location.href = `preview#${docId}`;
+    }
+
+    // Initialize
+    loadMovies();
+</script>
+
 </body>
 </html>
