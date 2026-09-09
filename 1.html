@@ -49,7 +49,7 @@
 
     .main-wrapper { max-width: 1200px; margin: 0 auto; }
 
-    /* Video Player Root Container */
+    /* Video Player Root Container (Attached to Top) */
     .player-container {
       position: relative;
       width: 100%;
@@ -449,9 +449,6 @@
     .lang-item { display: flex; align-items: center; gap: 12px; cursor: pointer; }
     .lang-check { width: 18px; color: var(--accent-blue); font-weight: bold; font-size: 15px; }
     .lang-label { font-size: 14px; font-weight: 600; color: #fff; }
-
-    /* Playback Speed Panel */
-    .tab-content-panel#speedPanel { overflow-y: auto; }
 
     /* Landscape Drawer Overlay */
     .drawer-overlay {
@@ -1033,7 +1030,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS -->
+      <!-- MORE LIKE THIS (Never empty algorithm recommendations) -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1091,23 +1088,12 @@
   let availableHlsLevels = [];
   let lastProgressSave = 0;
 
-  // Pre-Cast Pipeline State
-  let currentItemData = null;
-  let preCastQueue = [];
-  let preCastDurations = [];
-  let totalPreCastDuration = 0;
-  let isPlayingPreCast = false;
-  let activePreCastIndex = 0;
-  let mainStreamDuration = 0;
-  let unifiedDuration = 0;
-
-  // Cache
+  // In-Memory Item Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
 
   let showDocData = null;
   let currentSeasonKey = null;
   let currentEpisodeIdx = 0;
-  let viewingSeasonKey = null;
   let showAllEpisodesVertical = false;
 
   let channelDocUnsub = null;
@@ -1148,6 +1134,7 @@
     return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster || c["Logo.png"] || c.Logo || '');
   }
 
+  // Dynamic Duration Parser (124 -> 2h 4m, 24 -> 24m)
   function formatDynamicDuration(raw) {
     if (!raw) return '';
     if (typeof raw === 'string' && (raw.includes('h') || raw.includes('m') || raw.includes(':'))) return raw;
@@ -1159,6 +1146,7 @@
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
   }
 
+  // Dynamic Language Counter & Labeler
   function getDynamicLanguageString(item) {
     if (!item) return '1 Language';
     const multi = item["Multi-Language"] || item.multiLanguage || item.MultiLanguage;
@@ -1202,20 +1190,12 @@
     setTimeout(() => toast.classList.remove('show'), 2000);
   }
 
-  // Resolves Start_Time accurately
-  function getResolvedStartTime(item) {
-    if (!item) return 0;
-    const raw = item.Start_Time ?? item.StartTime ?? item.start_time ?? item["Start Time"] ?? 0;
-    const sec = parseFloat(raw);
-    return (!isNaN(sec) && sec > 0) ? sec : 0;
-  }
-
-  function getSavedProgress(key, fallbackStartTime = 0) {
-    if (actionParam === 'starting') return fallbackStartTime;
+  function getSavedProgress(key) {
+    if (actionParam === 'starting') return 0;
     try {
       const saved = localStorage.getItem(`progress_${key}`);
-      return saved ? parseFloat(saved) : fallbackStartTime;
-    } catch(e) { return fallbackStartTime; }
+      return saved ? parseFloat(saved) : 0;
+    } catch(e) { return 0; }
   }
 
   function saveProgressThrottled(key, time) {
@@ -1336,7 +1316,7 @@
 
       if (contentType === 'show') {
         renderVerticalEpisodesSection();
-        playShowEpisode(true); // first run shows controls once
+        playShowEpisode();
       } else {
         const titleText = currentChannel.Name || currentChannel.Title || "Title";
         document.getElementById('overlayTitle').innerText = titleText;
@@ -1351,7 +1331,7 @@
         }
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
-        initUnifiedMediaStream(currentChannel, true);
+        startStreamPlayback(currentChannel);
       }
       
       setupAudioOptions(currentChannel);
@@ -1494,6 +1474,7 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
+      // Live TV: Hide Speed Everywhere
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
       btnPreviously.style.display = hasPreviously ? 'flex' : 'none';
@@ -1519,7 +1500,6 @@
     } else if (!currentSeasonKey || !seasonKeys.includes(currentSeasonKey)) {
       currentSeasonKey = seasonKeys[0];
     }
-    viewingSeasonKey = currentSeasonKey;
 
     if (paramEp) {
       const epInt = parseInt(paramEp);
@@ -1546,30 +1526,27 @@
       return;
     }
 
-    if (!viewingSeasonKey) viewingSeasonKey = currentSeasonKey || seasonKeys[0];
-
     wrap.style.display = 'block';
     seasonsRow.innerHTML = seasonKeys.map(sKey => `
-      <button class="ep-season-tab ${sKey === viewingSeasonKey ? 'active' : ''}" onclick="window.selectVerticalSeasonTab('${sKey}')">
+      <button class="ep-season-tab ${sKey === currentSeasonKey ? 'active' : ''}" onclick="window.selectVerticalSeason('${sKey}')">
         ${sKey}
       </button>
     `).join('');
 
-    const epList = showDocData[viewingSeasonKey] || [];
-    const seasonNum = viewingSeasonKey.replace(/\D/g, '') || '1';
+    const epList = showDocData[currentSeasonKey] || [];
+    const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
     const limit = showAllEpisodesVertical ? epList.length : 3;
 
     epListEl.innerHTML = epList.slice(0, limit).map((ep, idx) => {
       const epDur = formatDynamicDuration(ep.Duration || ep.duration) || '24m';
-      const isCurrentActive = (viewingSeasonKey === currentSeasonKey && idx === currentEpisodeIdx);
       return `
-        <div onclick="window.selectEpisodeFromVertical('${viewingSeasonKey}', ${idx})" class="ep-item-card" style="${isCurrentActive ? 'border-left: 3px solid var(--accent-blue); padding-left: 6px;' : ''}">
+        <div onclick="window.selectEpisode(${idx})" class="ep-item-card">
           <div class="ep-thumb-box">
             <img src="${getPosterH(showDocData)}" alt="${ep.Name}" loading="lazy">
             <div class="ep-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="ep-info-box">
-            <div class="ep-item-title" style="${isCurrentActive ? 'color: var(--accent-blue);' : ''}">${ep.Name || `Episode ${idx + 1}`}</div>
+            <div class="ep-item-title">${ep.Name || `Episode ${idx + 1}`}</div>
             <div class="ep-item-meta">S${seasonNum} E${idx + 1} • ${epDur}</div>
           </div>
         </div>
@@ -1589,20 +1566,14 @@
     }
   }
 
-  window.selectVerticalSeasonTab = function(sKey) {
-    viewingSeasonKey = sKey;
-    renderVerticalEpisodesSection();
-  };
-
-  window.selectEpisodeFromVertical = function(sKey, idx) {
+  window.selectVerticalSeason = function(sKey) {
     currentSeasonKey = sKey;
-    viewingSeasonKey = sKey;
-    currentEpisodeIdx = idx;
-    playShowEpisode(false); // don't wake up controls aggressively on episode selection
+    currentEpisodeIdx = 0;
     renderVerticalEpisodesSection();
+    playShowEpisode();
   };
 
-  function playShowEpisode(isInitial = false) {
+  function playShowEpisode() {
     if (!showDocData || !currentSeasonKey) return;
     const epList = showDocData[currentSeasonKey];
     if (!Array.isArray(epList) || epList.length === 0) return;
@@ -1619,107 +1590,16 @@
     subLabel.style.display = 'block';
     subLabel.innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} ${epTitle}`;
 
-    initUnifiedMediaStream({ 
+    startStreamPlayback({ 
       id: `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}`,
       Stream: ep.Stream, 
       mpd: ep.mpd || ep.MPD, 
-      "Pre-Cast": ep["Pre-Cast"] || ep.Pre_Cast || showDocData["Pre-Cast"] || showDocData.Pre_Cast || [],
-      Start_Time: getResolvedStartTime(ep) || getResolvedStartTime(showDocData),
       Studio: showDocData.Studio, 
       Partner: showDocData.Partner 
-    }, isInitial);
-  }
-
-  // =========================================================================
-  // PRE-CAST & SEAMLESS CONTINUOUS TIMELINE PIPELINE
-  // =========================================================================
-  async function initUnifiedMediaStream(data, isInitialLaunch = false) {
-    currentItemData = data;
-    const rawPreCast = data["Pre-Cast"] || data.Pre_Cast || [];
-    preCastQueue = Array.isArray(rawPreCast) ? rawPreCast.map(safeUrl).filter(Boolean) : (rawPreCast ? [safeUrl(rawPreCast)] : []);
-
-    const resumeKey = data.id || currentDocId;
-    const itemStartTime = getResolvedStartTime(data);
-
-    if (preCastQueue.length > 0) {
-      preCastDurations = [];
-      totalPreCastDuration = 0;
-      for (const pUrl of preCastQueue) {
-        const d = await probeMediaDuration(pUrl);
-        preCastDurations.push(d);
-        totalPreCastDuration += d;
-      }
-    } else {
-      totalPreCastDuration = 0;
-    }
-
-    // Start time resolution: Start_Time is used when progress is 0 or unvisited
-    const fallbackStart = totalPreCastDuration + itemStartTime;
-    const targetResumeSec = getSavedProgress(resumeKey, fallbackStart);
-
-    if (targetResumeSec < totalPreCastDuration && preCastQueue.length > 0) {
-      startPlayingPreCastSegment(targetResumeSec, isInitialLaunch);
-    } else {
-      const mainOffset = Math.max(0, targetResumeSec - totalPreCastDuration);
-      startPlayingMainStream(mainOffset, isInitialLaunch);
-    }
-  }
-
-  function probeMediaDuration(url) {
-    return new Promise((resolve) => {
-      const v = document.createElement('video');
-      v.preload = 'metadata';
-      v.src = url;
-      v.onloadedmetadata = () => resolve(v.duration || 15);
-      v.onerror = () => resolve(15);
-      setTimeout(() => resolve(15), 2500);
     });
   }
 
-  function startPlayingPreCastSegment(unifiedOffsetSec, triggerInitialWakeup = false) {
-    isPlayingPreCast = true;
-    destroyPlayers();
-
-    let accum = 0;
-    let index = 0;
-    let localOffset = unifiedOffsetSec;
-    for (let i = 0; i < preCastDurations.length; i++) {
-      if (unifiedOffsetSec < accum + preCastDurations[i]) {
-        index = i;
-        localOffset = unifiedOffsetSec - accum;
-        break;
-      }
-      accum += preCastDurations[i];
-    }
-    activePreCastIndex = index;
-
-    const video = document.getElementById('nativeVideoPlayer');
-    const overlay = document.getElementById('controlsOverlay');
-    video.style.display = 'block';
-    overlay.style.display = 'flex';
-
-    video.src = preCastQueue[activePreCastIndex];
-    video.onloadedmetadata = () => {
-      video.currentTime = localOffset;
-      video.play().catch(() => {});
-    };
-
-    video.onended = () => {
-      if (activePreCastIndex + 1 < preCastQueue.length) {
-        activePreCastIndex++;
-        video.src = preCastQueue[activePreCastIndex];
-        video.play().catch(() => {});
-      } else {
-        // Switch to main stream WITHOUT waking up controls!
-        startPlayingMainStream(getResolvedStartTime(currentItemData), false);
-      }
-    };
-
-    setupInteractions(triggerInitialWakeup);
-  }
-
-  function startPlayingMainStream(mainOffsetSec, triggerWakeup = false) {
-    isPlayingPreCast = false;
+  function startStreamPlayback(data) {
     destroyPlayers();
 
     const video = document.getElementById('nativeVideoPlayer');
@@ -1727,8 +1607,10 @@
     const ytHost = document.getElementById('ytFrameHost');
     const overlay = document.getElementById('controlsOverlay');
 
-    const streamUrl = safeUrl(currentItemData.Stream || '');
-    const mpdObj = currentItemData.mpd || currentItemData.MPD || null;
+    const streamUrl = safeUrl(data.Stream || '');
+    const mpdObj = data.mpd || data.MPD || null;
+    const resumeKey = data.id || currentDocId;
+    const savedTime = getSavedProgress(resumeKey);
 
     let mpdFile = null;
     let keyId = null;
@@ -1745,7 +1627,7 @@
     }
 
     if (mpdFile) {
-      playDashMPD(mpdFile, keyId, key, mainOffsetSec, triggerWakeup);
+      playDashMPD(mpdFile, keyId, key, savedTime);
       return;
     }
 
@@ -1769,15 +1651,15 @@
           disablekb: 1,
           modestbranding: 1,
           rel: 0,
-          start: Math.floor(mainOffsetSec),
+          start: Math.floor(savedTime),
           fs: 0,
           playsinline: 1
         },
         events: {
           onReady: (e) => {
             e.target.playVideo();
-            if (mainOffsetSec > 0 && contentType !== 'live') {
-              e.target.seekTo(mainOffsetSec, true);
+            if (savedTime > 0 && contentType !== 'live') {
+              e.target.seekTo(savedTime, true);
             }
           },
           onStateChange: (e) => {
@@ -1798,28 +1680,31 @@
         if (!ytPlayerInstance || typeof ytPlayerInstance.getCurrentTime !== 'function') return;
         const cur = ytPlayerInstance.getCurrentTime() || 0;
         const dur = ytPlayerInstance.getDuration() || 0;
-        mainStreamDuration = dur;
-        unifiedDuration = totalPreCastDuration + mainStreamDuration;
-        const currentUnifiedTime = totalPreCastDuration + cur;
 
         if (contentType === 'movie' || contentType === 'show') {
-          if (unifiedDuration > 0) {
-            const percent = (currentUnifiedTime / unifiedDuration) * 100;
+          if (dur > 0) {
+            const percent = (cur / dur) * 100;
             document.getElementById('timelineFill').style.width = `${percent}%`;
             document.getElementById('thumbIndicator').style.left = `${percent}%`;
             document.getElementById('progressBarInput').value = percent;
 
-            const rem = Math.max(0, unifiedDuration - currentUnifiedTime);
+            const rem = Math.max(0, dur - cur);
             document.getElementById('timeDisplay').innerText = formatTime(rem);
-            saveProgressThrottled(currentItemData.id || currentDocId, currentUnifiedTime);
+            saveProgressThrottled(resumeKey, cur);
           }
+        } else {
+          document.getElementById('timelineFill').style.width = '100%';
+          document.getElementById('thumbIndicator').style.left = '100%';
+          document.getElementById('progressBarInput').value = 100;
+          document.getElementById('timeDisplay').innerText = 'LIVE';
         }
       }, 500);
 
-      setupInteractions(triggerWakeup);
+      setupInteractions();
       return;
     }
 
+    // Handles .m3u8, .mp4, and .mkv streams
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
@@ -1828,8 +1713,9 @@
       overlay.style.display = 'flex';
 
       const applyResume = () => {
-        if (mainOffsetSec > 0 && contentType !== 'live') {
-          video.currentTime = mainOffsetSec;
+        if (savedTime > 0 && contentType !== 'live') {
+          video.currentTime = savedTime;
+          showToast(`Resumed from ${formatTime(savedTime)}`);
         }
         video.play().catch(() => {});
       };
@@ -1837,8 +1723,6 @@
       if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
         video.src = streamUrl;
         video.onloadedmetadata = () => {
-          mainStreamDuration = video.duration || 0;
-          unifiedDuration = totalPreCastDuration + mainStreamDuration;
           applyResume();
           extractNativeTracks(video);
         };
@@ -1847,8 +1731,6 @@
         hlsInstance.loadSource(streamUrl);
         hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
-          mainStreamDuration = video.duration || 0;
-          unifiedDuration = totalPreCastDuration + mainStreamDuration;
           applyResume();
           availableHlsLevels = data.levels || [];
           populateM3u8DynamicAudio(hlsInstance.audioTracks);
@@ -1856,13 +1738,9 @@
         hlsInstance.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (e, d) => setupSubtitleOptions(d.subtitleTracks));
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = streamUrl;
-        video.onloadedmetadata = () => {
-          mainStreamDuration = video.duration || 0;
-          unifiedDuration = totalPreCastDuration + mainStreamDuration;
-          applyResume();
-        };
+        video.onloadedmetadata = applyResume;
       }
-      setupInteractions(triggerWakeup);
+      setupInteractions();
       return;
     }
 
@@ -1873,7 +1751,10 @@
       overlay.style.display = 'none';
       iframe.style.display = 'block';
       iframe.src = streamUrl;
+      return;
     }
+
+    showToast("No playable stream URL found.");
   }
 
   function extractNativeTracks(videoEl) {
@@ -1979,7 +1860,7 @@
     });
   }
 
-  function playDashMPD(mpdUrl, keyId, key, savedTime, triggerWakeup = false) {
+  function playDashMPD(mpdUrl, keyId, key, savedTime) {
     activePlayerType = 'jwplayer';
     const video = document.getElementById('nativeVideoPlayer');
     const iframe = document.getElementById('iframePlayer');
@@ -2023,19 +1904,15 @@
     });
 
     jwPlayerInstance.on('time', (e) => {
-      mainStreamDuration = e.duration || 0;
-      unifiedDuration = totalPreCastDuration + mainStreamDuration;
-      const currentUnifiedTime = totalPreCastDuration + e.position;
-
       if (contentType === 'movie' || contentType === 'show') {
-        if (unifiedDuration > 0) {
-          const percent = (currentUnifiedTime / unifiedDuration) * 100;
+        if (e.duration > 0) {
+          const percent = (e.position / e.duration) * 100;
           document.getElementById('timelineFill').style.width = `${percent}%`;
           document.getElementById('thumbIndicator').style.left = `${percent}%`;
           document.getElementById('progressBarInput').value = percent;
-          const rem = Math.max(0, unifiedDuration - currentUnifiedTime);
+          const rem = Math.max(0, e.duration - e.position);
           document.getElementById('timeDisplay').innerText = formatTime(rem);
-          saveProgressThrottled(currentDocId, currentUnifiedTime);
+          saveProgressThrottled(currentDocId, e.position);
         }
       }
     });
@@ -2049,7 +1926,7 @@
       document.getElementById('pauseIcon').style.display = 'none';
     });
 
-    setupInteractions(triggerWakeup);
+    setupInteractions();
   }
 
   function setupAudioOptions(ch) {
@@ -2082,10 +1959,7 @@
         document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
         el.querySelector('.lang-check').innerText = '✓';
         const stream = el.dataset.stream;
-        if (stream) {
-          currentItemData.Stream = stream;
-          startPlayingMainStream(0, false);
-        }
+        if (stream) startStreamPlayback({ Stream: stream, Studio: ch.Studio, Partner: ch.Partner });
         document.getElementById('settingsModal').classList.remove('active');
       };
     });
@@ -2114,41 +1988,7 @@
     });
   }
 
-  function seekToUnifiedTime(targetUnifiedSec) {
-    if (contentType === 'live') {
-      isUserSeeking = true;
-      document.getElementById('goLiveBtn').style.display = 'flex';
-      return;
-    }
-
-    if (targetUnifiedSec < totalPreCastDuration && preCastQueue.length > 0) {
-      if (!isPlayingPreCast) {
-        startPlayingPreCastSegment(targetUnifiedSec, false);
-      } else {
-        const video = document.getElementById('nativeVideoPlayer');
-        let accum = 0;
-        for (let i = 0; i < activePreCastIndex; i++) accum += preCastDurations[i];
-        video.currentTime = Math.max(0, targetUnifiedSec - accum);
-      }
-    } else {
-      const mainOffset = targetUnifiedSec - totalPreCastDuration;
-      if (isPlayingPreCast) {
-        startPlayingMainStream(mainOffset, false);
-      } else {
-        if (activePlayerType === 'youtube' && ytPlayerInstance) {
-          ytPlayerInstance.seekTo(mainOffset, true);
-        } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
-          jwPlayerInstance.seek(mainOffset);
-        } else {
-          const video = document.getElementById('nativeVideoPlayer');
-          if (video) video.currentTime = mainOffset;
-        }
-      }
-    }
-  }
-
-  // Prevents controls waking up unless triggerWakeup === true
-  function setupInteractions(triggerWakeup = false) {
+  function setupInteractions() {
     const video = document.getElementById('nativeVideoPlayer');
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
@@ -2191,10 +2031,10 @@
       if (contentType !== 'live' && (now - lastTapTime < 320 && Math.abs(clickX - lastTapX) < 120)) {
         if (clickX < width * 0.45) {
           triggerSeekRipple('left');
-          performRelativeSeek(-10);
+          performSeek(-10);
         } else if (clickX > width * 0.55) {
           triggerSeekRipple('right');
-          performRelativeSeek(10);
+          performSeek(10);
         }
         lastTapTime = 0;
         return;
@@ -2218,24 +2058,16 @@
       setTimeout(() => el.classList.remove('animate'), 550);
     }
 
-    function getCurrentUnifiedPosition() {
-      if (isPlayingPreCast) {
-        let accum = 0;
-        for (let i = 0; i < activePreCastIndex; i++) accum += preCastDurations[i];
-        return accum + (video.currentTime || 0);
-      } else {
-        let cur = 0;
-        if (activePlayerType === 'youtube' && ytPlayerInstance) cur = ytPlayerInstance.getCurrentTime() || 0;
-        else if (activePlayerType === 'jwplayer' && jwPlayerInstance) cur = jwPlayerInstance.getPosition() || 0;
-        else if (video) cur = video.currentTime || 0;
-        return totalPreCastDuration + cur;
+    function performSeek(sec) {
+      if (activePlayerType === 'youtube' && ytPlayerInstance) {
+        const cur = ytPlayerInstance.getCurrentTime() || 0;
+        ytPlayerInstance.seekTo(Math.max(0, cur + sec), true);
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        const cur = jwPlayerInstance.getPosition() || 0;
+        jwPlayerInstance.seek(Math.max(0, cur + sec));
+      } else if (video) {
+        video.currentTime += sec;
       }
-    }
-
-    function performRelativeSeek(deltaSec) {
-      const cur = getCurrentUnifiedPosition();
-      const target = Math.max(0, cur + deltaSec);
-      seekToUnifiedTime(target);
       showControls();
     }
 
@@ -2301,8 +2133,8 @@
       document.getElementById('pauseIcon').style.display = 'none';
     };
 
-    rewindBtn.onclick = (e) => { e.stopPropagation(); performRelativeSeek(-10); };
-    forwardBtn.onclick = (e) => { e.stopPropagation(); performRelativeSeek(10); };
+    rewindBtn.onclick = (e) => { e.stopPropagation(); performSeek(-10); };
+    forwardBtn.onclick = (e) => { e.stopPropagation(); performSeek(10); };
 
     btnNextEpisode.onclick = (e) => {
       e.stopPropagation();
@@ -2310,7 +2142,7 @@
         const epList = showDocData[currentSeasonKey];
         if (Array.isArray(epList) && currentEpisodeIdx + 1 < epList.length) {
           currentEpisodeIdx++;
-          playShowEpisode(false);
+          playShowEpisode();
           renderVerticalEpisodesSection();
           showToast(`Playing Episode ${currentEpisodeIdx + 1}`);
         } else {
@@ -2323,25 +2155,19 @@
       if (activePlayerType === 'youtube') return;
 
       if (contentType === 'movie' || contentType === 'show') {
-        const currentUnifiedTime = getCurrentUnifiedPosition();
-        if (!isPlayingPreCast && video.duration && !isNaN(video.duration)) {
-          mainStreamDuration = video.duration;
-        }
-        unifiedDuration = totalPreCastDuration + mainStreamDuration;
-
-        if (unifiedDuration > 0) {
-          const percent = (currentUnifiedTime / unifiedDuration) * 100;
+        if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+          const percent = (video.currentTime / video.duration) * 100;
           timelineFill.style.width = `${percent}%`;
           thumbIndicator.style.left = `${percent}%`;
           progressBarInput.value = percent;
           
-          const remainingSecs = Math.max(0, unifiedDuration - currentUnifiedTime);
+          const remainingSecs = Math.max(0, video.duration - video.currentTime);
           timeDisplay.innerText = formatTime(remainingSecs);
 
           const currentKey = (contentType === 'show' && showDocData) 
             ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
             : currentDocId;
-          saveProgressThrottled(currentKey, currentUnifiedTime);
+          saveProgressThrottled(currentKey, video.currentTime);
         }
         goLiveBtn.style.display = 'none';
       } else {
@@ -2351,6 +2177,17 @@
           progressBarInput.value = 100;
           timeDisplay.innerText = "LIVE";
           goLiveBtn.style.display = 'none';
+        } else if (video.duration && isFinite(video.duration)) {
+          const percent = (video.currentTime / video.duration) * 100;
+          timelineFill.style.width = `${percent}%`;
+          thumbIndicator.style.left = `${percent}%`;
+          progressBarInput.value = percent;
+          timeDisplay.innerText = formatTime(video.currentTime);
+          if (video.duration - video.currentTime > 10) {
+            goLiveBtn.style.display = 'flex';
+          } else {
+            isUserSeeking = false;
+          }
         }
       }
     };
@@ -2361,9 +2198,17 @@
       timelineFill.style.width = `${val}%`;
       thumbIndicator.style.left = `${val}%`;
 
-      if (contentType === 'movie' || contentType === 'show') {
-        const targetUnifiedSec = (val / 100) * unifiedDuration;
-        seekToUnifiedTime(targetUnifiedSec);
+      if (contentType === 'live') {
+        isUserSeeking = true;
+        goLiveBtn.style.display = 'flex';
+      }
+
+      if (activePlayerType === 'youtube' && ytPlayerInstance) {
+        ytPlayerInstance.seekTo((ytPlayerInstance.getDuration() || 0) * (val / 100), true);
+      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+        jwPlayerInstance.seek((jwPlayerInstance.getDuration() || 0) * (val / 100));
+      } else if (video.duration && isFinite(video.duration)) {
+        video.currentTime = (val / 100) * video.duration;
       }
     };
 
@@ -2464,13 +2309,7 @@
     document.getElementById('closeDrawerBtn').onclick = () => document.getElementById('drawerOverlay').classList.remove('show');
 
     setupSwipeToCloseDrawer();
-
-    // Only wake up controls if specifically instructed (e.g. fresh launch)
-    if (triggerWakeup) {
-      showControls();
-    } else {
-      overlay.classList.remove('show');
-    }
+    showControls();
   }
 
   function switchSettingsTab(tab) {
@@ -2590,7 +2429,7 @@
   window.selectEpisode = function(idx) {
     currentEpisodeIdx = idx;
     document.getElementById('drawerOverlay').classList.remove('show');
-    playShowEpisode(false);
+    playShowEpisode();
     renderVerticalEpisodesSection();
   };
 
@@ -2637,7 +2476,7 @@
   window.playYouTubePreviously = function(videoId, title) {
     document.getElementById('drawerOverlay').classList.remove('show');
     document.getElementById('overlayTitle').innerText = title;
-    initUnifiedMediaStream({ Stream: `https://www.youtube.com/watch?v=${videoId}` }, false);
+    startStreamPlayback({ Stream: `https://www.youtube.com/watch?v=${videoId}` });
   };
 
   function renderWatchNextDrawer() {
@@ -2651,41 +2490,48 @@
     autoDetectAndInitContent(newId);
   };
 
+  // Robust Multi-Vector Algorithm with Guaranteed Fallback
   function computeRelevanceScore(target, candidate, watchlistIds) {
     if (!target || !candidate) return 1;
-    let score = 1;
+    let score = 1; // Base score ensuring no exclusion
 
     const toArr = (v) => Array.isArray(v) ? v : (v ? String(v).split(/[,/|•\s]+/).filter(Boolean) : []);
     const cleanTokens = (str) => (str || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
 
+    // 1. Genres & Sub-genres
     const targetGenres = toArr(target.Genres || target.Genre).map(g => g.toLowerCase().trim());
     const candGenres = toArr(candidate.Genres || candidate.Genre).map(g => g.toLowerCase().trim());
     targetGenres.forEach(g => {
       if (candGenres.some(cg => cg === g || cg.includes(g) || g.includes(cg))) score += 35;
     });
 
+    // 2. Tags
     const targetTags = [...toArr(target.Tags), ...toArr(target["Blue Tags"])].map(t => t.toLowerCase().trim());
     const candTags = [...toArr(candidate.Tags), ...toArr(candidate["Blue Tags"])].map(t => t.toLowerCase().trim());
     targetTags.forEach(t => {
       if (candTags.some(ct => ct === t || ct.includes(t))) score += 25;
     });
 
+    // 3. Studio / Partner
     const targetStudio = (target.Partner || target.Studio || '').toLowerCase().trim();
     const candStudio = (candidate.Partner || candidate.Studio || '').toLowerCase().trim();
     if (targetStudio && candStudio && (targetStudio === candStudio || candStudio.includes(targetStudio))) {
       score += 15;
     }
 
+    // 4. Language
     const targetLang = (target.Language || '').toLowerCase().trim();
     const candLang = (candidate.Language || '').toLowerCase().trim();
     if (targetLang && candLang && targetLang === candLang) {
       score += 10;
     }
 
+    // 5. Watchlist Personalization
     if (watchlistIds && watchlistIds.includes(candidate.id)) {
       score += 20;
     }
 
+    // 6. Token Overlap
     const targetTokens = [...cleanTokens(target.Description), ...cleanTokens(target.Name)];
     const candTokens = new Set([...cleanTokens(candidate.Description), ...cleanTokens(candidate.Name)]);
     let overlapCount = 0;
