@@ -450,6 +450,9 @@
     .lang-check { width: 18px; color: var(--accent-blue); font-weight: bold; font-size: 15px; }
     .lang-label { font-size: 14px; font-weight: 600; color: #fff; }
 
+    /* Playback Speed Panel */
+    .tab-content-panel#speedPanel { overflow-y: auto; }
+
     /* Landscape Drawer Overlay */
     .drawer-overlay {
       position: absolute;
@@ -1030,7 +1033,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS (Never empty algorithm recommendations) -->
+      <!-- MORE LIKE THIS -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1088,7 +1091,7 @@
   let availableHlsLevels = [];
   let lastProgressSave = 0;
 
-  // Pre-Cast Seamless Pipeline State
+  // Pre-Cast Pipeline State
   let currentItemData = null;
   let preCastQueue = [];
   let preCastDurations = [];
@@ -1098,13 +1101,13 @@
   let mainStreamDuration = 0;
   let unifiedDuration = 0;
 
-  // In-Memory Item Cache
+  // Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
 
   let showDocData = null;
   let currentSeasonKey = null;
   let currentEpisodeIdx = 0;
-  let viewingSeasonKey = null; // Decoupled vertical view season
+  let viewingSeasonKey = null;
   let showAllEpisodesVertical = false;
 
   let channelDocUnsub = null;
@@ -1197,6 +1200,14 @@
     toast.innerText = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  // Resolves Start_Time accurately
+  function getResolvedStartTime(item) {
+    if (!item) return 0;
+    const raw = item.Start_Time ?? item.StartTime ?? item.start_time ?? item["Start Time"] ?? 0;
+    const sec = parseFloat(raw);
+    return (!isNaN(sec) && sec > 0) ? sec : 0;
   }
 
   function getSavedProgress(key, fallbackStartTime = 0) {
@@ -1325,7 +1336,7 @@
 
       if (contentType === 'show') {
         renderVerticalEpisodesSection();
-        playShowEpisode();
+        playShowEpisode(true); // first run shows controls once
       } else {
         const titleText = currentChannel.Name || currentChannel.Title || "Title";
         document.getElementById('overlayTitle').innerText = titleText;
@@ -1340,7 +1351,7 @@
         }
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
-        initUnifiedMediaStream(currentChannel);
+        initUnifiedMediaStream(currentChannel, true);
       }
       
       setupAudioOptions(currentChannel);
@@ -1518,7 +1529,6 @@
     }
   }
 
-  // Vertical Episode Section (Decoupled Viewing Season vs Playing Episode)
   function renderVerticalEpisodesSection() {
     const wrap = document.getElementById('episodesVerticalWrap');
     const seasonsRow = document.getElementById('verticalSeasonsRow');
@@ -1579,22 +1589,20 @@
     }
   }
 
-  // Only switches UI view of seasons without playing!
   window.selectVerticalSeasonTab = function(sKey) {
     viewingSeasonKey = sKey;
     renderVerticalEpisodesSection();
   };
 
-  // User explicitly clicks an episode to play
   window.selectEpisodeFromVertical = function(sKey, idx) {
     currentSeasonKey = sKey;
     viewingSeasonKey = sKey;
     currentEpisodeIdx = idx;
-    playShowEpisode();
+    playShowEpisode(false); // don't wake up controls aggressively on episode selection
     renderVerticalEpisodesSection();
   };
 
-  function playShowEpisode() {
+  function playShowEpisode(isInitial = false) {
     if (!showDocData || !currentSeasonKey) return;
     const epList = showDocData[currentSeasonKey];
     if (!Array.isArray(epList) || epList.length === 0) return;
@@ -1616,26 +1624,23 @@
       Stream: ep.Stream, 
       mpd: ep.mpd || ep.MPD, 
       "Pre-Cast": ep["Pre-Cast"] || ep.Pre_Cast || showDocData["Pre-Cast"] || showDocData.Pre_Cast || [],
-      Start_Time: ep.Start_Time || ep.StartTime || showDocData.Start_Time || 0,
+      Start_Time: getResolvedStartTime(ep) || getResolvedStartTime(showDocData),
       Studio: showDocData.Studio, 
       Partner: showDocData.Partner 
-    });
+    }, isInitial);
   }
 
   // =========================================================================
   // PRE-CAST & SEAMLESS CONTINUOUS TIMELINE PIPELINE
   // =========================================================================
-  async function initUnifiedMediaStream(data) {
+  async function initUnifiedMediaStream(data, isInitialLaunch = false) {
     currentItemData = data;
     const rawPreCast = data["Pre-Cast"] || data.Pre_Cast || [];
     preCastQueue = Array.isArray(rawPreCast) ? rawPreCast.map(safeUrl).filter(Boolean) : (rawPreCast ? [safeUrl(rawPreCast)] : []);
 
-    // Resolve Initial Start_Time or Saved Progress
     const resumeKey = data.id || currentDocId;
-    const initialStartTimeSec = parseFloat(data.Start_Time || data.StartTime || 0);
-    const targetResumeSec = getSavedProgress(resumeKey, initialStartTimeSec);
+    const itemStartTime = getResolvedStartTime(data);
 
-    // If pre-casts are configured, inspect duration for accurate seamless scrub bar
     if (preCastQueue.length > 0) {
       preCastDurations = [];
       totalPreCastDuration = 0;
@@ -1648,34 +1653,33 @@
       totalPreCastDuration = 0;
     }
 
-    // Determine starting segment based on resume / start_time
+    // Start time resolution: Start_Time is used when progress is 0 or unvisited
+    const fallbackStart = totalPreCastDuration + itemStartTime;
+    const targetResumeSec = getSavedProgress(resumeKey, fallbackStart);
+
     if (targetResumeSec < totalPreCastDuration && preCastQueue.length > 0) {
-      // Begin inside pre-cast video
-      startPlayingPreCastSegment(targetResumeSec);
+      startPlayingPreCastSegment(targetResumeSec, isInitialLaunch);
     } else {
-      // Begin inside main stream directly
       const mainOffset = Math.max(0, targetResumeSec - totalPreCastDuration);
-      startPlayingMainStream(mainOffset);
+      startPlayingMainStream(mainOffset, isInitialLaunch);
     }
   }
 
-  // Probes duration of precast video headers
   function probeMediaDuration(url) {
     return new Promise((resolve) => {
       const v = document.createElement('video');
       v.preload = 'metadata';
       v.src = url;
       v.onloadedmetadata = () => resolve(v.duration || 15);
-      v.onerror = () => resolve(15); // Fallback assumption
+      v.onerror = () => resolve(15);
       setTimeout(() => resolve(15), 2500);
     });
   }
 
-  function startPlayingPreCastSegment(unifiedOffsetSec) {
+  function startPlayingPreCastSegment(unifiedOffsetSec, triggerInitialWakeup = false) {
     isPlayingPreCast = true;
     destroyPlayers();
 
-    // Find pre-cast array index
     let accum = 0;
     let index = 0;
     let localOffset = unifiedOffsetSec;
@@ -1706,15 +1710,15 @@
         video.src = preCastQueue[activePreCastIndex];
         video.play().catch(() => {});
       } else {
-        // Transition seamlessly into main stream
-        startPlayingMainStream(0);
+        // Switch to main stream WITHOUT waking up controls!
+        startPlayingMainStream(getResolvedStartTime(currentItemData), false);
       }
     };
 
-    setupInteractions();
+    setupInteractions(triggerInitialWakeup);
   }
 
-  function startPlayingMainStream(mainOffsetSec) {
+  function startPlayingMainStream(mainOffsetSec, triggerWakeup = false) {
     isPlayingPreCast = false;
     destroyPlayers();
 
@@ -1741,7 +1745,7 @@
     }
 
     if (mpdFile) {
-      playDashMPD(mpdFile, keyId, key, mainOffsetSec);
+      playDashMPD(mpdFile, keyId, key, mainOffsetSec, triggerWakeup);
       return;
     }
 
@@ -1812,11 +1816,10 @@
         }
       }, 500);
 
-      setupInteractions();
+      setupInteractions(triggerWakeup);
       return;
     }
 
-    // Handles .m3u8, .mp4, and .mkv streams
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
@@ -1827,7 +1830,6 @@
       const applyResume = () => {
         if (mainOffsetSec > 0 && contentType !== 'live') {
           video.currentTime = mainOffsetSec;
-          showToast(`Resumed from ${formatTime(totalPreCastDuration + mainOffsetSec)}`);
         }
         video.play().catch(() => {});
       };
@@ -1860,7 +1862,7 @@
           applyResume();
         };
       }
-      setupInteractions();
+      setupInteractions(triggerWakeup);
       return;
     }
 
@@ -1871,7 +1873,6 @@
       overlay.style.display = 'none';
       iframe.style.display = 'block';
       iframe.src = streamUrl;
-      return;
     }
   }
 
@@ -1978,7 +1979,7 @@
     });
   }
 
-  function playDashMPD(mpdUrl, keyId, key, savedTime) {
+  function playDashMPD(mpdUrl, keyId, key, savedTime, triggerWakeup = false) {
     activePlayerType = 'jwplayer';
     const video = document.getElementById('nativeVideoPlayer');
     const iframe = document.getElementById('iframePlayer');
@@ -2048,7 +2049,7 @@
       document.getElementById('pauseIcon').style.display = 'none';
     });
 
-    setupInteractions();
+    setupInteractions(triggerWakeup);
   }
 
   function setupAudioOptions(ch) {
@@ -2083,7 +2084,7 @@
         const stream = el.dataset.stream;
         if (stream) {
           currentItemData.Stream = stream;
-          startPlayingMainStream(0);
+          startPlayingMainStream(0, false);
         }
         document.getElementById('settingsModal').classList.remove('active');
       };
@@ -2113,7 +2114,6 @@
     });
   }
 
-  // Unified Seek Resolver: Transitions between pre-cast and main video
   function seekToUnifiedTime(targetUnifiedSec) {
     if (contentType === 'live') {
       isUserSeeking = true;
@@ -2122,21 +2122,18 @@
     }
 
     if (targetUnifiedSec < totalPreCastDuration && preCastQueue.length > 0) {
-      // Seek points into precast video
       if (!isPlayingPreCast) {
-        startPlayingPreCastSegment(targetUnifiedSec);
+        startPlayingPreCastSegment(targetUnifiedSec, false);
       } else {
-        // Jump directly within active precast
         const video = document.getElementById('nativeVideoPlayer');
         let accum = 0;
         for (let i = 0; i < activePreCastIndex; i++) accum += preCastDurations[i];
         video.currentTime = Math.max(0, targetUnifiedSec - accum);
       }
     } else {
-      // Seek points into main video
       const mainOffset = targetUnifiedSec - totalPreCastDuration;
       if (isPlayingPreCast) {
-        startPlayingMainStream(mainOffset);
+        startPlayingMainStream(mainOffset, false);
       } else {
         if (activePlayerType === 'youtube' && ytPlayerInstance) {
           ytPlayerInstance.seekTo(mainOffset, true);
@@ -2150,7 +2147,8 @@
     }
   }
 
-  function setupInteractions() {
+  // Prevents controls waking up unless triggerWakeup === true
+  function setupInteractions(triggerWakeup = false) {
     const video = document.getElementById('nativeVideoPlayer');
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
@@ -2312,7 +2310,7 @@
         const epList = showDocData[currentSeasonKey];
         if (Array.isArray(epList) && currentEpisodeIdx + 1 < epList.length) {
           currentEpisodeIdx++;
-          playShowEpisode();
+          playShowEpisode(false);
           renderVerticalEpisodesSection();
           showToast(`Playing Episode ${currentEpisodeIdx + 1}`);
         } else {
@@ -2321,7 +2319,6 @@
       }
     };
 
-    // Continuous Unified Progress Bar Calculation
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube') return;
 
@@ -2358,7 +2355,6 @@
       }
     };
 
-    // Scrub bar input
     progressBarInput.oninput = (e) => {
       e.stopPropagation();
       const val = parseFloat(progressBarInput.value);
@@ -2468,7 +2464,13 @@
     document.getElementById('closeDrawerBtn').onclick = () => document.getElementById('drawerOverlay').classList.remove('show');
 
     setupSwipeToCloseDrawer();
-    showControls();
+
+    // Only wake up controls if specifically instructed (e.g. fresh launch)
+    if (triggerWakeup) {
+      showControls();
+    } else {
+      overlay.classList.remove('show');
+    }
   }
 
   function switchSettingsTab(tab) {
@@ -2588,7 +2590,7 @@
   window.selectEpisode = function(idx) {
     currentEpisodeIdx = idx;
     document.getElementById('drawerOverlay').classList.remove('show');
-    playShowEpisode();
+    playShowEpisode(false);
     renderVerticalEpisodesSection();
   };
 
@@ -2635,7 +2637,7 @@
   window.playYouTubePreviously = function(videoId, title) {
     document.getElementById('drawerOverlay').classList.remove('show');
     document.getElementById('overlayTitle').innerText = title;
-    initUnifiedMediaStream({ Stream: `https://www.youtube.com/watch?v=${videoId}` });
+    initUnifiedMediaStream({ Stream: `https://www.youtube.com/watch?v=${videoId}` }, false);
   };
 
   function renderWatchNextDrawer() {
