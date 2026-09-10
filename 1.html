@@ -183,7 +183,7 @@
     }
     .controls-overlay.show { opacity: 1; pointer-events: auto; }
 
-    /* Top Bar */
+    /* Top Bar inside Player */
     .ctrl-top {
       display: flex;
       align-items: center;
@@ -795,7 +795,7 @@
 <div id="appContent" style="display: none;">
   <div class="main-wrapper">
     
-    <!-- Player Container -->
+    <!-- Player Container (Positioned at Top) -->
     <div class="player-container" id="playerContainer">
 
       <!-- Toast Alert -->
@@ -939,7 +939,7 @@
             </div>
             <div class="q-item" data-tier="fhd">
               <div class="q-check"></div>
-              <div><div class="q-title">Full HD / 4K <span class="q-sub">Sony Core+ (1080p - 4K)</span></div></div>
+              <div><div class="q-title">Full HD / 4K <span class="q-sub">Core+ (1080p - 4K)</span></div></div>
             </div>
             <div class="q-item" data-tier="hd">
               <div class="q-check"></div>
@@ -1030,7 +1030,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS (Never empty algorithm recommendations) -->
+      <!-- MORE LIKE THIS (Never-empty algorithm recommendations) -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1088,7 +1088,13 @@
   let availableHlsLevels = [];
   let lastProgressSave = 0;
 
-  // In-Memory Item Cache
+  // Pre-Cast, Studio Intro, and Start-Time State
+  let playbackSequence = [];
+  let currentSequenceIdx = 0;
+  let isPlayingIntroSequence = false;
+  let mainContentStartTime = 0;
+
+  // Local collection cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
 
   let showDocData = null;
@@ -1129,12 +1135,12 @@
     return url.trim().replace(/^http:\/\//i, 'https://');
   }
 
+  // Pure Poster.h first logic (eliminates old Poster blocking)
   function getPosterH(c) {
     if (!c) return '';
-    return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster || c["Logo.png"] || c.Logo || '');
+    return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c["Logo.png"] || c.Logo || c.Poster || '');
   }
 
-  // Dynamic Duration Parser (124 -> 2h 4m, 24 -> 24m)
   function formatDynamicDuration(raw) {
     if (!raw) return '';
     if (typeof raw === 'string' && (raw.includes('h') || raw.includes('m') || raw.includes(':'))) return raw;
@@ -1146,7 +1152,6 @@
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
   }
 
-  // Dynamic Language Counter & Labeler
   function getDynamicLanguageString(item) {
     if (!item) return '1 Language';
     const multi = item["Multi-Language"] || item.multiLanguage || item.MultiLanguage;
@@ -1200,7 +1205,7 @@
 
   function saveProgressThrottled(key, time) {
     const now = Date.now();
-    if (now - lastProgressSave > 1500) {
+    if (now - lastProgressSave > 1500 && !isPlayingIntroSequence) {
       lastProgressSave = now;
       try { localStorage.setItem(`progress_${key}`, time.toString()); } catch(e){}
     }
@@ -1218,6 +1223,7 @@
     const nativeVid = document.getElementById('nativeVideoPlayer');
     if (nativeVid) {
       nativeVid.pause();
+      nativeVid.onended = null;
       nativeVid.removeAttribute('src');
       nativeVid.load();
       while (nativeVid.firstChild) {
@@ -1324,20 +1330,111 @@
         
         let subText = currentChannel.Genres || currentChannel.Language || "Live TV";
         if (contentType === 'movie') {
-          const year = currentChannel.Year || currentChannel["Release Year"] || "2024";
+          const year = currentChannel.Release_Date || currentChannel.Year || currentChannel["Release Year"] || "2024";
           const dur = formatDynamicDuration(currentChannel.Duration || currentChannel.duration) || "1h 45m";
           const langs = getDynamicLanguageString(currentChannel);
           subText = `${year} • ${dur} • ${langs}`;
         }
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
-        startStreamPlayback(currentChannel);
+
+        // Prepare Pre_Cast & Studio Intro Sequence for Movies
+        await buildAndStartPlaybackSequence(currentChannel);
       }
       
       setupAudioOptions(currentChannel);
     });
 
     listenToRecommendations(docId, targetCol);
+  }
+
+  // Pre-Cast + Studio Intro Sequence Engine
+  async function buildAndStartPlaybackSequence(contentObj) {
+    playbackSequence = [];
+    currentSequenceIdx = 0;
+    isPlayingIntroSequence = false;
+    mainContentStartTime = parseInt(contentObj.Start_Time || 0) || 0;
+
+    // 1. Check Pre_Cast (Promotional intro / video bumper)
+    const preCastList = contentObj.Pre_Cast || contentObj.pre_cast;
+    if (Array.isArray(preCastList) && preCastList.length > 0) {
+      preCastList.forEach(url => {
+        if (url && typeof url === 'string') playbackSequence.push({ type: 'precast', url: safeUrl(url) });
+      });
+    }
+
+    // 2. Check Studio Animated Intro from Partners Collection
+    const studioName = (contentObj.Partner || contentObj.Studio || '').toLowerCase().trim();
+    if (studioName) {
+      try {
+        const partnerSnap = await getDocs(collection(channelDb, "Partners"));
+        partnerSnap.forEach(pDoc => {
+          const pData = pDoc.data();
+          const pName = (pData.Name || pDoc.id).toLowerCase();
+          if (pName === studioName || studioName.includes(pName) || pName.includes(studioName)) {
+            if (pData.Intro && typeof pData.Intro === 'string' && pData.Intro.trim() !== '') {
+              playbackSequence.push({ type: 'studio', url: safeUrl(pData.Intro) });
+            }
+          }
+        });
+      } catch(e) {}
+    }
+
+    // 3. Add Main Feature Stream
+    playbackSequence.push({
+      type: 'main',
+      url: safeUrl(contentObj.Stream || ''),
+      mpd: contentObj.mpd || contentObj.MPD,
+      startTime: mainContentStartTime
+    });
+
+    playSequenceStep(0);
+  }
+
+  function playSequenceStep(idx) {
+    currentSequenceIdx = idx;
+    const step = playbackSequence[idx];
+    if (!step) return;
+
+    if (step.type === 'precast' || step.type === 'studio') {
+      isPlayingIntroSequence = true;
+      // Seamless handover: hide overlay & controls wakeups
+      const overlay = document.getElementById('controlsOverlay');
+      overlay.classList.remove('show');
+
+      playIntroVideo(step.url, () => {
+        playSequenceStep(idx + 1);
+      });
+    } else {
+      // Main Content Playback
+      isPlayingIntroSequence = false;
+      const savedTime = getSavedProgress(currentChannel?.id || currentDocId);
+      const effectiveStart = (actionParam !== 'starting' && savedTime > 0) ? savedTime : step.startTime;
+      
+      startStreamPlayback({
+        Stream: step.url,
+        mpd: step.mpd,
+        startTime: effectiveStart
+      });
+    }
+  }
+
+  function playIntroVideo(url, onEndCallback) {
+    destroyPlayers();
+    const video = document.getElementById('nativeVideoPlayer');
+    video.style.display = 'block';
+    video.src = url;
+    video.currentTime = 0;
+
+    video.onended = () => {
+      video.onended = null;
+      if (typeof onEndCallback === 'function') onEndCallback();
+    };
+
+    video.play().catch(() => {
+      // If autoplay blocked, proceed to next step
+      if (typeof onEndCallback === 'function') onEndCallback();
+    });
   }
 
   async function initWatchlistState() {
@@ -1474,7 +1571,6 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
-      // Live TV: Hide Speed Everywhere
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
       btnPreviously.style.display = hasPreviously ? 'flex' : 'none';
@@ -1509,6 +1605,7 @@
     }
   }
 
+  // Vertical Episodes UI (Fix: Switching Season tabs ONLY changes the list, does NOT auto-play ep 1)
   function renderVerticalEpisodesSection() {
     const wrap = document.getElementById('episodesVerticalWrap');
     const seasonsRow = document.getElementById('verticalSeasonsRow');
@@ -1528,7 +1625,7 @@
 
     wrap.style.display = 'block';
     seasonsRow.innerHTML = seasonKeys.map(sKey => `
-      <button class="ep-season-tab ${sKey === currentSeasonKey ? 'active' : ''}" onclick="window.selectVerticalSeason('${sKey}')">
+      <button class="ep-season-tab ${sKey === currentSeasonKey ? 'active' : ''}" onclick="window.selectVerticalSeasonTab('${sKey}')">
         ${sKey}
       </button>
     `).join('');
@@ -1566,14 +1663,13 @@
     }
   }
 
-  window.selectVerticalSeason = function(sKey) {
+  // Switch Season tab visually ONLY without auto-playing
+  window.selectVerticalSeasonTab = function(sKey) {
     currentSeasonKey = sKey;
-    currentEpisodeIdx = 0;
     renderVerticalEpisodesSection();
-    playShowEpisode();
   };
 
-  function playShowEpisode() {
+  async function playShowEpisode() {
     if (!showDocData || !currentSeasonKey) return;
     const epList = showDocData[currentSeasonKey];
     if (!Array.isArray(epList) || epList.length === 0) return;
@@ -1590,12 +1686,15 @@
     subLabel.style.display = 'block';
     subLabel.innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} ${epTitle}`;
 
-    startStreamPlayback({ 
+    // Episode playback sequence
+    await buildAndStartPlaybackSequence({
       id: `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}`,
-      Stream: ep.Stream, 
-      mpd: ep.mpd || ep.MPD, 
-      Studio: showDocData.Studio, 
-      Partner: showDocData.Partner 
+      Stream: ep.Stream,
+      mpd: ep.mpd || ep.MPD,
+      Studio: showDocData.Studio,
+      Partner: showDocData.Partner,
+      Pre_Cast: ep.Pre_Cast || showDocData.Pre_Cast,
+      Start_Time: ep.Start_Time || 0
     });
   }
 
@@ -1610,7 +1709,7 @@
     const streamUrl = safeUrl(data.Stream || '');
     const mpdObj = data.mpd || data.MPD || null;
     const resumeKey = data.id || currentDocId;
-    const savedTime = getSavedProgress(resumeKey);
+    const savedTime = data.startTime || getSavedProgress(resumeKey) || 0;
 
     let mpdFile = null;
     let keyId = null;
@@ -1705,7 +1804,7 @@
     }
 
     // Handles .m3u8, .mp4, and .mkv streams
-    if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
+    if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary') || streamUrl.includes('ucarecdn')) {
       activePlayerType = 'hls';
       iframe.style.display = 'none';
       ytHost.style.display = 'none';
@@ -1715,12 +1814,11 @@
       const applyResume = () => {
         if (savedTime > 0 && contentType !== 'live') {
           video.currentTime = savedTime;
-          showToast(`Resumed from ${formatTime(savedTime)}`);
         }
         video.play().catch(() => {});
       };
 
-      if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
+      if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary') || streamUrl.includes('ucarecdn')) {
         video.src = streamUrl;
         video.onloadedmetadata = () => {
           applyResume();
@@ -2008,7 +2106,7 @@
     const btnNextEpisode = document.getElementById('btnNextEpisode');
 
     const showControls = () => {
-      if (isScreenLocked) return;
+      if (isScreenLocked || isPlayingIntroSequence) return;
       overlay.classList.add('show');
       clearTimeout(hideControlsTimer);
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
@@ -2018,6 +2116,7 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
+      if (isPlayingIntroSequence) return;
       if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
         return;
@@ -2152,7 +2251,7 @@
     };
 
     video.ontimeupdate = () => {
-      if (activePlayerType === 'youtube') return;
+      if (activePlayerType === 'youtube' || isPlayingIntroSequence) return;
 
       if (contentType === 'movie' || contentType === 'show') {
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
@@ -2194,6 +2293,7 @@
 
     progressBarInput.oninput = (e) => {
       e.stopPropagation();
+      if (isPlayingIntroSequence) return;
       const val = parseFloat(progressBarInput.value);
       timelineFill.style.width = `${val}%`;
       thumbIndicator.style.left = `${val}%`;
@@ -2493,7 +2593,7 @@
   // Robust Multi-Vector Algorithm with Guaranteed Fallback
   function computeRelevanceScore(target, candidate, watchlistIds) {
     if (!target || !candidate) return 1;
-    let score = 1; // Base score ensuring no exclusion
+    let score = 1;
 
     const toArr = (v) => Array.isArray(v) ? v : (v ? String(v).split(/[,/|•\s]+/).filter(Boolean) : []);
     const cleanTokens = (str) => (str || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
