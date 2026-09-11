@@ -1,23 +1,3 @@
-Here is the updated code with the issue completely resolved.
-
-What Caused the Bug & How It Was Fixed:
-
-1.  HLS Live-Sync Config Conflict: Previously, HLS.js was initialized with {
-    liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8 } for all streams.
-    This forced HLS.js to treat Movie and Show manifests as live broadcast
-    feeds, jumping straight to the end (100%) and locking the timeline. Now,
-    live-sync is strictly restricted to Live TV.
-2.  Initial State & UI Reset: The timeline element previously defaulted to
-    value="100" and LIVE in the HTML. For Movies and Series / Shows, the
-    timeline now initializes to 0% and 00:00:00 (or the resumed/Start_Time
-    position) with a real countdown duration (e.g. 01:45:20).
-3.  Finite Duration Fallback: If an HLS or MP4 stream takes time to populate
-    video.duration or reports Infinity, the player now parses the document's
-    Duration (e.g. 124 \to seconds, 1h 45m \to seconds) so the progress bar
-    calculates accurately for both Movies and Episode series.
-4.  Collection Detection: Added support for both Shows and TV Shows collections
-    in Firestore so series documents are never misclassified as Live TV.
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
