@@ -1029,7 +1029,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS (Uses algorithmic ranking) -->
+      <!-- MORE LIKE THIS -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1088,14 +1088,13 @@
   let availableHlsLevels = [];
   let lastProgressSave = 0;
 
-  // Integrated Pre-Cast & Intro Pipeline State
+  // Seamless Intro & Start_Time State Variables
   let introMediaUrl = null;
-  let introDuration = 0; // Estimated/resolved intro duration
-  let mainContentDuration = 0;
-  let virtualTotalDuration = 0;
+  let introDuration = 0;
   let isPlayingIntroPhase = false;
   let mainContentStreamData = null;
   let nativeStartTime = 0;
+  let isTransitioningFromIntro = false; // Transition Lock
 
   // In-Memory Item Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
@@ -1138,7 +1137,6 @@
     return url.trim().replace(/^http:\/\//i, 'https://');
   }
 
-  // Priority Poster.h implementation (Strictly ignore empty/legacy Poster)
   function getPosterH(c) {
     if (!c) return '';
     const cand = c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster_H;
@@ -1208,6 +1206,7 @@
   }
 
   function saveProgressThrottled(key, time) {
+    if (isPlayingIntroPhase) return;
     const now = Date.now();
     if (now - lastProgressSave > 1500) {
       lastProgressSave = now;
@@ -1349,7 +1348,7 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  // Unified Media Pipeline: Resolves Intro & Integrates with Timeline Virtualization
+  // Unified Media Pipeline: Prioritizes Intro at 00:00:00 and integrates Start_Time smoothly
   async function initUnifiedMediaPipeline(targetData) {
     mainContentStreamData = targetData;
     introMediaUrl = null;
@@ -1357,6 +1356,7 @@
     isPlayingIntroPhase = false;
     nativeStartTime = 0;
 
+    // Retrieve Start_Time
     if (targetData.Start_Time) {
       const parsed = parseFloat(targetData.Start_Time);
       if (!isNaN(parsed) && parsed > 0) nativeStartTime = parsed;
@@ -1370,7 +1370,7 @@
       }
       introMediaUrl = safeUrl(customPreCast || GLOBAL_HOTSTAR_INTRO);
 
-      // Studio Intro Query
+      // Studio Intro Lookup
       const studioKey = (targetData.Studio || targetData.Partner || "").toLowerCase().trim();
       if (studioKey) {
         try {
@@ -1383,17 +1383,17 @@
           }
         } catch (err) {}
       }
-      introDuration = 12; // Virtual intro baseline duration (seconds)
+      introDuration = 12;
     }
 
     const resumeKey = targetData.id || currentDocId;
     const savedProgress = getSavedProgress(resumeKey);
 
-    // If starting from 00:00 (or action=starting), launch Intro as part of the video timeline
-    if (savedProgress <= 0 && introMediaUrl) {
+    // FIX 1: If starting from beginning, ALWAYS play Intro first (do not jump straight to Start_Time)
+    if ((savedProgress <= 0 || actionParam === 'starting') && introMediaUrl) {
       playIntroSegment();
     } else {
-      // User is resuming or intro not applicable: launch main stream directly
+      // Resume playback after user already watched past Intro
       startMainContentPlayback(savedProgress > 0 ? savedProgress : nativeStartTime);
     }
   }
@@ -1407,19 +1407,35 @@
     video.src = introMediaUrl;
     video.playbackRate = 1;
 
-    // Zero-buffer seamless listener
+    // Seamless handover when intro ends
     video.onended = () => {
-      isPlayingIntroPhase = false;
-      startMainContentPlayback(nativeStartTime, true);
+      onIntroEndedTransition();
     };
 
     video.onerror = () => {
-      isPlayingIntroPhase = false;
-      startMainContentPlayback(nativeStartTime, true);
+      onIntroEndedTransition();
     };
 
     video.play().catch(() => {});
     setupInteractions();
+  }
+
+  // FIX 2: Silent Transition from Intro -> Main Feature without waking up controls
+  function onIntroEndedTransition() {
+    isTransitioningFromIntro = true;
+    isPlayingIntroPhase = false;
+    
+    // Silence control overlay
+    const overlay = document.getElementById('controlsOverlay');
+    overlay.classList.remove('show');
+    clearTimeout(hideControlsTimer);
+
+    startMainContentPlayback(nativeStartTime, true);
+
+    // Release transition lock after 1.2 seconds
+    setTimeout(() => {
+      isTransitioningFromIntro = false;
+    }, 1200);
   }
 
   function startMainContentPlayback(startTime = 0, isTransitionFromIntro = false) {
@@ -1652,7 +1668,7 @@
     }
   }
 
-  // Automatic transition: switches season AND plays Episode 1 right away
+  // Automatic Season Switching: Immediately starts Episode 1
   window.selectVerticalSeason = function(sKey) {
     currentSeasonKey = sKey;
     currentEpisodeIdx = 0;
@@ -1727,7 +1743,7 @@
       video.style.display = 'none';
       iframe.style.display = 'none';
       ytHost.style.display = 'block';
-      overlay.style.display = 'flex';
+      if (!isTransitionFromIntro) overlay.style.display = 'flex';
 
       const div = document.createElement('div');
       div.id = 'ytActualPlayer';
@@ -1800,7 +1816,7 @@
       iframe.style.display = 'none';
       ytHost.style.display = 'none';
       video.style.display = 'block';
-      overlay.style.display = 'flex';
+      if (!isTransitionFromIntro) overlay.style.display = 'flex';
 
       const applyResume = () => {
         if (targetSeekTime > 0 && contentType !== 'live') {
@@ -2098,7 +2114,7 @@
     const btnNextEpisode = document.getElementById('btnNextEpisode');
 
     const showControls = () => {
-      if (isScreenLocked) return;
+      if (isScreenLocked || isTransitioningFromIntro) return;
       overlay.classList.add('show');
       clearTimeout(hideControlsTimer);
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
@@ -2108,6 +2124,7 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
+      if (isTransitioningFromIntro) return;
       if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
         return;
@@ -2153,8 +2170,7 @@
         if (video) {
           video.currentTime = Math.max(0, video.currentTime + sec);
           if (video.currentTime >= video.duration - 1) {
-            isPlayingIntroPhase = false;
-            startMainContentPlayback(nativeStartTime, true);
+            onIntroEndedTransition();
           }
         }
       } else {
@@ -2165,7 +2181,7 @@
           const cur = jwPlayerInstance.getPosition() || 0;
           jwPlayerInstance.seek(Math.max(0, cur + sec));
         } else if (video) {
-          // If rewound to 00:00, re-launch intro
+          // FIX 1: If rewound past 00:00, re-launch Intro instead of getting trapped at Start_Time
           if (video.currentTime + sec <= 0 && introMediaUrl) {
             playIntroSegment();
             return;
@@ -2265,7 +2281,6 @@
           let totGlobalTime = video.duration;
 
           if (isPlayingIntroPhase) {
-            // Render virtual timeline during intro phase
             curGlobalTime = video.currentTime;
             totGlobalTime = (virtualTotalDuration > 0 ? virtualTotalDuration : (video.duration + 5400));
           } else {
@@ -2323,16 +2338,14 @@
         goLiveBtn.style.display = 'flex';
       }
 
-      // If user scrubs all the way left to 00:00, show intro
+      // FIX 1: If scrubbed to 00:00, show Intro immediately
       if (val <= 0.5 && introMediaUrl) {
         playIntroSegment();
         return;
       }
 
       if (isPlayingIntroPhase) {
-        // Dragging forward out of the intro directly switches to main movie
-        isPlayingIntroPhase = false;
-        startMainContentPlayback(nativeStartTime, true);
+        onIntroEndedTransition();
         return;
       }
 
@@ -2623,7 +2636,7 @@
     autoDetectAndInitContent(newId);
   };
 
-  // Multi-Vector Algorithm with Guaranteed Fallback
+  // Multi-Vector Algorithm
   function computeRelevanceScore(target, candidate, watchlistIds) {
     if (!target || !candidate) return 1;
     let score = 1;
@@ -2631,7 +2644,7 @@
     const toArr = (v) => Array.isArray(v) ? v : (v ? String(v).split(/[,/|•\s]+/).filter(Boolean) : []);
     const cleanTokens = (str) => (str || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
 
-    // 1. Genres & Sub-genres
+    // 1. Genres
     const targetGenres = toArr(target.Genres || target.Genre).map(g => g.toLowerCase().trim());
     const candGenres = toArr(candidate.Genres || candidate.Genre).map(g => g.toLowerCase().trim());
     targetGenres.forEach(g => {
