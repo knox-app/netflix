@@ -1,3 +1,23 @@
+Here is the updated code with the issue completely resolved.
+
+What Caused the Bug & How It Was Fixed:
+
+1.  HLS Live-Sync Config Conflict: Previously, HLS.js was initialized with {
+    liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8 } for all streams.
+    This forced HLS.js to treat Movie and Show manifests as live broadcast
+    feeds, jumping straight to the end (100%) and locking the timeline. Now,
+    live-sync is strictly restricted to Live TV.
+2.  Initial State & UI Reset: The timeline element previously defaulted to
+    value="100" and LIVE in the HTML. For Movies and Series / Shows, the
+    timeline now initializes to 0% and 00:00:00 (or the resumed/Start_Time
+    position) with a real countdown duration (e.g. 01:45:20).
+3.  Finite Duration Fallback: If an HLS or MP4 stream takes time to populate
+    video.duration or reports Infinity, the player now parses the document's
+    Duration (e.g. 124 \to seconds, 1h 45m \to seconds) so the progress bar
+    calculates accurately for both Movies and Episode series.
+4.  Collection Detection: Added support for both Shows and TV Shows collections
+    in Firestore so series documents are never misclassified as Live TV.
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -293,7 +313,7 @@
       height: 100%;
       background: var(--accent-blue);
       border-radius: 2px;
-      width: 100%;
+      width: 0%;
     }
     .progress-bar-input {
       position: absolute;
@@ -307,7 +327,7 @@
     .timeline-thumb-indicator {
       position: absolute;
       top: 50%;
-      left: 100%;
+      left: 0%;
       transform: translate(-50%, -50%);
       width: 12px;
       height: 12px;
@@ -874,11 +894,11 @@
         <div class="ctrl-bottom">
           <div class="timeline-container">
             <div class="timeline-track-wrap" id="timelineTrack">
-              <div class="timeline-fill" id="timelineFill"></div>
-              <div class="timeline-thumb-indicator" id="thumbIndicator"></div>
+              <div class="timeline-fill" id="timelineFill" style="width: 0%;"></div>
+              <div class="timeline-thumb-indicator" id="thumbIndicator" style="left: 0%;"></div>
             </div>
-            <input type="range" id="progressBarInput" class="progress-bar-input" value="100" min="0" max="100" step="0.1">
-            <span class="time-val" id="timeDisplay">LIVE</span>
+            <input type="range" id="progressBarInput" class="progress-bar-input" value="0" min="0" max="100" step="0.1">
+            <span class="time-val" id="timeDisplay">00:00:00</span>
           </div>
 
           <div class="action-bar-row">
@@ -1075,7 +1095,7 @@
   let jwPlayerInstance = null;
   let ytUpdateInterval = null;
   let activePlayerType = null;
-  let contentType = 'live';
+  let contentType = 'movie'; // Defaults safely to 'movie' so progress bar is always enabled
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let isFillScreen = false;
@@ -1094,10 +1114,10 @@
   let isPlayingIntroPhase = false;
   let mainContentStreamData = null;
   let nativeStartTime = 0;
-  let isTransitioningFromIntro = false; // Transition Lock
+  let isTransitioningFromIntro = false;
 
   // In-Memory Item Cache
-  let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
+  let cachedCollectionData = { "Shows": [], "TV Shows": [], "Movies": [], "Live TV": [] };
 
   let showDocData = null;
   let currentSeasonKey = null;
@@ -1143,10 +1163,31 @@
     return cand ? safeUrl(cand) : '';
   }
 
+  // Parses any duration representation into seconds
+  function getParsedDurationSeconds(item) {
+    if (!item) return 0;
+    const raw = item.Duration || item.duration;
+    if (!raw) return 0;
+    if (typeof raw === 'number' && isFinite(raw) && raw > 0) return raw;
+    const str = String(raw).trim();
+    if (/^\d+$/.test(str)) {
+      const val = parseInt(str, 10);
+      return val > 300 ? val : val * 60;
+    }
+    let secs = 0;
+    const hMatch = str.match(/(\d+)\s*h/i);
+    const mMatch = str.match(/(\d+)\s*m/i);
+    const sMatch = str.match(/(\d+)\s*s/i);
+    if (hMatch) secs += parseInt(hMatch[1], 10) * 3600;
+    if (mMatch) secs += parseInt(mMatch[1], 10) * 60;
+    if (sMatch) secs += parseInt(sMatch[1], 10);
+    return secs > 0 ? secs : 0;
+  }
+
   function formatDynamicDuration(raw) {
     if (!raw) return '';
     if (typeof raw === 'string' && (raw.includes('h') || raw.includes('m') || raw.includes(':'))) return raw;
-    const num = parseInt(raw);
+    const num = parseInt(raw, 10);
     if (isNaN(num) || num <= 0) return '';
     if (num < 60) return `${num}m`;
     const h = (num / 60) | 0;
@@ -1206,7 +1247,7 @@
   }
 
   function saveProgressThrottled(key, time) {
-    if (isPlayingIntroPhase) return;
+    if (isPlayingIntroPhase || contentType === 'live') return;
     const now = Date.now();
     if (now - lastProgressSave > 1500) {
       lastProgressSave = now;
@@ -1257,8 +1298,9 @@
     }
   }
 
+  // Prioritize Movies and Shows first so VOD is never falsely assumed to be Live TV
   async function autoDetectAndInitContent(docId) {
-    const collectionsToCheck = ["Live TV", "Shows", "Movies"];
+    const collectionsToCheck = ["Movies", "Shows", "TV Shows", "Live TV"];
     let detectedCollection = null;
 
     for (const colName of collectionsToCheck) {
@@ -1280,7 +1322,7 @@
       }
     }
 
-    if (!detectedCollection) detectedCollection = "Live TV";
+    if (!detectedCollection) detectedCollection = "Movies";
     startListeningDoc(docId, detectedCollection);
   }
 
@@ -1303,14 +1345,17 @@
       currentChannel = { id: snap.id, ...snap.data() };
       showDocData = currentChannel;
 
+      // Strict Content Type Resolution
       const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
-      if (targetCol === "Shows" || seasonKeys.length > 0) {
+      if (targetCol === "Shows" || targetCol === "TV Shows" || seasonKeys.length > 0) {
         contentType = 'show';
         setupShowSeasons(seasonKeys);
-      } else if (targetCol === "Movies") {
+      } else if (targetCol === "Movies" || currentChannel.Movie || currentChannel.Release_Date || currentChannel["Release Year"]) {
         contentType = 'movie';
-      } else {
+      } else if (targetCol === "Live TV" || currentChannel["Previously Url"] || currentChannel.PreviouslyUrl) {
         contentType = 'live';
+      } else {
+        contentType = 'movie'; // Default safe fallback
       }
 
       configureUIForContentType();
@@ -1348,7 +1393,7 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  // Unified Media Pipeline: Prioritizes Intro at 00:00:00 and integrates Start_Time smoothly
+  // Unified Media Pipeline: Prioritizes Intro at 00:00:00 and seamlessly transitions
   async function initUnifiedMediaPipeline(targetData) {
     mainContentStreamData = targetData;
     introMediaUrl = null;
@@ -1356,7 +1401,6 @@
     isPlayingIntroPhase = false;
     nativeStartTime = 0;
 
-    // Retrieve Start_Time
     if (targetData.Start_Time) {
       const parsed = parseFloat(targetData.Start_Time);
       if (!isNaN(parsed) && parsed > 0) nativeStartTime = parsed;
@@ -1370,7 +1414,6 @@
       }
       introMediaUrl = safeUrl(customPreCast || GLOBAL_HOTSTAR_INTRO);
 
-      // Studio Intro Lookup
       const studioKey = (targetData.Studio || targetData.Partner || "").toLowerCase().trim();
       if (studioKey) {
         try {
@@ -1389,11 +1432,10 @@
     const resumeKey = targetData.id || currentDocId;
     const savedProgress = getSavedProgress(resumeKey);
 
-    // FIX 1: If starting from beginning, ALWAYS play Intro first (do not jump straight to Start_Time)
+    // If starting from 00:00, ALWAYS play Intro first
     if ((savedProgress <= 0 || actionParam === 'starting') && introMediaUrl) {
       playIntroSegment();
     } else {
-      // Resume playback after user already watched past Intro
       startMainContentPlayback(savedProgress > 0 ? savedProgress : nativeStartTime);
     }
   }
@@ -1407,7 +1449,6 @@
     video.src = introMediaUrl;
     video.playbackRate = 1;
 
-    // Seamless handover when intro ends
     video.onended = () => {
       onIntroEndedTransition();
     };
@@ -1420,19 +1461,17 @@
     setupInteractions();
   }
 
-  // FIX 2: Silent Transition from Intro -> Main Feature without waking up controls
+  // Silent Transition without controls flicker
   function onIntroEndedTransition() {
     isTransitioningFromIntro = true;
     isPlayingIntroPhase = false;
     
-    // Silence control overlay
     const overlay = document.getElementById('controlsOverlay');
     overlay.classList.remove('show');
     clearTimeout(hideControlsTimer);
 
     startMainContentPlayback(nativeStartTime, true);
 
-    // Release transition lock after 1.2 seconds
     setTimeout(() => {
       isTransitioningFromIntro = false;
     }, 1200);
@@ -1555,6 +1594,7 @@
     const timelineFill = document.getElementById('timelineFill');
     const thumbIndicator = document.getElementById('thumbIndicator');
     const progressBarInput = document.getElementById('progressBarInput');
+    const goLiveBtn = document.getElementById('goLiveBtn');
 
     const hasPreviously = Boolean(currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl || currentChannel?.Previously_Url);
 
@@ -1567,6 +1607,13 @@
       drawerTabEpisodes.style.display = 'inline-block';
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'block';
+
+      // Reset Timeline for Show VOD
+      timelineFill.style.width = '0%';
+      thumbIndicator.style.left = '0%';
+      progressBarInput.value = 0;
+      timeDisplay.innerText = "00:00:00";
+      goLiveBtn.style.display = 'none';
     } else if (contentType === 'movie') {
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
@@ -1576,7 +1623,15 @@
       drawerTabEpisodes.style.display = 'none';
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
+
+      // Reset Timeline for Movie VOD
+      timelineFill.style.width = '0%';
+      thumbIndicator.style.left = '0%';
+      progressBarInput.value = 0;
+      timeDisplay.innerText = "00:00:00";
+      goLiveBtn.style.display = 'none';
     } else {
+      // Live TV Only
       btnEpisodes.style.display = 'none';
       btnNextEpisode.style.display = 'none';
       btnPreviously.style.display = hasPreviously ? 'flex' : 'none';
@@ -1604,7 +1659,7 @@
     }
 
     if (paramEp) {
-      const epInt = parseInt(paramEp);
+      const epInt = parseInt(paramEp, 10);
       currentEpisodeIdx = !isNaN(epInt) && epInt > 0 ? (epInt - 1) : 0;
     } else {
       currentEpisodeIdx = 0;
@@ -1700,7 +1755,8 @@
       Studio: showDocData.Studio, 
       Partner: showDocData.Partner,
       Pre_Cast: ep.Pre_Cast || showDocData.Pre_Cast,
-      Start_Time: ep.Start_Time || showDocData.Start_Time
+      Start_Time: ep.Start_Time || showDocData.Start_Time,
+      Duration: ep.Duration || ep.duration
     });
   }
 
@@ -1785,11 +1841,12 @@
       ytUpdateInterval = setInterval(() => {
         if (!ytPlayerInstance || typeof ytPlayerInstance.getCurrentTime !== 'function') return;
         const cur = ytPlayerInstance.getCurrentTime() || 0;
-        const dur = ytPlayerInstance.getDuration() || 0;
+        let dur = ytPlayerInstance.getDuration() || 0;
+        if (!dur || dur <= 0) dur = getParsedDurationSeconds(currentChannel);
 
         if (contentType === 'movie' || contentType === 'show') {
           if (dur > 0) {
-            const percent = (cur / dur) * 100;
+            const percent = Math.min(100, Math.max(0, (cur / dur) * 100));
             document.getElementById('timelineFill').style.width = `${percent}%`;
             document.getElementById('thumbIndicator').style.left = `${percent}%`;
             document.getElementById('progressBarInput').value = percent;
@@ -1833,7 +1890,16 @@
           extractNativeTracks(video);
         };
       } else if (Hls.isSupported()) {
-        hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8, enableWorker: true });
+        // Only apply low-latency live sync configs if contentType is genuinely Live TV
+        const hlsConfig = {
+          enableWorker: true
+        };
+        if (contentType === 'live') {
+          hlsConfig.liveSyncDurationCount = 3;
+          hlsConfig.liveMaxLatencyDurationCount = 8;
+        }
+
+        hlsInstance = new Hls(hlsConfig);
         hlsInstance.loadSource(streamUrl);
         hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
@@ -1888,7 +1954,7 @@
           e.stopPropagation();
           document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
           el.querySelector('.lang-check').innerText = '✓';
-          const tIdx = parseInt(el.dataset.nativeTrack);
+          const tIdx = parseInt(el.dataset.nativeTrack, 10);
           Array.from(videoEl.audioTracks).forEach((t, i) => t.enabled = (i === tIdx));
           document.getElementById('settingsModal').classList.remove('active');
         };
@@ -1959,7 +2025,7 @@
         e.stopPropagation();
         document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
         el.querySelector('.lang-check').innerText = '✓';
-        const trackIdx = parseInt(el.dataset.track);
+        const trackIdx = parseInt(el.dataset.track, 10);
         if (hlsInstance) hlsInstance.audioTrack = trackIdx;
         document.getElementById('settingsModal').classList.remove('active');
       };
@@ -2011,12 +2077,13 @@
 
     jwPlayerInstance.on('time', (e) => {
       if (contentType === 'movie' || contentType === 'show') {
-        if (e.duration > 0) {
-          const percent = (e.position / e.duration) * 100;
+        let dur = (e.duration > 0 && isFinite(e.duration)) ? e.duration : getParsedDurationSeconds(currentChannel);
+        if (dur > 0) {
+          const percent = Math.min(100, Math.max(0, (e.position / dur) * 100));
           document.getElementById('timelineFill').style.width = `${percent}%`;
           document.getElementById('thumbIndicator').style.left = `${percent}%`;
           document.getElementById('progressBarInput').value = percent;
-          const rem = Math.max(0, e.duration - e.position);
+          const rem = Math.max(0, dur - e.position);
           document.getElementById('timeDisplay').innerText = formatTime(rem);
           saveProgressThrottled(currentDocId, e.position);
         }
@@ -2065,7 +2132,7 @@
         document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
         el.querySelector('.lang-check').innerText = '✓';
         const stream = el.dataset.stream;
-        if (stream) initUnifiedMediaPipeline({ Stream: stream, Studio: ch.Studio, Partner: ch.Partner, Start_Time: ch.Start_Time });
+        if (stream) initUnifiedMediaPipeline({ Stream: stream, Studio: ch.Studio, Partner: ch.Partner, Start_Time: ch.Start_Time, Duration: ch.Duration || ch.duration });
         document.getElementById('settingsModal').classList.remove('active');
       };
     });
@@ -2087,7 +2154,7 @@
         e.stopPropagation();
         document.querySelectorAll('#subtitlesOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
         el.querySelector('.lang-check').innerText = '✓';
-        const idx = parseInt(el.dataset.track);
+        const idx = parseInt(el.dataset.track, 10);
         if (hlsInstance) hlsInstance.subtitleTrack = idx;
         document.getElementById('settingsModal').classList.remove('active');
       };
@@ -2181,7 +2248,6 @@
           const cur = jwPlayerInstance.getPosition() || 0;
           jwPlayerInstance.seek(Math.max(0, cur + sec));
         } else if (video) {
-          // FIX 1: If rewound past 00:00, re-launch Intro instead of getting trapped at Start_Time
           if (video.currentTime + sec <= 0 && introMediaUrl) {
             playIntroSegment();
             return;
@@ -2272,24 +2338,24 @@
       }
     };
 
+    // Robust Timeupdate for Movies, Shows and Live TV
     video.ontimeupdate = () => {
       if (activePlayerType === 'youtube') return;
 
       if (contentType === 'movie' || contentType === 'show') {
-        if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
-          let curGlobalTime = video.currentTime;
-          let totGlobalTime = video.duration;
+        const itemScope = (contentType === 'show' && showDocData && currentSeasonKey)
+          ? (showDocData[currentSeasonKey]?.[currentEpisodeIdx] || showDocData)
+          : currentChannel;
 
-          if (isPlayingIntroPhase) {
-            curGlobalTime = video.currentTime;
-            totGlobalTime = (virtualTotalDuration > 0 ? virtualTotalDuration : (video.duration + 5400));
-          } else {
-            curGlobalTime = video.currentTime;
-            totGlobalTime = video.duration;
-            virtualTotalDuration = totGlobalTime;
-          }
+        // Guaranteed finite duration calculation
+        let totGlobalTime = (video.duration && isFinite(video.duration) && video.duration > 0)
+          ? video.duration
+          : getParsedDurationSeconds(itemScope);
 
-          const percent = (curGlobalTime / totGlobalTime) * 100;
+        let curGlobalTime = video.currentTime || 0;
+
+        if (totGlobalTime > 0) {
+          const percent = Math.min(100, Math.max(0, (curGlobalTime / totGlobalTime) * 100));
           timelineFill.style.width = `${percent}%`;
           thumbIndicator.style.left = `${percent}%`;
           progressBarInput.value = percent;
@@ -2336,25 +2402,37 @@
       if (contentType === 'live') {
         isUserSeeking = true;
         goLiveBtn.style.display = 'flex';
+      } else {
+        goLiveBtn.style.display = 'none';
       }
 
-      // FIX 1: If scrubbed to 00:00, show Intro immediately
-      if (val <= 0.5 && introMediaUrl) {
-        playIntroSegment();
-        return;
+      if (contentType !== 'live') {
+        if (val <= 0.5 && introMediaUrl) {
+          playIntroSegment();
+          return;
+        }
+
+        if (isPlayingIntroPhase) {
+          onIntroEndedTransition();
+          return;
+        }
       }
 
-      if (isPlayingIntroPhase) {
-        onIntroEndedTransition();
-        return;
-      }
+      const itemScope = (contentType === 'show' && showDocData && currentSeasonKey)
+        ? (showDocData[currentSeasonKey]?.[currentEpisodeIdx] || showDocData)
+        : currentChannel;
 
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
-        ytPlayerInstance.seekTo((ytPlayerInstance.getDuration() || 0) * (val / 100), true);
+        const dur = (ytPlayerInstance.getDuration() || 0) || getParsedDurationSeconds(itemScope);
+        if (dur > 0) ytPlayerInstance.seekTo(dur * (val / 100), true);
       } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
-        jwPlayerInstance.seek((jwPlayerInstance.getDuration() || 0) * (val / 100));
-      } else if (video.duration && isFinite(video.duration)) {
-        video.currentTime = (val / 100) * video.duration;
+        const dur = (jwPlayerInstance.getDuration() || 0) || getParsedDurationSeconds(itemScope);
+        if (dur > 0) jwPlayerInstance.seek(dur * (val / 100));
+      } else if (video) {
+        const dur = (video.duration && isFinite(video.duration) && video.duration > 0)
+          ? video.duration
+          : getParsedDurationSeconds(itemScope);
+        if (dur > 0) video.currentTime = (val / 100) * dur;
       }
     };
 
@@ -2696,7 +2774,7 @@
     const drawerCardsRow = document.getElementById('drawerCardsRow');
     const sec1Heading = document.getElementById('sec1Heading');
 
-    const fetchCol = (colName === 'Shows') ? 'Shows' : (colName === 'Movies' ? 'Movies' : 'Live TV');
+    const fetchCol = (colName === 'Shows' || colName === 'TV Shows') ? 'Shows' : (colName === 'Movies' ? 'Movies' : 'Live TV');
     sec1Heading.innerText = "More Like This";
 
     const processAndRenderRecommendations = (items) => {
