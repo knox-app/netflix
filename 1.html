@@ -75,7 +75,7 @@
       z-index: 99999;
     }
 
-    /* Video Engine Elements */
+    /* Video Engines */
     video {
       position: absolute;
       inset: 0;
@@ -166,24 +166,6 @@
       transition: opacity 0.2s;
     }
     .toast-alert.show { opacity: 1; }
-
-    /* Pre-Cast Bumper Notice */
-    .bumper-badge {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      z-index: 24;
-      background: rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.2);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: #fff;
-      display: none;
-      pointer-events: none;
-    }
 
     /* Controls Overlay */
     .controls-overlay {
@@ -818,9 +800,6 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- Pre-Cast Bumper Notice Badge -->
-      <div class="bumper-badge" id="bumperBadge">INTRO</div>
-
       <!-- Double Tap Seek Feedback -->
       <div class="tap-ripple-zone tap-ripple-left" id="rippleLeft">
         <div class="tap-ripple-pill">◀◀ 10s</div>
@@ -1050,7 +1029,7 @@
         </button>
       </div>
 
-      <!-- MORE LIKE THIS (Recommendations) -->
+      <!-- MORE LIKE THIS (Uses algorithmic ranking) -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
     </div>
@@ -1090,7 +1069,7 @@
   const YOUTUBE_API_KEY = channelConfig.apiKey;
   const GLOBAL_HOTSTAR_INTRO = "https://res.cloudinary.com/dr67beazq/video/upload/Disney_plus_hotstar_intro___All_in_one_mho9g1.mp4?_s=vp-3.7.2";
 
-  // State Management
+  // Runtime State
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
@@ -1109,12 +1088,14 @@
   let availableHlsLevels = [];
   let lastProgressSave = 0;
 
-  // Pre-Cast Pipeline State
-  let isBumperActive = false;
-  let bumperPlaylist = [];
-  let currentBumperIndex = 0;
-  let mainContentData = null;
-  let effectiveStartTime = 0;
+  // Integrated Pre-Cast & Intro Pipeline State
+  let introMediaUrl = null;
+  let introDuration = 0; // Estimated/resolved intro duration
+  let mainContentDuration = 0;
+  let virtualTotalDuration = 0;
+  let isPlayingIntroPhase = false;
+  let mainContentStreamData = null;
+  let nativeStartTime = 0;
 
   // In-Memory Item Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
@@ -1157,7 +1138,7 @@
     return url.trim().replace(/^http:\/\//i, 'https://');
   }
 
-  // Strictly prioritize Poster.h and eliminate blank legacy Poster fallbacks
+  // Priority Poster.h implementation (Strictly ignore empty/legacy Poster)
   function getPosterH(c) {
     if (!c) return '';
     const cand = c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster_H;
@@ -1227,7 +1208,6 @@
   }
 
   function saveProgressThrottled(key, time) {
-    if (isBumperActive) return;
     const now = Date.now();
     if (now - lastProgressSave > 1500) {
       lastProgressSave = now;
@@ -1360,7 +1340,7 @@
         }
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
-        queueContentWithBumpers(currentChannel);
+        initUnifiedMediaPipeline(currentChannel);
       }
       
       setupAudioOptions(currentChannel);
@@ -1369,29 +1349,26 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  // Pre-Cast Pipeline & Studio Bumpers Engine
-  async function queueContentWithBumpers(targetData) {
-    mainContentData = targetData;
-    bumperPlaylist = [];
-    currentBumperIndex = 0;
+  // Unified Media Pipeline: Resolves Intro & Integrates with Timeline Virtualization
+  async function initUnifiedMediaPipeline(targetData) {
+    mainContentStreamData = targetData;
+    introMediaUrl = null;
+    introDuration = 0;
+    isPlayingIntroPhase = false;
+    nativeStartTime = 0;
 
-    effectiveStartTime = 0;
     if (targetData.Start_Time) {
       const parsed = parseFloat(targetData.Start_Time);
-      if (!isNaN(parsed) && parsed > 0) effectiveStartTime = parsed;
+      if (!isNaN(parsed) && parsed > 0) nativeStartTime = parsed;
     }
 
-    // Only Movies and Shows play Pre-Cast Bumpers
     if (contentType === 'movie' || contentType === 'show') {
       let customPreCast = null;
       if (targetData.Pre_Cast) {
-        if (Array.isArray(targetData.Pre_Cast) && targetData.Pre_Cast.length > 0) {
-          customPreCast = targetData.Pre_Cast[0];
-        } else if (typeof targetData.Pre_Cast === 'string') {
-          customPreCast = targetData.Pre_Cast;
-        }
+        if (Array.isArray(targetData.Pre_Cast) && targetData.Pre_Cast.length > 0) customPreCast = targetData.Pre_Cast[0];
+        else if (typeof targetData.Pre_Cast === 'string') customPreCast = targetData.Pre_Cast;
       }
-      bumperPlaylist.push(customPreCast || GLOBAL_HOTSTAR_INTRO);
+      introMediaUrl = safeUrl(customPreCast || GLOBAL_HOTSTAR_INTRO);
 
       // Studio Intro Query
       const studioKey = (targetData.Studio || targetData.Partner || "").toLowerCase().trim();
@@ -1401,51 +1378,53 @@
           if (partnerDocSnap.exists()) {
             const pdata = partnerDocSnap.data();
             if (pdata.Intro && typeof pdata.Intro === 'string' && pdata.Intro.trim()) {
-              bumperPlaylist.push(pdata.Intro.trim());
+              introMediaUrl = safeUrl(pdata.Intro.trim());
             }
           }
         } catch (err) {}
       }
+      introDuration = 12; // Virtual intro baseline duration (seconds)
     }
 
-    if (bumperPlaylist.length > 0) {
-      isBumperActive = true;
-      document.getElementById('bumperBadge').style.display = 'block';
-      playBumperStep();
+    const resumeKey = targetData.id || currentDocId;
+    const savedProgress = getSavedProgress(resumeKey);
+
+    // If starting from 00:00 (or action=starting), launch Intro as part of the video timeline
+    if (savedProgress <= 0 && introMediaUrl) {
+      playIntroSegment();
     } else {
-      isBumperActive = false;
-      document.getElementById('bumperBadge').style.display = 'none';
-      startStreamPlayback(mainContentData, effectiveStartTime);
+      // User is resuming or intro not applicable: launch main stream directly
+      startMainContentPlayback(savedProgress > 0 ? savedProgress : nativeStartTime);
     }
   }
 
-  function playBumperStep() {
-    if (currentBumperIndex < bumperPlaylist.length) {
-      const bumperUrl = safeUrl(bumperPlaylist[currentBumperIndex]);
-      const video = document.getElementById('nativeVideoPlayer');
-      
-      // Keep UI clean during bumper playback
-      document.getElementById('controlsOverlay').classList.remove('show');
-      destroyPlayers();
+  function playIntroSegment() {
+    isPlayingIntroPhase = true;
+    destroyPlayers();
 
-      video.style.display = 'block';
-      video.src = bumperUrl;
-      video.playbackRate = 1;
-      video.onended = () => {
-        currentBumperIndex++;
-        playBumperStep();
-      };
-      video.onerror = () => {
-        currentBumperIndex++;
-        playBumperStep();
-      };
-      video.play().catch(() => {});
-    } else {
-      // Pre-Cast finished. Transition directly into main stream at Start_Time
-      isBumperActive = false;
-      document.getElementById('bumperBadge').style.display = 'none';
-      startStreamPlayback(mainContentData, effectiveStartTime);
-    }
+    const video = document.getElementById('nativeVideoPlayer');
+    video.style.display = 'block';
+    video.src = introMediaUrl;
+    video.playbackRate = 1;
+
+    // Zero-buffer seamless listener
+    video.onended = () => {
+      isPlayingIntroPhase = false;
+      startMainContentPlayback(nativeStartTime, true);
+    };
+
+    video.onerror = () => {
+      isPlayingIntroPhase = false;
+      startMainContentPlayback(nativeStartTime, true);
+    };
+
+    video.play().catch(() => {});
+    setupInteractions();
+  }
+
+  function startMainContentPlayback(startTime = 0, isTransitionFromIntro = false) {
+    isPlayingIntroPhase = false;
+    startStreamPlayback(mainContentStreamData, startTime, isTransitionFromIntro);
   }
 
   async function initWatchlistState() {
@@ -1698,7 +1677,7 @@
     subLabel.style.display = 'block';
     subLabel.innerText = `S${seasonNumber} E${currentEpisodeIdx + 1} ${epTitle}`;
 
-    queueContentWithBumpers({ 
+    initUnifiedMediaPipeline({ 
       id: `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}`,
       Stream: ep.Stream, 
       mpd: ep.mpd || ep.MPD, 
@@ -1709,7 +1688,7 @@
     });
   }
 
-  function startStreamPlayback(data, overrideStartTime = 0) {
+  function startStreamPlayback(data, startTime = 0, isTransitionFromIntro = false) {
     destroyPlayers();
 
     const video = document.getElementById('nativeVideoPlayer');
@@ -1721,11 +1700,7 @@
     const mpdObj = data.mpd || data.MPD || null;
     const resumeKey = data.id || currentDocId;
     
-    // Evaluate resume time or Start_Time
-    let savedTime = getSavedProgress(resumeKey);
-    if (savedTime <= 0 && overrideStartTime > 0) {
-      savedTime = overrideStartTime;
-    }
+    let targetSeekTime = startTime > 0 ? startTime : getSavedProgress(resumeKey);
 
     let mpdFile = null;
     let keyId = null;
@@ -1742,7 +1717,7 @@
     }
 
     if (mpdFile) {
-      playDashMPD(mpdFile, keyId, key, savedTime);
+      playDashMPD(mpdFile, keyId, key, targetSeekTime);
       return;
     }
 
@@ -1766,15 +1741,15 @@
           disablekb: 1,
           modestbranding: 1,
           rel: 0,
-          start: Math.floor(savedTime),
+          start: Math.floor(targetSeekTime),
           fs: 0,
           playsinline: 1
         },
         events: {
           onReady: (e) => {
             e.target.playVideo();
-            if (savedTime > 0 && contentType !== 'live') {
-              e.target.seekTo(savedTime, true);
+            if (targetSeekTime > 0 && contentType !== 'live') {
+              e.target.seekTo(targetSeekTime, true);
             }
           },
           onStateChange: (e) => {
@@ -1828,9 +1803,9 @@
       overlay.style.display = 'flex';
 
       const applyResume = () => {
-        if (savedTime > 0 && contentType !== 'live') {
-          video.currentTime = savedTime;
-          showToast(`Started from ${formatTime(savedTime)}`);
+        if (targetSeekTime > 0 && contentType !== 'live') {
+          video.currentTime = targetSeekTime;
+          if (!isTransitionFromIntro) showToast(`Started from ${formatTime(targetSeekTime)}`);
         }
         video.play().catch(() => {});
       };
@@ -2074,7 +2049,7 @@
         document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
         el.querySelector('.lang-check').innerText = '✓';
         const stream = el.dataset.stream;
-        if (stream) queueContentWithBumpers({ Stream: stream, Studio: ch.Studio, Partner: ch.Partner, Start_Time: ch.Start_Time });
+        if (stream) initUnifiedMediaPipeline({ Stream: stream, Studio: ch.Studio, Partner: ch.Partner, Start_Time: ch.Start_Time });
         document.getElementById('settingsModal').classList.remove('active');
       };
     });
@@ -2123,7 +2098,7 @@
     const btnNextEpisode = document.getElementById('btnNextEpisode');
 
     const showControls = () => {
-      if (isScreenLocked || isBumperActive) return;
+      if (isScreenLocked) return;
       overlay.classList.add('show');
       clearTimeout(hideControlsTimer);
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
@@ -2133,7 +2108,6 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
-      if (isBumperActive) return;
       if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
         return;
@@ -2175,15 +2149,29 @@
     }
 
     function performSeek(sec) {
-      if (isBumperActive) return;
-      if (activePlayerType === 'youtube' && ytPlayerInstance) {
-        const cur = ytPlayerInstance.getCurrentTime() || 0;
-        ytPlayerInstance.seekTo(Math.max(0, cur + sec), true);
-      } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
-        const cur = jwPlayerInstance.getPosition() || 0;
-        jwPlayerInstance.seek(Math.max(0, cur + sec));
-      } else if (video) {
-        video.currentTime += sec;
+      if (isPlayingIntroPhase) {
+        if (video) {
+          video.currentTime = Math.max(0, video.currentTime + sec);
+          if (video.currentTime >= video.duration - 1) {
+            isPlayingIntroPhase = false;
+            startMainContentPlayback(nativeStartTime, true);
+          }
+        }
+      } else {
+        if (activePlayerType === 'youtube' && ytPlayerInstance) {
+          const cur = ytPlayerInstance.getCurrentTime() || 0;
+          ytPlayerInstance.seekTo(Math.max(0, cur + sec), true);
+        } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+          const cur = jwPlayerInstance.getPosition() || 0;
+          jwPlayerInstance.seek(Math.max(0, cur + sec));
+        } else if (video) {
+          // If rewound to 00:00, re-launch intro
+          if (video.currentTime + sec <= 0 && introMediaUrl) {
+            playIntroSegment();
+            return;
+          }
+          video.currentTime += sec;
+        }
       }
       showControls();
     }
@@ -2269,22 +2257,37 @@
     };
 
     video.ontimeupdate = () => {
-      if (isBumperActive || activePlayerType === 'youtube') return;
+      if (activePlayerType === 'youtube') return;
 
       if (contentType === 'movie' || contentType === 'show') {
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
-          const percent = (video.currentTime / video.duration) * 100;
+          let curGlobalTime = video.currentTime;
+          let totGlobalTime = video.duration;
+
+          if (isPlayingIntroPhase) {
+            // Render virtual timeline during intro phase
+            curGlobalTime = video.currentTime;
+            totGlobalTime = (virtualTotalDuration > 0 ? virtualTotalDuration : (video.duration + 5400));
+          } else {
+            curGlobalTime = video.currentTime;
+            totGlobalTime = video.duration;
+            virtualTotalDuration = totGlobalTime;
+          }
+
+          const percent = (curGlobalTime / totGlobalTime) * 100;
           timelineFill.style.width = `${percent}%`;
           thumbIndicator.style.left = `${percent}%`;
           progressBarInput.value = percent;
           
-          const remainingSecs = Math.max(0, video.duration - video.currentTime);
+          const remainingSecs = Math.max(0, totGlobalTime - curGlobalTime);
           timeDisplay.innerText = formatTime(remainingSecs);
 
-          const currentKey = (contentType === 'show' && showDocData) 
-            ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
-            : currentDocId;
-          saveProgressThrottled(currentKey, video.currentTime);
+          if (!isPlayingIntroPhase) {
+            const currentKey = (contentType === 'show' && showDocData) 
+              ? `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}` 
+              : currentDocId;
+            saveProgressThrottled(currentKey, video.currentTime);
+          }
         }
         goLiveBtn.style.display = 'none';
       } else {
@@ -2311,7 +2314,6 @@
 
     progressBarInput.oninput = (e) => {
       e.stopPropagation();
-      if (isBumperActive) return;
       const val = parseFloat(progressBarInput.value);
       timelineFill.style.width = `${val}%`;
       thumbIndicator.style.left = `${val}%`;
@@ -2319,6 +2321,19 @@
       if (contentType === 'live') {
         isUserSeeking = true;
         goLiveBtn.style.display = 'flex';
+      }
+
+      // If user scrubs all the way left to 00:00, show intro
+      if (val <= 0.5 && introMediaUrl) {
+        playIntroSegment();
+        return;
+      }
+
+      if (isPlayingIntroPhase) {
+        // Dragging forward out of the intro directly switches to main movie
+        isPlayingIntroPhase = false;
+        startMainContentPlayback(nativeStartTime, true);
+        return;
       }
 
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
@@ -2608,7 +2623,7 @@
     autoDetectAndInitContent(newId);
   };
 
-  // Algorithmic Recommendation Engine
+  // Multi-Vector Algorithm with Guaranteed Fallback
   function computeRelevanceScore(target, candidate, watchlistIds) {
     if (!target || !candidate) return 1;
     let score = 1;
@@ -2672,7 +2687,6 @@
     sec1Heading.innerText = "More Like This";
 
     const processAndRenderRecommendations = (items) => {
-      // Filter out items lacking Poster.h
       let candidates = items.filter(c => c.id !== excludeId && getPosterH(c));
       if (candidates.length === 0) candidates = items.filter(c => getPosterH(c));
 
