@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Smart TV Remote</title>
+  <title>Smart Multi-Device Remote</title>
   <style>
     :root {
-      --bg-color: #0d0e11;
+      --bg-color: #0b0c0e;
       --remote-bg: #000000;
-      --card-color: #1e2024;
+      --card-color: #1a1c22;
       --accent-blue: #0072ef;
-      --btn-active: #32353c;
+      --btn-active: #2a2e38;
       --text-main: #ffffff;
       --text-muted: #8e8e93;
     }
@@ -31,63 +31,47 @@
       align-items: center;
       min-height: 100vh;
       color: var(--text-main);
-      overflow: hidden;
     }
 
-    /* Remote Frame Container */
     .remote-card {
       width: 100%;
-      max-width: 380px;
-      height: 820px;
+      max-width: 390px;
+      height: 840px;
       background: var(--remote-bg);
-      border-radius: 44px;
+      border-radius: 46px;
       padding: 24px 20px 32px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px #1a1a1a;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px #1a1a1a;
       position: relative;
-      overflow: hidden;
     }
 
-    /* Top Selector: Device Name */
+    /* Google TV Device Switcher Pill */
     .header-pill {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.08);
       width: fit-content;
-      margin: 0 auto 12px;
-      padding: 6px 16px;
-      border-radius: 20px;
+      margin: 0 auto 10px;
+      padding: 7px 18px;
+      border-radius: 24px;
       font-size: 13.5px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      color: #e5e5e7;
-      transition: background 0.2s;
+      color: #fff;
     }
-
-    .header-pill:active { background: rgba(255, 255, 255, 0.18); }
     .status-dot {
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: #34c759;
-      box-shadow: 0 0 6px rgba(52, 199, 89, 0.8);
+      box-shadow: 0 0 8px #34c759;
     }
-    .status-dot.offline {
-      background: #ff3b30;
-      box-shadow: none;
-    }
+    .status-dot.offline { background: #ff3b30; box-shadow: none; }
 
-    .chevron-down {
-      width: 12px;
-      height: 12px;
-      fill: var(--text-muted);
-    }
-
-    /* Media Info Sub-label */
     .media-info-tag {
       text-align: center;
       font-size: 12px;
@@ -96,10 +80,8 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      padding: 0 12px;
     }
 
-    /* Top Action Bar (Mute, Keyboard, Power) */
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -107,7 +89,6 @@
       padding: 0 16px;
       margin-bottom: 12px;
     }
-
     .icon-btn {
       background: none;
       border: none;
@@ -118,19 +99,16 @@
       justify-content: center;
       padding: 8px;
       border-radius: 50%;
-      transition: transform 0.1s, opacity 0.2s;
     }
-
-    .icon-btn:active { transform: scale(0.9); opacity: 0.7; }
+    .icon-btn:active { transform: scale(0.9); }
     .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
 
-    /* Central Touchpad Area */
+    /* Touchpad Area (Google TV / Apple TV Style) */
     .touchpad-container {
       flex: 1;
       margin-bottom: 20px;
       display: flex;
     }
-
     .touchpad {
       flex: 1;
       background-color: var(--card-color);
@@ -141,36 +119,18 @@
       align-items: center;
       justify-content: center;
       touch-action: none;
-      transition: background-color 0.2s;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
-
-    .touchpad:active {
-      cursor: grabbing;
-      background-color: var(--btn-active);
-    }
-
+    .touchpad:active { background-color: var(--btn-active); }
     .touchpad-center-guide {
-      width: 60px;
-      height: 60px;
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
-      border: 1.5px dashed rgba(255, 255, 255, 0.15);
+      border: 1.5px dashed rgba(255, 255, 255, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
       pointer-events: none;
-    }
-    .touchpad-center-guide svg { width: 20px; height: 20px; fill: rgba(255, 255, 255, 0.3); }
-
-    .touchpad-ripple {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.18);
-      transform: scale(0);
-      pointer-events: none;
-      transition: transform 0.3s ease-out, opacity 0.3s ease-out;
     }
 
     /* Bottom Control Section */
@@ -182,95 +142,57 @@
       height: 160px;
     }
 
-    /* Left Column: Input & Play/Pause */
     .left-col {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       height: 100%;
     }
-
     .circle-btn-sm {
       width: 62px;
       height: 62px;
       background: var(--card-color);
       border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background-color 0.15s, transform 0.1s;
     }
+    .circle-btn-sm:active { background: var(--btn-active); transform: scale(0.92); }
+    .circle-btn-sm svg { width: 22px; height: 22px; fill: currentColor; }
 
-    .circle-btn-sm:active {
-      background: var(--btn-active);
-      transform: scale(0.92);
-    }
-
-    .circle-btn-sm svg {
-      width: 22px;
-      height: 22px;
-      fill: currentColor;
-    }
-
-    /* Center: Large Circular Back Button */
-    .center-col {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
+    .center-col { display: flex; align-items: center; justify-content: center; }
     .back-btn-lg {
       width: 120px;
       height: 120px;
       background: var(--card-color);
       border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
     }
+    .back-btn-lg:active { background: var(--btn-active); transform: scale(0.94); }
+    .back-btn-lg svg { width: 34px; height: 34px; stroke: currentColor; stroke-width: 2.5; fill: none; }
 
-    .back-btn-lg:active {
-      background: var(--btn-active);
-      transform: scale(0.94);
-    }
-
-    .back-btn-lg svg {
-      width: 32px;
-      height: 32px;
-      stroke: currentColor;
-      stroke-width: 2.5;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    /* Right Column: Dynamic Rocker (CH / VOL) */
-    .right-col {
-      height: 100%;
-      display: flex;
-      align-items: center;
-    }
-
+    /* Right Column Dynamic Rocker (CH for Live TV, VOL for Movies/Shows) */
+    .right-col { height: 100%; display: flex; align-items: center; }
     .rocker-pill {
-      width: 62px;
+      width: 64px;
       height: 154px;
       background: var(--card-color);
       border-radius: 36px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
       padding: 14px 0;
     }
-
     .rocker-btn {
       background: none;
       border: none;
@@ -281,167 +203,95 @@
       justify-content: center;
       align-items: center;
       padding: 8px 0;
-      transition: transform 0.1s, opacity 0.2s;
     }
+    .rocker-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 3; fill: none; }
+    .rocker-label { font-size: 13px; font-weight: 800; }
 
-    .rocker-btn:active { transform: scale(0.85); opacity: 0.6; }
-
-    .rocker-btn svg {
-      width: 18px;
-      height: 18px;
-      stroke: currentColor;
-      stroke-width: 3;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .rocker-label {
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: #ffffff;
-    }
-
-    /* Device Picker Modal */
+    /* Multi-Device Picker Modal */
     .modal-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.9);
-      backdrop-filter: blur(12px);
+      background: rgba(0, 0, 0, 0.94);
+      backdrop-filter: blur(14px);
       z-index: 100;
       display: none;
       flex-direction: column;
       padding: 24px;
-      border-radius: 44px;
+      border-radius: 46px;
     }
     .modal-overlay.active { display: flex; }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-    .modal-header h3 { font-size: 17px; font-weight: 700; color: #fff; }
-    .device-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-    
     .device-item-card {
-      background: #181a1f;
+      background: #181a20;
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 14px;
       padding: 14px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       cursor: pointer;
-      transition: background 0.15s;
+      margin-bottom: 10px;
     }
-    .device-item-card:active { background: #252830; }
     .device-item-card.selected { border-color: var(--accent-blue); background: rgba(0, 114, 239, 0.15); }
-    .device-item-card svg { width: 24px; height: 24px; fill: var(--accent-blue); flex-shrink: 0; }
+    .device-item-card svg { width: 26px; height: 26px; fill: var(--accent-blue); flex-shrink: 0; }
   </style>
 </head>
 <body>
 
   <div class="remote-card">
-    
-    <!-- Top Selector: Room / Device Name -->
+    <!-- Header Multi-Device Selector -->
     <div>
       <div class="header-pill" id="roomSelector">
         <div class="status-dot" id="targetStatusDot"></div>
-        <span id="targetDeviceName">Connecting...</span>
-        <svg class="chevron-down" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        <span id="targetDeviceName">Select Screen</span>
+        <svg style="width:12px;height:12px;fill:var(--text-muted);" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
       </div>
-      <div class="media-info-tag" id="mediaInfoTag">Looking for active screen...</div>
+      <div class="media-info-tag" id="mediaInfoTag">Syncing across account devices...</div>
     </div>
 
     <!-- Top Action Row -->
     <div class="top-bar">
-      <!-- Mute Button -->
-      <button class="icon-btn" id="muteBtn" title="Mute">
-        <svg viewBox="0 0 24 24">
-          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-        </svg>
-      </button>
-
-      <!-- Settings / Menu Button -->
-      <button class="icon-btn" id="menuBtn" title="Menu">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 6h2v2H4V6zm0 5h2v2H4v-2zm0 5h2v2H4v-2zm4-10h12v2H8V6zm0 5h12v2H8v-2zm0 5h12v2H8v-2z"/>
-        </svg>
-      </button>
-
-      <!-- Power Button -->
-      <button class="icon-btn" id="powerBtn" title="Power">
-        <svg viewBox="0 0 24 24">
-          <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/>
-        </svg>
-      </button>
+      <button class="icon-btn" id="muteBtn"><svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg></button>
+      <button class="icon-btn" id="menuBtn"><svg viewBox="0 0 24 24"><path d="M4 6h2v2H4V6zm0 5h2v2H4v-2zm0 5h2v2H4v-2zm4-10h12v2H8V6zm0 5h12v2H8v-2zm0 5h12v2H8v-2z"/></svg></button>
+      <button class="icon-btn" id="powerBtn"><svg viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></svg></button>
     </div>
 
-    <!-- Center Swipe / Touchpad Area -->
+    <!-- Center Gestures Touchpad -->
     <div class="touchpad-container">
       <div class="touchpad" id="touchpad">
         <div class="touchpad-center-guide">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+          <svg style="width:22px;height:22px;fill:rgba(255,255,255,0.4);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
         </div>
-        <div class="touchpad-ripple" id="ripple"></div>
       </div>
     </div>
 
     <!-- Bottom Controls -->
     <div class="bottom-controls">
-      <!-- Left Column -->
       <div class="left-col">
-        <button class="circle-btn-sm" id="btnCastScreen" title="Cast Screen">
-          <svg viewBox="0 0 24 24">
-            <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-          </svg>
-        </button>
-        <button class="circle-btn-sm" id="playBtn" title="Play / Pause">
-          <svg id="playIcon" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
-        </button>
+        <button class="circle-btn-sm" id="btnCastSwitch"><svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg></button>
+        <button class="circle-btn-sm" id="playBtn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
       </div>
 
-      <!-- Center Large Back Button -->
       <div class="center-col">
-        <button class="back-btn-lg" id="backBtn" title="Back">
-          <svg viewBox="0 0 24 24">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-        </button>
+        <button class="back-btn-lg" id="backBtn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
       </div>
 
-      <!-- Right Column: Context Rocker (CH or VOL) -->
       <div class="right-col">
         <div class="rocker-pill">
-          <button class="rocker-btn" id="rockerUpBtn" title="Up">
-            <svg id="iconRockerUp" viewBox="0 0 24 24">
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </button>
+          <button class="rocker-btn" id="rockerUpBtn"><svg id="iconRockerUp" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"></polyline></svg></button>
           <span class="rocker-label" id="rockerLabel">CH</span>
-          <button class="rocker-btn" id="rockerDownBtn" title="Down">
-            <svg id="iconRockerDown" viewBox="0 0 24 24">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
+          <button class="rocker-btn" id="rockerDownBtn"><svg id="iconRockerDown" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
         </div>
       </div>
     </div>
 
-    <!-- Device Picker Overlay -->
+    <!-- Multi-Device Selection Modal -->
     <div class="modal-overlay" id="deviceModal">
-      <div class="modal-header">
-        <h3>Connected Screens</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:17px; font-weight:700;">Select Target Device</h3>
         <button class="icon-btn" id="closeDeviceModal">✕</button>
       </div>
-      <div class="device-list" id="deviceListEl"></div>
+      <div id="deviceListEl" style="overflow-y:auto; flex:1;"></div>
     </div>
-
   </div>
 
   <script type="module">
@@ -452,231 +302,148 @@
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
       databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "question-metabase",
-      storageBucket: "question-metabase.firebasestorage.app",
-      messagingSenderId: "770698198753",
-      appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+      projectId: "question-metabase"
     };
-
     const authApp = initializeApp(authConfig);
     const rtdb = getDatabase(authApp);
 
-    // State Variables
     let currentUser = null;
-    let targetDeviceId = null;
-    let activeDevicesMap = {};
-    let targetContentType = 'live'; // 'live', 'movie', or 'show'
-
-    // Load active logged-in user
     try {
       const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
       currentUser = stored ? JSON.parse(stored) : null;
     } catch(e) { currentUser = null; }
 
     const urlParams = new URLSearchParams(window.location.search);
-    targetDeviceId = urlParams.get('target');
-    if (urlParams.get('type')) targetContentType = urlParams.get('type');
+    let targetDeviceId = urlParams.get('target');
+    let activeScreens = {};
+    let isLiveTV = true;
 
-    function getUserAccountKey() {
-      if (!currentUser) return "guest_user";
-      return currentUser.Lotus || currentUser.Email?.replace(/[.#$[\]]/g, '_') || currentUser.id || "guest_user";
+    function getUserKey() {
+      return currentUser?.Lotus || currentUser?.Email?.replace(/[.#$[\]]/g, '_') || "default_user";
     }
 
-    function triggerHaptic(duration = 15) {
-      if (navigator.vibrate) {
-        navigator.vibrate(duration);
-      }
-    }
-
-    /* ================= 0-LATENCY DIRECT COMMAND DISPATCH ================= */
     function sendCommand(action, payload = {}) {
-      const userKey = getUserAccountKey();
       if (!targetDeviceId) {
-        alert("Please select a target screen first.");
+        openDeviceModal();
         return;
       }
-
-      triggerHaptic(18);
-      const commandRef = ref(rtdb, `commands/${userKey}/${targetDeviceId}`);
+      if (navigator.vibrate) navigator.vibrate(15);
       
-      // Directly writing with unique timestamp triggers target listener instantly
-      set(commandRef, {
-        action: action,
-        timestamp: Date.now(),
-        ...payload
-      });
+      const uKey = getUserKey();
+      const cmdRef = ref(rtdb, `commands/${uKey}/${targetDeviceId}`);
+      set(cmdRef, { action, timestamp: Date.now(), ...payload });
     }
 
-    /* ================= DYNAMIC ROCKER CONFIGURATION ================= */
-    function updateRockerUI(type) {
-      targetContentType = type || 'live';
-      const label = document.getElementById('rockerLabel');
-      const upIcon = document.getElementById('iconRockerUp');
-      const downIcon = document.getElementById('iconRockerDown');
-
-      if (targetContentType === 'live') {
-        label.innerText = 'CH';
-        upIcon.innerHTML = '<polyline points="18 15 12 9 6 15"></polyline>';
-        downIcon.innerHTML = '<polyline points="6 9 12 15 18 9"></polyline>';
-      } else {
-        label.innerText = 'VOL';
-        upIcon.innerHTML = '<line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>';
-        downIcon.innerHTML = '<line x1="5" y1="12" x2="19" y2="12"></line>';
-      }
+    function updateRocker(isLive) {
+      isLiveTV = isLive;
+      document.getElementById('rockerLabel').innerText = isLive ? 'CH' : 'VOL';
+      document.getElementById('iconRockerUp').innerHTML = isLive 
+        ? '<polyline points="18 15 12 9 6 15"></polyline>' 
+        : '<line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>';
+      document.getElementById('iconRockerDown').innerHTML = isLive 
+        ? '<polyline points="6 9 12 15 18 9"></polyline>' 
+        : '<line x1="5" y1="12" x2="19" y2="12"></line>';
     }
 
-    /* ================= REALTIME DEVICE PRESENCE & SYNC ================= */
-    function initDeviceListeners() {
-      const userKey = getUserAccountKey();
-      const devicesRef = ref(rtdb, `devices/${userKey}`);
+    function syncActiveDevices() {
+      const uKey = getUserKey();
+      const devRef = ref(rtdb, `devices/${uKey}`);
 
-      onValue(devicesRef, (snap) => {
-        activeDevicesMap = snap.val() || {};
-        const deviceIds = Object.keys(activeDevicesMap);
+      onValue(devRef, (snap) => {
+        activeScreens = snap.val() || {};
+        const keys = Object.keys(activeScreens);
 
-        if (deviceIds.length === 0) {
-          document.getElementById('targetDeviceName').innerText = "No Screen Active";
+        if (keys.length === 0) {
+          document.getElementById('targetDeviceName').innerText = "No Screens Found";
           document.getElementById('targetStatusDot').classList.add('offline');
-          document.getElementById('mediaInfoTag').innerText = "Open player on TV or another screen";
+          document.getElementById('mediaInfoTag').innerText = "Open player on any device";
           return;
         }
 
-        // If targetDeviceId is not set or disconnected, pick the first available active screen
-        if (!targetDeviceId || !activeDevicesMap[targetDeviceId]) {
-          targetDeviceId = deviceIds[0];
+        if (!targetDeviceId || !activeScreens[targetDeviceId]) {
+          targetDeviceId = keys[0];
         }
 
-        const dev = activeDevicesMap[targetDeviceId];
-        if (dev) {
-          document.getElementById('targetDeviceName').innerText = dev.name || "Smart Screen";
-          document.getElementById('targetStatusDot').classList.remove('offline');
-          document.getElementById('mediaInfoTag').innerText = dev.title ? `Now Watching: ${dev.title}` : "Ready to Stream";
-          if (dev.contentType) {
-            updateRockerUI(dev.contentType);
-          }
-        }
+        const dev = activeScreens[targetDeviceId];
+        document.getElementById('targetDeviceName').innerText = dev.name;
+        document.getElementById('targetStatusDot').classList.remove('offline');
+        document.getElementById('mediaInfoTag').innerText = dev.title || "Ready to Stream";
+        updateRocker(dev.title ? !dev.title.includes("Movie") : true);
       });
     }
 
-    initDeviceListeners();
-    updateRockerUI(targetContentType);
+    syncActiveDevices();
 
-    /* ================= TOUCHPAD SWIPE & SCRUB GESTURES ================= */
+    // Touchpad Gesture Tracking (Scrubbing / Tap / Volume)
     const touchpad = document.getElementById("touchpad");
-    const ripple = document.getElementById("ripple");
-    let startX = 0, startY = 0;
-    let startTime = 0;
+    let startX = 0, startY = 0, startTime = 0;
 
     touchpad.addEventListener("pointerdown", (e) => {
-      startX = e.clientX;
-      startY = e.clientY;
-      startTime = Date.now();
-
-      const rect = touchpad.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      ripple.style.left = `${x - 25}px`;
-      ripple.style.top = `${y - 25}px`;
-      ripple.style.transform = "scale(2)";
-      ripple.style.opacity = "1";
+      startX = e.clientX; startY = e.clientY; startTime = Date.now();
     });
 
     touchpad.addEventListener("pointerup", (e) => {
       const diffX = e.clientX - startX;
       const diffY = e.clientY - startY;
       const elapsed = Date.now() - startTime;
-      const threshold = 30;
 
-      if (Math.abs(diffX) > threshold || Math.abs(diffY) > threshold) {
+      if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
         if (Math.abs(diffX) > Math.abs(diffY)) {
-          // Horizontal Swipe: Scrub / Seek (Apple TV & Google TV style)
-          const seconds = diffX > 0 ? (elapsed < 200 ? 30 : 10) : (elapsed < 200 ? -30 : -10);
-          sendCommand('SEEK', { seconds: seconds });
+          // Horizontal Scrubbing
+          sendCommand('SEEK', { seconds: diffX > 0 ? (elapsed < 200 ? 30 : 10) : (elapsed < 200 ? -30 : -10) });
         } else {
-          // Vertical Swipe: Fast channel or navigation
-          if (targetContentType === 'live') {
-            sendCommand(diffY < 0 ? 'CHANNEL_UP' : 'CHANNEL_DOWN');
-          } else {
-            sendCommand('VOLUME', { delta: diffY < 0 ? 0.1 : -0.1 });
-          }
+          // Vertical Navigation
+          sendCommand(diffY < 0 ? (isLiveTV ? 'CHANNEL_UP' : 'VOLUME') : (isLiveTV ? 'CHANNEL_DOWN' : 'VOLUME'), { delta: diffY < 0 ? 0.1 : -0.1 });
         }
       } else {
-        // Tap -> Select / Play-Pause Toggle
         sendCommand('TOGGLE_PLAY');
       }
-
-      ripple.style.transform = "scale(0)";
-      ripple.style.opacity = "0";
     });
 
-    /* ================= BUTTON EVENT LISTENERS ================= */
+    // Control Buttons
     document.getElementById("powerBtn").onclick = () => sendCommand('TOGGLE_PLAY');
     document.getElementById("muteBtn").onclick = () => sendCommand('MUTE');
-    document.getElementById("menuBtn").onclick = () => sendCommand('MENU');
     document.getElementById("playBtn").onclick = () => sendCommand('TOGGLE_PLAY');
     document.getElementById("backBtn").onclick = () => sendCommand('BACK');
 
-    // Rocker Actions
-    document.getElementById("rockerUpBtn").onclick = () => {
-      if (targetContentType === 'live') {
-        sendCommand('CHANNEL_UP');
-      } else {
-        sendCommand('VOLUME', { delta: 0.1 });
-      }
-    };
-
-    document.getElementById("rockerDownBtn").onclick = () => {
-      if (targetContentType === 'live') {
-        sendCommand('CHANNEL_DOWN');
-      } else {
-        sendCommand('VOLUME', { delta: -0.1 });
-      }
-    };
-
-    // Device Picker Modal Handlers
-    const modal = document.getElementById("deviceModal");
-    const deviceListEl = document.getElementById("deviceListEl");
+    document.getElementById("rockerUpBtn").onclick = () => sendCommand(isLiveTV ? 'CHANNEL_UP' : 'VOLUME', { delta: 0.1 });
+    document.getElementById("rockerDownBtn").onclick = () => sendCommand(isLiveTV ? 'CHANNEL_DOWN' : 'VOLUME', { delta: -0.1 });
 
     function openDeviceModal() {
-      modal.classList.add("active");
-      const deviceIds = Object.keys(activeDevicesMap);
+      const modal = document.getElementById('deviceModal');
+      const list = document.getElementById('deviceListEl');
+      modal.classList.add('active');
 
-      if (deviceIds.length === 0) {
-        deviceListEl.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px;">No other active screens found.</div>';
+      const keys = Object.keys(activeScreens);
+      if (keys.length === 0) {
+        list.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:20px;">No online devices detected.</div>';
         return;
       }
 
-      deviceListEl.innerHTML = deviceIds.map(id => {
-        const d = activeDevicesMap[id];
-        const isSelected = id === targetDeviceId;
-        return `
-          <div class="device-item-card ${isSelected ? 'selected' : ''}" onclick="window.selectDevice('${id}')">
-            <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-            <div>
-              <div style="font-size:14px; font-weight:700;">${d.name || 'Screen'} ${isSelected ? '• Connected' : ''}</div>
-              <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${d.title || 'Idle'}</div>
-            </div>
+      list.innerHTML = keys.map(k => `
+        <div class="device-item-card ${k === targetDeviceId ? 'selected' : ''}" onclick="window.setTarget('${k}')">
+          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+          <div>
+            <div style="font-size:14px; font-weight:700;">${activeScreens[k].name}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${activeScreens[k].title || 'Idle'}</div>
           </div>
-        `;
-      }).join('');
+        </div>
+      `).join('');
     }
 
-    document.getElementById("roomSelector").onclick = openDeviceModal;
-    document.getElementById("btnCastScreen").onclick = openDeviceModal;
-    document.getElementById("closeDeviceModal").onclick = () => modal.classList.remove("active");
-
-    window.selectDevice = function(id) {
+    window.setTarget = function(id) {
       targetDeviceId = id;
-      modal.classList.remove("active");
-      const dev = activeDevicesMap[id];
+      document.getElementById('deviceModal').classList.remove('active');
+      const dev = activeScreens[id];
       if (dev) {
         document.getElementById('targetDeviceName').innerText = dev.name;
-        document.getElementById('mediaInfoTag').innerText = dev.title ? `Now Watching: ${dev.title}` : "Ready to Stream";
-        if (dev.contentType) updateRockerUI(dev.contentType);
+        document.getElementById('mediaInfoTag').innerText = dev.title || "Ready to Stream";
       }
-      triggerHaptic(25);
     };
+
+    document.getElementById('roomSelector').onclick = openDeviceModal;
+    document.getElementById('btnCastSwitch').onclick = openDeviceModal;
+    document.getElementById('closeDeviceModal').onclick = () => document.getElementById('deviceModal').classList.remove('active');
   </script>
 </body>
 </html>
