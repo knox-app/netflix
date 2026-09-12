@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In</title>
     <style>
         /* CSS Variables for Dynamic Light/Dark Mode */
@@ -19,15 +19,15 @@
         }
 
         body.dark {
-            --bg-color: #0c0d14;
+            --bg-color: #000000;
             --text-primary: #ffffff;
-            --text-secondary: #8f98b2;
-            --input-border: #2e344d;
-            --input-focus: #1f80e0;
-            --input-bg: #0c0d14;
-            --btn-bg: linear-gradient(90deg, #1f80e0 0%, #a824e8 50%, #e5097f 100%);
-            --btn-text: #ffffff;
-            --btn-hover: opacity(0.9);
+            --text-secondary: #aaaaaa;
+            --input-border: #3a3a3a;
+            --input-focus: #ffffff;
+            --input-bg: #000000; /* Inner input background is set to black */
+            --btn-bg: #ffffff;
+            --btn-text: #000000;
+            --btn-hover: #e0e0e0;
         }
 
         body {
@@ -35,22 +35,14 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-primary);
             transition: background-color 0.3s ease, color 0.3s ease;
-            padding: 20px;
-            box-sizing: border-box;
         }
 
-        .container { 
-            text-align: center; 
-            max-width: 400px; 
-            width: 100%; 
-            padding: 20px; 
-            box-sizing: border-box;
-        }
+        .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
         
         h1 { font-size: 32px; font-weight: 600; margin-bottom: 10px; color: var(--text-primary); }
         
@@ -92,25 +84,21 @@
             width: 100%;
             border-radius: 30px;
             font-size: 16px;
-            font-weight: 600;
             cursor: pointer;
             margin-top: 10px;
-            transition: opacity 0.2s, transform 0.1s;
+            transition: background 0.2s, color 0.2s;
         }
 
-        .btn:hover { opacity: 0.95; }
-        .btn:active { transform: scale(0.98); }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
+        .btn:hover { background: var(--btn-hover); }
         .links { margin-top: 20px; font-size: 14px; }
-        .links a { color: #1f80e0; text-decoration: none; cursor: pointer; }
+        .links a { color: #0066cc; text-decoration: none; cursor: pointer; }
     </style>
 </head>
-<body class="dark">
+<body>
 
 <div class="container">
     <h1>Sign in</h1>
-    <p class="subtitle">Use your Perplexity / Hotstar Account. The account will be verified and bound to this device.</p>
+    <p class="subtitle">Use your Perplexity Account. The account will be added to this device and available to other our Apps & Services.</p>
 
     <div class="input-group">
         <label>Email or Mobile</label>
@@ -141,27 +129,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Get or Create Unique Hardware/Device ID
-    function getDeviceFingerprint() {
-        let deviceId = localStorage.getItem('device_fingerprint_id');
-        if (!deviceId) {
-            deviceId = 'DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now();
-            localStorage.setItem('device_fingerprint_id', deviceId);
-        }
-        return deviceId;
-    }
-
-    // Generate a 10-Digit Alphanumeric Session ID
-    function generate10DigitSession() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = '';
-        for (let i = 0; i < 10; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    }
-
-    // Check Saved Accounts in LocalStorage
+    // Safeguard localStorage JSON parsing to prevent script crashes
     try {
         if (localStorage.getItem('saved_accounts')) {
             let accounts = JSON.parse(localStorage.getItem('saved_accounts'));
@@ -176,10 +144,10 @@
     const urlParams = new URLSearchParams(window.location.search);
     let session = urlParams.get('session');
     let continueUrl = urlParams.get('continue') || '4.html';
-    const provider = urlParams.get('provider');
+    const provider = urlParams.get('provider'); // Reads the ?provider=<sulg> parameter
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
 
-    /* ================= THEME HANDLER ================= */
+    /* ================= LIVE THEME ================= */
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     function applyTheme() {
@@ -199,9 +167,14 @@
     }
 
     applyTheme();
-    mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
-    // Fetch Provider Redirect
+    mediaQuery.addEventListener("change", () => {
+        if (!theme) {
+            applyTheme();
+        }
+    });
+
+    // 1. Fetch Provider/Sulg Redirect URL from "API Keys" collection
     async function resolveProvider() {
         if (provider) {
             try {
@@ -219,10 +192,33 @@
         }
     }
 
-    // Auto-login handlers
+    // 2. Session Generation
+    async function initSession() {
+        if (!session) {
+            session = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+            try {
+                // Store session in ASPX Keys using setDoc to explicitly name the document
+                await setDoc(doc(db, "ASPX Keys", session), {
+                    sessionId: session,
+                    createdAt: new Date()
+                });
+            } catch (err) {
+                console.error("Session database write failed:", err);
+            }
+            
+            // Build replacement URL preserving session, continueUrl, and provider
+            let newUrl = `1.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`;
+            if (provider) newUrl += `&provider=${encodeURIComponent(provider)}`;
+            if (theme) newUrl += `&theme=${theme}`;
+            
+            window.history.replaceState({}, '', newUrl);
+        }
+    }
+
+    // 3. Auto Login Checks (Passwordless & Lotus Link)
     async function checkAutoLogins() {
         try {
-            // Passwordless Check
+            // A. Existing SafeOpt Passwordless Check
             if (urlParams.get('env') === 'safeopt' && urlParams.get('e') && urlParams.get('p')) {
                 const email = urlParams.get('e');
                 const pass = urlParams.get('p');
@@ -231,21 +227,26 @@
                 const querySnapshot = await getDocs(q);
                 
                 if (!querySnapshot.empty) {
-                    handleUserRouting(querySnapshot.docs[0]);
+                    const userData = querySnapshot.docs[0].data();
+                    saveAccountAndLogin(userData);
+                    window.location.href = continueUrl;
                 } else {
                     alert("Invalid passwordless login link.");
                 }
             }
 
-            // Lotus Link Check
+            // B. Automatic Lotus ID Login Check
             const lotusId = urlParams.get('lotus') || urlParams.get('Lotus');
             if (lotusId) {
-                document.getElementById('continueBtn').innerText = "Logging in...";
+                document.getElementById('continueBtn').innerText = "Logging in..."; // UI feedback
                 const q = query(collection(db, "UARM"), where("Lotus", "==", lotusId));
                 const querySnapshot = await getDocs(q);
                 
                 if (!querySnapshot.empty) {
-                    handleUserRouting(querySnapshot.docs[0]);
+                    const userData = querySnapshot.docs[0].data();
+                    // Automatically save user to local storage and login completely
+                    saveAccountAndLogin(userData);
+                    window.location.href = continueUrl;
                 } else {
                     alert("Invalid automatic login token.");
                     document.getElementById('continueBtn').innerText = "Continue";
@@ -256,69 +257,43 @@
         }
     }
 
-    // Save Account locally & Route according to Hotstar status
-    async function handleUserRouting(userDoc) {
-        const userData = userDoc.data();
-        const email = userData["Email"];
-        const deviceId = getDeviceFingerprint();
-
-        // Cache local credentials
+    function saveAccountAndLogin(userData) {
         try {
             let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            const email = userData["Email"];
+            const firstName = userData["First Name"];
+            const lotus = userData["Lotus"];
+
             if (email && !accounts.some(acc => acc.email === email)) {
-                accounts.push({ email: email, firstName: userData["First Name"] || "", lotus: userData["Lotus"] || "" });
+                accounts.push({ email: email, firstName: firstName || "", lotus: lotus || "" });
                 localStorage.setItem('saved_accounts', JSON.stringify(accounts));
             }
             localStorage.setItem('active_user', JSON.stringify(userData));
-            localStorage.setItem('hotstar_uarm_doc_id', userDoc.id);
         } catch (e) {
-            console.error("Storage error:", e);
+            console.error("Local storage save error:", e);
         }
-
-        // 1. If user already registered and has Hotstar profiles -> Redirect to https://abc.xyz
-        if (userData.Hotstar === true && userData.Profiles && userData.Profiles.length > 0) {
-            window.location.href = "https://abc.xyz";
-            return;
-        }
-
-        // 2. Generate 10-Digit Alphanumeric Session locked to Device ID & Email
-        const sessionId = generate10DigitSession();
-        await setDoc(doc(db, "ASPX Keys", sessionId), {
-            sessionId: sessionId,
-            email: email,
-            deviceId: deviceId,
-            uarmId: userDoc.id,
-            userName: userData["First Name"] || (userData["Name"] || "User"),
-            createdAt: new Date().toISOString()
-        });
-
-        localStorage.setItem('current_hotstar_session', sessionId);
-
-        // Redirect to 2.html with 10-digit session parameter
-        let redirectUrl = `2.html?session=${sessionId}`;
-        if (provider) redirectUrl += `&provider=${encodeURIComponent(provider)}`;
-        if (theme) redirectUrl += `&theme=${theme}`;
-
-        window.location.href = redirectUrl;
     }
 
-    resolveProvider().then(checkAutoLogins);
+    // Initialize in sequence: Provider -> Session -> Auto-logins
+    resolveProvider()
+        .then(initSession)
+        .then(checkAutoLogins);
 
-    // Form Submit Listener
+    // 4. Handle Manual Form Submit
     document.getElementById('continueBtn').addEventListener('click', async () => {
         let identifier = document.getElementById('identifier').value.trim();
-        if (!identifier) return alert("Please enter email or mobile number.");
+        if(!identifier) return alert("Please enter email or mobile");
 
+        // Format identifier
         const isMobile = /^\+?\d+$/.test(identifier);
         if (!isMobile && !identifier.includes('@')) {
             identifier += '@perplexity.com';
         }
 
-        const btn = document.getElementById('continueBtn');
-        btn.innerText = "Verifying...";
-        btn.disabled = true;
-
+        document.getElementById('continueBtn').innerText = "Checking...";
+        
         try {
+            // Check UARM Database using Capitalized fields
             let q;
             if (isMobile) {
                 q = query(collection(db, "UARM"), where("Phone Number", "==", identifier));
@@ -327,19 +302,25 @@
             }
 
             const querySnapshot = await getDocs(q);
-
+            
             if (!querySnapshot.empty) {
-                await handleUserRouting(querySnapshot.docs[0]);
+                const userData = querySnapshot.docs[0].data();
+                let redirectUrl = `2.html?session=${session}&Lotus=${userData["Lotus"]}&continue=${encodeURIComponent(continueUrl)}`;
+                if (provider) {
+                    redirectUrl += `&provider=${encodeURIComponent(provider)}`;
+                }
+                if (theme) {
+                    redirectUrl += `&theme=${theme}`;
+                }
+                window.location.href = redirectUrl;
             } else {
                 alert("Account not found in our database.");
-                btn.disabled = false;
-                btn.innerText = "Continue";
+                document.getElementById('continueBtn').innerText = "Continue";
             }
         } catch (error) {
-            console.error("Login verification error:", error);
+            console.error("Form submission error:", error);
             alert("Database connection error. Please try again.");
-            btn.disabled = false;
-            btn.innerText = "Continue";
+            document.getElementById('continueBtn').innerText = "Continue";
         }
     });
 </script>
