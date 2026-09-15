@@ -3,68 +3,366 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Live TV Player</title>
+  <title>Live Stream Player</title>
+  <!-- HLS.js for .m3u8 playback -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: #000;
-      color: #fff;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
     }
-    #playerContainer {
-      position: relative;
-      flex: 1;
+
+    body, html {
       width: 100%;
       height: 100%;
-      background: #000;
+      background-color: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #videoViewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      background: #000;
+      cursor: default;
     }
-    video, iframe {
+
+    #videoViewport.hide-cursor {
+      cursor: none;
+    }
+
+    /* Video Engines */
+    video {
       width: 100%;
       height: 100%;
-      border: none;
+      object-fit: contain;
     }
-    .overlay {
+
+    #ytWrapper {
       position: absolute;
-      top: 20px;
-      left: 20px;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none; /* Disables direct YT clicks so our custom UI controls it */
+    }
+
+    #ytWrapper.interactive {
+      pointer-events: auto;
+    }
+
+    #ytPlayer {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Ambient UI Layers */
+    .player-gradient {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      opacity: 0;
       z-index: 10;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 8px 16px;
-      border-radius: 4px;
+    }
+
+    .gradient-top {
+      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+      height: 120px;
+    }
+
+    .gradient-bottom {
+      bottom: 0;
+      top: auto;
+      background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+      height: 140px;
+    }
+
+    .active-ui .player-gradient,
+    .active-ui .top-bar,
+    .active-ui .controls-bar {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
+    /* Top Metadata Bar */
+    .top-bar {
+      position: absolute;
+      top: 24px;
+      left: 32px;
+      right: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 0.4s ease;
       pointer-events: none;
     }
-    .badge {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      background: #ef4444;
+
+    .badge-live {
+      background: #e50914;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-live::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: #fff;
       border-radius: 50%;
-      margin-right: 6px;
+      animation: pulse 1.2s infinite;
     }
-    .message {
-      color: #71717a;
-      font-size: 1.25rem;
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
     }
+
+    .info-container {
+      margin-left: 16px;
+    }
+
+    .channel-name {
+      font-size: 0.85rem;
+      color: #a1a1aa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .slot-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /* Controls Bar */
+    .controls-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 32px;
+      right: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #e50914;
+      width: 0%;
+      transition: width 0.5s linear;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .ctrl-btn {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.2rem;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(255,255,255,0.15);
+      transform: scale(1.05);
+    }
+
+    .volume-slider-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 80px;
+      background: rgba(255, 255, 255, 0.3);
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+    }
+
+    .time-badge {
+      font-size: 0.85rem;
+      color: #a1a1aa;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Fullscreen Click Backdrop for Play/Pause */
+    #clickOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+    }
+
+    /* Center State Notifications */
+    .state-indicator {
+      position: absolute;
+      z-index: 15;
+      font-size: 3rem;
+      color: rgba(255, 255, 255, 0.8);
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transform: scale(0.8);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .state-indicator.animate {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Offline Alert */
+    #statusPrompt {
+      position: absolute;
+      z-index: 30;
+      text-align: center;
+      color: #fff;
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-<div id="playerContainer">
-  <div class="overlay" id="channelInfo" style="display: none;">
-    <span class="badge"></span>
-    <span id="nowPlaying">Loading Channel...</span>
+<div id="videoViewport">
+  <!-- Interactive Interceptor -->
+  <div id="clickOverlay"></div>
+
+  <!-- Background Players -->
+  <video id="nativeVideo" playsinline></video>
+  <div id="ytWrapper"><div id="ytPlayer"></div></div>
+
+  <!-- Gradients -->
+  <div class="player-gradient gradient-top"></div>
+  <div class="player-gradient gradient-bottom"></div>
+
+  <!-- UI: Top Meta Info -->
+  <div class="top-bar">
+    <div style="display: flex; align-items: center;">
+      <span class="badge-live">LIVE</span>
+      <div class="info-container">
+        <div id="uiChannel" class="channel-name">Channel</div>
+        <div id="uiTitle" class="slot-title">Connecting...</div>
+      </div>
+    </div>
+    <div>
+      <span id="currentTime" class="time-badge">00:00:00</span>
+    </div>
   </div>
-  <div id="emptyMessage" class="message">Connecting to stream...</div>
-  <video id="hlsPlayer" class="hidden" controls autoplay playsinline></video>
-  <div id="ytPlayerContainer" style="width: 100%; height: 100%; display: none;"></div>
+
+  <!-- Animated Play/Pause feedback -->
+  <div id="stateIndicator" class="state-indicator">
+    <i class="fa-solid fa-play"></i>
+  </div>
+
+  <!-- UI: Bottom Custom Controls Bar -->
+  <div class="controls-bar">
+    <div class="progress-bar-container">
+      <div id="slotProgress" class="progress-fill"></div>
+    </div>
+
+    <div class="controls-row">
+      <div class="btn-group">
+        <button class="ctrl-btn" id="btnPlayPause" title="Play/Pause (k)">
+          <i class="fa-solid fa-pause"></i>
+        </button>
+        <button class="ctrl-btn" id="btnSyncLive" title="Catch up to Live Broadcast">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+        
+        <div class="volume-slider-box">
+          <button class="ctrl-btn" id="btnMute" title="Mute (m)">
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
+          <input type="range" id="volRange" min="0" max="1" step="0.05" value="1" />
+        </div>
+
+        <span id="slotDuration" class="time-badge">00:00 / 00:00</span>
+      </div>
+
+      <div class="btn-group">
+        <button class="ctrl-btn" id="btnPip" title="Picture in Picture">
+          <i class="fa-solid fa-clone"></i>
+        </button>
+        <button class="ctrl-btn" id="btnFullscreen" title="Fullscreen (f)">
+          <i class="fa-solid fa-expand"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status / Offline placeholder -->
+  <div id="statusPrompt" class="hidden">
+    <h2 id="promptMsg" style="font-size: 1.8rem; margin-bottom: 8px;">Off Air</h2>
+    <p style="color: #a1a1aa;">This channel has no programming scheduled at this time.</p>
+  </div>
 </div>
 
 <script type="module">
@@ -84,168 +382,356 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const channelSlug = urlParams.get("channel");
+  const slug = new URLSearchParams(window.location.search).get("channel");
 
-  const emptyMessage = document.getElementById("emptyMessage");
-  const hlsVideo = document.getElementById("hlsPlayer");
-  const ytContainer = document.getElementById("ytPlayerContainer");
-  const channelInfo = document.getElementById("channelInfo");
-  const nowPlaying = document.getElementById("nowPlaying");
+  // DOM Elements
+  const viewport = document.getElementById("videoViewport");
+  const nativeVideo = document.getElementById("nativeVideo");
+  const ytWrapper = document.getElementById("ytWrapper");
+  const clickOverlay = document.getElementById("clickOverlay");
+  const uiTitle = document.getElementById("uiTitle");
+  const uiChannel = document.getElementById("uiChannel");
+  const currentTimeEl = document.getElementById("currentTime");
+  const slotProgress = document.getElementById("slotProgress");
+  const slotDuration = document.getElementById("slotDuration");
+  const btnPlayPause = document.getElementById("btnPlayPause");
+  const btnMute = document.getElementById("btnMute");
+  const volRange = document.getElementById("volRange");
+  const btnSyncLive = document.getElementById("btnSyncLive");
+  const btnFullscreen = document.getElementById("btnFullscreen");
+  const btnPip = document.getElementById("btnPip");
+  const stateIndicator = document.getElementById("stateIndicator");
+  const statusPrompt = document.getElementById("statusPrompt");
 
-  let currentSlot = null;
-  let ytPlayer = null;
+  // State Engine
+  let activeSlot = null;
+  let activeEngine = null; // 'native' | 'yt'
   let hlsInstance = null;
+  let ytPlayer = null;
+  let isPaused = false;
+  let isMuted = false;
+  let idleTimer = null;
+  let scheduleRef = [];
 
-  // Convert "HH:MM" format to minutes since midnight
-  function timeToMinutes(t) {
-    const [h, m] = t.split(":").map(Number);
+  // Utilities
+  const parseClock = (hhmm) => {
+    const [h, m] = hhmm.split(":").map(Number);
     return h * 60 + m;
+  };
+
+  function formatTime(seconds) {
+    const min = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60);
+    return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   }
 
-  // Calculate current slot & relative playback seconds
-  function getActiveSlot(schedule) {
+  // Determine current scheduled show based on absolute wall clock
+  function resolveLiveState(schedule) {
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const currentSecondsIntoSlot = (now.getMinutes() % 60) * 60 + now.getSeconds();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const secsIntoMinute = now.getSeconds();
 
     for (let slot of schedule) {
-      const start = timeToMinutes(slot.from);
-      const end = timeToMinutes(slot.to);
+      let start = parseClock(slot.from);
+      let end = parseClock(slot.to);
 
-      let isActive = false;
+      let isMatch = false;
+      let totalSlotSecs = 0;
+      let elapsedSecs = 0;
+
       if (start < end) {
-        isActive = currentMinutes >= start && currentMinutes < end;
+        // Standard slot (e.g. 10:00 -> 11:00)
+        isMatch = currentMins >= start && currentMins < end;
+        totalSlotSecs = (end - start) * 60;
+        elapsedSecs = (currentMins - start) * 60 + secsIntoMinute;
       } else {
-        // Crosses midnight
-        isActive = currentMinutes >= start || currentMinutes < end;
+        // Midnight crossing slot (e.g. 23:00 -> 01:00)
+        isMatch = currentMins >= start || currentMins < end;
+        totalSlotSecs = ((1440 - start) + end) * 60;
+        elapsedSecs = (currentMins >= start ? (currentMins - start) : (1440 - start + currentMins)) * 60 + secsIntoMinute;
       }
 
-      if (isActive) {
-        const elapsedMinutes = currentMinutes >= start ? (currentMinutes - start) : (1440 - start + currentMinutes);
-        const elapsedSeconds = (elapsedMinutes * 60) + now.getSeconds();
-        return { slot, elapsedSeconds };
+      if (isMatch) {
+        return { slot, elapsedSecs, totalSlotSecs };
       }
     }
     return null;
   }
 
-  async function initChannel() {
-    if (!channelSlug) {
-      emptyMessage.innerText = "No channel specified. Append ?channel=SLUG to URL";
+  // Load Channel Info
+  async function bootChannel() {
+    if (!slug) {
+      showError("No Channel Selected", "Append ?channel=YOUR_CHANNEL_SLUG to the URL.");
       return;
     }
 
-    const docRef = doc(db, "Live TV", channelSlug);
-    const snap = await getDoc(docRef);
+    try {
+      const docSnap = await getDoc(doc(db, "Live TV", slug));
+      if (!docSnap.exists()) {
+        showError("404 Not Found", `Channel "${slug}" does not exist.`);
+        return;
+      }
 
-    if (!snap.exists()) {
-      emptyMessage.innerText = "Channel not found.";
-      return;
+      const data = docSnap.data();
+      uiChannel.innerText = data.name || slug;
+      scheduleRef = data.schedule || [];
+      
+      startEngineSync();
+      setInterval(startEngineSync, 10000); // 10-second sync loop
+    } catch (e) {
+      showError("Connection Error", e.message);
     }
-
-    const channelData = snap.data();
-    syncPlayback(channelData.schedule);
-    setInterval(() => syncPlayback(channelData.schedule), 15000); // Check loop every 15s
   }
 
-  function syncPlayback(schedule) {
-    const active = getActiveSlot(schedule);
+  function showError(title, message) {
+    statusPrompt.classList.remove("hidden");
+    document.getElementById("promptMsg").innerText = title;
+    statusPrompt.querySelector("p").innerText = message;
+  }
+
+  // Active Sync logic
+  function startEngineSync() {
+    const active = resolveLiveState(scheduleRef);
 
     if (!active) {
-      emptyMessage.style.display = "block";
-      emptyMessage.innerText = "Off Air. Channel is currently inactive.";
-      stopAllPlayers();
+      showError("Off Air", "No active content currently scheduled.");
+      killActivePlayers();
       return;
     }
 
-    emptyMessage.style.display = "none";
-    channelInfo.style.display = "block";
-    nowPlaying.innerText = `NOW PLAYING: ${active.slot.title}`;
+    statusPrompt.classList.add("hidden");
+    uiTitle.innerText = active.slot.title;
 
-    if (currentSlot && currentSlot.title === active.slot.title) {
-      return; // Slot has not changed
+    // Detect if content changed
+    if (!activeSlot || activeSlot.title !== active.slot.title) {
+      activeSlot = active.slot;
+      renderActiveContent(active.slot, active.elapsedSecs);
     }
+  }
 
-    currentSlot = active.slot;
-    stopAllPlayers();
+  function renderActiveContent(slot, seekTime) {
+    killActivePlayers();
 
-    if (active.slot.type === "movie") {
-      playMovie(active.slot.streamUrl, active.elapsedSeconds);
+    if (slot.type === "movie") {
+      activeEngine = "native";
+      nativeVideo.style.display = "block";
+      ytWrapper.style.display = "none";
+
+      if (Hls.isSupported() && slot.streamUrl.includes(".m3u8")) {
+        hlsInstance = new Hls({ startPosition: seekTime });
+        hlsInstance.loadSource(slot.streamUrl);
+        hlsInstance.attachMedia(nativeVideo);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => nativeVideo.play());
+      } else {
+        nativeVideo.src = slot.streamUrl;
+        nativeVideo.currentTime = seekTime;
+        nativeVideo.play();
+      }
     } else {
-      playTV(active.slot.playlistId, active.slot.mode, active.slot.startIndex, active.elapsedSeconds);
+      activeEngine = "yt";
+      nativeVideo.style.display = "none";
+      ytWrapper.style.display = "block";
+
+      mountYTPlayer(slot.playlistId, slot.mode, slot.startIndex, seekTime);
     }
   }
 
-  function stopAllPlayers() {
-    if (hlsInstance) {
-      hlsInstance.destroy();
-      hlsInstance = null;
-    }
-    hlsVideo.pause();
-    hlsVideo.src = "";
-    hlsVideo.style.display = "none";
-    ytContainer.style.display = "none";
-    ytContainer.innerHTML = "";
-  }
-
-  function playMovie(streamUrl, seekTime) {
-    hlsVideo.style.display = "block";
-
-    if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
-      hlsInstance = new Hls({ startPosition: seekTime });
-      hlsInstance.loadSource(streamUrl);
-      hlsInstance.attachMedia(hlsVideo);
-      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-        hlsVideo.play();
-      });
-    } else {
-      hlsVideo.src = streamUrl;
-      hlsVideo.currentTime = seekTime;
-      hlsVideo.play();
-    }
-  }
-
-  function playTV(playlistId, mode, startIndex, seekTime) {
-    ytContainer.style.display = "block";
-    const ytDiv = document.createElement("div");
-    ytDiv.id = "ytPlayer";
-    ytContainer.appendChild(ytDiv);
-
-    let listType = "playlist";
-    let listId = playlistId;
-
+  function mountYTPlayer(playlistId, mode, startIndex, seekTime) {
     ytPlayer = new YT.Player("ytPlayer", {
-      height: "100%",
-      width: "100%",
       playerVars: {
-        listType: listType,
-        list: listId,
+        listType: "playlist",
+        list: playlistId,
         autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        modestbranding: 1,
+        rel: 0,
         index: startIndex || 0,
-        start: seekTime
+        start: Math.floor(seekTime)
       },
       events: {
-        onReady: (event) => {
+        onReady: (e) => {
           if (mode === "random") {
-            event.target.setShuffle(true);
-            event.target.nextVideo();
+            e.target.setShuffle(true);
+            e.target.nextVideo();
           }
-          event.target.playVideo();
+          e.target.playVideo();
+          e.target.setVolume(volRange.value * 100);
         }
       }
     });
   }
 
-  // Load YouTube IFrame API
+  function killActivePlayers() {
+    if (hlsInstance) {
+      hlsInstance.destroy();
+      hlsInstance = null;
+    }
+    nativeVideo.pause();
+    nativeVideo.removeAttribute('src');
+    nativeVideo.load();
+    nativeVideo.style.display = "none";
+
+    if (ytPlayer && ytPlayer.destroy) {
+      ytPlayer.destroy();
+      ytPlayer = null;
+    }
+    ytWrapper.innerHTML = '<div id="ytPlayer"></div>';
+    ytWrapper.style.display = "none";
+  }
+
+  // Controls Implementation
+  function togglePlay() {
+    isPaused = !isPaused;
+    flashIcon(isPaused ? "fa-pause" : "fa-play");
+    btnPlayPause.innerHTML = isPaused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
+
+    if (activeEngine === "native") {
+      isPaused ? nativeVideo.pause() : nativeVideo.play();
+    } else if (ytPlayer && ytPlayer.pauseVideo) {
+      isPaused ? ytPlayer.pauseVideo() : ytPlayer.playVideo();
+    }
+  }
+
+  function toggleMute() {
+    isMuted = !isMuted;
+    btnMute.innerHTML = isMuted 
+      ? '<i class="fa-solid fa-volume-xmark"></i>' 
+      : '<i class="fa-solid fa-volume-high"></i>';
+
+    if (activeEngine === "native") {
+      nativeVideo.muted = isMuted;
+    } else if (ytPlayer && ytPlayer.mute) {
+      isMuted ? ytPlayer.mute() : ytPlayer.unMute();
+    }
+  }
+
+  function setVolume(v) {
+    if (activeEngine === "native") {
+      nativeVideo.volume = v;
+      nativeVideo.muted = false;
+    } else if (ytPlayer && ytPlayer.setVolume) {
+      ytPlayer.setVolume(v * 100);
+      ytPlayer.unMute();
+    }
+    isMuted = false;
+    btnMute.innerHTML = v == 0 
+      ? '<i class="fa-solid fa-volume-xmark"></i>' 
+      : '<i class="fa-solid fa-volume-high"></i>';
+  }
+
+  function syncLive() {
+    const active = resolveLiveState(scheduleRef);
+    if (!active) return;
+    flashIcon("fa-rotate-right");
+
+    if (activeEngine === "native") {
+      nativeVideo.currentTime = active.elapsedSecs;
+      nativeVideo.play();
+    } else if (ytPlayer && ytPlayer.seekTo) {
+      ytPlayer.seekTo(active.elapsedSecs, true);
+      ytPlayer.playVideo();
+    }
+    isPaused = false;
+    btnPlayPause.innerHTML = '<i class="fa-solid fa-pause"></i>';
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      viewport.requestFullscreen().catch(err => alert(err.message));
+      btnFullscreen.innerHTML = '<i class="fa-solid fa-compress"></i>';
+    } else {
+      document.exitFullscreen();
+      btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
+    }
+  }
+
+  function togglePip() {
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture();
+    } else if (document.pictureInPictureEnabled && activeEngine === "native") {
+      nativeVideo.requestPictureInPicture();
+    }
+  }
+
+  function flashIcon(iconClass) {
+    stateIndicator.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+    stateIndicator.classList.add("animate");
+    setTimeout(() => stateIndicator.classList.remove("animate"), 350);
+  }
+
+  // Event Listeners
+  btnPlayPause.addEventListener("click", togglePlay);
+  clickOverlay.addEventListener("click", togglePlay);
+  btnMute.addEventListener("click", toggleMute);
+  btnSyncLive.addEventListener("click", syncLive);
+  btnFullscreen.addEventListener("click", toggleFullscreen);
+  btnPip.addEventListener("click", togglePip);
+
+  volRange.addEventListener("input", (e) => setVolume(e.target.value));
+
+  // Progress Tracker Loop
+  setInterval(() => {
+    const d = new Date();
+    currentTimeEl.innerText = d.toTimeString().split(' ')[0];
+
+    const active = resolveLiveState(scheduleRef);
+    if (active) {
+      const pct = (active.elapsedSecs / active.totalSlotSecs) * 100;
+      slotProgress.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+      slotDuration.innerText = `${formatTime(active.elapsedSecs)} / ${formatTime(active.totalSlotSecs)}`;
+    }
+  }, 1000);
+
+  // Auto-hide Control Overlay on Inactivity
+  function resetControlsTimeout() {
+    viewport.classList.add("active-ui");
+    viewport.classList.remove("hide-cursor");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (!isPaused) {
+        viewport.classList.remove("active-ui");
+        viewport.classList.add("hide-cursor");
+      }
+    }, 3000);
+  }
+
+  viewport.addEventListener("mousemove", resetControlsTimeout);
+  viewport.addEventListener("mousedown", resetControlsTimeout);
+
+  // Global Keyboard Shortcuts
+  window.addEventListener("keydown", (e) => {
+    resetControlsTimeout();
+    switch (e.key.toLowerCase()) {
+      case " ":
+      case "k":
+        togglePlay();
+        break;
+      case "m":
+        toggleMute();
+        break;
+      case "f":
+        toggleFullscreen();
+        break;
+      case "l":
+        syncLive();
+        break;
+      case "arrowup":
+        volRange.value = Math.min(1, parseFloat(volRange.value) + 0.1);
+        setVolume(volRange.value);
+        break;
+      case "arrowdown":
+        volRange.value = Math.max(0, parseFloat(volRange.value) - 0.1);
+        setVolume(volRange.value);
+        break;
+    }
+  });
+
+  // Init YouTube Engine Library
   const tag = document.createElement("script");
   tag.src = "https://www.youtube.com/iframe_api";
-  const firstScriptTag = document.getElementsByTagName("script")[0];
-  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-  window.onYouTubeIframeAPIReady = () => {
-    initChannel();
-  };
+  document.head.appendChild(tag);
+  window.onYouTubeIframeAPIReady = bootChannel;
 </script>
 </body>
 </html>
