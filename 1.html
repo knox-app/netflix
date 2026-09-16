@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hotstar Video Player & Remote Cast</title>
+  <title>Hotstar Video Player</title>
   
   <!-- HLS.js for .m3u8 streams -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -248,7 +248,6 @@
     }
     .icon-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.92); }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
-    .icon-btn.active { color: var(--accent-blue); }
 
     /* Center Controls */
     .ctrl-center {
@@ -384,64 +383,6 @@
       align-items: center;
       gap: 6px;
     }
-
-    /* Cast Devices Modal */
-    .cast-modal {
-      position: absolute;
-      inset: 0;
-      z-index: 60;
-      background: rgba(0, 0, 0, 0.92);
-      backdrop-filter: blur(16px);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 24px;
-    }
-    .cast-modal.active { display: flex; }
-    .cast-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      width: 100%;
-      max-width: 380px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    }
-    .cast-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 12px;
-    }
-    .cast-header h3 { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
-    .cast-device-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 280px;
-      overflow-y: auto;
-    }
-    .device-item {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 14px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s;
-    }
-    .device-item:active { background: rgba(0,114,239,0.2); border-color: var(--accent-blue); }
-    .device-item svg { width: 24px; height: 24px; fill: var(--accent-blue); flex-shrink: 0; }
-    .device-info { display: flex; flex-direction: column; min-width: 0; }
-    .device-name { font-size: 14px; font-weight: 700; color: #fff; }
-    .device-status { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
     /* Settings Modal */
     .settings-modal {
@@ -761,7 +702,7 @@
     .view-more-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.2s ease; }
     .view-more-btn.expanded svg { transform: rotate(180deg); }
 
-    /* Recommendations */
+    /* Horizontal 16:9 Banner Recommendation Cards */
     .horizontal-banners-scroll {
       display: flex;
       gap: 14px;
@@ -843,7 +784,7 @@
         <div class="tap-ripple-pill">10s ▶▶</div>
       </div>
 
-      <!-- Video Engines -->
+      <!-- Video Engines (.m3u8, .mp4, .mkv) -->
       <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
@@ -869,10 +810,6 @@
             </div>
           </div>
           <div class="ctrl-top-right">
-            <!-- Screen Cast Button -->
-            <button class="icon-btn" id="castBtn" title="Cast to Device">
-              <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-            </button>
             <button class="icon-btn" id="lockBtn" title="Lock Screen">
               <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </button>
@@ -944,22 +881,6 @@
           </div>
         </div>
 
-      </div>
-
-      <!-- Screen Cast Modal -->
-      <div class="cast-modal" id="castModal">
-        <div class="cast-card">
-          <div class="cast-header">
-            <h3>
-              <svg style="width:20px;height:20px;fill:var(--accent-blue);" viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-              Cast to Device
-            </h3>
-            <button class="icon-btn" id="closeCastBtn">✕</button>
-          </div>
-          <div class="cast-device-list" id="castDeviceList">
-            <div style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px;">Scanning for logged-in devices...</div>
-          </div>
-        </div>
       </div>
 
       <!-- Settings Drawer Modal -->
@@ -1053,19 +974,15 @@
       <div class="ch-title-head" id="chTitle">Title</div>
       <div class="ch-lang-sub" id="chLangSub">Video</div>
 
-      <!-- Action items row: Watchlist, Cast, Share -->
+      <!-- Action items row: Watchlist, Share -->
       <div class="meta-actions-bar">
         <div class="meta-action-item" id="actionWatchlist">
           <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           <span id="watchlistText">Watchlist</span>
         </div>
-        <div class="meta-action-item" id="actionCastBottom">
-          <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-          <span>Screen Cast</span>
-        </div>
         <div class="meta-action-item" id="actionShare">
           <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
-          <span>Share</span>
+          Share
         </div>
       </div>
 
@@ -1091,7 +1008,6 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, onSnapshot, collection, getDoc, getDocs, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-  import { getDatabase, ref, set, onValue, onDisconnect, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const channelConfig = {
     apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
@@ -1099,7 +1015,8 @@
     projectId: "internal-systems-46728",
     storageBucket: "internal-systems-46728.firebasestorage.app",
     messagingSenderId: "172177452674",
-    appId: "1:172177452674:web:155a2417da5531dd7ece9b"
+    appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+    measurementId: "G-Y87B8VRQ1N"
   };
   const channelApp = initializeApp(channelConfig, "channelApp");
   const channelDb = getFirestore(channelApp);
@@ -1111,11 +1028,11 @@
     projectId: "question-metabase",
     storageBucket: "question-metabase.firebasestorage.app",
     messagingSenderId: "770698198753",
-    appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+    appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+    measurementId: "G-6ZP1FPMKSJ"
   };
   const authApp = initializeApp(authConfig, "authApp");
   const authDb = getFirestore(authApp);
-  const rtdb = getDatabase(authApp);
 
   const YOUTUBE_API_KEY = channelConfig.apiKey;
 
@@ -1138,24 +1055,12 @@
   let availableHlsLevels = [];
   let lastProgressSave = 0;
 
-  // Persistent Device ID for Zero-Latency Sync
-  let myDeviceId = localStorage.getItem('cast_device_id');
-  if (!myDeviceId) {
-    myDeviceId = 'dev_' + Math.random().toString(36).substring(2, 9);
-    localStorage.setItem('cast_device_id', myDeviceId);
-  }
-
-  // Device friendly name
-  function getDeviceFriendlyName() {
-    const ua = navigator.userAgent;
-    if (/SmartTV|Tizen|Web0S|BRAVIA|Android TV/i.test(ua)) return "Living Room TV";
-    if (/iPad|Tablet/i.test(ua)) return "Tablet";
-    if (/iPhone/i.test(ua)) return "iPhone";
-    if (/Android/i.test(ua)) return "Android Phone";
-    if (/Macintosh/i.test(ua)) return "Mac Computer";
-    if (/Windows/i.test(ua)) return "Windows PC";
-    return "Smart Screen";
-  }
+  // Digital-Feed Dynamic State
+  let digitalFeedUnsub = null;
+  let digitalFeedInterval = null;
+  let digitalFeedSchedule = [];
+  let digitalFeedActiveSlot = null;
+  let digitalFeedMoviesLibrary = [];
 
   // In-Memory Item Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
@@ -1233,6 +1138,22 @@
     const mm = (m < 10 ? '0' + m : m);
     const ss = (s < 10 ? '0' + s : s);
     return `${hh}${mm}:${ss}`;
+  }
+
+  function format12Hour(time24) {
+    if (!time24) return "";
+    const [hStr, mStr] = time24.split(":");
+    let h = parseInt(hStr, 10);
+    const period = h >= 12 ? "PM" : "AM";
+    if (h === 0) h = 12;
+    else if (h > 12) h -= 12;
+    const hDisplay = h < 10 ? `0${h}` : `${h}`;
+    return `${hDisplay}:${mStr} ${period}`;
+  }
+
+  function timeToSeconds(timeStr) {
+    const [h, m] = timeStr.split(":").map(Number);
+    return (h * 3600) + (m * 60);
   }
 
   function extractYouTubeId(url) {
@@ -1352,6 +1273,8 @@
     } catch(e) { currentUser = null; }
 
     if (channelDocUnsub) channelDocUnsub();
+    if (digitalFeedUnsub) { digitalFeedUnsub(); digitalFeedUnsub = null; }
+    if (digitalFeedInterval) { clearInterval(digitalFeedInterval); digitalFeedInterval = null; }
 
     channelDocUnsub = onSnapshot(doc(channelDb, targetCol, docId), async (snap) => {
       if (!snap.exists()) {
@@ -1379,8 +1302,6 @@
 
       if (currentUser) {
         initWatchlistState();
-        registerDevicePresence();
-        listenToRemoteSync();
       }
 
       if (contentType === 'show') {
@@ -1400,7 +1321,14 @@
         }
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
-        startStreamPlayback(currentChannel);
+
+        // Check for Digital Feed stream pattern {.DIGI-FEED=slug} or {.DIGI-FEED-slug}
+        const rawStream = (currentChannel.Stream || '').trim();
+        if (rawStream.includes('.DIGI-FEED')) {
+          initDigitalFeedEngine(rawStream);
+        } else {
+          startStreamPlayback(currentChannel);
+        }
       }
       
       setupAudioOptions(currentChannel);
@@ -1409,171 +1337,143 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  /* ================== ZERO-LATENCY CAST & PRESENCE SYSTEM ================== */
-  function getUserAccountKey() {
-    if (!currentUser) return null;
-    return currentUser.Lotus || currentUser.Email?.replace(/[.#$[\]]/g, '_') || currentUser.id || "guest_user";
-  }
+  /* ================== DIGITAL FEED ENGINE ================== */
+  async function initDigitalFeedEngine(streamTag) {
+    // Extract slug from format: {.DIGI-FEED=super-hungama-4k} or {.DIGI-FEED-super-hungama-4k}
+    const cleanTag = streamTag.replace(/[{}]/g, '').trim();
+    let feedSlug = '';
 
-  function registerDevicePresence() {
-    const userKey = getUserAccountKey();
-    if (!userKey) return;
-
-    const deviceRef = ref(rtdb, `devices/${userKey}/${myDeviceId}`);
-    const deviceData = {
-      id: myDeviceId,
-      name: getDeviceFriendlyName(),
-      online: true,
-      lastActive: Date.now(),
-      currentWatch: currentDocId,
-      contentType: contentType,
-      title: currentChannel?.Name || "Video",
-      season: currentSeasonKey || null,
-      episode: currentEpisodeIdx || 0
-    };
-
-    set(deviceRef, deviceData);
-    onDisconnect(deviceRef).remove();
-  }
-
-  function listenToRemoteSync() {
-    const userKey = getUserAccountKey();
-    if (!userKey) return;
-
-    const commandRef = ref(rtdb, `commands/${userKey}/${myDeviceId}`);
-    onValue(commandRef, (snap) => {
-      const cmd = snap.val();
-      if (!cmd || !cmd.action) return;
-
-      handleRemoteCommand(cmd);
-      // Remove command right after execution to ensure 0-latency execution once
-      set(commandRef, null);
-    });
-  }
-
-  function handleRemoteCommand(cmd) {
-    const video = document.getElementById('nativeVideoPlayer');
-    switch (cmd.action) {
-      case 'PLAY':
-        if (video && video.paused) video.play();
-        if (ytPlayerInstance) ytPlayerInstance.playVideo();
-        if (jwPlayerInstance) jwPlayerInstance.play();
-        showToast("Play");
-        break;
-      case 'PAUSE':
-        if (video && !video.paused) video.pause();
-        if (ytPlayerInstance) ytPlayerInstance.pauseVideo();
-        if (jwPlayerInstance) jwPlayerInstance.pause();
-        showToast("Pause");
-        break;
-      case 'TOGGLE_PLAY':
-        document.getElementById('playBtn').click();
-        break;
-      case 'SEEK':
-        if (cmd.seconds) {
-          if (video) video.currentTime += cmd.seconds;
-          if (ytPlayerInstance) ytPlayerInstance.seekTo(ytPlayerInstance.getCurrentTime() + cmd.seconds, true);
-          if (jwPlayerInstance) jwPlayerInstance.seek(jwPlayerInstance.getPosition() + cmd.seconds);
-          showToast(`${cmd.seconds > 0 ? '+' : ''}${cmd.seconds}s`);
-        }
-        break;
-      case 'VOLUME':
-        if (video) {
-          video.volume = Math.min(1, Math.max(0, video.volume + (cmd.delta || 0.1)));
-          showToast(`Volume ${Math.round(video.volume * 100)}%`);
-        }
-        break;
-      case 'MUTE':
-        if (video) {
-          video.muted = !video.muted;
-          showToast(video.muted ? "Muted" : "Unmuted");
-        }
-        break;
-      case 'CHANNEL_UP':
-      case 'CHANNEL_DOWN':
-        if (contentType === 'live' && cachedCollectionData["Live TV"]?.length > 0) {
-          const list = cachedCollectionData["Live TV"];
-          const currIdx = list.findIndex(c => c.id === currentDocId);
-          let targetIdx = cmd.action === 'CHANNEL_UP' ? (currIdx + 1) % list.length : (currIdx - 1 + list.length) % list.length;
-          window.switchChannelInPlace(list[targetIdx].id);
-        }
-        break;
-      case 'CAST_LOAD':
-        if (cmd.watchId) {
-          showToast(`Casting ${cmd.title || 'video'}...`);
-          window.switchChannelInPlace(cmd.watchId);
-        }
-        break;
-      case 'BACK':
-        window.history.back();
-        break;
+    if (cleanTag.includes('=')) {
+      feedSlug = cleanTag.split('=')[1].trim();
+    } else if (cleanTag.includes('-FEED-')) {
+      feedSlug = cleanTag.split('-FEED-')[1].trim();
+    } else if (cleanTag.startsWith('.DIGI-FEED-')) {
+      feedSlug = cleanTag.replace('.DIGI-FEED-', '').trim();
+    } else {
+      feedSlug = cleanTag.replace(/^\.DIGI-FEED[=-]?/, '').trim();
     }
-  }
 
-  function openCastDeviceSelector() {
-    const modal = document.getElementById('castModal');
-    const listEl = document.getElementById('castDeviceList');
-    const userKey = getUserAccountKey();
-
-    if (!userKey || !currentUser) {
-      alert("Please login to cast to your connected devices.");
+    if (!feedSlug) {
+      showToast("Invalid Digital Feed identifier");
       return;
     }
 
-    modal.classList.add('active');
-    listEl.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px;">Discovering devices...</div>';
+    // Preload Movies library once for dynamic franchise/genre scheduler
+    if (digitalFeedMoviesLibrary.length === 0) {
+      try {
+        const movieSnaps = await getDocs(collection(channelDb, "Movies"));
+        digitalFeedMoviesLibrary = [];
+        movieSnaps.forEach(d => digitalFeedMoviesLibrary.push({ id: d.id, ...d.data() }));
+      } catch (err) {
+        console.warn("Could not pre-load movies library for digital feed:", err);
+      }
+    }
 
-    const devicesRef = ref(rtdb, `devices/${userKey}`);
-    onValue(devicesRef, (snap) => {
-      const devices = snap.val() || {};
-      const activeDevices = Object.keys(devices)
-        .map(key => devices[key])
-        .filter(d => d.id !== myDeviceId); // Exclude self
+    if (digitalFeedUnsub) digitalFeedUnsub();
+    if (digitalFeedInterval) clearInterval(digitalFeedInterval);
 
-      if (activeDevices.length === 0) {
-        listEl.innerHTML = `
-          <div style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px;">
-            No other active devices found.<br><br>
-            <span style="font-size:11px;">Open Hotstar or Remote on your TV / Other Phone with this same account.</span>
-          </div>
-        `;
+    digitalFeedUnsub = onSnapshot(doc(channelDb, "Digital-Feed", feedSlug), (snapshot) => {
+      if (!snapshot.exists()) {
+        document.getElementById('chLangSub').innerText = "Live Feed Channel Not Found";
         return;
       }
 
-      listEl.innerHTML = activeDevices.map(d => `
-        <div class="device-item" onclick="window.castCurrentStreamTo('${d.id}', '${d.name.replace(/'/g, "\\'")}')">
-          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-          <div class="device-info">
-            <div class="device-name">${d.name}</div>
-            <div class="device-status">Ready to stream • Zero Latency</div>
-          </div>
-        </div>
-      `).join('');
+      const feedData = snapshot.data();
+      digitalFeedSchedule = feedData.schedule || [];
+      digitalFeedActiveSlot = null;
+      syncDigitalFeedLive();
     });
+
+    digitalFeedInterval = setInterval(syncDigitalFeedLive, 5000);
   }
 
-  window.castCurrentStreamTo = function(targetDeviceId, targetName) {
-    const userKey = getUserAccountKey();
-    if (!userKey) return;
+  function resolveCurrentDigitalFeedSlot() {
+    if (!digitalFeedSchedule || digitalFeedSchedule.length === 0) return null;
 
-    const targetCommandRef = ref(rtdb, `commands/${userKey}/${targetDeviceId}`);
-    set(targetCommandRef, {
-      action: 'CAST_LOAD',
-      watchId: currentDocId,
-      title: currentChannel?.Name || "Video",
-      timestamp: Date.now()
-    });
+    const now = new Date();
+    const currentSeconds = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
 
-    document.getElementById('castModal').classList.remove('active');
-    showToast(`Streaming to ${targetName}...`);
+    for (let slot of digitalFeedSchedule) {
+      const start = timeToSeconds(slot.from);
+      const end = timeToSeconds(slot.to);
 
-    // Redirect or open remote to control playback seamlessly
-    setTimeout(() => {
-      window.location.href = `remote.html?target=${targetDeviceId}&doc=${currentDocId}&type=${contentType}`;
-    }, 1200);
-  };
+      let isCurrent = false;
+      if (start < end) {
+        isCurrent = currentSeconds >= start && currentSeconds < end;
+      } else {
+        isCurrent = currentSeconds >= start || currentSeconds < end;
+      }
 
-  /* ================== WATCHLIST LOGIC ================== */
+      if (isCurrent) {
+        let elapsed = currentSeconds >= start ? (currentSeconds - start) : (86400 - start + currentSeconds);
+        return { slot, elapsedSeconds: elapsed };
+      }
+    }
+    return null;
+  }
+
+  function pickDynamicFeedMovie(filterType, filterValue) {
+    let pool = digitalFeedMoviesLibrary;
+    if (filterType && filterType !== "all" && filterValue && filterValue !== "ALL") {
+      pool = digitalFeedMoviesLibrary.filter(m => {
+        const val = m[filterType] || m[filterType.toLowerCase()] || m["Franchise"] || m["Genres"];
+        if (!val) return false;
+        return Array.isArray(val) ? val.includes(filterValue) : String(val).trim().toLowerCase() === String(filterValue).toLowerCase();
+      });
+    }
+    if (!pool || pool.length === 0) pool = digitalFeedMoviesLibrary;
+    if (!pool || pool.length === 0) return null;
+
+    const today = new Date();
+    const daySeed = today.getDate() + (today.getMonth() + 1) * 31 + today.getFullYear();
+    return pool[daySeed % pool.length];
+  }
+
+  function syncDigitalFeedLive() {
+    const live = resolveCurrentDigitalFeedSlot();
+
+    if (!live) {
+      document.getElementById('chLangSub').innerText = "Channel Currently Off-Air";
+      destroyPlayers();
+      return;
+    }
+
+    if (!digitalFeedActiveSlot || digitalFeedActiveSlot.from !== live.slot.from || digitalFeedActiveSlot.to !== live.slot.to) {
+      digitalFeedActiveSlot = live.slot;
+      const timeTag = `${format12Hour(live.slot.from)} - ${format12Hour(live.slot.to)}`;
+
+      if (live.slot.type === "movie") {
+        const movie = pickDynamicFeedMovie(live.slot.filterType, live.slot.filterValue);
+        if (!movie || !movie.Stream) {
+          document.getElementById('chLangSub').innerText = `Live Movie Unavailable • [${timeTag}]`;
+          return;
+        }
+
+        const movieTitle = movie.Name || movie.Title || live.slot.title || "Live Movie";
+        document.getElementById('chLangSub').innerText = `${movieTitle} • [${timeTag}]`;
+        document.getElementById('overlaySubtitle').style.display = 'block';
+        document.getElementById('overlaySubtitle').innerText = `${movieTitle} • [${timeTag}]`;
+
+        startStreamPlayback({
+          Stream: movie.Stream,
+          mpd: movie.mpd || movie.MPD,
+          Name: movieTitle
+        }, live.elapsedSeconds);
+      } else {
+        const slotTitle = live.slot.title || live.slot.name || "Live Broadcast";
+        document.getElementById('chLangSub').innerText = `${slotTitle} • [${timeTag}]`;
+        document.getElementById('overlaySubtitle').style.display = 'block';
+        document.getElementById('overlaySubtitle').innerText = `${slotTitle} • [${timeTag}]`;
+
+        startStreamPlayback({
+          Stream: live.slot.rawUrl || live.slot.Stream || live.slot.stream || (live.slot.playlistId ? `https://www.youtube.com/watch?v=${live.slot.playlistId}` : ''),
+          Name: slotTitle
+        }, live.elapsedSeconds);
+      }
+    }
+  }
+
+  /* ================== WATCHLIST ================== */
   async function initWatchlistState() {
     if (!currentUser) return;
     try {
@@ -1640,8 +1540,17 @@
           updateWatchlistUI(true);
           showToast("Added to Watchlist");
         }
+        if (currentChannel) {
+          listenToRecommendations(currentDocId, contentType === 'show' ? 'Shows' : (contentType === 'movie' ? 'Movies' : 'Live TV'));
+        }
+      } else {
+        updateWatchlistUI(!isAdded);
+        showToast(!isAdded ? "Added to Watchlist" : "Removed from Watchlist");
       }
-    } catch(e) {}
+    } catch(e) {
+      updateWatchlistUI(!isAdded);
+      showToast("Watchlist updated");
+    }
   };
 
   document.getElementById('actionShare').onclick = async () => {
@@ -1821,7 +1730,7 @@
     });
   }
 
-  function startStreamPlayback(data) {
+  function startStreamPlayback(data, overrideStartTime) {
     destroyPlayers();
 
     const video = document.getElementById('nativeVideoPlayer');
@@ -1832,7 +1741,7 @@
     const streamUrl = safeUrl(data.Stream || '');
     const mpdObj = data.mpd || data.MPD || null;
     const resumeKey = data.id || currentDocId;
-    const savedTime = getSavedProgress(resumeKey);
+    const savedTime = overrideStartTime !== undefined ? overrideStartTime : getSavedProgress(resumeKey);
 
     let mpdFile = null;
     let keyId = null;
@@ -1880,8 +1789,9 @@
         events: {
           onReady: (e) => {
             e.target.playVideo();
-            if (savedTime > 0 && contentType !== 'live') {
-              e.target.seekTo(savedTime, true);
+            if (savedTime > 0) {
+              const dur = e.target.getDuration();
+              e.target.seekTo(dur && dur > 0 ? (savedTime % dur) : savedTime, true);
             }
           },
           onStateChange: (e) => {
@@ -1934,9 +1844,10 @@
       overlay.style.display = 'flex';
 
       const applyResume = () => {
-        if (savedTime > 0 && contentType !== 'live') {
-          video.currentTime = savedTime;
-          showToast(`Resumed from ${formatTime(savedTime)}`);
+        if (savedTime > 0) {
+          const targetTime = video.duration && video.duration > 0 ? (savedTime % video.duration) : savedTime;
+          video.currentTime = targetTime;
+          if (contentType !== 'live') showToast(`Resumed from ${formatTime(targetTime)}`);
         }
         video.play().catch(() => {});
       };
@@ -2239,7 +2150,7 @@
     let lastTapX = 0;
 
     playerContainer.onpointerdown = (e) => {
-      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay') || e.target.closest('.cast-modal')) {
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
         return;
       }
@@ -2479,19 +2390,6 @@
         if (document.exitFullscreen) await document.exitFullscreen().catch(() => {});
       }
       checkOrientation();
-    };
-
-    // Screen Cast Click Handlers
-    document.getElementById('castBtn').onclick = (e) => {
-      e.stopPropagation();
-      openCastDeviceSelector();
-    };
-    document.getElementById('actionCastBottom').onclick = (e) => {
-      e.stopPropagation();
-      openCastDeviceSelector();
-    };
-    document.getElementById('closeCastBtn').onclick = () => {
-      document.getElementById('castModal').classList.remove('active');
     };
 
     settingsBtn.onclick = (e) => {
