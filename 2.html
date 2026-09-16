@@ -1,199 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Disney+ Live Stream Player</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Live Stream Player</title>
+  <!-- HLS.js for .m3u8 streaming -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- Remix Icons for crisp media icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet" />
+
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-    
-    #viewport {
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+    .player-wrapper {
       position: relative;
       width: 100vw;
       height: 100vh;
       background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       overflow: hidden;
     }
-
-    /* 135% Scaling + -17.5% Offsets completely crops out all YouTube logos, titles, and controls */
-    .iframe-wrapper {
+    video, .yt-frame-container {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
       position: absolute;
-      top: -17.5%;
-      left: -17.5%;
-      width: 135%;
-      height: 135%;
-      pointer-events: none;
+      top: 0;
+      left: 0;
+    }
+    /* Touch Shield over YouTube to route touches/clicks through custom controls */
+    .touch-shield {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      background: transparent;
     }
 
-    .player-frame {
+    /* Top Metadata Overlay */
+    .top-bar {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      border: none;
-      transition: opacity 0.6s ease-in-out;
-    }
-
-    #playerA { z-index: 2; opacity: 1; }
-    #playerB { z-index: 1; opacity: 0; }
-
-    /* Invisible blocker prevents touching/clicking YouTube UI elements */
-    .interaction-blocker {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 10;
-      cursor: pointer;
-    }
-
-    /* Top TV Broadcast Overlay */
-    .tv-broadcast-bar {
-      position: absolute;
-      top: clamp(15px, 3vh, 35px);
-      left: clamp(15px, 4vw, 40px);
-      right: clamp(15px, 4vw, 40px);
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 24px;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
-      z-index: 30;
-      pointer-events: none;
+      z-index: 10;
+      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+      transition: opacity 0.3s ease, visibility 0.3s ease;
     }
-
-    /* Zero-Background Title Container */
-    .tv-ticker-container {
+    .channel-info {
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-      padding: 0 !important;
+      gap: 12px;
     }
-
-    .live-badge {
-      background: #0072d2;
+    .badge-live {
+      background: #ef4444;
       color: #fff;
-      font-size: clamp(10px, 1.2vw, 12px);
-      font-weight: 800;
-      padding: 4px 10px;
-      border-radius: 4px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-    }
-
-    /* Clean Text with Heavy Drop Shadow */
-    .tv-ticker-text {
-      color: #ffffff;
-      font-size: clamp(15px, 2.4vw, 22px);
+      font-size: 11px;
       font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 4px;
       letter-spacing: 0.5px;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 15px rgba(0, 0, 0, 0.9);
-      transition: opacity 0.5s ease-in-out;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 65vw;
-      background: transparent !important;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
-
-    /* Disney+ Logo */
-    .disney-logo {
-      height: clamp(32px, 4.5vw, 55px);
-      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.9));
+    .badge-live::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      animation: pulse 1.2s infinite ease-in-out;
     }
-
-    /* Initial Click Overlay */
-    #startOverlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(15,24,48,0.96) 0%, rgba(5,7,12,0.98) 100%);
-      color: white;
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.8); }
+    }
+    .stream-meta {
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-      cursor: pointer;
+    }
+    .stream-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    }
+    .stream-channel {
+      font-size: 0.85rem;
+      color: #a1a1aa;
     }
 
-    #startOverlay img { height: clamp(50px, 10vw, 85px); margin-bottom: 20px; }
-    #startOverlay h1 { font-size: clamp(20px, 4vw, 32px); font-weight: 700; letter-spacing: 1.5px; }
-    #startOverlay p { margin-top: 10px; color: #0072d2; font-size: clamp(12px, 1.8vw, 15px); font-weight: 600; letter-spacing: 1px; }
-
-    /* Bottom Control Bar */
-    .controls-overlay {
+    /* Bottom Player Controls */
+    .bottom-bar {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      padding: 20px 30px;
-      background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 20px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+      z-index: 10;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 40;
-      opacity: 0;
-      transition: opacity 0.3s ease;
+      flex-direction: column;
+      gap: 10px;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
     }
-
-    .controls-overlay.visible { opacity: 1; }
-
-    .control-btn {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 6px;
+    .progress-bar-container {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 3px;
       cursor: pointer;
-      font-size: 13px;
-      font-weight: 700;
-      backdrop-filter: blur(8px);
-      transition: background 0.2s, transform 0.1s;
+      position: relative;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #6366f1;
+      width: 0%;
+      border-radius: 3px;
+      position: relative;
+    }
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .controls-left, .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .ctrl-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+    }
+    .ctrl-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .volume-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .volume-slider {
+      -webkit-appearance: none;
+      width: 70px;
+      height: 4px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 2px;
+      outline: none;
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+    }
+    .time-stamp {
+      font-size: 0.85rem;
+      color: #d4d4d8;
     }
 
-    .control-btn:hover { background: #0072d2; border-color: #0072d2; }
-    .control-btn:active { transform: scale(0.95); }
+    /* Unmute / Autoplay Blocker Fallback */
+    .unmute-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 14px 24px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: #fff;
+      backdrop-filter: blur(8px);
+    }
+
+    /* Hidden UI State */
+    .controls-hidden {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+    .hidden {
+      display: none !important;
+    }
+
+    /* Responsive Mobile Queries */
+    @media (max-width: 768px) {
+      .volume-group {
+        display: none; /* Hide volume slider on mobile, hardware buttons handle this */
+      }
+      .stream-title {
+        font-size: 0.95rem;
+      }
+      .top-bar {
+        padding: 14px;
+      }
+      .bottom-bar {
+        padding: 10px 14px;
+      }
+      .ctrl-btn {
+        font-size: 1.25rem;
+      }
+    }
   </style>
 </head>
 <body>
 
-<div id="viewport">
-  <!-- Disney+ Integrated TV Bar -->
-  <div class="tv-broadcast-bar">
-    <div class="tv-ticker-container">
-      <div class="live-badge">LIVE</div>
-      <div class="tv-ticker-text" id="tvTickerText">NOW: Loading...</div>
+<div class="player-wrapper" id="playerWrapper">
+  
+  <!-- Touch layer to toggle controls -->
+  <div class="touch-shield" id="touchShield"></div>
+
+  <!-- Video Engine Nodes -->
+  <video id="hlsVideo" playsinline preload="auto" class="hidden"></video>
+  <div id="ytContainer" class="yt-frame-container hidden"></div>
+
+  <!-- Unmute Floating CTA -->
+  <div id="unmutePrompt" class="unmute-box hidden">
+    <i class="ri-volume-mute-fill"></i>
+    <span>Tap to Unmute</span>
+  </div>
+
+  <!-- Overlay: Header Info -->
+  <div class="top-bar" id="topBar">
+    <div class="channel-info">
+      <div class="badge-live">LIVE</div>
+      <div class="stream-meta">
+        <div class="stream-title" id="displayTitle">Fetching Stream...</div>
+        <div class="stream-channel" id="displayChannel">Channel Feed</div>
+      </div>
     </div>
-    <img class="disney-logo" src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
   </div>
 
-  <!-- Dual Player Iframe Container -->
-  <div class="iframe-wrapper">
-    <div id="playerA" class="player-frame"></div>
-    <div id="playerB" class="player-frame"></div>
+  <!-- Overlay: Footer Controls -->
+  <div class="bottom-bar" id="bottomBar">
+    <div class="progress-bar-container" id="progressBarContainer">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <div class="controls-row">
+      <div class="controls-left">
+        <button class="ctrl-btn" id="playBtn"><i class="ri-play-fill"></i></button>
+        <div class="volume-group">
+          <button class="ctrl-btn" id="muteBtn"><i class="ri-volume-up-line"></i></button>
+          <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1" />
+        </div>
+        <span class="time-stamp" id="timeDisplay">00:00:00</span>
+      </div>
+
+      <div class="controls-right">
+        <button class="ctrl-btn" id="syncLiveBtn" title="Jump to sync live"><i class="ri-broadcast-line"></i></button>
+        <button class="ctrl-btn" id="fullscreenBtn"><i class="ri-fullscreen-line"></i></button>
+      </div>
+    </div>
   </div>
 
-  <!-- Single Tap = Show Controls | Double Tap = Toggle Fullscreen -->
-  <div class="interaction-blocker" onclick="handleInteractionClick(event)"></div>
-
-  <!-- Start Overlay -->
-  <div id="startOverlay" onclick="initializeAudioAndStart()">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Disney+">
-    <h1>JOIN LIVE STREAM</h1>
-    <p>CLICK TO START BROADCAST</p>
-  </div>
-
-  <!-- Custom Controls Bar -->
-  <div class="controls-overlay" id="controlsOverlay">
-    <button class="control-btn" onclick="toggleMute()" id="muteBtn">MUTE</button>
-    <button class="control-btn" onclick="toggleFullscreen()" id="fsBtn">FULLSCREEN</button>
-  </div>
 </div>
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-<script>
   const firebaseConfig = {
     apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
     authDomain: "internal-systems-46728.firebaseapp.com",
@@ -204,242 +309,337 @@
     measurementId: "G-Y87B8VRQ1N"
   };
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const channelId = urlParams.get('watch') || 'main';
+  // Setup References
+  const params = new URLSearchParams(window.location.search);
+  const channelSlug = params.get("channel");
 
-  let playerA, playerB;
-  let activePlayer = 'A';
-  let scheduleData = null;
-  let prebufferTimer = null;
-  let transitionTimer = null;
-  let tickerTimer = null;
-  let controlsHideTimeout = null;
-  let isMuted = false;
-  let lastTapTime = 0;
+  const wrapper = document.getElementById("playerWrapper");
+  const touchShield = document.getElementById("touchShield");
+  const hlsVideo = document.getElementById("hlsVideo");
+  const ytContainer = document.getElementById("ytContainer");
+  const topBar = document.getElementById("topBar");
+  const bottomBar = document.getElementById("bottomBar");
+  const playBtn = document.getElementById("playBtn");
+  const muteBtn = document.getElementById("muteBtn");
+  const volumeSlider = document.getElementById("volumeSlider");
+  const fullscreenBtn = document.getElementById("fullscreenBtn");
+  const syncLiveBtn = document.getElementById("syncLiveBtn");
+  const displayTitle = document.getElementById("displayTitle");
+  const displayChannel = document.getElementById("displayChannel");
+  const timeDisplay = document.getElementById("timeDisplay");
+  const progressBar = document.getElementById("progressBar");
+  const unmutePrompt = document.getElementById("unmutePrompt");
 
-  let tickerState = 'NOW'; // Flips between NOW and NEXT every 20 seconds
+  let hlsInstance = null;
+  let ytPlayer = null;
+  let activeMode = null; // 'movie' | 'tv'
+  let isPlaying = false;
+  let currentSlot = null;
+  let channelSchedule = [];
+  let controlsTimeout = null;
 
-  // Event Listeners for Fullscreen Changes to Update Button Label
-  document.addEventListener('fullscreenchange', updateFullscreenButtonState);
-  document.addEventListener('webkitfullscreenchange', updateFullscreenButtonState);
-
-  const tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
-  document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, document.getElementsByTagName('script')[0]);
-
-  function onYouTubeIframeAPIReady() {
-    fetchChannelSchedule();
+  // Auto Hide Overlay Logic
+  function showControls() {
+    topBar.classList.remove("controls-hidden");
+    bottomBar.classList.remove("controls-hidden");
+    clearTimeout(controlsTimeout);
+    controlsTimeout = setTimeout(() => {
+      if (isPlaying) {
+        topBar.classList.add("controls-hidden");
+        bottomBar.classList.add("controls-hidden");
+      }
+    }, 3500);
   }
 
-  async function fetchChannelSchedule() {
+  touchShield.addEventListener("mousemove", showControls);
+  touchShield.addEventListener("click", () => {
+    if (topBar.classList.contains("controls-hidden")) {
+      showControls();
+    } else {
+      topBar.classList.add("controls-hidden");
+      bottomBar.classList.add("controls-hidden");
+    }
+  });
+
+  // Mobile Double-tap gesture (left: -10s, right: +10s)
+  let lastTap = 0;
+  touchShield.addEventListener("touchend", (e) => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+    if (tapLength < 300 && tapLength > 0) {
+      const touchX = e.changedTouches[0].clientX;
+      const screenWidth = window.innerWidth;
+      if (touchX > screenWidth / 2) {
+        seekRelative(10);
+      } else {
+        seekRelative(-10);
+      }
+    } else {
+      showControls();
+    }
+    lastTap = currentTime;
+  });
+
+  function seekRelative(seconds) {
+    if (activeMode === "movie") {
+      hlsVideo.currentTime += seconds;
+    } else if (ytPlayer && ytPlayer.getCurrentTime) {
+      ytPlayer.seekTo(ytPlayer.getCurrentTime() + seconds, true);
+    }
+  }
+
+  // Live Slot Calculation
+  function timeToMinutes(t) {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  function getActiveSlot() {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    for (let slot of channelSchedule) {
+      const start = timeToMinutes(slot.from);
+      const end = timeToMinutes(slot.to);
+
+      let isActive = start < end 
+        ? currentMinutes >= start && currentMinutes < end
+        : currentMinutes >= start || currentMinutes < end;
+
+      if (isActive) {
+        const elapsedMinutes = currentMinutes >= start 
+          ? (currentMinutes - start) 
+          : (1440 - start + currentMinutes);
+        return { slot, elapsedSeconds: (elapsedMinutes * 60) + now.getSeconds() };
+      }
+    }
+    return null;
+  }
+
+  // Synchronizer
+  function checkScheduleSync() {
+    const active = getActiveSlot();
+    if (!active) {
+      displayTitle.innerText = "Channel Off-Air";
+      stopAll();
+      return;
+    }
+
+    if (currentSlot && currentSlot.title === active.slot.title) return;
+    
+    currentSlot = active.slot;
+    displayTitle.innerText = active.slot.title;
+    stopAll();
+
+    if (active.slot.type === "movie") {
+      activeMode = "movie";
+      hlsVideo.classList.remove("hidden");
+      playMovie(active.slot.streamUrl, active.elapsedSeconds);
+    } else {
+      activeMode = "tv";
+      ytContainer.classList.remove("hidden");
+      playTV(active.slot.playlistId, active.slot.mode, active.slot.startIndex, active.elapsedSeconds);
+    }
+  }
+
+  function stopAll() {
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    hlsVideo.pause();
+    hlsVideo.src = "";
+    hlsVideo.classList.add("hidden");
+
+    if (ytPlayer && ytPlayer.destroy) { ytPlayer.destroy(); ytPlayer = null; }
+    ytContainer.innerHTML = "";
+    ytContainer.classList.add("hidden");
+  }
+
+  // Players Management
+  function playMovie(url, offset) {
+    if (Hls.isSupported() && url.includes(".m3u8")) {
+      hlsInstance = new Hls({ startPosition: offset });
+      hlsInstance.loadSource(url);
+      hlsInstance.attachMedia(hlsVideo);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+        hlsVideo.play().catch(handleAutoplayBlock);
+      });
+    } else {
+      hlsVideo.src = url;
+      hlsVideo.currentTime = offset;
+      hlsVideo.play().catch(handleAutoplayBlock);
+    }
+  }
+
+  function playTV(playlistId, mode, startIndex, offset) {
+    const tempDiv = document.createElement("div");
+    tempDiv.id = "ytFrame";
+    ytContainer.appendChild(tempDiv);
+
+    ytPlayer = new YT.Player("ytFrame", {
+      height: "100%",
+      width: "100%",
+      playerVars: {
+        listType: "playlist",
+        list: playlistId,
+        autoplay: 1,
+        index: startIndex || 0,
+        start: offset,
+        controls: 0,
+        disablekb: 1,
+        rel: 0
+      },
+      events: {
+        onReady: (e) => {
+          if (mode === "random") {
+            e.target.setShuffle(true);
+            e.target.nextVideo();
+          }
+          e.target.playVideo();
+        },
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.PLAYING) {
+            isPlaying = true;
+            updatePlayIcon(true);
+          } else if (e.data === YT.PlayerState.PAUSED) {
+            isPlaying = false;
+            updatePlayIcon(false);
+          }
+        }
+      }
+    });
+  }
+
+  function handleAutoplayBlock() {
+    unmutePrompt.classList.remove("hidden");
+    hlsVideo.muted = true;
+    hlsVideo.play();
+  }
+
+  unmutePrompt.addEventListener("click", () => {
+    if (activeMode === "movie") {
+      hlsVideo.muted = false;
+    } else if (ytPlayer) {
+      ytPlayer.unMute();
+    }
+    unmutePrompt.classList.add("hidden");
+  });
+
+  // UI Updates & Controls
+  function updatePlayIcon(playing) {
+    playBtn.innerHTML = playing ? '<i class="ri-pause-fill"></i>' : '<i class="ri-play-fill"></i>';
+  }
+
+  playBtn.addEventListener("click", () => {
+    if (activeMode === "movie") {
+      if (hlsVideo.paused) { hlsVideo.play(); updatePlayIcon(true); }
+      else { hlsVideo.pause(); updatePlayIcon(false); }
+    } else if (ytPlayer) {
+      const state = ytPlayer.getPlayerState();
+      if (state === 1) { ytPlayer.pauseVideo(); updatePlayIcon(false); }
+      else { ytPlayer.playVideo(); updatePlayIcon(true); }
+    }
+  });
+
+  hlsVideo.addEventListener("play", () => updatePlayIcon(true));
+  hlsVideo.addEventListener("pause", () => updatePlayIcon(false));
+
+  muteBtn.addEventListener("click", () => {
+    if (activeMode === "movie") {
+      hlsVideo.muted = !hlsVideo.muted;
+      muteBtn.innerHTML = hlsVideo.muted ? '<i class="ri-volume-mute-fill"></i>' : '<i class="ri-volume-up-line"></i>';
+    } else if (ytPlayer) {
+      if (ytPlayer.isMuted()) {
+        ytPlayer.unMute();
+        muteBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
+      } else {
+        ytPlayer.mute();
+        muteBtn.innerHTML = '<i class="ri-volume-mute-fill"></i>';
+      }
+    }
+  });
+
+  volumeSlider.addEventListener("input", (e) => {
+    const val = parseFloat(e.target.value);
+    if (activeMode === "movie") {
+      hlsVideo.volume = val;
+    } else if (ytPlayer) {
+      ytPlayer.setVolume(val * 100);
+    }
+  });
+
+  fullscreenBtn.addEventListener("click", () => {
+    if (!document.fullscreenElement) {
+      wrapper.requestFullscreen().catch(err => alert(err.message));
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  // Jump to actual live stream sync
+  syncLiveBtn.addEventListener("click", () => {
+    const active = getActiveSlot();
+    if (!active) return;
+    if (activeMode === "movie") {
+      hlsVideo.currentTime = active.elapsedSeconds;
+    } else if (ytPlayer) {
+      ytPlayer.seekTo(active.elapsedSeconds, true);
+    }
+  });
+
+  // Track progress & timer
+  setInterval(() => {
+    let curr = 0;
+    let dur = 0;
+
+    if (activeMode === "movie" && !hlsVideo.paused) {
+      curr = hlsVideo.currentTime;
+      dur = hlsVideo.duration || 1;
+    } else if (activeMode === "tv" && ytPlayer && ytPlayer.getCurrentTime) {
+      curr = ytPlayer.getCurrentTime();
+      dur = ytPlayer.getDuration() || 1;
+    }
+
+    if (dur > 0) {
+      progressBar.style.width = `${(curr / dur) * 100}%`;
+      const date = new Date(curr * 1000).toISOString().substr(11, 8);
+      timeDisplay.innerText = date;
+    }
+  }, 1000);
+
+  // Firestore loader
+  async function initChannel() {
+    if (!channelSlug) {
+      displayTitle.innerText = "No channel provided (?channel=SLUG)";
+      return;
+    }
+
     try {
-      const doc = await db.collection("channels").doc(channelId).get();
-      if (!doc.exists) {
-        document.getElementById('tvTickerText').innerText = `Channel '${channelId}' not found. Setup in 1.html first.`;
+      const snap = await getDoc(doc(db, "Live TV", channelSlug));
+      if (!snap.exists()) {
+        displayTitle.innerText = "Channel not found";
         return;
       }
-      scheduleData = doc.data();
-      initPlayers();
-      startTickerLoop();
+      const data = snap.data();
+      displayChannel.innerText = data.name || "Live Channel";
+      channelSchedule = data.schedule || [];
+      checkScheduleSync();
+      setInterval(checkScheduleSync, 10000); // Verify live schedule periodically
     } catch (e) {
       console.error(e);
-      document.getElementById('tvTickerText').innerText = "Error loading live stream.";
+      displayTitle.innerText = "Error loading channel";
     }
   }
 
-  function calculatePlaybackState(schedule) {
-    const now = Date.now();
-    const elapsedSeconds = Math.floor((now - schedule.epochStartTime) / 1000);
-    
-    let cycleTime = elapsedSeconds % schedule.totalDuration;
-    if (cycleTime < 0) cycleTime += schedule.totalDuration;
+  // Load YouTube API
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.body.appendChild(tag);
 
-    let accumulatedTime = 0;
-    for (let i = 0; i < schedule.videos.length; i++) {
-      const video = schedule.videos[i];
-      if (cycleTime >= accumulatedTime && cycleTime < (accumulatedTime + video.duration)) {
-        const offset = cycleTime - accumulatedTime;
-        const nextIndex = (i + 1) % schedule.videos.length;
-        return {
-          currentIndex: i,
-          video: video,
-          offset: offset,
-          remaining: video.duration - offset,
-          nextVideo: schedule.videos[nextIndex]
-        };
-      }
-      accumulatedTime += video.duration;
-    }
-    return { currentIndex: 0, video: schedule.videos[0], offset: 0, remaining: schedule.videos[0].duration, nextVideo: schedule.videos[1] || schedule.videos[0] };
-  }
-
-  // 20-SECOND TICKER ALTERNATOR (NOW <-> NEXT)
-  function updateTickerDisplay() {
-    if (!scheduleData) return;
-    const current = calculatePlaybackState(scheduleData);
-    const tickerTextEl = document.getElementById('tvTickerText');
-
-    tickerTextEl.style.opacity = '0';
-
-    setTimeout(() => {
-      if (tickerState === 'NOW') {
-        tickerTextEl.innerText = "NOW: " + current.video.title;
-      } else {
-        tickerTextEl.innerText = "NEXT: " + current.nextVideo.title;
-      }
-      tickerTextEl.style.opacity = '1';
-    }, 500);
-  }
-
-  function startTickerLoop() {
-    updateTickerDisplay();
-    clearInterval(tickerTimer);
-    tickerTimer = setInterval(() => {
-      tickerState = (tickerState === 'NOW') ? 'NEXT' : 'NOW';
-      updateTickerDisplay();
-    }, 20000); // 20 Seconds Delay
-  }
-
-  function initPlayers() {
-    const current = calculatePlaybackState(scheduleData);
-
-    playerA = new YT.Player('playerA', {
-      videoId: current.video.id,
-      playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'iv_load_policy': 3, 'start': Math.floor(current.offset) },
-      events: { 'onReady': (e) => e.target.playVideo() }
-    });
-
-    playerB = new YT.Player('playerB', {
-      videoId: current.nextVideo.id,
-      playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'modestbranding': 1, 'rel': 0, 'iv_load_policy': 3 },
-      events: { 'onReady': () => setupNextPrebuffer(current) }
-    });
-  }
-
-  function setupNextPrebuffer(current) {
-    clearTimeout(prebufferTimer);
-    clearTimeout(transitionTimer);
-
-    const prebufferDelay = Math.max(0, (current.remaining - 10)) * 1000;
-    prebufferTimer = setTimeout(() => {
-      const state = calculatePlaybackState(scheduleData);
-      const standbyPlayer = activePlayer === 'A' ? playerB : playerA;
-      standbyPlayer.cueVideoById(state.nextVideo.id, 0);
-    }, prebufferDelay);
-
-    transitionTimer = setTimeout(() => {
-      switchGaplessPlayer();
-    }, current.remaining * 1000);
-  }
-
-  function switchGaplessPlayer() {
-    const current = calculatePlaybackState(scheduleData);
-    updateTickerDisplay();
-
-    const currentPlayerObj = activePlayer === 'A' ? playerA : playerB;
-    const nextPlayerObj = activePlayer === 'A' ? playerB : playerA;
-    const currentFrame = document.getElementById(activePlayer === 'A' ? 'playerA' : 'playerB');
-    const nextFrame = document.getElementById(activePlayer === 'A' ? 'playerB' : 'playerA');
-
-    nextPlayerObj.playVideo();
-    nextFrame.style.opacity = '1';
-    nextFrame.style.zIndex = '2';
-
-    currentFrame.style.opacity = '0';
-    currentFrame.style.zIndex = '1';
-    currentPlayerObj.pauseVideo();
-
-    activePlayer = activePlayer === 'A' ? 'B' : 'A';
-
-    setupNextPrebuffer(current);
-  }
-
-  function initializeAudioAndStart() {
-    document.getElementById('startOverlay').style.display = 'none';
-    if (playerA && playerA.playVideo) playerA.playVideo();
-    if (playerB && playerB.playVideo) playerB.playVideo();
-  }
-
-  function toggleMute() {
-    const p = activePlayer === 'A' ? playerA : playerB;
-    if (!p) return;
-    if (isMuted) {
-      p.unMute();
-      document.getElementById('muteBtn').innerText = "MUTE";
-    } else {
-      p.mute();
-      document.getElementById('muteBtn').innerText = "UNMUTE";
-    }
-    isMuted = !isMuted;
-  }
-
-  // --- ENHANCED FULLSCREEN LOGIC ---
-  function toggleFullscreen() {
-    const docEl = document.documentElement;
-    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-
-    if (!isFS) {
-      // Enter Fullscreen
-      if (docEl.requestFullscreen) {
-        docEl.requestFullscreen().catch(err => console.log(err));
-      } else if (docEl.webkitRequestFullscreen) {
-        docEl.webkitRequestFullscreen();
-      } else if (docEl.msRequestFullscreen) {
-        docEl.msRequestFullscreen();
-      }
-      // Auto Lock to Landscape on Mobile
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(() => {});
-      }
-    } else {
-      // Exit Fullscreen
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      }
-      if (screen.orientation && screen.orientation.unlock) {
-        screen.orientation.unlock();
-      }
-    }
-  }
-
-  function updateFullscreenButtonState() {
-    const btn = document.getElementById('fsBtn');
-    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-    if (btn) {
-      btn.innerText = isFS ? "EXIT FULLSCREEN" : "FULLSCREEN";
-    }
-  }
-
-  // Handle Double-Tap for Fullscreen & Single-Tap for Controls
-  function handleInteractionClick(e) {
-    const currentTime = Date.now();
-    const tapLength = currentTime - lastTapTime;
-
-    if (tapLength < 300 && tapLength > 0) {
-      // Double Tap -> Toggle Fullscreen
-      toggleFullscreen();
-    } else {
-      // Single Tap -> Show Controls
-      toggleControls();
-    }
-    lastTapTime = currentTime;
-  }
-
-  function toggleControls() {
-    const overlay = document.getElementById('controlsOverlay');
-    overlay.classList.add('visible');
-    clearTimeout(controlsHideTimeout);
-    controlsHideTimeout = setTimeout(() => {
-      overlay.classList.remove('visible');
-    }, 4000);
-  }
+  window.onYouTubeIframeAPIReady = () => {
+    initChannel();
+  };
 </script>
 </body>
 </html>
