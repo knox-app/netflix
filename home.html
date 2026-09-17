@@ -1,1113 +1,610 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Disney+ Hotstar</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stream Showcase</title>
 
-  <!-- YouTube IFrame API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- HLS.js for trailer playback -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
     :root {
-      --bg: #0f1015;
-      --card-bg: #161822;
-      --primary: #0072ef;
+      --bg: #0c111b;
+      --card-bg: #192133;
+      --accent: #1f80e0;
       --text: #ffffff;
-      --text-muted: #8f98b2;
-      --border: #1e2230;
+      --text-dim: #9aa9c2;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      outline: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
       background-color: var(--bg);
       color: var(--text);
-      min-height: 100vh;
       overflow-x: hidden;
+      min-height: 100vh;
     }
 
-    /* Hero Carousel (Matching Hotstar Reference Image) */
-    .hero-carousel-container {
-      position: relative;
+    /* Navbar */
+    .navbar {
+      position: fixed;
+      top: 0;
       width: 100%;
-      height: 72vh;
-      min-height: 480px;
-      max-height: 700px;
-      background: #000;
-      overflow: hidden;
-    }
-
-    .hero-slide {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.8s ease-in-out;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
-    .hero-slide.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .hero-media-wrapper {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      overflow: hidden;
-    }
-    .hero-media-wrapper img, 
-    .hero-media-wrapper video,
-    .hero-media-wrapper iframe {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center top;
-      border: none;
-    }
-    .hero-media-wrapper iframe {
-      transform: scale(1.35);
-      pointer-events: none;
-    }
-
-    .hero-overlay-gradient {
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      background: linear-gradient(0deg, var(--bg) 0%, rgba(15,16,21,0.75) 40%, transparent 80%),
-                  linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 25%);
-    }
-
-    /* Hotstar Watermark Top Left */
-    .hero-watermark {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 5;
+      height: 70px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      opacity: 0.9;
-    }
-    .hero-watermark img { height: 26px; }
-
-    /* Top Right Cast Icon */
-    .hero-cast-icon {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 5;
-      background: none;
-      border: none;
-      color: #fff;
-      cursor: pointer;
-      opacity: 0.85;
-    }
-    .hero-cast-icon svg { width: 24px; height: 24px; fill: currentColor; }
-
-    /* Center Content Info */
-    .hero-content {
-      position: relative;
-      z-index: 4;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      padding: 0 20px 24px;
-      width: 100%;
-      max-width: 600px;
-      margin: 0 auto;
+      justify-content: space-between;
+      padding: 0 40px;
+      background: linear-gradient(180deg, rgba(12, 17, 27, 0.95) 0%, rgba(12, 17, 27, 0) 100%);
+      z-index: 100;
     }
 
-    .hero-fallback-title {
-      font-size: 28px;
+    .nav-logo {
+      font-size: 1.4rem;
       font-weight: 800;
-      margin-bottom: 8px;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
-    }
-
-    .hero-meta-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13.5px;
-      font-weight: 600;
-      color: #d1d6e6;
-      margin-bottom: 18px;
-    }
-    .hero-meta-row span.dot { font-size: 8px; opacity: 0.6; }
-
-    .hero-actions-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-      justify-content: center;
-    }
-
-    .btn-watch-now {
-      flex: 1;
-      max-width: 240px;
-      height: 48px;
-      background: #252833;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 10px;
-      color: #fff;
-      font-weight: 700;
-      font-size: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.15s ease, transform 0.1s ease;
-    }
-    .btn-watch-now:active { transform: scale(0.97); background: #323644; }
-    .btn-watch-now svg { width: 18px; height: 18px; fill: #fff; }
-
-    .btn-hero-watchlist {
-      width: 48px;
-      height: 48px;
-      background: #252833;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 10px;
+      letter-spacing: 1px;
       color: #fff;
       display: flex;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.1s ease;
-    }
-    .btn-hero-watchlist:active { transform: scale(0.95); }
-    .btn-hero-watchlist.active { color: var(--primary); border-color: var(--primary); }
-    .btn-hero-watchlist svg { width: 22px; height: 22px; fill: currentColor; }
-
-    /* Carousel Indicator Dots */
-    .hero-indicators {
-      display: flex;
       gap: 6px;
-      margin-top: 18px;
+    }
+
+    .nav-logo span { color: var(--accent); }
+
+    /* Carousel / Hero */
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      height: 78vh;
+      min-height: 520px;
+      overflow: hidden;
+    }
+
+    .carousel-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .carousel-slide {
+      min-width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
       align-items: center;
+      padding: 0 50px;
     }
-    .hero-dot {
-      width: 6px;
-      height: 6px;
+
+    .slide-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+      z-index: 1;
+    }
+
+    .slide-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, #0c111b 0%, rgba(12, 17, 27, 0.85) 35%, rgba(12, 17, 27, 0.1) 75%),
+                  linear-gradient(0deg, #0c111b 0%, rgba(12, 17, 27, 0) 45%);
+      z-index: 2;
+    }
+
+    .slide-content {
+      position: relative;
+      z-index: 3;
+      max-width: 580px;
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .slide-logo {
+      max-width: 280px;
+      max-height: 110px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
+    }
+
+    .slide-title-fallback {
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1.1;
+      text-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
+    }
+
+    .slide-meta {
+      font-size: 0.95rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .slide-meta span.dot {
+      color: var(--accent);
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .btn-watch {
+      background: #ffffff;
+      color: #000;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-watch:hover {
+      background: rgba(255, 255, 255, 0.85);
+      transform: scale(1.03);
+    }
+
+    .btn-watchlist {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+      width: 46px;
+      height: 46px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transition: all 0.25s ease;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .hero-dot.active {
+
+    .btn-watchlist:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.08);
+    }
+
+    /* Carousel Nav Indicators */
+    .carousel-nav {
+      position: absolute;
+      bottom: 24px;
+      right: 50px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+    }
+
+    .indicator {
       width: 8px;
       height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .indicator.active {
+      width: 24px;
+      border-radius: 4px;
       background: #fff;
     }
 
-    /* Page Content Rows */
-    .main-content {
-      padding: 10px 0 60px;
+    /* Sections */
+    .sections-container {
+      padding: 10px 40px 80px 40px;
       display: flex;
       flex-direction: column;
-      gap: 28px;
-    }
-
-    .section-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* Clickable Section Title with arrow */
-    .section-head-wrap {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0 16px;
-      cursor: pointer;
-      width: fit-content;
-      transition: opacity 0.15s;
-    }
-    .section-head-wrap:active { opacity: 0.7; }
-    .section-head {
-      font-size: 18px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: 0.3px;
-    }
-    .section-head-icon {
-      width: 18px;
-      height: 18px;
-      fill: var(--text-muted);
-      transition: transform 0.15s ease;
-    }
-    .section-head-wrap:hover .section-head-icon {
-      transform: translateX(3px);
-      fill: #fff;
-    }
-
-    .cards-row-scroll {
-      display: flex;
-      gap: 14px;
-      overflow-x: auto;
-      padding: 0 16px;
-      scrollbar-width: none;
-    }
-    .cards-row-scroll::-webkit-scrollbar { display: none; }
-
-    /* Continue Watching Card (Image 1 Style) */
-    .cw-card {
-      min-width: 220px;
-      width: 220px;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
+      gap: 36px;
       position: relative;
-    }
-    .cw-thumb-box {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16/9;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #151821;
-      border: 1px solid var(--border);
-      cursor: pointer;
-    }
-    .cw-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
-    .cw-play-badge {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      width: 24px;
-      height: 24px;
-      background: rgba(0,0,0,0.65);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .cw-play-badge svg { width: 11px; height: 11px; fill: #fff; margin-left: 1px; }
-
-    .cw-progress-track {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 3.5px;
-      background: rgba(255,255,255,0.25);
-    }
-    .cw-progress-fill {
-      height: 100%;
-      background: var(--primary);
-    }
-
-    .cw-info-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-top: 8px;
-    }
-    .cw-title {
-      font-size: 13.5px;
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 180px;
-      cursor: pointer;
-    }
-    .cw-sub {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-    .cw-dots-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s;
-    }
-    .cw-dots-btn:active { background: rgba(255,255,255,0.15); color: #fff; }
-    .cw-dots-btn svg { width: 18px; height: 18px; fill: currentColor; }
-
-    /* Standard Shelf Card - 16:9 Banner Only, No Logo */
-    .shelf-card {
-      min-width: 190px;
-      width: 190px;
-      text-decoration: none;
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.15s ease;
-    }
-    .shelf-card:active { transform: scale(0.96); }
-    .shelf-thumb-box {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16/9;
-      border-radius: 8px;
-      overflow: hidden;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-    }
-    .shelf-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
-    .shelf-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-top: 6px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .shelf-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    /* Modal / Section Grid View (16:9 Layout) */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      background: var(--bg);
-      display: none;
-      flex-direction: column;
-      overflow-y: auto;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal-header {
-      position: sticky;
-      top: 0;
-      background: rgba(15,16,21,0.95);
-      backdrop-filter: blur(10px);
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      border-bottom: 1px solid var(--border);
       z-index: 10;
     }
-    .modal-close-btn {
-      background: none;
-      border: none;
-      color: #fff;
-      cursor: pointer;
+
+    .section-shelf {
       display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-close-btn svg { width: 24px; height: 24px; fill: currentColor; }
-    .modal-title { font-size: 18px; font-weight: 800; }
-    
-    .modal-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 16px;
-      padding: 20px;
+      flex-direction: column;
+      gap: 14px;
     }
 
-    /* Bottom Action Sheet for 3-Dots */
-    .sheet-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px);
-      z-index: 2000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #e1e6f0;
+      letter-spacing: 0.5px;
+    }
+
+    .cards-row {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding: 12px 4px;
+      scrollbar-width: none;
+    }
+
+    .cards-row::-webkit-scrollbar { display: none; }
+
+    .card {
+      min-width: 170px;
+      max-width: 170px;
+      height: 240px;
+      background: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
     }
-    .sheet-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
+
+    .card:hover {
+      transform: scale(1.06);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
+      z-index: 5;
     }
-    .bottom-sheet {
-      background: #181a24;
-      border-radius: 16px 16px 0 0;
-      border-top: 1px solid var(--border);
-      padding: 20px;
-      transform: translateY(100%);
-      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .sheet-overlay.active .bottom-sheet {
-      transform: translateY(0);
-    }
-    .sheet-header-box {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .sheet-thumb {
-      width: 64px;
-      aspect-ratio: 16/9;
-      border-radius: 6px;
+
+    .card img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
     }
-    .sheet-title-box h4 {
-      font-size: 15px;
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 240px;
+
+    .card-info {
+      position: relative;
+      z-index: 2;
+      padding: 10px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+      font-size: 0.85rem;
+      font-weight: 600;
     }
-    .sheet-title-box p {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-    .sheet-actions-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .sheet-action-item {
+
+    .card-placeholder {
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 12px 10px;
-      border-radius: 8px;
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 14.5px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.15s;
+      justify-content: center;
+      text-align: center;
+      padding: 15px;
+      font-size: 0.85rem;
+      color: var(--text-dim);
     }
-    .sheet-action-item:active { background: rgba(255,255,255,0.1); }
-    .sheet-action-item svg { width: 20px; height: 20px; fill: currentColor; color: var(--text-muted); }
-
-    .toast-box {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(18,20,26,0.92);
-      border: 1px solid rgba(255,255,255,0.2);
-      padding: 8px 18px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #fff;
-      z-index: 3000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-    }
-    .toast-box.show { opacity: 1; }
   </style>
 </head>
 <body>
 
-<div id="app">
-  <!-- Top Hero Carousel -->
-  <div class="hero-carousel-container" id="heroCarousel">
-    <div class="hero-watermark">
-      <img src="https://img10.hotstar.com/image/upload/f_auto,q_90,w_256/v1656431456/web-images/logo-d-plus.svg" alt="Disney+ hotstar">
-    </div>
-    <button class="hero-cast-icon" title="Cast">
-      <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-    </button>
-    <div id="heroSlidesWrapper"></div>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-logo"><span>✦</span> STREAM</div>
+  </nav>
+
+  <!-- Hero Carousel -->
+  <div class="carousel-container" id="carouselWrapper">
+    <div class="carousel-track" id="carouselTrack"></div>
+    <div class="carousel-nav" id="carouselNav"></div>
   </div>
 
-  <div class="main-content">
-    <!-- Continue Watching Row -->
-    <div class="section-wrap" id="continueWatchingSection" style="display:none;">
-      <div class="section-head-wrap" style="cursor:default;">
-        <div class="section-head" id="cwHeading">Continue Watching</div>
-      </div>
-      <div class="cards-row-scroll" id="continueWatchingList"></div>
-    </div>
+  <!-- Dynamic Sections -->
+  <main class="sections-container" id="sectionsContainer"></main>
 
-    <!-- Dynamic Shelves from Firebase (S1, S2, etc.) -->
-    <div id="dynamicShelvesContainer"></div>
-  </div>
-</div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+      measurementId: "G-Y87B8VRQ1N"
+    };
 
-<!-- Section Exploration Modal (16:9 Grid View) -->
-<div class="modal-overlay" id="sectionExploreModal">
-  <div class="modal-header">
-    <button class="modal-close-btn" id="closeExploreModal">
-      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-    </button>
-    <div class="modal-title" id="exploreModalTitle">Category</div>
-  </div>
-  <div class="modal-grid" id="exploreModalGrid"></div>
-</div>
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-<!-- Continue Watching 3-Dots Action Sheet -->
-<div class="sheet-overlay" id="cwActionSheet">
-  <div class="bottom-sheet">
-    <div class="sheet-header-box">
-      <img id="sheetItemThumb" class="sheet-thumb" src="" alt="Thumbnail">
-      <div class="sheet-title-box">
-        <h4 id="sheetItemTitle">Title</h4>
-        <p id="sheetItemMeta">Meta</p>
-      </div>
-    </div>
-    <div class="sheet-actions-list">
-      <button class="sheet-action-item" id="sheetBtnStartOver">
-        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-        Watch from Beginning
-      </button>
-      <button class="sheet-action-item" id="sheetBtnRemoveCW">
-        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-        Remove from Continue Watching
-      </button>
-      <a class="sheet-action-item" id="sheetBtnPreview" href="#">
-        <svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-        View More Info
-      </a>
-    </div>
-  </div>
-</div>
+    let currentSlide = 0;
+    let carouselItems = [];
+    let slideTimer = null;
 
-<div class="toast-box" id="toast">Watchlist Updated</div>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
-    authDomain: "internal-systems-46728.firebaseapp.com",
-    projectId: "internal-systems-46728",
-    storageBucket: "internal-systems-46728.firebasestorage.app",
-    messagingSenderId: "172177452674",
-    appId: "1:172177452674:web:155a2417da5531dd7ece9b"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  let currentUser = null;
-  let userWatchlist = [];
-  let userDocRef = null;
-
-  // In-memory dataset
-  let allContent = {
-    "Movies": [],
-    "Shows": [],
-    "TV Shows": [],
-    "Live TV": [],
-    "Sports": []
-  };
-
-  let sectionCache = {};
-  let heroItems = [];
-  let activeSlideIdx = 0;
-  let heroTimer = null;
-  let trailerPlayer = null;
-  let currentSheetItem = null;
-
-  function safeUrl(u) {
-    if (!u) return '';
-    return u.trim().replace(/^http:\/\//i, 'https://');
-  }
-
-  // Strictly extracts 16:9 banner (Poster.h)
-  function getPosterH(item) {
-    if (!item) return '';
-    return safeUrl(item["Poster.h"] || item.Poster_h || item.poster_h || item.Banner || item.banner || item.Poster || '');
-  }
-
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerText = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2000);
-  }
-
-  function extractYouTubeId(url) {
-    if (!url) return null;
-    try {
-      const u = new URL(url.trim());
-      if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('/')[0];
-      if (u.hostname.includes('youtube.com')) {
-        if (u.pathname === '/watch') return u.searchParams.get('v');
-        if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
-      }
-    } catch(e) {
-      if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+    // Helper to safely extract image / poster / banner URLs
+    function getMediaImage(item) {
+      return item.Banner || item.banner || item.Poster || item.poster || 
+             item.Thumbnail || item.thumbnail || item.Image || item.image || 
+             item.Cover || item.cover || "";
     }
-    return null;
-  }
 
-  // --- Watchlist State ---
-  async function initAuth() {
-    try {
-      const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
-      currentUser = stored ? JSON.parse(stored) : null;
-    } catch(e){}
+    // Helper to safely get Rating
+    function getMediaRating(item) {
+      return item.Age_Rating || item.Rating || item.age_rating || item.rating || "U";
+    }
 
-    if (currentUser) {
+    // Helper to safely get Title
+    function getMediaTitle(item) {
+      return item.Title || item.title || item.Name || item.name || "Untitled";
+    }
+
+    // Helper to safely extract genres array
+    function getMediaGenres(item) {
+      if (Array.isArray(item.Genres)) return item.Genres;
+      if (Array.isArray(item.genres)) return item.genres;
+      if (typeof item.Genres === "string") return [item.Genres];
+      if (typeof item.genres === "string") return [item.genres];
+      return [];
+    }
+
+    function getPageId() {
+      const hash = window.location.hash.replace("#", "").trim();
+      return hash || "demo";
+    }
+
+    async function initPage() {
+      const pageId = getPageId();
       try {
-        let q = null;
-        if (currentUser.Lotus) q = query(collection(db, "UARM"), where("Lotus", "==", currentUser.Lotus));
-        else if (currentUser.Email) q = query(collection(db, "UARM"), where("Email", "==", currentUser.Email));
-        else if (currentUser.id) userDocRef = doc(db, "UARM", currentUser.id);
-
-        if (q) {
-          const s = await getDocs(q);
-          if (!s.empty) {
-            userDocRef = doc(db, "UARM", s.docs[0].id);
-            userWatchlist = s.docs[0].data().Watchlist || [];
-          }
-        } else if (userDocRef) {
-          const s = await getDoc(userDocRef);
-          if (s.exists()) userWatchlist = s.data().Watchlist || [];
+        const pageDoc = await db.collection("Systems").doc(pageId).get();
+        if (!pageDoc.exists) {
+          document.body.innerHTML = `<h2 style="text-align:center; margin-top:20%;">Page "${pageId}" was not found in Systems collection.</h2>`;
+          return;
         }
-      } catch(e){}
-    } else {
-      userWatchlist = JSON.parse(localStorage.getItem('guest_watchlist') || '[]');
-    }
-  }
 
-  window.toggleWatchlist = async function(docId) {
-    const isAdded = userWatchlist.includes(docId);
-    if (isAdded) {
-      userWatchlist = userWatchlist.filter(id => id !== docId);
-      if (userDocRef) await updateDoc(userDocRef, { Watchlist: arrayRemove(docId) });
-      else localStorage.setItem('guest_watchlist', JSON.stringify(userWatchlist));
-      showToast("Removed from Watchlist");
-    } else {
-      userWatchlist.push(docId);
-      if (userDocRef) await updateDoc(userDocRef, { Watchlist: arrayUnion(docId) });
-      else localStorage.setItem('guest_watchlist', JSON.stringify(userWatchlist));
-      showToast("Added to Watchlist");
-    }
-    updateWatchlistButtons();
-  };
-
-  function updateWatchlistButtons() {
-    document.querySelectorAll('.btn-hero-watchlist').forEach(btn => {
-      const id = btn.dataset.id;
-      const added = userWatchlist.includes(id);
-      btn.classList.toggle('active', added);
-      btn.innerHTML = added 
-        ? `<svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>`
-        : `<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`;
-    });
-  }
-
-  // --- Load Content Collections ---
-  async function loadDatabase() {
-    const collectionsToFetch = ["Movies", "Shows", "TV Shows", "Live TV", "Sports"];
-    for (const col of collectionsToFetch) {
-      try {
-        const snap = await getDocs(collection(db, col));
-        snap.forEach(d => {
-          allContent[col].push({ id: d.id, _collection: col, ...d.data() });
-        });
-      } catch(e){}
-    }
-  }
-
-  // --- Continue Watching Handling & 3-Dots Sheet ---
-  function renderContinueWatching() {
-    const cwSection = document.getElementById('continueWatchingSection');
-    const cwList = document.getElementById('continueWatchingList');
-    const nameHeading = document.getElementById('cwHeading');
-
-    if (currentUser?.Name) {
-      nameHeading.innerText = `Continue Watching for ${currentUser.Name}`;
-    }
-
-    const items = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('progress_')) {
-        const fullKey = key.replace('progress_', '');
-        const docId = fullKey.split('_')[0];
-        const time = parseFloat(localStorage.getItem(key) || '0');
-        if (time > 10) {
-          let found = null;
-          for (const col in allContent) {
-            found = allContent[col].find(x => x.id === docId);
-            if (found) break;
-          }
-          if (found && !items.some(it => it.item.id === found.id)) {
-            items.push({ item: found, time, storageKey: key });
-          }
-        }
+        const pageData = pageDoc.data();
+        await loadHeroCarousel(pageData.Carsoule_Settings || {});
+        await loadSections(pageData.Sections || []);
+      } catch (err) {
+        console.error("Initialization error:", err);
       }
     }
 
-    if (items.length === 0) {
-      cwSection.style.display = 'none';
-      return;
-    }
-
-    cwSection.style.display = 'flex';
-    cwList.innerHTML = items.map(({ item, time, storageKey }) => {
-      const banner = getPosterH(item);
-      const title = item.Name || item.Title || 'Untitled';
-      const durationSec = 7200;
-      const percent = Math.min(100, (time / durationSec) * 100);
-      const minsLeft = Math.max(1, Math.round((durationSec - time) / 60));
-
-      return `
-        <div class="cw-card">
-          <div class="cw-thumb-box" onclick="location.href='1.html?watch=${item.id}'">
-            <img src="${banner}" alt="${title}" loading="lazy">
-            <div class="cw-play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
-            <div class="cw-progress-track">
-              <div class="cw-progress-fill" style="width: ${percent}%;"></div>
-            </div>
-          </div>
-          <div class="cw-info-row">
-            <div onclick="location.href='1.html?watch=${item.id}'">
-              <div class="cw-title">${title}</div>
-              <div class="cw-sub">${minsLeft}m left</div>
-            </div>
-            <button class="cw-dots-btn" onclick="window.openCwActionSheet('${item.id}', '${storageKey}', event)">
-              <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  window.openCwActionSheet = function(docId, storageKey, e) {
-    if (e) e.stopPropagation();
-    let found = null;
-    for (const col in allContent) {
-      found = allContent[col].find(x => x.id === docId);
-      if (found) break;
-    }
-    if (!found) return;
-
-    currentSheetItem = { item: found, storageKey };
-
-    document.getElementById('sheetItemThumb').src = getPosterH(found);
-    document.getElementById('sheetItemTitle').innerText = found.Name || found.Title || 'Title';
-    document.getElementById('sheetItemMeta').innerText = found.Genres || found.Language || 'Video';
-    document.getElementById('sheetBtnPreview').href = `preview#${found.id}`;
-
-    document.getElementById('cwActionSheet').classList.add('active');
-  };
-
-  document.getElementById('cwActionSheet').onclick = (e) => {
-    if (e.target.id === 'cwActionSheet') {
-      document.getElementById('cwActionSheet').classList.remove('active');
-    }
-  };
-
-  document.getElementById('sheetBtnStartOver').onclick = () => {
-    if (!currentSheetItem) return;
-    localStorage.removeItem(currentSheetItem.storageKey);
-    location.href = `1.html?watch=${currentSheetItem.item.id}&action=starting`;
-  };
-
-  document.getElementById('sheetBtnRemoveCW').onclick = () => {
-    if (!currentSheetItem) return;
-    localStorage.removeItem(currentSheetItem.storageKey);
-    document.getElementById('cwActionSheet').classList.remove('active');
-    renderContinueWatching();
-    showToast("Removed from Continue Watching");
-  };
-
-  // --- Hero Carousel: Banner (6s) -> Trailer -> Loop ---
-  function setupHeroCarousel() {
-    const pool = [...allContent.Movies, ...allContent.Shows, ...allContent["TV Shows"]];
-    if (pool.length === 0) return;
-
-    heroItems = pool.sort(() => 0.5 - Math.random()).slice(0, 5);
-    const wrapper = document.getElementById('heroSlidesWrapper');
-
-    wrapper.innerHTML = heroItems.map((item, idx) => {
-      const banner = getPosterH(item);
-      const name = item.Name || item.Title || 'Hotstar Special';
-      const year = item.Release_Date || item.Year || '2023';
-      const rating = item.Age_Rating || 'U/A 13+';
-      const genres = (item.Genres || 'Drama').split(',')[0].trim();
-      const lang = item.Language || 'English';
-
-      return `
-        <div class="hero-slide ${idx === 0 ? 'active' : ''}" id="heroSlide_${idx}">
-          <div class="hero-media-wrapper" id="heroMedia_${idx}">
-            <img src="${banner}" alt="${name}">
-          </div>
-          <div class="hero-overlay-gradient"></div>
-          <div class="hero-content">
-            <div class="hero-fallback-title">${name}</div>
-            
-            <div class="hero-meta-row">
-              <span>${lang}</span>
-              <span class="dot">•</span>
-              <span>${year}</span>
-              <span class="dot">•</span>
-              <span>${genres}</span>
-              <span class="dot">•</span>
-              <span>${rating}</span>
-            </div>
-
-            <div class="hero-actions-row">
-              <a href="1.html?watch=${item.id}" class="btn-watch-now">
-                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                Watch Now
-              </a>
-              <button class="btn-hero-watchlist" data-id="${item.id}" onclick="toggleWatchlist('${item.id}')">
-                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-              </button>
-            </div>
-
-            <div class="hero-indicators">
-              ${heroItems.map((_, dotIdx) => `<div class="hero-dot ${dotIdx === idx ? 'active' : ''}"></div>`).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    updateWatchlistButtons();
-    startCarouselSequence(0);
-  }
-
-  function startCarouselSequence(index) {
-    clearTimeout(heroTimer);
-    activeSlideIdx = index;
-
-    document.querySelectorAll('.hero-slide').forEach((s, idx) => {
-      s.classList.toggle('active', idx === index);
-    });
-
-    const currentItem = heroItems[index];
-    const mediaWrap = document.getElementById(`heroMedia_${index}`);
-    const banner = getPosterH(currentItem);
-
-    mediaWrap.innerHTML = `<img src="${banner}" alt="${currentItem.Name}">`;
-
-    // 6-second hold on static banner, then switch to Trailer
-    heroTimer = setTimeout(() => {
-      const trailer = currentItem.Trailer || currentItem.trailer;
-      if (trailer && trailer.trim().length > 4) {
-        playHeroTrailer(mediaWrap, trailer.trim(), () => {
-          advanceToNextSlide();
-        });
-      } else {
-        advanceToNextSlide();
+    // 1. Load Carousel Items with client-side filter
+    async function loadHeroCarousel(settings) {
+      let contentSources = settings.Content_From;
+      if (!Array.isArray(contentSources) || contentSources.length === 0) {
+        contentSources = ["Movies", "Shows"];
       }
-    }, 6000);
-  }
 
-  function playHeroTrailer(container, trailerUrl, onEndCallback) {
-    const ytId = extractYouTubeId(trailerUrl);
+      const targetRating = (settings.Age_Rating || "").toLowerCase().trim();
+      carouselItems = [];
 
-    if (ytId) {
-      container.innerHTML = `<div id="ytTrailerTarget"></div>`;
-      trailerPlayer = new YT.Player('ytTrailerTarget', {
-        videoId: ytId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          mute: 1,
-          playsinline: 1,
-          rel: 0
-        },
-        events: {
-          onReady: (e) => e.target.playVideo(),
-          onStateChange: (e) => {
-            if (e.data === YT.PlayerState.ENDED) {
-              onEndCallback();
+      for (const col of contentSources) {
+        try {
+          const snap = await db.collection(col).get();
+          snap.forEach(doc => {
+            const data = { id: doc.id, collectionName: col, ...doc.data() };
+            const itemRating = getMediaRating(data).toLowerCase().trim();
+
+            if (!targetRating || targetRating === "all" || itemRating === targetRating) {
+              carouselItems.push(data);
             }
-          }
+          });
+        } catch (e) {
+          console.warn(`Could not load collection ${col}:`, e);
         }
-      });
-      heroTimer = setTimeout(onEndCallback, 30000);
-    } else {
-      container.innerHTML = `
-        <video autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;">
-          <source src="${safeUrl(trailerUrl)}">
-        </video>
-      `;
-      const videoEl = container.querySelector('video');
-      videoEl.onended = onEndCallback;
-      videoEl.onerror = onEndCallback;
-      heroTimer = setTimeout(onEndCallback, 25000);
+      }
+
+      // If no matching items, add demo fallback
+      if (carouselItems.length === 0) {
+        carouselItems = [
+          {
+            Title: "Featured Showcase",
+            Banner: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1600&auto=format&fit=crop",
+            Language: "English",
+            Rating: settings.Age_Rating || "U",
+            Genres: ["Action", "Adventure"]
+          }
+        ];
+      }
+
+      renderCarousel();
     }
-  }
 
-  function advanceToNextSlide() {
-    const next = (activeSlideIdx + 1) % heroItems.length;
-    startCarouselSequence(next);
-  }
+    function renderCarousel() {
+      const track = document.getElementById("carouselTrack");
+      const nav = document.getElementById("carouselNav");
+      track.innerHTML = "";
+      nav.innerHTML = "";
 
-  // --- Dynamic Shelves Loader ---
-  async function loadPageSections(pageId) {
-    const container = document.getElementById('dynamicShelvesContainer');
-    container.innerHTML = '';
-    sectionCache = {};
+      carouselItems.forEach((item, index) => {
+        const genres = getMediaGenres(item);
+        const genresFormatted = genres.length > 0 ? genres.join(" • ") : "Featured";
+        const metaLine = `${item.Language || item.language || "English"} <span class="dot">•</span> ${getMediaRating(item)} <span class="dot">•</span> ${genresFormatted}`;
+        const bannerUrl = getMediaImage(item) || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1600";
+        const logoUrl = item.Logo || item.logo || "";
+        const title = getMediaTitle(item);
 
-    try {
-      const pageSnap = await getDoc(doc(db, "Systems", pageId));
-      if (!pageSnap.exists()) {
-        container.innerHTML = `<div style="padding:20px; color:var(--text-muted);">Page "${pageId}" not configured in Systems collection.</div>`;
+        const slide = document.createElement("div");
+        slide.className = "carousel-slide";
+        slide.innerHTML = `
+          <div class="slide-bg" style="background-image: url('${bannerUrl}')"></div>
+          <div class="slide-overlay"></div>
+          <div class="slide-content">
+            ${logoUrl 
+              ? `<img src="${logoUrl}" class="slide-logo" alt="${title}" />` 
+              : `<div class="slide-title-fallback">${title}</div>`}
+            
+            <div class="slide-meta">${metaLine}</div>
+
+            <div class="btn-group">
+              <button class="btn-watch">▶ Watch Now</button>
+              <button class="btn-watchlist" title="Add to Watchlist">+</button>
+            </div>
+          </div>
+        `;
+        track.appendChild(slide);
+
+        const dot = document.createElement("div");
+        dot.className = `indicator ${index === 0 ? "active" : ""}`;
+        dot.onclick = () => goToSlide(index);
+        nav.appendChild(dot);
+      });
+
+      startAutoSlide();
+      setupSwipeGestures();
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      document.getElementById("carouselTrack").style.transform = `translateX(-${index * 100}%)`;
+      
+      const dots = document.querySelectorAll(".indicator");
+      dots.forEach((d, i) => d.classList.toggle("active", i === index));
+      startAutoSlide();
+    }
+
+    function startAutoSlide() {
+      clearInterval(slideTimer);
+      if (carouselItems.length > 1) {
+        slideTimer = setInterval(() => {
+          currentSlide = (currentSlide + 1) % carouselItems.length;
+          goToSlide(currentSlide);
+        }, 6000);
+      }
+    }
+
+    function setupSwipeGestures() {
+      const container = document.getElementById("carouselWrapper");
+      let startX = 0;
+      let endX = 0;
+
+      container.ontouchstart = e => { startX = e.touches[0].clientX; };
+      container.ontouchend = e => {
+        endX = e.changedTouches[0].clientX;
+        if (startX - endX > 50) {
+          currentSlide = (currentSlide + 1) % carouselItems.length;
+          goToSlide(currentSlide);
+        } else if (endX - startX > 50) {
+          currentSlide = (currentSlide - 1 + carouselItems.length) % carouselItems.length;
+          goToSlide(currentSlide);
+        }
+      };
+    }
+
+    // 2. Load Sections
+    async function loadSections(sectionIds) {
+      const container = document.getElementById("sectionsContainer");
+      container.innerHTML = "";
+
+      for (const sId of sectionIds) {
+        try {
+          const secDoc = await db.collection("Systems").doc(sId).get();
+          if (!secDoc.exists) continue;
+          const secData = secDoc.data();
+
+          const shelf = document.createElement("div");
+          shelf.className = "section-shelf";
+          shelf.innerHTML = `
+            <div class="section-title">${secData.Name || secData.name || sId}</div>
+            <div class="cards-row" id="row-${sId}">
+              <div class="card-placeholder">Loading items...</div>
+            </div>
+          `;
+          container.appendChild(shelf);
+
+          populateSectionRow(sId, secData);
+        } catch (e) {
+          console.error(`Error loading section ${sId}:`, e);
+        }
+      }
+    }
+
+    async function populateSectionRow(secId, secData) {
+      const row = document.getElementById(`row-${secId}`);
+      let contentTypes = secData.Content_Type || secData.Content_From || ["Movies", "Shows"];
+      if (!Array.isArray(contentTypes)) contentTypes = [contentTypes];
+
+      const maxLimit = parseInt(secData.Max_Limit || secData.max_limit) || 20;
+      const targetAge = (secData.Age_Rating || secData.Rating || "").toLowerCase().trim();
+      const targetFranchise = (secData.Franchise || "").toLowerCase().trim();
+      const targetGenres = (secData.Genres || []).map(g => g.toLowerCase().trim());
+      const targetPlaylist = (secData.Playlist || []).map(p => p.toLowerCase().trim());
+
+      let allFound = [];
+
+      for (const col of contentTypes) {
+        try {
+          const snap = await db.collection(col).get();
+          snap.forEach(doc => {
+            const item = { id: doc.id, ...doc.data() };
+            
+            // Age Rating Filter
+            if (targetAge && targetAge !== "all") {
+              const itemRating = getMediaRating(item).toLowerCase().trim();
+              if (itemRating && itemRating !== targetAge) return;
+            }
+
+            // Franchise Filter
+            if (targetFranchise) {
+              const itemFranchise = (item.Franchise || item.franchise || "").toLowerCase().trim();
+              if (itemFranchise && itemFranchise !== targetFranchise) return;
+            }
+
+            // Genres Filter
+            if (targetGenres.length > 0) {
+              const itemGenres = getMediaGenres(item).map(g => g.toLowerCase().trim());
+              const hasGenreMatch = targetGenres.some(g => itemGenres.includes(g));
+              if (itemGenres.length > 0 && !hasGenreMatch) return;
+            }
+
+            // Playlist Filter
+            if (targetPlaylist.length > 0) {
+              const itemPlaylists = Array.isArray(item.Playlist) ? item.Playlist.map(p => p.toLowerCase().trim()) : [(item.Playlist || "").toLowerCase().trim()];
+              const hasPlaylistMatch = targetPlaylist.some(p => itemPlaylists.includes(p));
+              if (!hasPlaylistMatch && item.Playlist) return;
+            }
+
+            allFound.push(item);
+          });
+        } catch (err) {
+          console.warn(`Query skipped for collection ${col}:`, err);
+        }
+      }
+
+      // Slice to maxLimit
+      const finalItems = allFound.slice(0, maxLimit);
+
+      row.innerHTML = "";
+      if (finalItems.length === 0) {
+        row.innerHTML = `<div style="color:var(--text-dim); font-size:0.85rem; padding: 15px 0;">No content matching filters.</div>`;
         return;
       }
 
-      const pageData = pageSnap.data();
-      let sectionKeyIdx = 1;
+      finalItems.forEach(item => {
+        const poster = getMediaImage(item);
+        const title = getMediaTitle(item);
 
-      while (pageData[`S${sectionKeyIdx}`]) {
-        const secConfig = pageData[`S${sectionKeyIdx}`];
-        renderSingleSection(secConfig, container, `S${sectionKeyIdx}`);
-        sectionKeyIdx++;
-      }
-    } catch(e) {
-      console.error(e);
-    }
-  }
-
-  function renderSingleSection(config, container, sectionKey) {
-    const targetCollections = config.Collections || ["Movies"];
-    let pool = [];
-
-    targetCollections.forEach(col => {
-      if (allContent[col]) {
-        pool.push(...allContent[col]);
-      }
-    });
-
-    let filtered = pool.filter(item => {
-      if (config.Genres && config.Genres.length > 0) {
-        const itemGenres = (item.Genres || item.Genre || '').toLowerCase();
-        const hasGenre = config.Genres.some(g => itemGenres.includes(g.toLowerCase()));
-        if (!hasGenre) return false;
-      }
-      if (config.Languages && config.Languages.length > 0) {
-        const itemLang = (item.Language || '').toLowerCase();
-        const hasLang = config.Languages.some(l => itemLang.includes(l.toLowerCase()));
-        if (!hasLang) return false;
-      }
-      if (config.Studios && config.Studios.length > 0) {
-        const itemStudio = (item.Studio || item.Partner || '').toLowerCase();
-        const hasStudio = config.Studios.some(s => itemStudio.includes(s.toLowerCase()));
-        if (!hasStudio) return false;
-      }
-      if (config.AgeRating && config.AgeRating.trim()) {
-        const rating = (item.Age_Rating || item.Rating || '').toLowerCase();
-        if (!rating.includes(config.AgeRating.toLowerCase())) return false;
-      }
-      if (config.Franchise && config.Franchise.trim()) {
-        const tags = `${item.Tags || ''} ${item.Name || ''}`.toLowerCase();
-        if (!tags.includes(config.Franchise.toLowerCase())) return false;
-      }
-      return true;
-    });
-
-    if (config.Order === 'old') {
-      filtered.sort((a, b) => parseInt(a.Release_Date || a.Year || 0) - parseInt(b.Release_Date || b.Year || 0));
-    } else if (config.Order === 'rating') {
-      filtered.sort((a, b) => parseFloat(b.Rating || 0) - parseFloat(a.Rating || 0));
-    } else {
-      filtered.sort((a, b) => parseInt(b.Release_Date || b.Year || 2024) - parseInt(a.Release_Date || a.Year || 2024));
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = poster 
+          ? `<img src="${poster}" alt="${title}" loading="lazy" /><div class="card-info">${title}</div>`
+          : `<div class="card-placeholder">${title}</div>`;
+        row.appendChild(card);
+      });
     }
 
-    if (filtered.length === 0) return;
-
-    sectionCache[sectionKey] = {
-      title: config.Name || 'Collection',
-      items: filtered
-    };
-
-    const shelf = document.createElement('div');
-    shelf.className = 'section-wrap';
-    shelf.innerHTML = `
-      <div class="section-head-wrap" onclick="window.openSectionModal('${sectionKey}')">
-        <div class="section-head">${config.Name || 'Trending'}</div>
-        <svg class="section-head-icon" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-      </div>
-      <div class="cards-row-scroll">
-        ${filtered.map(item => `
-          <div class="shelf-card" onclick="location.href='1.html?watch=${item.id}'">
-            <div class="shelf-thumb-box">
-              <img src="${getPosterH(item)}" alt="${item.Name}" loading="lazy">
-            </div>
-            <div class="shelf-title">${item.Name || item.Title || 'Title'}</div>
-            <div class="shelf-sub">${item.Genres || item.Language || 'Video'}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    container.appendChild(shelf);
-  }
-
-  // --- Section Exploration Grid Modal (16:9 View) ---
-  window.openSectionModal = function(sectionKey) {
-    const data = sectionCache[sectionKey];
-    if (!data) return;
-
-    document.getElementById('exploreModalTitle').innerText = data.title;
-    const grid = document.getElementById('exploreModalGrid');
-
-    grid.innerHTML = data.items.map(item => `
-      <div class="shelf-card" style="width:100%; min-width:unset;" onclick="location.href='1.html?watch=${item.id}'">
-        <div class="shelf-thumb-box">
-          <img src="${getPosterH(item)}" alt="${item.Name}" loading="lazy">
-        </div>
-        <div class="shelf-title">${item.Name || item.Title || 'Title'}</div>
-        <div class="shelf-sub">${item.Genres || item.Language || 'Video'}</div>
-      </div>
-    `).join('');
-
-    document.getElementById('sectionExploreModal').classList.add('active');
-  };
-
-  document.getElementById('closeExploreModal').onclick = () => {
-    document.getElementById('sectionExploreModal').classList.remove('active');
-  };
-
-  // --- Bootstrap Routine ---
-  async function initApp() {
-    await initAuth();
-    await loadDatabase();
-
-    const pageId = (window.location.hash || '#default').replace('#', '') || 'default';
-
-    setupHeroCarousel();
-    renderContinueWatching();
-    loadPageSections(pageId);
-  }
-
-  window.addEventListener('hashchange', () => {
-    const pageId = (window.location.hash || '#default').replace('#', '') || 'default';
-    loadPageSections(pageId);
-  });
-
-  initApp();
-</script>
+    window.addEventListener("hashchange", initPage);
+    window.onload = initPage;
+  </script>
 </body>
 </html>
