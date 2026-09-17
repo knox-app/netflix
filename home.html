@@ -330,29 +330,39 @@
     let carouselItems = [];
     let slideTimer = null;
 
-    // Helper to safely extract image / poster / banner URLs
+    // Helper functions for reading document fields flexibly
     function getMediaImage(item) {
       return item.Banner || item.banner || item.Poster || item.poster || 
              item.Thumbnail || item.thumbnail || item.Image || item.image || 
              item.Cover || item.cover || "";
     }
 
-    // Helper to safely get Rating
     function getMediaRating(item) {
-      return item.Age_Rating || item.Rating || item.age_rating || item.rating || "U";
+      return item.Age_Rating || item.Rating || item.age_rating || item.rating || "";
     }
 
-    // Helper to safely get Title
     function getMediaTitle(item) {
       return item.Title || item.title || item.Name || item.name || "Untitled";
     }
 
-    // Helper to safely extract genres array
     function getMediaGenres(item) {
-      if (Array.isArray(item.Genres)) return item.Genres;
-      if (Array.isArray(item.genres)) return item.genres;
-      if (typeof item.Genres === "string") return [item.Genres];
-      if (typeof item.genres === "string") return [item.genres];
+      const g = item.Genres || item.genres || item.Genre || item.genre || [];
+      if (Array.isArray(g)) return g;
+      if (typeof g === "string") return g.split(",").map(s => s.trim());
+      return [];
+    }
+
+    function getMediaFranchise(item) {
+      const f = item.Franchise || item.franchise || "";
+      if (Array.isArray(f)) return f;
+      if (typeof f === "string") return [f];
+      return [];
+    }
+
+    function getMediaPlaylists(item) {
+      const p = item.Playlist || item.playlist || [];
+      if (Array.isArray(p)) return p;
+      if (typeof p === "string") return [p];
       return [];
     }
 
@@ -361,24 +371,25 @@
       return hash || "demo";
     }
 
-    async function initPage() {
+    // Realtime listener for dynamic synchronization
+    function initPageRealtime() {
       const pageId = getPageId();
-      try {
-        const pageDoc = await db.collection("Systems").doc(pageId).get();
+      db.collection("Systems").doc(pageId).onSnapshot((pageDoc) => {
         if (!pageDoc.exists) {
-          document.body.innerHTML = `<h2 style="text-align:center; margin-top:20%;">Page "${pageId}" was not found in Systems collection.</h2>`;
+          document.getElementById("sectionsContainer").innerHTML = 
+            `<h2 style="text-align:center; margin-top:20%;">Page "${pageId}" not found in Systems collection.</h2>`;
           return;
         }
 
         const pageData = pageDoc.data();
-        await loadHeroCarousel(pageData.Carsoule_Settings || {});
-        await loadSections(pageData.Sections || []);
-      } catch (err) {
-        console.error("Initialization error:", err);
-      }
+        loadHeroCarousel(pageData.Carsoule_Settings || {});
+        loadSections(pageData.Sections || []);
+      }, (err) => {
+        console.error("Firestore Listen Error:", err);
+      });
     }
 
-    // 1. Load Carousel Items with client-side filter
+    // 1. Load Carousel Items
     async function loadHeroCarousel(settings) {
       let contentSources = settings.Content_From;
       if (!Array.isArray(contentSources) || contentSources.length === 0) {
@@ -395,24 +406,27 @@
             const data = { id: doc.id, collectionName: col, ...doc.data() };
             const itemRating = getMediaRating(data).toLowerCase().trim();
 
-            if (!targetRating || targetRating === "all" || itemRating === targetRating) {
-              carouselItems.push(data);
+            // Strict check: if rating specified and not 'all', it must match
+            if (targetRating && targetRating !== "all") {
+              if (itemRating !== targetRating) return;
             }
+
+            carouselItems.push(data);
           });
         } catch (e) {
           console.warn(`Could not load collection ${col}:`, e);
         }
       }
 
-      // If no matching items, add demo fallback
+      // If no movies found in DB matching rating
       if (carouselItems.length === 0) {
         carouselItems = [
           {
-            Title: "Featured Showcase",
+            Title: "No Featured Media Found",
             Banner: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1600&auto=format&fit=crop",
             Language: "English",
             Rating: settings.Age_Rating || "U",
-            Genres: ["Action", "Adventure"]
+            Genres: ["Showcase"]
           }
         ];
       }
@@ -429,7 +443,7 @@
       carouselItems.forEach((item, index) => {
         const genres = getMediaGenres(item);
         const genresFormatted = genres.length > 0 ? genres.join(" • ") : "Featured";
-        const metaLine = `${item.Language || item.language || "English"} <span class="dot">•</span> ${getMediaRating(item)} <span class="dot">•</span> ${genresFormatted}`;
+        const metaLine = `${item.Language || item.language || "English"} <span class="dot">•</span> ${getMediaRating(item) || "U"} <span class="dot">•</span> ${genresFormatted}`;
         const bannerUrl = getMediaImage(item) || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1600";
         const logoUrl = item.Logo || item.logo || "";
         const title = getMediaTitle(item);
@@ -501,7 +515,7 @@
       };
     }
 
-    // 2. Load Sections
+    // 2. Load Sections and Apply Strict Filtering
     async function loadSections(sectionIds) {
       const container = document.getElementById("sectionsContainer");
       container.innerHTML = "";
@@ -536,9 +550,9 @@
 
       const maxLimit = parseInt(secData.Max_Limit || secData.max_limit) || 20;
       const targetAge = (secData.Age_Rating || secData.Rating || "").toLowerCase().trim();
-      const targetFranchise = (secData.Franchise || "").toLowerCase().trim();
-      const targetGenres = (secData.Genres || []).map(g => g.toLowerCase().trim());
-      const targetPlaylist = (secData.Playlist || []).map(p => p.toLowerCase().trim());
+      const targetFranchise = (secData.Franchise || secData.franchise || "").toLowerCase().trim();
+      const targetGenres = (secData.Genres || secData.genres || []).map(g => g.toLowerCase().trim());
+      const targetPlaylist = (secData.Playlist || secData.playlist || []).map(p => p.toLowerCase().trim());
 
       let allFound = [];
 
@@ -548,45 +562,52 @@
           snap.forEach(doc => {
             const item = { id: doc.id, ...doc.data() };
             
-            // Age Rating Filter
+            // 1. Strict Franchise Check
+            if (targetFranchise) {
+              const itemFranchises = getMediaFranchise(item).map(f => f.toLowerCase().trim());
+              if (!itemFranchises.includes(targetFranchise)) {
+                return; // Exclude movie if franchise does not match
+              }
+            }
+
+            // 2. Strict Age Rating Check
             if (targetAge && targetAge !== "all") {
               const itemRating = getMediaRating(item).toLowerCase().trim();
-              if (itemRating && itemRating !== targetAge) return;
+              if (itemRating !== targetAge) {
+                return; // Exclude movie if rating does not match
+              }
             }
 
-            // Franchise Filter
-            if (targetFranchise) {
-              const itemFranchise = (item.Franchise || item.franchise || "").toLowerCase().trim();
-              if (itemFranchise && itemFranchise !== targetFranchise) return;
-            }
-
-            // Genres Filter
+            // 3. Strict Genres Check (Must contain at least one of the section genres)
             if (targetGenres.length > 0) {
               const itemGenres = getMediaGenres(item).map(g => g.toLowerCase().trim());
               const hasGenreMatch = targetGenres.some(g => itemGenres.includes(g));
-              if (itemGenres.length > 0 && !hasGenreMatch) return;
+              if (!hasGenreMatch) {
+                return; // Exclude if no genre matches
+              }
             }
 
-            // Playlist Filter
+            // 4. Strict Playlist Check
             if (targetPlaylist.length > 0) {
-              const itemPlaylists = Array.isArray(item.Playlist) ? item.Playlist.map(p => p.toLowerCase().trim()) : [(item.Playlist || "").toLowerCase().trim()];
+              const itemPlaylists = getMediaPlaylists(item).map(p => p.toLowerCase().trim());
               const hasPlaylistMatch = targetPlaylist.some(p => itemPlaylists.includes(p));
-              if (!hasPlaylistMatch && item.Playlist) return;
+              if (!hasPlaylistMatch) {
+                return; // Exclude if playlist does not match
+              }
             }
 
             allFound.push(item);
           });
         } catch (err) {
-          console.warn(`Query skipped for collection ${col}:`, err);
+          console.warn(`Error reading collection ${col}:`, err);
         }
       }
 
-      // Slice to maxLimit
       const finalItems = allFound.slice(0, maxLimit);
 
       row.innerHTML = "";
       if (finalItems.length === 0) {
-        row.innerHTML = `<div style="color:var(--text-dim); font-size:0.85rem; padding: 15px 0;">No content matching filters.</div>`;
+        row.innerHTML = `<div style="color:var(--text-dim); font-size:0.85rem; padding: 15px 0;">No content found matching "${targetFranchise || 'criteria'}".</div>`;
         return;
       }
 
@@ -603,8 +624,8 @@
       });
     }
 
-    window.addEventListener("hashchange", initPage);
-    window.onload = initPage;
+    window.addEventListener("hashchange", initPageRealtime);
+    window.onload = initPageRealtime;
   </script>
 </body>
 </html>
