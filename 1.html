@@ -200,12 +200,9 @@
 
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
     body:not(.landscape-mode) #lockBtn { display: none !important; }
-    
     body:not(.landscape-mode) #btnWatchNext,
     body:not(.landscape-mode) #btnEpisodes,
-    body:not(.landscape-mode) #btnPreviously {
-      display: none !important;
-    }
+    body:not(.landscape-mode) #btnPreviously { display: none !important; }
 
     .icon-btn {
       background: none;
@@ -438,11 +435,7 @@
       transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
       touch-action: pan-y;
     }
-    .drawer-overlay.show {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0%);
-    }
+    .drawer-overlay.show { opacity: 1; pointer-events: auto; transform: translateY(0%); }
 
     .drawer-drag-area { width: 100%; padding: 6px 0 10px; cursor: grab; }
     .drawer-drag-handle { width: 44px; height: 4px; background: rgba(255,255,255,0.35); border-radius: 3px; margin: 0 auto; }
@@ -992,8 +985,10 @@
 
   const YT_API_KEY = "AIzaSyD7JDCs5jfuy7f5_74gpjxGoqoAbUmKHVM";
 
-  // In-memory cache for fetched YouTube playlist videos to avoid hitting quota
+  // In-memory cache for fetched YouTube playlist videos to avoid quota limits
   const playlistCache = {};
+  const movieDurationCache = {}; 
+  const DEFAULT_MOVIE_DURATION = 5400; // 90 minutes fallback
 
   // Runtime State
   let hlsInstance = null;
@@ -1018,9 +1013,8 @@
   let digitalFeedUnsub = null;
   let digitalFeedInterval = null;
   let digitalFeedSchedule = [];
-  let digitalFeedActiveSlotKey = null;
+  let activeMediaKey = null;
   let digitalFeedMoviesLibrary = [];
-  let isDigitalFeedMode = false;
 
   // In-Memory Item Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [] };
@@ -1235,7 +1229,6 @@
     if (channelDocUnsub) channelDocUnsub();
     if (digitalFeedUnsub) { digitalFeedUnsub(); digitalFeedUnsub = null; }
     if (digitalFeedInterval) { clearInterval(digitalFeedInterval); digitalFeedInterval = null; }
-    isDigitalFeedMode = false;
 
     channelDocUnsub = onSnapshot(doc(channelDb, targetCol, docId), async (snap) => {
       if (!snap.exists()) {
@@ -1283,10 +1276,9 @@
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
 
-        // Check for Digital Feed format
+        // Check for Digital Feed format: {.DIGI-FEED=channel_slug} or {.DIGI-FEED-channel_slug}
         const rawStream = (currentChannel.Stream || '').trim();
         if (rawStream.includes('.DIGI-FEED')) {
-          isDigitalFeedMode = true;
           initDigitalFeedEngine(rawStream);
         } else {
           startStreamPlayback(currentChannel);
@@ -1299,7 +1291,7 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  /* ================== DIGITAL FEED ENGINE (ZERO GAP + SYNCED) ================== */
+  /* ================== DIGITAL FEED ENGINE (ZERO GAP + MULTI-MOVIE QUEUE) ================== */
   async function initDigitalFeedEngine(streamTag) {
     const cleanTag = streamTag.replace(/[{}]/g, '').trim();
     let feedSlug = '';
@@ -1340,11 +1332,11 @@
 
       const feedData = snapshot.data();
       digitalFeedSchedule = feedData.schedule || [];
-      digitalFeedActiveSlotKey = null; // Force evaluation
+      activeMediaKey = null; // Forces re-evaluation
       syncDigitalFeedLive();
     });
 
-    // 1-second precision check for seamless transitions
+    // 1-Second Precision Tick for zero-gap real-time transitions
     digitalFeedInterval = setInterval(syncDigitalFeedLive, 1000);
   }
 
@@ -1374,8 +1366,8 @@
     return null;
   }
 
-  // Multi-Variable Movie Picker: Guarantees unique movie per slot & daily rotation
-  function pickDynamicFeedMovie(slot, slotIndex) {
+  // Multi-Movie Pool Resolver: Handles progression across multiple movies in a single slot window
+  function resolveMovieInSlot(slot, slotIndex, elapsedSeconds) {
     let pool = digitalFeedMoviesLibrary;
     if (slot.filterType && slot.filterType !== "all" && slot.filterValue && slot.filterValue !== "ALL") {
       pool = digitalFeedMoviesLibrary.filter(m => {
@@ -1391,16 +1383,40 @@
     const today = new Date();
     const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
     
-    // Hash based on: Day of Year + Slot Index + Slot Start Time String
+    // Hash based on day, slot index, and start time
     let slotHash = 0;
     const seedString = `${slot.from}_${slotIndex}_${slot.id || ''}`;
     for (let i = 0; i < seedString.length; i++) {
       slotHash = (slotHash << 5) - slotHash + seedString.charCodeAt(i);
       slotHash |= 0;
     }
+    const initialBaseIndex = Math.abs((dayOfYear * 5) + Math.abs(slotHash)) % pool.length;
 
-    const calculatedIndex = Math.abs((dayOfYear * 7) + Math.abs(slotHash)) % pool.length;
-    return pool[calculatedIndex];
+    // Calculate how many movies have completed within this slot window
+    let accumulatedTime = 0;
+    let movieStep = 0;
+    let selectedMovie = pool[initialBaseIndex];
+    let offsetIntoCurrentMovie = elapsedSeconds;
+
+    while (movieStep < 20) {
+      const currentCandidate = pool[(initialBaseIndex + movieStep) % pool.length];
+      const movieDur = movieDurationCache[currentCandidate.id] || DEFAULT_MOVIE_DURATION;
+
+      if (accumulatedTime + movieDur > elapsedSeconds) {
+        selectedMovie = currentCandidate;
+        offsetIntoCurrentMovie = elapsedSeconds - accumulatedTime;
+        break;
+      }
+
+      accumulatedTime += movieDur;
+      movieStep++;
+    }
+
+    return {
+      movie: selectedMovie,
+      offset: offsetIntoCurrentMovie,
+      movieIndexInPool: (initialBaseIndex + movieStep) % pool.length
+    };
   }
 
   async function fetchYouTubePlaylistVideos(playlistId) {
@@ -1436,26 +1452,77 @@
       return;
     }
 
-    const newSlotKey = `${live.slot.from}_${live.slot.to}_${live.slot.type}_${live.slotIndex}`;
+    const timeTag = `${format12Hour(live.slot.from)} - ${format12Hour(live.slot.to)}`;
 
-    if (digitalFeedActiveSlotKey !== newSlotKey) {
-      digitalFeedActiveSlotKey = newSlotKey;
-      const timeTag = `${format12Hour(live.slot.from)} - ${format12Hour(live.slot.to)}`;
+    // 1. Movie Slot (Handles Progression & Multiple Movies)
+    if (live.slot.type === "movie") {
+      const resolved = resolveMovieInSlot(live.slot, live.slotIndex, live.elapsedSeconds);
+      if (!resolved || !resolved.movie || !resolved.movie.Stream) {
+        document.getElementById('chLangSub').innerText = `Live Movie Unavailable • [${timeTag}]`;
+        return;
+      }
 
-      // 1. TV Shows (YouTube Playlist or Single Video ID)
-      if (live.slot.type === "tv") {
-        const playlistId = live.slot.playlistId;
+      const movie = resolved.movie;
+      const mediaKey = `movie_${movie.id}_${live.slotIndex}`;
 
-        if (playlistId && (playlistId.startsWith("PL") || playlistId.startsWith("RD") || playlistId.startsWith("UU"))) {
-          document.getElementById('chLangSub').innerText = `Fetching Live TV... [${timeTag}]`;
-          const videos = await fetchYouTubePlaylistVideos(playlistId);
+      if (activeMediaKey !== mediaKey) {
+        activeMediaKey = mediaKey;
+        const movieTitle = movie.Name || movie.Title || live.slot.title || "Live Movie";
+        document.getElementById('chLangSub').innerText = `${movieTitle} • [${timeTag}]`;
+        document.getElementById('overlaySubtitle').style.display = 'block';
+        document.getElementById('overlaySubtitle').innerText = `${movieTitle} • [${timeTag}]`;
 
-          if (videos.length > 0) {
-            const epDuration = 1200; // 20 mins estimate
-            const targetIndex = Math.floor(live.elapsedSeconds / epDuration) % videos.length;
-            const currentVideo = videos[targetIndex];
-            const videoOffset = live.elapsedSeconds % epDuration;
+        startStreamPlayback({
+          Stream: movie.Stream,
+          mpd: movie.mpd || movie.MPD,
+          Name: movieTitle
+        }, resolved.offset, (actualDuration) => {
+          movieDurationCache[movie.id] = actualDuration;
+        });
+      }
+    }
+    // 2. Shows (Cloudinary MP4 episodes)
+    else if (live.slot.type === "shows") {
+      const episodes = live.slot.episodes || [];
+      if (episodes.length === 0) {
+        document.getElementById('chLangSub').innerText = "No episodes configured";
+        return;
+      }
+      const epDuration = 1320; // 22 mins per episode
+      const epIndex = Math.floor(live.elapsedSeconds / epDuration) % episodes.length;
+      const currentEp = episodes[epIndex];
+      const offsetIntoEpisode = live.elapsedSeconds % epDuration;
+      const mediaKey = `shows_${live.slot.showId || live.slot.showName}_${epIndex}`;
 
+      if (activeMediaKey !== mediaKey) {
+        activeMediaKey = mediaKey;
+        const epTitle = `${live.slot.showName || ''} - ${currentEp.name || 'Episode'}`;
+        document.getElementById('chLangSub').innerText = `${epTitle} • [${timeTag}]`;
+        document.getElementById('overlaySubtitle').style.display = 'block';
+        document.getElementById('overlaySubtitle').innerText = `${epTitle} • [${timeTag}]`;
+
+        startStreamPlayback({
+          Stream: currentEp.stream,
+          Name: epTitle
+        }, offsetIntoEpisode);
+      }
+    }
+    // 3. TV Shows (YouTube Playlist or ID)
+    else if (live.slot.type === "tv") {
+      const playlistId = live.slot.playlistId;
+
+      if (playlistId && (playlistId.startsWith("PL") || playlistId.startsWith("RD") || playlistId.startsWith("UU"))) {
+        const videos = await fetchYouTubePlaylistVideos(playlistId);
+
+        if (videos.length > 0) {
+          const epDuration = 1200; // 20 mins estimate
+          const targetIndex = Math.floor(live.elapsedSeconds / epDuration) % videos.length;
+          const currentVideo = videos[targetIndex];
+          const videoOffset = live.elapsedSeconds % epDuration;
+          const mediaKey = `yt_${currentVideo.id}`;
+
+          if (activeMediaKey !== mediaKey) {
+            activeMediaKey = mediaKey;
             document.getElementById('chLangSub').innerText = `${currentVideo.title} • [${timeTag}]`;
             document.getElementById('overlaySubtitle').style.display = 'block';
             document.getElementById('overlaySubtitle').innerText = `${currentVideo.title} • [${timeTag}]`;
@@ -1464,18 +1531,12 @@
               Stream: `https://www.youtube.com/watch?v=${currentVideo.id}`,
               Name: currentVideo.title
             }, videoOffset);
-          } else {
-            const title = live.slot.title || "Live Broadcast";
-            document.getElementById('chLangSub').innerText = `${title} • [${timeTag}]`;
-            document.getElementById('overlaySubtitle').style.display = 'block';
-            document.getElementById('overlaySubtitle').innerText = `${title} • [${timeTag}]`;
-
-            startStreamPlayback({
-              Stream: `https://www.youtube.com/watch?v=${playlistId}`,
-              Name: title
-            }, live.elapsedSeconds);
           }
-        } else if (playlistId) {
+        }
+      } else if (playlistId) {
+        const mediaKey = `yt_${playlistId}`;
+        if (activeMediaKey !== mediaKey) {
+          activeMediaKey = mediaKey;
           const title = live.slot.title || "Live Broadcast";
           document.getElementById('chLangSub').innerText = `${title} • [${timeTag}]`;
           document.getElementById('overlaySubtitle').style.display = 'block';
@@ -1487,50 +1548,13 @@
           }, live.elapsedSeconds);
         }
       }
-      // 2. Shows (Cloudinary MP4 episodes)
-      else if (live.slot.type === "shows") {
-        const episodes = live.slot.episodes || [];
-        if (episodes.length === 0) {
-          document.getElementById('chLangSub').innerText = "No episodes configured";
-          return;
-        }
-        const epDuration = 1320; // 22 mins per episode
-        const epIndex = Math.floor(live.elapsedSeconds / epDuration) % episodes.length;
-        const currentEp = episodes[epIndex];
-        const offsetIntoEpisode = live.elapsedSeconds % epDuration;
-
-        const epTitle = `${live.slot.showName || ''} - ${currentEp.name || 'Episode'}`;
-        document.getElementById('chLangSub').innerText = `${epTitle} • [${timeTag}]`;
-        document.getElementById('overlaySubtitle').style.display = 'block';
-        document.getElementById('overlaySubtitle').innerText = `${epTitle} • [${timeTag}]`;
-
-        startStreamPlayback({
-          Stream: currentEp.stream,
-          Name: epTitle
-        }, offsetIntoEpisode);
-      }
-      // 3. Dynamic Movies Library
-      else if (live.slot.type === "movie") {
-        const movie = pickDynamicFeedMovie(live.slot, live.slotIndex);
-        if (!movie || !movie.Stream) {
-          document.getElementById('chLangSub').innerText = `Live Movie Unavailable • [${timeTag}]`;
-          return;
-        }
-
-        const movieTitle = movie.Name || movie.Title || live.slot.title || "Live Movie";
-        document.getElementById('chLangSub').innerText = `${movieTitle} • [${timeTag}]`;
-        document.getElementById('overlaySubtitle').style.display = 'block';
-        document.getElementById('overlaySubtitle').innerText = `${movieTitle} • [${timeTag}]`;
-
-        startStreamPlayback({
-          Stream: movie.Stream,
-          mpd: movie.mpd || movie.MPD,
-          Name: movieTitle
-        }, live.elapsedSeconds);
-      }
-      // 4. Direct Streams
-      else {
-        const slotTitle = live.slot.title || live.slot.name || "Live Broadcast";
+    }
+    // 4. Direct / Raw Streams
+    else {
+      const slotTitle = live.slot.title || live.slot.name || "Live Broadcast";
+      const mediaKey = `direct_${live.slot.from}_${live.slotIndex}`;
+      if (activeMediaKey !== mediaKey) {
+        activeMediaKey = mediaKey;
         document.getElementById('chLangSub').innerText = `${slotTitle} • [${timeTag}]`;
         document.getElementById('overlaySubtitle').style.display = 'block';
         document.getElementById('overlaySubtitle').innerText = `${slotTitle} • [${timeTag}]`;
@@ -1800,7 +1824,7 @@
     });
   }
 
-  function startStreamPlayback(data, overrideStartTime) {
+  function startStreamPlayback(data, overrideStartTime, onDurationDiscovered) {
     const video = document.getElementById('nativeVideoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
@@ -1877,6 +1901,8 @@
             if (e.data === YT.PlayerState.PLAYING) {
               playIcon.style.display = 'none';
               pauseIcon.style.display = 'block';
+            } else if (e.data === YT.PlayerState.ENDED) {
+              syncDigitalFeedLive();
             } else {
               playIcon.style.display = 'block';
               pauseIcon.style.display = 'none';
@@ -1925,13 +1951,23 @@
       overlay.style.display = 'flex';
       activePlayerType = 'hls';
 
+      let metaHandled = false;
       const applyResume = () => {
-        if (savedTime > 0) {
-          const targetTime = video.duration && video.duration > 0 ? (savedTime % video.duration) : savedTime;
+        if (metaHandled) return;
+        metaHandled = true;
+
+        const dur = video.duration;
+        if (!isNaN(dur) && dur > 0) {
+          if (onDurationDiscovered) onDurationDiscovered(dur);
+          const targetTime = (savedTime % dur);
           video.currentTime = targetTime;
           if (contentType !== 'live') showToast(`Resumed from ${formatTime(targetTime)}`);
         }
         video.play().catch(() => {});
+      };
+
+      video.onended = () => {
+        syncDigitalFeedLive();
       };
 
       if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('cloudinary')) {
@@ -1941,7 +1977,7 @@
           applyResume();
           extractNativeTracks(video);
         };
-        applyResume();
+        if (video.readyState >= 1) applyResume();
       } else if (Hls.isSupported()) {
         if (hlsInstance) hlsInstance.destroy();
         hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8, enableWorker: true });
@@ -2231,7 +2267,7 @@
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
     };
 
-    // Single Click on Screen toggles Controls (Double tap seeking completely removed)
+    // Single Tap to Toggle Controls (Seeking completely removed on tap)
     playerContainer.onpointerdown = (e) => {
       if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
