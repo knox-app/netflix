@@ -3,8 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OTT Stream</title>
+  <title>Watch TV Shows, Movies & Live TV</title>
   <style>
+    :root {
+      --bg-dark: #090a0e;
+      --accent: #e50914;
+      --text-white: #ffffff;
+      --text-gray: #a8b0c0;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -12,278 +19,368 @@
       user-select: none;
       -webkit-user-drag: none;
     }
+
     body {
-      background-color: #0f1014;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       overflow-x: hidden;
       min-height: 100vh;
     }
 
-    /* Top Navigation Header */
-    .nav-header {
-      position: sticky;
+    /* Fixed Netflix/Hotstar Gradient Header */
+    .nav-bar {
+      position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      height: 64px;
-      z-index: 50;
+      height: 70px;
+      z-index: 100;
       display: flex;
       align-items: center;
-      padding: 0 32px;
-      background: rgba(15, 16, 20, 0.95);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .nav-title {
-      font-size: 22px;
-      font-weight: 800;
-      color: #e50914;
-      letter-spacing: 1px;
+      justify-content: space-between;
+      padding: 0 4%;
+      background: linear-gradient(180deg, rgba(9, 10, 14, 0.95) 0%, rgba(9, 10, 14, 0.4) 60%, transparent 100%);
+      transition: background 0.3s ease;
     }
 
-    /* Hero Carousel */
+    .nav-logo {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .live-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(229, 9, 20, 0.2);
+      border: 1px solid var(--accent);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: #00ff66;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00ff66;
+    }
+
+    /* Hotstar/Netflix Hero Carousel */
     .hero-container {
       position: relative;
       width: 100%;
-      height: 75vh;
-      min-height: 480px;
+      height: 85vh;
+      min-height: 560px;
+      max-height: 850px;
       overflow: hidden;
-      background-color: #16181f;
+      background-color: #000;
     }
+
     .hero-slider {
       display: flex;
       height: 100%;
-      transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
       will-change: transform;
     }
+
     .hero-slide {
       min-width: 100%;
       height: 100%;
       position: relative;
       background-size: cover;
-      background-position: center center;
+      background-position: center top;
       background-repeat: no-repeat;
     }
-    .hero-overlay {
+
+    /* High-contrast Vignette Layering */
+    .hero-slide::after {
+      content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(90deg, rgba(15,16,20,0.95) 0%, rgba(15,16,20,0.6) 45%, rgba(15,16,20,0.1) 75%),
-                  linear-gradient(0deg, rgba(15,16,20,1) 0%, rgba(15,16,20,0) 35%);
+      background: 
+        linear-gradient(90deg, rgba(9, 10, 14, 0.98) 0%, rgba(9, 10, 14, 0.75) 35%, rgba(9, 10, 14, 0.1) 70%),
+        linear-gradient(0deg, rgba(9, 10, 14, 1) 0%, rgba(9, 10, 14, 0.5) 25%, transparent 60%),
+        linear-gradient(180deg, rgba(9, 10, 14, 0.7) 0%, transparent 20%);
     }
+
     .hero-content {
       position: absolute;
-      bottom: 10%;
-      left: 32px;
-      max-width: 600px;
-      z-index: 5;
+      bottom: 14%;
+      left: 4%;
+      max-width: 620px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
     }
-    .hero-logo {
-      max-width: 260px;
-      max-height: 110px;
+
+    .hero-logo-img {
+      max-width: 320px;
+      max-height: 130px;
       object-fit: contain;
-      margin-bottom: 12px;
-      display: block;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9));
+      margin-bottom: 6px;
     }
-    .hero-title-fallback {
-      font-size: 38px;
+
+    .hero-title-text {
+      font-size: 46px;
       font-weight: 800;
-      line-height: 1.15;
-      margin-bottom: 12px;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+      text-shadow: 0 4px 16px rgba(0,0,0,0.9);
     }
+
     .hero-meta {
-      font-size: 14px;
-      color: #cfd3dc;
-      margin-bottom: 18px;
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-gray);
     }
-    .hero-meta .badge {
-      background: rgba(255, 255, 255, 0.2);
+
+    .meta-badge {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
       padding: 2px 8px;
       border-radius: 4px;
       font-size: 11px;
       font-weight: 700;
-      color: #fff;
     }
+
     .hero-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+      margin-top: 6px;
     }
-    .btn-watch-now {
-      background: #e50914;
-      color: #fff;
+
+    .btn-watch {
+      background: #ffffff;
+      color: #000000;
       border: none;
-      padding: 12px 26px;
+      padding: 13px 30px;
       font-size: 15px;
       font-weight: 700;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      transition: transform 0.2s, background 0.2s;
+      gap: 10px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     }
-    .btn-watch-now:hover {
-      background: #f40612;
+
+    .btn-watch:hover {
+      background: rgba(255, 255, 255, 0.85);
       transform: scale(1.03);
     }
-    .btn-watchlist {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.6);
-      background: rgba(20,20,20,0.6);
-      color: #fff;
-      font-size: 22px;
+
+    .btn-plus {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
+      background: rgba(30, 34, 45, 0.6);
+      backdrop-filter: blur(10px);
+      color: #ffffff;
+      font-size: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      backdrop-filter: blur(4px);
-      transition: all 0.2s;
-    }
-    .btn-watchlist:hover {
-      border-color: #fff;
-      background: rgba(255,255,255,0.25);
-      transform: scale(1.08);
-    }
-    .slider-indicators {
-      position: absolute;
-      bottom: 20px;
-      right: 32px;
-      display: flex;
-      gap: 8px;
-      z-index: 10;
-    }
-    .indicator-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.4);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .indicator-dot.active {
-      width: 22px;
-      border-radius: 4px;
-      background: #e50914;
+      transition: all 0.2s ease;
     }
 
-    /* Sections & Shelves */
+    .btn-plus:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffffff;
+      transform: scale(1.05);
+    }
+
+    /* Carousel Nav Arrows */
+    .carousel-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 46px;
+      height: 46px;
+      background: rgba(15, 18, 26, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      backdrop-filter: blur(6px);
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .carousel-nav-btn:hover {
+      background: rgba(229, 9, 20, 0.8);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .btn-prev { left: 20px; }
+    .btn-next { right: 20px; }
+
+    .carousel-progress {
+      position: absolute;
+      bottom: 24px;
+      right: 4%;
+      display: flex;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .progress-bar {
+      width: 24px;
+      height: 3.5px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .progress-bar.active {
+      width: 44px;
+      background: var(--accent);
+    }
+
+    /* Sections & Rows Layout */
     .sections-container {
       position: relative;
-      margin-top: 20px;
-      z-index: 10;
-      padding-bottom: 60px;
+      margin-top: -30px;
+      z-index: 30;
+      padding-bottom: 80px;
       display: flex;
       flex-direction: column;
-      gap: 32px;
+      gap: 36px;
     }
+
     .section-block {
       display: flex;
       flex-direction: column;
     }
+
     .section-header {
-      padding: 0 32px;
+      padding: 0 4%;
       margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
     }
+
     .section-title {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 700;
-      letter-spacing: 0.5px;
-      color: #f0f6fc;
+      letter-spacing: 0.3px;
+      color: #f1f3f7;
     }
-    .shelf-wrapper {
-      position: relative;
-    }
+
     .shelf-scroll {
       display: flex;
       gap: 16px;
       overflow-x: auto;
-      padding: 10px 32px;
+      padding: 10px 4%;
       scroll-behavior: smooth;
       scrollbar-width: none;
     }
+
     .shelf-scroll::-webkit-scrollbar {
       display: none;
     }
+
     .content-card {
-      flex: 0 0 170px;
+      flex: 0 0 175px;
       aspect-ratio: 2 / 3;
       border-radius: 8px;
       overflow: hidden;
       position: relative;
-      background: #1c2029;
+      background: #141721;
       cursor: pointer;
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
+
     .content-card:hover {
-      transform: translateY(-5px) scale(1.03);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.8);
-      border-color: rgba(255,255,255,0.2);
+      transform: translateY(-6px) scale(1.04);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.85);
+      border-color: rgba(255, 255, 255, 0.3);
     }
+
     .content-card img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
+
     .content-card .card-info {
       position: absolute;
       bottom: 0;
       inset-inline: 0;
-      padding: 24px 10px 8px;
-      background: linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
+      padding: 30px 10px 10px;
+      background: linear-gradient(0deg, rgba(9, 10, 14, 0.95) 0%, rgba(9, 10, 14, 0.6) 50%, transparent 100%);
       font-size: 13px;
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .content-card .card-badge {
+
+    .content-card .card-rating {
       position: absolute;
-      top: 6px;
-      right: 6px;
-      background: rgba(0,0,0,0.7);
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       padding: 2px 6px;
       border-radius: 4px;
       font-size: 10px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
-    .loading-status {
-      text-align: center;
-      padding: 40px;
-      color: #8b949e;
-      font-size: 14px;
+    @media (max-width: 768px) {
+      .hero-container { height: 65vh; min-height: 440px; }
+      .hero-title-text { font-size: 30px; }
+      .hero-logo-img { max-width: 200px; }
+      .content-card { flex: 0 0 130px; }
+      .carousel-nav-btn { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <header class="nav-header">
-    <div class="nav-title" id="page-nav-title">STREAM</div>
-  </header>
+  <!-- Top Bar -->
+  <nav class="nav-bar">
+    <div class="nav-logo" id="page-nav-title">STREAM</div>
+    <div class="live-tag"><span class="live-dot"></span> LIVE SYNC</div>
+  </nav>
 
-  <!-- Swipeable Carousel -->
-  <div class="hero-container" id="hero-container">
+  <!-- Hero Carousel -->
+  <section class="hero-container" id="hero-container">
+    <button class="carousel-nav-btn btn-prev" onclick="prevSlide()">&#10094;</button>
+    <button class="carousel-nav-btn btn-next" onclick="nextSlide()">&#10095;</button>
+
     <div class="hero-slider" id="hero-slider"></div>
-    <div class="slider-indicators" id="slider-indicators"></div>
-  </div>
+    <div class="carousel-progress" id="slider-indicators"></div>
+  </section>
 
   <!-- Dynamic Sections -->
-  <main class="sections-container" id="sections-container">
-    <div class="loading-status" id="loading-status">Loading page content...</div>
-  </main>
+  <main class="sections-container" id="sections-container"></main>
 
   <!-- Firebase Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -302,19 +399,20 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    let allMovies = new Map();
+    let allShows = new Map();
     let currentSlide = 0;
     let carouselItems = [];
     let carouselTimer = null;
+    let pageConfig = null;
+    let activeListeners = [];
 
     function getTargetPageId() {
       const hash = window.location.hash.replace('#', '').trim();
       return hash || 'demo';
     }
 
-    window.addEventListener('hashchange', () => loadPage(getTargetPageId()));
-    window.addEventListener('DOMContentLoaded', () => loadPage(getTargetPageId()));
-
-    // Safe helper to extract properties regardless of key casing
+    // Helper for case-insensitive property lookup
     function getVal(obj, ...keys) {
       if (!obj) return undefined;
       for (const k of keys) {
@@ -323,60 +421,75 @@
       return undefined;
     }
 
-    async function loadPage(pageId) {
-      const status = document.getElementById('loading-status');
-      if (status) status.style.display = 'block';
+    window.addEventListener('DOMContentLoaded', () => initApp());
+    window.addEventListener('hashchange', () => initApp());
 
-      try {
-        const pageDocSnap = await db.collection('Systems').doc(pageId).get();
-        if (!pageDocSnap.exists) {
-          if (status) status.textContent = `Page "${pageId}" not found in Systems collection.`;
+    function initApp() {
+      // Clear previous listeners on route change
+      activeListeners.forEach(unsub => unsub());
+      activeListeners = [];
+
+      // 1. Real-time Live Listener for Movies collection
+      const unsubMovies = db.collection('Movies').onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'removed') allMovies.delete(change.doc.id);
+          else allMovies.set(change.doc.id, { id: change.doc.id, _type: 'Movies', ...change.doc.data() });
+        });
+        refreshUI();
+      }, err => console.warn('Movies listener:', err));
+      activeListeners.push(unsubMovies);
+
+      // 2. Real-time Live Listener for Shows collection
+      const unsubShows = db.collection('Shows').onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'removed') allShows.delete(change.doc.id);
+          else allShows.set(change.doc.id, { id: change.doc.id, _type: 'Shows', ...change.doc.data() });
+        });
+        refreshUI();
+      }, err => console.warn('Shows listener:', err));
+      activeListeners.push(unsubShows);
+
+      // 3. Real-time Page Config Listener
+      const pageId = getTargetPageId();
+      const unsubPage = db.collection('Systems').doc(pageId).onSnapshot(doc => {
+        if (!doc.exists) {
+          document.getElementById('page-nav-title').textContent = pageId.toUpperCase();
           return;
         }
-
-        const pageData = pageDocSnap.data();
-        const pageTitle = getVal(pageData, 'Name', 'name') || pageId;
+        pageConfig = doc.data();
+        const pageTitle = getVal(pageConfig, 'Name', 'name') || pageId;
         document.getElementById('page-nav-title').textContent = pageTitle.toUpperCase();
-
-        // 1. Setup Carousel
-        await setupCarousel(pageData.Carsoule_Settings || {});
-
-        // 2. Setup Sections
-        await setupSections(pageData.Sections || []);
-
-        if (status) status.style.display = 'none';
-      } catch (err) {
-        console.error("Error loading page:", err);
-        if (status) status.textContent = `Error loading: ${err.message}`;
-      }
+        refreshUI();
+      }, err => console.warn('Page listener:', err));
+      activeListeners.push(unsubPage);
     }
 
-    /* CAROUSEL LOGIC */
-    async function setupCarousel(settings = {}) {
+    // Automatically triggers whenever movies, shows, or page config change
+    function refreshUI() {
+      if (!pageConfig) return;
+      syncCarousel(pageConfig.Carsoule_Settings || {});
+      syncSections(pageConfig.Sections || []);
+    }
+
+    /* CAROUSEL SYNC */
+    function syncCarousel(settings) {
       const contentFrom = getVal(settings, 'Content_From', 'content_from') || ['Movies', 'Shows'];
       const ageRating = getVal(settings, 'Age_Rating', 'age_rating');
-      carouselItems = [];
 
-      for (const collName of contentFrom) {
-        try {
-          const snap = await db.collection(collName).limit(10).get();
-          snap.forEach(doc => {
-            const data = doc.data();
-            const itemAge = getVal(data, 'Age_Rating', 'Rating', 'age_rating', 'rating');
-            
-            // Filter by Age Rating if specified
-            if (!ageRating || (itemAge && itemAge.toLowerCase() === ageRating.toLowerCase())) {
-              carouselItems.push({ id: doc.id, _collection: collName, ...data });
-            }
-          });
-        } catch (e) {
-          console.warn(`Could not load collection "${collName}":`, e);
-        }
+      let combined = [];
+      if (contentFrom.includes('Movies')) combined.push(...Array.from(allMovies.values()));
+      if (contentFrom.includes('Shows')) combined.push(...Array.from(allShows.values()));
+
+      // Filter by Age Rating if specified
+      if (ageRating) {
+        combined = combined.filter(item => {
+          const rating = getVal(item, 'Age_Rating', 'Rating', 'age_rating', 'rating');
+          return rating && rating.toLowerCase() === ageRating.toLowerCase();
+        });
       }
 
+      carouselItems = combined.slice(0, 8);
       renderCarousel();
-      initCarouselTouch();
-      startAutoSlide();
     }
 
     function renderCarousel() {
@@ -396,11 +509,9 @@
         slide.className = 'hero-slide';
 
         const banner = getVal(item, 'Banner', 'banner', 'Poster', 'poster', 'image', 'thumbnail');
-        if (banner) {
-          slide.style.backgroundImage = `url('${banner}')`;
-        }
+        if (banner) slide.style.backgroundImage = `url('${banner}')`;
 
-        const title = getVal(item, 'Title', 'title', 'Name', 'name') || 'Untitled';
+        const title = getVal(item, 'Title', 'title', 'Name', 'name') || 'Untitled Content';
         const logo = getVal(item, 'Logo', 'logo');
         const lang = getVal(item, 'Language', 'language', 'lang') || '';
         const rating = getVal(item, 'Age_Rating', 'Rating', 'age_rating', 'rating') || '';
@@ -409,185 +520,172 @@
 
         const metaParts = [];
         if (lang) metaParts.push(lang);
-        if (rating) metaParts.push(`<span class="badge">${rating}</span>`);
+        if (rating) metaParts.push(`<span class="meta-badge">${rating}</span>`);
         if (genres) metaParts.push(genres);
 
         slide.innerHTML = `
-          <div class="hero-overlay"></div>
           <div class="hero-content">
-            ${logo ? `<img src="${logo}" class="hero-logo" alt="${title}" />` : `<h1 class="hero-title-fallback">${title}</h1>`}
+            ${logo ? `<img src="${logo}" class="hero-logo-img" alt="${title}" />` : `<h1 class="hero-title-text">${title}</h1>`}
             <div class="hero-meta">${metaParts.join(' • ')}</div>
             <div class="hero-actions">
-              <button class="btn-watch-now">
+              <button class="btn-watch">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                 Watch Now
               </button>
-              <button class="btn-watchlist" title="Add to Watchlist">+</button>
+              <button class="btn-plus" title="Add to Watchlist">+</button>
             </div>
           </div>
         `;
         slider.appendChild(slide);
 
-        const dot = document.createElement('div');
-        dot.className = `indicator-dot ${idx === 0 ? 'active' : ''}`;
-        dot.onclick = () => goToSlide(idx);
-        indicators.appendChild(dot);
+        const bar = document.createElement('div');
+        bar.className = `progress-bar ${idx === 0 ? 'active' : ''}`;
+        bar.onclick = () => goToSlide(idx);
+        indicators.appendChild(bar);
       });
 
-      goToSlide(0);
+      goToSlide(currentSlide >= carouselItems.length ? 0 : currentSlide);
+      startAutoSlide();
+      initCarouselSwipe();
     }
 
     function goToSlide(index) {
       if (carouselItems.length === 0) return;
       currentSlide = (index + carouselItems.length) % carouselItems.length;
       document.getElementById('hero-slider').style.transform = `translateX(-${currentSlide * 100}%)`;
-      document.querySelectorAll('.indicator-dot').forEach((d, i) => {
+      document.querySelectorAll('.progress-bar').forEach((d, i) => {
         d.classList.toggle('active', i === currentSlide);
       });
     }
 
+    function nextSlide() { goToSlide(currentSlide + 1); }
+    function prevSlide() { goToSlide(currentSlide - 1); }
+
     function startAutoSlide() {
       clearInterval(carouselTimer);
       if (carouselItems.length > 1) {
-        carouselTimer = setInterval(() => goToSlide(currentSlide + 1), 5000);
+        carouselTimer = setInterval(() => nextSlide(), 5500);
       }
     }
 
-    function initCarouselTouch() {
+    function initCarouselSwipe() {
       const container = document.getElementById('hero-container');
       let startX = 0;
       let currentX = 0;
       let isDragging = false;
 
-      container.addEventListener('touchstart', (e) => {
+      container.ontouchstart = (e) => {
         startX = e.touches[0].clientX;
         isDragging = true;
         clearInterval(carouselTimer);
-      }, { passive: true });
+      };
 
-      container.addEventListener('touchmove', (e) => {
+      container.ontouchmove = (e) => {
         if (!isDragging) return;
         currentX = e.touches[0].clientX;
-      }, { passive: true });
+      };
 
-      container.addEventListener('touchend', () => {
+      container.ontouchend = () => {
         if (!isDragging) return;
         const diff = startX - currentX;
         if (Math.abs(diff) > 40) {
-          if (diff > 0) goToSlide(currentSlide + 1);
-          else goToSlide(currentSlide - 1);
+          if (diff > 0) nextSlide();
+          else prevSlide();
         }
         isDragging = false;
         startAutoSlide();
-      });
+      };
     }
 
-    /* SECTIONS LOGIC */
-    async function setupSections(sectionIds) {
+    /* SECTIONS SYNC */
+    async function syncSections(sectionIds) {
       const container = document.getElementById('sections-container');
       container.innerHTML = '';
 
       for (const secId of sectionIds) {
         try {
-          const secDocSnap = await db.collection('Systems').doc(secId).get();
-          if (!secDocSnap.exists) continue;
+          const secDoc = await db.collection('Systems').doc(secId).get();
+          if (!secDoc.exists) continue;
 
-          const secData = secDocSnap.data();
-          const contentList = await fetchSectionContent(secData);
+          const secData = secDoc.data();
+          const items = filterSectionItems(secData);
 
-          if (contentList.length > 0) {
+          if (items.length > 0) {
             const sectionName = getVal(secData, 'Name', 'name') || secId;
-            const sectionElem = createSectionRowElement(sectionName, contentList);
-            container.appendChild(sectionElem);
+            container.appendChild(createSectionElement(sectionName, items));
           }
         } catch (err) {
-          console.error(`Error loading section ${secId}:`, err);
+          console.warn(`Section sync error for ${secId}:`, err);
         }
       }
     }
 
-    async function fetchSectionContent(sectionConfig) {
+    function filterSectionItems(secConfig) {
       const results = [];
-      const seenIds = new Set();
-      const contentTypes = getVal(sectionConfig, 'Content_Type', 'content_type') || ['Movies', 'Shows'];
-      const playlist = getVal(sectionConfig, 'Playlist', 'playlist') || [];
+      const seen = new Set();
+      const contentTypes = getVal(secConfig, 'Content_Type', 'content_type') || ['Movies', 'Shows'];
+      const playlist = getVal(secConfig, 'Playlist', 'playlist') || [];
 
-      // 1. Resolve explicit Playlist IDs first
-      if (Array.isArray(playlist) && playlist.length > 0) {
-        for (const id of playlist) {
-          for (const coll of contentTypes) {
-            try {
-              const docSnap = await db.collection(coll).doc(id).get();
-              if (docSnap.exists && !seenIds.has(docSnap.id)) {
-                seenIds.add(docSnap.id);
-                results.push({ id: docSnap.id, ...docSnap.data() });
-                break;
-              }
-            } catch (e) {}
+      // 1. Explicit Playlist IDs
+      if (Array.isArray(playlist)) {
+        playlist.forEach(id => {
+          let item = allMovies.get(id) || allShows.get(id);
+          if (item && !seen.has(item.id)) {
+            seen.add(item.id);
+            results.push(item);
           }
-        }
+        });
       }
 
-      // 2. Query dynamically matching items if max limit not reached
-      const maxLimit = parseInt(getVal(sectionConfig, 'Max_Limit', 'max_limit'), 10) || 20;
-      const targetAge = getVal(sectionConfig, 'Age_Rating', 'age_rating');
-      const targetFranchise = getVal(sectionConfig, 'Franchise', 'franchise');
-      const targetGenres = getVal(sectionConfig, 'Genres', 'genres') || [];
+      // 2. Scan all currently loaded movies/shows matching section criteria
+      const maxLimit = parseInt(getVal(secConfig, 'Max_Limit', 'max_limit'), 10) || 20;
+      const targetAge = getVal(secConfig, 'Age_Rating', 'age_rating');
+      const targetFranchise = getVal(secConfig, 'Franchise', 'franchise');
+      const targetGenres = getVal(secConfig, 'Genres', 'genres') || [];
 
-      if (results.length < maxLimit) {
-        for (const coll of contentTypes) {
-          try {
-            // Fetch without compound index to prevent Firestore composite index blocking
-            const snap = await db.collection(coll).limit(30).get();
-            snap.forEach(doc => {
-              if (results.length >= maxLimit || seenIds.has(doc.id)) return;
-              const data = doc.data();
+      const candidatePool = [];
+      if (contentTypes.includes('Movies')) candidatePool.push(...allMovies.values());
+      if (contentTypes.includes('Shows')) candidatePool.push(...allShows.values());
 
-              // In-memory criteria matching
-              let matches = true;
+      for (const item of candidatePool) {
+        if (results.length >= maxLimit) break;
+        if (seen.has(item.id)) continue;
 
-              if (targetAge) {
-                const itemAge = getVal(data, 'Age_Rating', 'Rating', 'age_rating', 'rating');
-                if (!itemAge || itemAge.toLowerCase() !== targetAge.toLowerCase()) matches = false;
-              }
+        let match = true;
 
-              if (matches && targetFranchise) {
-                const itemFranchise = getVal(data, 'Franchise', 'franchise');
-                if (!itemFranchise || itemFranchise.toLowerCase() !== targetFranchise.toLowerCase()) matches = false;
-              }
+        if (targetAge) {
+          const r = getVal(item, 'Age_Rating', 'Rating', 'age_rating', 'rating');
+          if (!r || r.toLowerCase() !== targetAge.toLowerCase()) match = false;
+        }
 
-              if (matches && Array.isArray(targetGenres) && targetGenres.length > 0) {
-                const itemGenres = getVal(data, 'Genres', 'genres') || [];
-                const hasGenre = Array.isArray(itemGenres)
-                  ? targetGenres.some(tg => itemGenres.map(g => g.toLowerCase()).includes(tg.toLowerCase()))
-                  : targetGenres.some(tg => String(itemGenres).toLowerCase().includes(tg.toLowerCase()));
-                if (!hasGenre) matches = false;
-              }
+        if (match && targetFranchise) {
+          const f = getVal(item, 'Franchise', 'franchise');
+          if (!f || f.toLowerCase() !== targetFranchise.toLowerCase()) match = false;
+        }
 
-              if (matches) {
-                seenIds.add(doc.id);
-                results.push({ id: doc.id, ...data });
-              }
-            });
-          } catch (e) {
-            console.warn(`Error scanning collection ${coll}:`, e);
-          }
+        if (match && Array.isArray(targetGenres) && targetGenres.length > 0) {
+          const g = getVal(item, 'Genres', 'genres') || [];
+          const itemGenres = Array.isArray(g) ? g : [g];
+          const hasGenre = targetGenres.some(tg => itemGenres.map(x => String(x).toLowerCase()).includes(tg.toLowerCase()));
+          if (!hasGenre) match = false;
+        }
+
+        if (match) {
+          seen.add(item.id);
+          results.push(item);
         }
       }
 
       return results;
     }
 
-    function createSectionRowElement(title, items) {
+    function createSectionElement(title, items) {
       const section = document.createElement('section');
       section.className = 'section-block';
 
       const header = document.createElement('div');
       header.className = 'section-header';
       header.innerHTML = `<h2 class="section-title">${title}</h2>`;
-
-      const shelfWrapper = document.createElement('div');
-      shelfWrapper.className = 'shelf-wrapper';
 
       const shelfScroll = document.createElement('div');
       shelfScroll.className = 'shelf-scroll';
@@ -596,21 +694,20 @@
         const card = document.createElement('div');
         card.className = 'content-card';
 
-        const posterImg = getVal(item, 'Poster', 'poster', 'Banner', 'banner', 'image', 'thumbnail') || '';
-        const itemTitle = getVal(item, 'Title', 'title', 'Name', 'name') || 'Untitled';
-        const itemRating = getVal(item, 'Age_Rating', 'Rating', 'age_rating', 'rating');
+        const poster = getVal(item, 'Poster', 'poster', 'Banner', 'banner', 'image', 'thumbnail') || '';
+        const title = getVal(item, 'Title', 'title', 'Name', 'name') || 'Untitled';
+        const rating = getVal(item, 'Age_Rating', 'Rating', 'age_rating', 'rating');
 
         card.innerHTML = `
-          ${posterImg ? `<img src="${posterImg}" alt="${itemTitle}" loading="lazy" />` : ''}
-          ${itemRating ? `<span class="card-badge">${itemRating}</span>` : ''}
-          <div class="card-info">${itemTitle}</div>
+          ${poster ? `<img src="${poster}" alt="${title}" loading="lazy" />` : ''}
+          ${rating ? `<span class="card-rating">${rating}</span>` : ''}
+          <div class="card-info">${title}</div>
         `;
         shelfScroll.appendChild(card);
       });
 
-      shelfWrapper.appendChild(shelfScroll);
       section.appendChild(header);
-      section.appendChild(shelfWrapper);
+      section.appendChild(shelfScroll);
       return section;
     }
   </script>
