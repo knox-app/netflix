@@ -3,315 +3,269 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stream Showcase</title>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
+  <title>OTT Stream</title>
   <style>
-    :root {
-      --bg: #0c111b;
-      --card-bg: #192133;
-      --accent: #1f80e0;
-      --text: #ffffff;
-      --text-dim: #9aa9c2;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      -webkit-user-drag: none;
     }
-
     body {
-      background-color: var(--bg);
-      color: var(--text);
-      overflow-x: hidden;
-      min-height: 100vh;
-    }
-
-    /* Navbar */
-    .navbar {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 40px;
-      background: linear-gradient(180deg, rgba(12, 17, 27, 0.95) 0%, rgba(12, 17, 27, 0) 100%);
-      z-index: 100;
-    }
-
-    .nav-logo {
-      font-size: 1.4rem;
-      font-weight: 800;
-      letter-spacing: 1px;
+      background-color: #0f1014;
       color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
     }
 
-    .nav-logo span { color: var(--accent); }
+    /* Top Navigation Header */
+    .nav-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      padding: 0 40px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    }
+    .nav-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #e50914;
+      letter-spacing: 1px;
+    }
 
-    /* Carousel / Hero */
-    .carousel-container {
+    /* Hero Carousel */
+    .hero-container {
       position: relative;
       width: 100%;
-      height: 78vh;
+      height: 80vh;
       min-height: 520px;
       overflow: hidden;
+      background-color: #000;
     }
-
-    .carousel-track {
+    .hero-slider {
       display: flex;
       height: 100%;
-      transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+      will-change: transform;
     }
-
-    .carousel-slide {
+    .hero-slide {
       min-width: 100%;
       height: 100%;
       position: relative;
-      display: flex;
-      align-items: center;
-      padding: 0 50px;
-    }
-
-    .slide-bg {
-      position: absolute;
-      inset: 0;
       background-size: cover;
       background-position: center top;
-      background-repeat: no-repeat;
-      z-index: 1;
     }
-
-    .slide-overlay {
+    .hero-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(90deg, #0c111b 0%, rgba(12, 17, 27, 0.85) 35%, rgba(12, 17, 27, 0.1) 75%),
-                  linear-gradient(0deg, #0c111b 0%, rgba(12, 17, 27, 0) 45%);
-      z-index: 2;
+      background: linear-gradient(90deg, rgba(15,16,20,0.95) 0%, rgba(15,16,20,0.6) 40%, rgba(15,16,20,0) 70%),
+                  linear-gradient(0deg, rgba(15,16,20,1) 0%, rgba(15,16,20,0) 40%);
     }
-
-    .slide-content {
-      position: relative;
-      z-index: 3;
-      max-width: 580px;
-      margin-top: 40px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+    .hero-content {
+      position: absolute;
+      bottom: 12%;
+      left: 40px;
+      max-width: 600px;
+      z-index: 5;
     }
-
-    .slide-logo {
+    .hero-logo {
       max-width: 280px;
-      max-height: 110px;
+      max-height: 120px;
       object-fit: contain;
-      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
+      margin-bottom: 14px;
+      display: block;
     }
-
-    .slide-title-fallback {
-      font-size: 2.8rem;
+    .hero-title-fallback {
+      font-size: 42px;
       font-weight: 800;
       line-height: 1.1;
-      text-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
+      margin-bottom: 14px;
     }
-
-    .slide-meta {
-      font-size: 0.95rem;
-      color: var(--text-dim);
-      font-weight: 600;
+    .hero-meta {
+      font-size: 15px;
+      color: #b3b3b3;
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
     }
-
-    .slide-meta span.dot {
-      color: var(--accent);
+    .hero-meta .badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #fff;
     }
-
-    .btn-group {
+    .hero-actions {
       display: flex;
       align-items: center;
       gap: 14px;
-      margin-top: 8px;
     }
-
-    .btn-watch {
-      background: #ffffff;
+    .btn-watch-now {
+      background: #fff;
       color: #000;
       border: none;
-      padding: 12px 28px;
-      border-radius: 6px;
-      font-size: 1rem;
+      padding: 12px 30px;
+      font-size: 16px;
       font-weight: 700;
+      border-radius: 6px;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: all 0.2s ease;
+      transition: transform 0.2s, background 0.2s;
     }
-
-    .btn-watch:hover {
-      background: rgba(255, 255, 255, 0.85);
+    .btn-watch-now:hover {
+      background: #e6e6e6;
       transform: scale(1.03);
     }
-
     .btn-watchlist {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(10px);
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      font-size: 1.3rem;
+      border: 2px solid rgba(255,255,255,0.6);
+      background: rgba(40,40,40,0.6);
+      color: #fff;
+      font-size: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
+      transition: all 0.2s;
     }
-
     .btn-watchlist:hover {
-      background: rgba(255, 255, 255, 0.3);
+      border-color: #fff;
+      background: rgba(255,255,255,0.2);
       transform: scale(1.08);
     }
-
-    /* Carousel Nav Indicators */
-    .carousel-nav {
+    .slider-indicators {
       position: absolute;
-      bottom: 24px;
-      right: 50px;
-      z-index: 10;
+      bottom: 20px;
+      right: 40px;
       display: flex;
       gap: 8px;
+      z-index: 10;
     }
-
-    .indicator {
+    .indicator-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.4);
       cursor: pointer;
-      transition: 0.3s;
+      transition: all 0.2s;
     }
-
-    .indicator.active {
+    .indicator-dot.active {
       width: 24px;
       border-radius: 4px;
       background: #fff;
     }
 
-    /* Sections */
+    /* Sections & Rows */
     .sections-container {
-      padding: 10px 40px 80px 40px;
+      position: relative;
+      margin-top: -20px;
+      z-index: 10;
+      padding: 0 0 60px 0;
       display: flex;
       flex-direction: column;
       gap: 36px;
-      position: relative;
-      z-index: 10;
     }
-
-    .section-shelf {
+    .section-block {
       display: flex;
       flex-direction: column;
-      gap: 14px;
     }
-
+    .section-header {
+      padding: 0 40px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
     .section-title {
-      font-size: 1.3rem;
+      font-size: 20px;
       font-weight: 700;
-      color: #e1e6f0;
       letter-spacing: 0.5px;
     }
-
-    .cards-row {
+    .shelf-wrapper {
+      position: relative;
+    }
+    .shelf-scroll {
       display: flex;
       gap: 16px;
       overflow-x: auto;
+      padding: 8px 40px;
       scroll-behavior: smooth;
-      padding: 12px 4px;
       scrollbar-width: none;
     }
-
-    .cards-row::-webkit-scrollbar { display: none; }
-
-    .card {
-      min-width: 170px;
-      max-width: 170px;
-      height: 240px;
-      background: var(--card-bg);
+    .shelf-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .content-card {
+      flex: 0 0 180px;
+      aspect-ratio: 2 / 3;
       border-radius: 8px;
       overflow: hidden;
-      flex-shrink: 0;
-      cursor: pointer;
       position: relative;
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
+      background: #1e222b;
+      cursor: pointer;
+      transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
-
-    .card:hover {
-      transform: scale(1.06);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
-      z-index: 5;
+    .content-card:hover {
+      transform: translateY(-6px) scale(1.03);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.8);
     }
-
-    .card img {
-      position: absolute;
-      inset: 0;
+    .content-card img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
-
-    .card-info {
-      position: relative;
-      z-index: 2;
-      padding: 10px;
-      background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
-      font-size: 0.85rem;
+    .content-card .card-info {
+      position: absolute;
+      bottom: 0;
+      inset-inline: 0;
+      padding: 24px 8px 8px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.95) 0%, transparent 100%);
+      font-size: 13px;
       font-weight: 600;
     }
 
-    .card-placeholder {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 15px;
-      font-size: 0.85rem;
-      color: var(--text-dim);
+    @media (max-width: 768px) {
+      .hero-container { height: 65vh; }
+      .hero-content { left: 20px; bottom: 8%; }
+      .hero-title-fallback { font-size: 28px; }
+      .hero-logo { max-width: 180px; }
+      .nav-header { padding: 0 20px; }
+      .section-header, .shelf-scroll { padding-left: 20px; padding-right: 20px; }
+      .content-card { flex: 0 0 130px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
-  <nav class="navbar">
-    <div class="nav-logo"><span>✦</span> STREAM</div>
-  </nav>
+  <header class="nav-header">
+    <div class="nav-title" id="page-nav-title">STREAM</div>
+  </header>
 
-  <!-- Hero Carousel -->
-  <div class="carousel-container" id="carouselWrapper">
-    <div class="carousel-track" id="carouselTrack"></div>
-    <div class="carousel-nav" id="carouselNav"></div>
+  <!-- Carousel Area -->
+  <div class="hero-container" id="hero-container">
+    <div class="hero-slider" id="hero-slider"></div>
+    <div class="slider-indicators" id="slider-indicators"></div>
   </div>
 
-  <!-- Dynamic Sections -->
-  <main class="sections-container" id="sectionsContainer"></main>
+  <!-- Dynamic Sections Area -->
+  <main class="sections-container" id="sections-container"></main>
 
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
@@ -328,304 +282,252 @@
 
     let currentSlide = 0;
     let carouselItems = [];
-    let slideTimer = null;
+    let carouselTimer = null;
 
-    // Helper functions for reading document fields flexibly
-    function getMediaImage(item) {
-      return item.Banner || item.banner || item.Poster || item.poster || 
-             item.Thumbnail || item.thumbnail || item.Image || item.image || 
-             item.Cover || item.cover || "";
+    // Get page id from hash (e.g., home.html#demo)
+    function getTargetPageId() {
+      const hash = window.location.hash.replace('#', '').trim();
+      return hash || 'demo';
     }
 
-    function getMediaRating(item) {
-      return item.Age_Rating || item.Rating || item.age_rating || item.rating || "";
-    }
+    window.addEventListener('hashchange', () => loadPage(getTargetPageId()));
+    window.addEventListener('DOMContentLoaded', () => loadPage(getTargetPageId()));
 
-    function getMediaTitle(item) {
-      return item.Title || item.title || item.Name || item.name || "Untitled";
-    }
-
-    function getMediaGenres(item) {
-      const g = item.Genres || item.genres || item.Genre || item.genre || [];
-      if (Array.isArray(g)) return g;
-      if (typeof g === "string") return g.split(",").map(s => s.trim());
-      return [];
-    }
-
-    function getMediaFranchise(item) {
-      const f = item.Franchise || item.franchise || "";
-      if (Array.isArray(f)) return f;
-      if (typeof f === "string") return [f];
-      return [];
-    }
-
-    function getMediaPlaylists(item) {
-      const p = item.Playlist || item.playlist || [];
-      if (Array.isArray(p)) return p;
-      if (typeof p === "string") return [p];
-      return [];
-    }
-
-    function getPageId() {
-      const hash = window.location.hash.replace("#", "").trim();
-      return hash || "demo";
-    }
-
-    // Realtime listener for dynamic synchronization
-    function initPageRealtime() {
-      const pageId = getPageId();
-      db.collection("Systems").doc(pageId).onSnapshot((pageDoc) => {
-        if (!pageDoc.exists) {
-          document.getElementById("sectionsContainer").innerHTML = 
-            `<h2 style="text-align:center; margin-top:20%;">Page "${pageId}" not found in Systems collection.</h2>`;
+    async function loadPage(pageId) {
+      try {
+        const pageDocSnap = await db.collection('Systems').doc(pageId).get();
+        if (!pageDocSnap.exists) {
+          console.warn(`Page ${pageId} does not exist.`);
           return;
         }
 
-        const pageData = pageDoc.data();
-        loadHeroCarousel(pageData.Carsoule_Settings || {});
-        loadSections(pageData.Sections || []);
-      }, (err) => {
-        console.error("Firestore Listen Error:", err);
-      });
+        const pageData = pageDocSnap.data();
+        if (pageData.Name) {
+          document.getElementById('page-nav-title').textContent = pageData.Name.toUpperCase();
+        }
+
+        // 1. Setup Carousel
+        await setupCarousel(pageData.Carsoule_Settings);
+
+        // 2. Setup Sections
+        await setupSections(pageData.Sections || []);
+      } catch (err) {
+        console.error("Error loading page:", err);
+      }
     }
 
-    // 1. Load Carousel Items
-    async function loadHeroCarousel(settings) {
-      let contentSources = settings.Content_From;
-      if (!Array.isArray(contentSources) || contentSources.length === 0) {
-        contentSources = ["Movies", "Shows"];
-      }
-
-      const targetRating = (settings.Age_Rating || "").toLowerCase().trim();
+    /* CAROUSEL LOGIC */
+    async function setupCarousel(settings = {}) {
+      const contentFrom = settings.Content_From || ['Movies'];
+      const ageRating = settings.Age_Rating;
       carouselItems = [];
 
-      for (const col of contentSources) {
-        try {
-          const snap = await db.collection(col).get();
-          snap.forEach(doc => {
-            const data = { id: doc.id, collectionName: col, ...doc.data() };
-            const itemRating = getMediaRating(data).toLowerCase().trim();
-
-            // Strict check: if rating specified and not 'all', it must match
-            if (targetRating && targetRating !== "all") {
-              if (itemRating !== targetRating) return;
-            }
-
-            carouselItems.push(data);
-          });
-        } catch (e) {
-          console.warn(`Could not load collection ${col}:`, e);
+      for (const collectionName of contentFrom) {
+        let query = db.collection(collectionName);
+        if (ageRating) {
+          query = query.where('Age_Rating', '==', ageRating);
         }
-      }
-
-      // If no movies found in DB matching rating
-      if (carouselItems.length === 0) {
-        carouselItems = [
-          {
-            Title: "No Featured Media Found",
-            Banner: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1600&auto=format&fit=crop",
-            Language: "English",
-            Rating: settings.Age_Rating || "U",
-            Genres: ["Showcase"]
-          }
-        ];
+        const snap = await query.limit(6).get();
+        snap.forEach(doc => carouselItems.push({ id: doc.id, ...doc.data() }));
       }
 
       renderCarousel();
+      initCarouselTouch();
+      startAutoSlide();
     }
 
     function renderCarousel() {
-      const track = document.getElementById("carouselTrack");
-      const nav = document.getElementById("carouselNav");
-      track.innerHTML = "";
-      nav.innerHTML = "";
+      const slider = document.getElementById('hero-slider');
+      const indicators = document.getElementById('slider-indicators');
+      slider.innerHTML = '';
+      indicators.innerHTML = '';
 
-      carouselItems.forEach((item, index) => {
-        const genres = getMediaGenres(item);
-        const genresFormatted = genres.length > 0 ? genres.join(" • ") : "Featured";
-        const metaLine = `${item.Language || item.language || "English"} <span class="dot">•</span> ${getMediaRating(item) || "U"} <span class="dot">•</span> ${genresFormatted}`;
-        const bannerUrl = getMediaImage(item) || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1600";
-        const logoUrl = item.Logo || item.logo || "";
-        const title = getMediaTitle(item);
+      if (carouselItems.length === 0) {
+        document.getElementById('hero-container').style.display = 'none';
+        return;
+      }
+      document.getElementById('hero-container').style.display = 'block';
 
-        const slide = document.createElement("div");
-        slide.className = "carousel-slide";
+      carouselItems.forEach((item, idx) => {
+        const slide = document.createElement('div');
+        slide.className = 'hero-slide';
+        if (item.Banner) {
+          slide.style.backgroundImage = `url('${item.Banner}')`;
+        }
+
+        const genresFormatted = Array.isArray(item.Genres) ? item.Genres.join(' • ') : (item.Genres || '');
+        const metaList = [
+          item.Language,
+          item.Age_Rating || item.Rating ? `<span class="badge">${item.Age_Rating || item.Rating}</span>` : '',
+          genresFormatted
+        ].filter(Boolean).join(' • ');
+
         slide.innerHTML = `
-          <div class="slide-bg" style="background-image: url('${bannerUrl}')"></div>
-          <div class="slide-overlay"></div>
-          <div class="slide-content">
-            ${logoUrl 
-              ? `<img src="${logoUrl}" class="slide-logo" alt="${title}" />` 
-              : `<div class="slide-title-fallback">${title}</div>`}
-            
-            <div class="slide-meta">${metaLine}</div>
-
-            <div class="btn-group">
-              <button class="btn-watch">▶ Watch Now</button>
+          <div class="hero-overlay"></div>
+          <div class="hero-content">
+            ${item.Logo ? `<img src="${item.Logo}" class="hero-logo" alt="${item.Title || ''}" />` : `<h1 class="hero-title-fallback">${item.Title || ''}</h1>`}
+            <div class="hero-meta">${metaList}</div>
+            <div class="hero-actions">
+              <button class="btn-watch-now">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                Watch Now
+              </button>
               <button class="btn-watchlist" title="Add to Watchlist">+</button>
             </div>
           </div>
         `;
-        track.appendChild(slide);
+        slider.appendChild(slide);
 
-        const dot = document.createElement("div");
-        dot.className = `indicator ${index === 0 ? "active" : ""}`;
-        dot.onclick = () => goToSlide(index);
-        nav.appendChild(dot);
+        const dot = document.createElement('div');
+        dot.className = `indicator-dot ${idx === 0 ? 'active' : ''}`;
+        dot.onclick = () => goToSlide(idx);
+        indicators.appendChild(dot);
       });
 
-      startAutoSlide();
-      setupSwipeGestures();
+      goToSlide(0);
     }
 
     function goToSlide(index) {
-      currentSlide = index;
-      document.getElementById("carouselTrack").style.transform = `translateX(-${index * 100}%)`;
-      
-      const dots = document.querySelectorAll(".indicator");
-      dots.forEach((d, i) => d.classList.toggle("active", i === index));
-      startAutoSlide();
-    }
-
-    function startAutoSlide() {
-      clearInterval(slideTimer);
-      if (carouselItems.length > 1) {
-        slideTimer = setInterval(() => {
-          currentSlide = (currentSlide + 1) % carouselItems.length;
-          goToSlide(currentSlide);
-        }, 6000);
-      }
-    }
-
-    function setupSwipeGestures() {
-      const container = document.getElementById("carouselWrapper");
-      let startX = 0;
-      let endX = 0;
-
-      container.ontouchstart = e => { startX = e.touches[0].clientX; };
-      container.ontouchend = e => {
-        endX = e.changedTouches[0].clientX;
-        if (startX - endX > 50) {
-          currentSlide = (currentSlide + 1) % carouselItems.length;
-          goToSlide(currentSlide);
-        } else if (endX - startX > 50) {
-          currentSlide = (currentSlide - 1 + carouselItems.length) % carouselItems.length;
-          goToSlide(currentSlide);
-        }
-      };
-    }
-
-    // 2. Load Sections and Apply Strict Filtering
-    async function loadSections(sectionIds) {
-      const container = document.getElementById("sectionsContainer");
-      container.innerHTML = "";
-
-      for (const sId of sectionIds) {
-        try {
-          const secDoc = await db.collection("Systems").doc(sId).get();
-          if (!secDoc.exists) continue;
-          const secData = secDoc.data();
-
-          const shelf = document.createElement("div");
-          shelf.className = "section-shelf";
-          shelf.innerHTML = `
-            <div class="section-title">${secData.Name || secData.name || sId}</div>
-            <div class="cards-row" id="row-${sId}">
-              <div class="card-placeholder">Loading items...</div>
-            </div>
-          `;
-          container.appendChild(shelf);
-
-          populateSectionRow(sId, secData);
-        } catch (e) {
-          console.error(`Error loading section ${sId}:`, e);
-        }
-      }
-    }
-
-    async function populateSectionRow(secId, secData) {
-      const row = document.getElementById(`row-${secId}`);
-      let contentTypes = secData.Content_Type || secData.Content_From || ["Movies", "Shows"];
-      if (!Array.isArray(contentTypes)) contentTypes = [contentTypes];
-
-      const maxLimit = parseInt(secData.Max_Limit || secData.max_limit) || 20;
-      const targetAge = (secData.Age_Rating || secData.Rating || "").toLowerCase().trim();
-      const targetFranchise = (secData.Franchise || secData.franchise || "").toLowerCase().trim();
-      const targetGenres = (secData.Genres || secData.genres || []).map(g => g.toLowerCase().trim());
-      const targetPlaylist = (secData.Playlist || secData.playlist || []).map(p => p.toLowerCase().trim());
-
-      let allFound = [];
-
-      for (const col of contentTypes) {
-        try {
-          const snap = await db.collection(col).get();
-          snap.forEach(doc => {
-            const item = { id: doc.id, ...doc.data() };
-            
-            // 1. Strict Franchise Check
-            if (targetFranchise) {
-              const itemFranchises = getMediaFranchise(item).map(f => f.toLowerCase().trim());
-              if (!itemFranchises.includes(targetFranchise)) {
-                return; // Exclude movie if franchise does not match
-              }
-            }
-
-            // 2. Strict Age Rating Check
-            if (targetAge && targetAge !== "all") {
-              const itemRating = getMediaRating(item).toLowerCase().trim();
-              if (itemRating !== targetAge) {
-                return; // Exclude movie if rating does not match
-              }
-            }
-
-            // 3. Strict Genres Check (Must contain at least one of the section genres)
-            if (targetGenres.length > 0) {
-              const itemGenres = getMediaGenres(item).map(g => g.toLowerCase().trim());
-              const hasGenreMatch = targetGenres.some(g => itemGenres.includes(g));
-              if (!hasGenreMatch) {
-                return; // Exclude if no genre matches
-              }
-            }
-
-            // 4. Strict Playlist Check
-            if (targetPlaylist.length > 0) {
-              const itemPlaylists = getMediaPlaylists(item).map(p => p.toLowerCase().trim());
-              const hasPlaylistMatch = targetPlaylist.some(p => itemPlaylists.includes(p));
-              if (!hasPlaylistMatch) {
-                return; // Exclude if playlist does not match
-              }
-            }
-
-            allFound.push(item);
-          });
-        } catch (err) {
-          console.warn(`Error reading collection ${col}:`, err);
-        }
-      }
-
-      const finalItems = allFound.slice(0, maxLimit);
-
-      row.innerHTML = "";
-      if (finalItems.length === 0) {
-        row.innerHTML = `<div style="color:var(--text-dim); font-size:0.85rem; padding: 15px 0;">No content found matching "${targetFranchise || 'criteria'}".</div>`;
-        return;
-      }
-
-      finalItems.forEach(item => {
-        const poster = getMediaImage(item);
-        const title = getMediaTitle(item);
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = poster 
-          ? `<img src="${poster}" alt="${title}" loading="lazy" /><div class="card-info">${title}</div>`
-          : `<div class="card-placeholder">${title}</div>`;
-        row.appendChild(card);
+      currentSlide = (index + carouselItems.length) % carouselItems.length;
+      document.getElementById('hero-slider').style.transform = `translateX(-${currentSlide * 100}%)`;
+      document.querySelectorAll('.indicator-dot').forEach((d, i) => {
+        d.classList.toggle('active', i === currentSlide);
       });
     }
 
-    window.addEventListener("hashchange", initPageRealtime);
-    window.onload = initPageRealtime;
+    function startAutoSlide() {
+      clearInterval(carouselTimer);
+      carouselTimer = setInterval(() => {
+        if (carouselItems.length > 1) goToSlide(currentSlide + 1);
+      }, 6000);
+    }
+
+    // Carousel swipe/touch listeners
+    function initCarouselTouch() {
+      const container = document.getElementById('hero-container');
+      let startX = 0;
+      let currentX = 0;
+      let isDragging = false;
+
+      container.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        clearInterval(carouselTimer);
+      });
+
+      container.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        currentX = e.touches[0].clientX;
+      });
+
+      container.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        const diff = startX - currentX;
+        if (Math.abs(diff) > 50) {
+          if (diff > 0) goToSlide(currentSlide + 1);
+          else goToSlide(currentSlide - 1);
+        }
+        isDragging = false;
+        startAutoSlide();
+      });
+    }
+
+    /* SECTIONS & ROWS LOGIC */
+    async function setupSections(sectionIds) {
+      const container = document.getElementById('sections-container');
+      container.innerHTML = '';
+
+      for (const secId of sectionIds) {
+        const secDocSnap = await db.collection('Systems').doc(secId).get();
+        if (!secDocSnap.exists) continue;
+
+        const secData = secDocSnap.data();
+        const contentList = await fetchSectionContent(secData);
+
+        if (contentList.length > 0) {
+          const sectionElem = createSectionRowElement(secData.Name || secId, contentList);
+          container.appendChild(sectionElem);
+        }
+      }
+    }
+
+    async function fetchSectionContent(sectionConfig) {
+      const results = [];
+      const seenIds = new Set();
+      const contentTypes = sectionConfig.Content_Type || ['Movies'];
+
+      // 1. Load explicitly listed Playlist Items
+      if (Array.isArray(sectionConfig.Playlist) && sectionConfig.Playlist.length > 0) {
+        for (const id of sectionConfig.Playlist) {
+          for (const coll of contentTypes) {
+            const docSnap = await db.collection(coll).doc(id).get();
+            if (docSnap.exists && !seenIds.has(docSnap.id)) {
+              seenIds.add(docSnap.id);
+              results.push({ id: docSnap.id, ...docSnap.data() });
+              break;
+            }
+          }
+        }
+      }
+
+      // 2. Query dynamically matching content if Limit is not yet reached
+      const maxLimit = parseInt(sectionConfig.Max_Limit, 10) || 20;
+      if (results.length < maxLimit) {
+        for (const coll of contentTypes) {
+          let q = db.collection(coll);
+
+          if (sectionConfig.Age_Rating) {
+            q = q.where('Age_Rating', '==', sectionConfig.Age_Rating);
+          }
+          if (sectionConfig.Franchise) {
+            q = q.where('Franchise', '==', sectionConfig.Franchise);
+          }
+          if (Array.isArray(sectionConfig.Genres) && sectionConfig.Genres.length > 0) {
+            q = q.where('Genres', 'array-contains-any', sectionConfig.Genres);
+          }
+
+          const snap = await q.limit(maxLimit).get();
+          snap.forEach(doc => {
+            if (!seenIds.has(doc.id) && results.length < maxLimit) {
+              seenIds.add(doc.id);
+              results.push({ id: doc.id, ...doc.data() });
+            }
+          });
+        }
+      }
+
+      return results;
+    }
+
+    function createSectionRowElement(title, items) {
+      const section = document.createElement('section');
+      section.className = 'section-block';
+
+      const header = document.createElement('div');
+      header.className = 'section-header';
+      header.innerHTML = `<h2 class="section-title">${title}</h2>`;
+
+      const shelfWrapper = document.createElement('div');
+      shelfWrapper.className = 'shelf-wrapper';
+
+      const shelfScroll = document.createElement('div');
+      shelfScroll.className = 'shelf-scroll';
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'content-card';
+        card.innerHTML = `
+          <img src="${item.Poster || item.Banner || ''}" alt="${item.Title || ''}" loading="lazy" />
+          <div class="card-info">${item.Title || ''}</div>
+        `;
+        shelfScroll.appendChild(card);
+      });
+
+      shelfWrapper.appendChild(shelfScroll);
+      section.appendChild(header);
+      section.appendChild(shelfWrapper);
+      return section;
+    }
   </script>
 </body>
 </html>
