@@ -3,26 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Preview - Hotstar</title>
+  <title>Hotstar - Preview</title>
   
-  <!-- Hindi & Modern Typography -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     :root {
-      --bg-color: #090a0f;
+      --bg-color: #0f1015;
       --card-bg: #151821;
       --accent-blue: #1480f0;
       --text-main: #ffffff;
       --text-muted: #8f98b2;
       --border-color: rgba(255, 255, 255, 0.1);
       --btn-white: #ffffff;
-      --btn-white-text: #090a0f;
+      --btn-white-text: #0f1015;
       --btn-dark: #1e2230;
       --live-red: #e50914;
     }
@@ -40,90 +40,531 @@
       background-color: var(--bg-color);
       color: var(--text-main);
       min-height: 100vh;
-      padding: 12px 14px 90px;
       overflow-x: hidden;
       user-select: none;
     }
 
-    .main-wrap {
-      max-width: 600px;
-      margin: 0 auto;
+    /* ============================================================
+       DESKTOP & TV LAYOUT (SCREEN WIDTH > 768px)
+       ============================================================ */
+    @media (min-width: 769px) {
+      body {
+        display: flex;
+        padding-bottom: 50px;
+      }
+
+      /* Left Vertical Sidebar Navigation */
+      .desktop-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 72px;
+        background: rgba(15, 16, 21, 0.95);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 24px 0;
+        z-index: 1000;
+      }
+      .brand-star-icon {
+        width: 32px;
+        height: 32px;
+        fill: #fff;
+        margin-bottom: 40px;
+        cursor: pointer;
+      }
+      .nav-icon-list {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        align-items: center;
+        width: 100%;
+      }
+      .sidebar-nav-item {
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        transition: color 0.2s ease, background 0.2s ease;
+      }
+      .sidebar-nav-item:hover, .sidebar-nav-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .sidebar-nav-item svg { width: 22px; height: 22px; fill: currentColor; }
+
+      .sidebar-bottom {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+      }
+      .user-avatar-pill {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1480f0, #ff007a);
+        cursor: pointer;
+      }
+
+      /* Desktop Main Content Container */
+      .desktop-content-body {
+        margin-left: 72px;
+        flex: 1;
+        width: calc(100% - 72px);
+        min-height: 100vh;
+        position: relative;
+      }
+
+      /* Fullscreen Cinematic Hero Banner */
+      .hero-card-box {
+        position: relative;
+        width: 100%;
+        height: 80vh;
+        min-height: 540px;
+        max-height: 780px;
+        overflow: hidden;
+        background: #000;
+      }
+      .hero-banner-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center right;
+        transition: opacity 0.8s ease;
+      }
+      .hero-trailer-host {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.8s ease;
+        background: #000;
+        overflow: hidden;
+      }
+      .hero-trailer-host.playing { opacity: 1; }
+      .hero-trailer-host iframe {
+        width: calc(100% + 200px) !important;
+        height: calc(100% + 200px) !important;
+        position: absolute !important;
+        top: -100px !important;
+        left: -100px !important;
+        pointer-events: none;
+      }
+      .hero-trailer-host video { width: 100%; height: 100%; object-fit: cover; }
+
+      /* Desktop Cinematic Shadow Gradients */
+      .hero-desktop-gradient {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to right, rgba(15, 16, 21, 0.98) 0%, rgba(15, 16, 21, 0.8) 35%, rgba(15, 16, 21, 0.2) 65%, transparent 100%),
+                    linear-gradient(to top, #0f1015 0%, rgba(15, 16, 21, 0.6) 20%, transparent 50%);
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      /* Left Inset Metadata Overlay on Desktop */
+      .content-details-wrap {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 48%;
+        min-width: 460px;
+        max-width: 620px;
+        padding: 60px 0 40px 60px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        text-align: left;
+        z-index: 5;
+      }
+
+      .brand-logo-img {
+        max-width: 320px;
+        max-height: 120px;
+        object-fit: contain;
+        margin-bottom: 16px;
+        filter: drop-shadow(0 6px 18px rgba(0,0,0,0.9));
+      }
+      .title-fallback-hindi {
+        font-family: 'Noto Sans Devanagari', sans-serif;
+        font-size: 42px;
+        font-weight: 900;
+        line-height: 1.15;
+        margin-bottom: 14px;
+        color: #ffffff;
+      }
+
+      .blue-trend-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--accent-blue);
+        margin-bottom: 10px;
+      }
+
+      .meta-pills-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 14px;
+      }
+
+      .description-para {
+        font-size: 14px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.78);
+        margin-bottom: 16px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .genres-tags-line {
+        font-size: 13px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 24px;
+      }
+      .genres-tags-line span { color: var(--text-muted); margin: 0 6px; }
+
+      /* Desktop Button Cluster */
+      .cta-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+      }
+      .btn-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 13px 28px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 800;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+        border: none;
+        width: auto;
+      }
+      .btn-cta:active { transform: scale(0.96); }
+      .btn-cta svg { width: 20px; height: 20px; fill: currentColor; }
+
+      /* Desktop Watchlist & Share Buttons */
+      .desktop-action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn-circle-action {
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        transition: background 0.2s ease, transform 0.1s ease;
+      }
+      .btn-circle-action:hover { background: rgba(255, 255, 255, 0.22); }
+      .btn-circle-action:active { transform: scale(0.94); }
+      .btn-circle-action svg { width: 22px; height: 22px; fill: currentColor; }
+      .btn-circle-action.active { color: var(--accent-blue); }
+
+      /* Sound Toggle in bottom right of desktop hero */
+      .desktop-audio-toggle {
+        position: absolute;
+        bottom: 35px;
+        right: 40px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(15, 16, 21, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        backdrop-filter: blur(12px);
+      }
+      .desktop-audio-toggle svg { width: 20px; height: 20px; fill: #fff; }
+
+      /* Sections below Hero */
+      .section-container {
+        padding: 0 60px;
+        margin-top: 24px;
+        margin-bottom: 36px;
+      }
+
+      /* Hide Mobile elements on Desktop */
+      .mobile-only { display: none !important; }
     }
 
-    /* Top Close Button */
-    .top-close-bar {
-      position: absolute;
-      top: 24px;
-      right: 26px;
-      z-index: 50;
+    /* ============================================================
+       MOBILE & SMALL SCREENS LAYOUT (SCREEN WIDTH <= 768px)
+       ============================================================ */
+    @media (max-width: 768px) {
+      body {
+        padding: 12px 14px 90px;
+      }
+      .desktop-only { display: none !important; }
+
+      .main-wrap {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      /* Top Close Button on Mobile */
+      .top-close-bar {
+        position: absolute;
+        top: 24px;
+        right: 26px;
+        z-index: 50;
+      }
+      .close-btn {
+        background: rgba(15, 16, 23, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+      }
+      .close-btn svg { width: 18px; height: 18px; fill: #fff; }
+
+      /* Rounded Inset Card Box */
+      .hero-card-box {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16/10;
+        background-color: #12141c;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 24px;
+      }
+      .hero-banner-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: opacity 0.5s ease;
+      }
+      .hero-trailer-host {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.6s ease;
+        background: #000;
+        overflow: hidden;
+      }
+      .hero-trailer-host.playing { opacity: 1; }
+      .hero-trailer-host iframe {
+        width: calc(100% + 140px) !important;
+        height: calc(100% + 160px) !important;
+        position: absolute !important;
+        top: -80px !important;
+        left: -70px !important;
+        pointer-events: none;
+      }
+      .hero-trailer-host video { width: 100%; height: 100%; object-fit: cover; }
+
+      /* Mobile Details */
+      .content-details-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0 6px;
+      }
+      .brand-logo-img {
+        max-width: 230px;
+        max-height: 85px;
+        object-fit: contain;
+        margin-bottom: 10px;
+        filter: drop-shadow(0 4px 14px rgba(0,0,0,0.85));
+      }
+      .title-fallback-hindi {
+        font-family: 'Noto Sans Devanagari', sans-serif;
+        font-size: 32px;
+        font-weight: 900;
+        line-height: 1.2;
+        margin-bottom: 10px;
+        color: #ffffff;
+      }
+      .blue-trend-line {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent-blue);
+        margin-bottom: 6px;
+      }
+      .meta-pills-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 18px;
+      }
+      .cta-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .btn-cta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        padding: 13px 18px;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+      }
+      .btn-cta svg { width: 18px; height: 18px; fill: currentColor; }
+
+      .genres-tags-line {
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 8px;
+      }
+      .genres-tags-line span { color: var(--text-muted); margin: 0 4px; }
+      .description-para {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+      }
+
+      /* Mobile 2-item Actions Row (Watchlist & Share) */
+      .action-icons-row {
+        display: flex;
+        justify-content: center;
+        gap: 56px;
+        width: 100%;
+        margin-bottom: 28px;
+        padding: 0 8px;
+      }
+      .action-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        opacity: 0.85;
+      }
+      .action-item svg { width: 22px; height: 22px; fill: currentColor; }
+      .action-item.active { color: var(--accent-blue); }
+
+      .section-container {
+        width: 100%;
+        margin-bottom: 26px;
+        text-align: left;
+      }
+
+      /* Bottom Navigation Bar for Mobile */
+      .bottom-app-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: rgba(9, 10, 15, 0.95);
+        backdrop-filter: blur(14px);
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 100;
+      }
+      .nav-tab-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .nav-tab-item.active { color: #fff; }
+      .nav-tab-item svg { width: 22px; height: 22px; fill: currentColor; }
     }
-    .close-btn {
-      background: rgba(15, 16, 23, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+
+    /* ============================================================
+       SHARED THEME & COMPONENT STYLES
+       ============================================================ */
+    .meta-pill-badge {
+      background: rgba(255, 255, 255, 0.12);
       color: #fff;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      backdrop-filter: blur(10px);
-      transition: transform 0.15s ease;
-    }
-    .close-btn:active { transform: scale(0.9); }
-    .close-btn svg { width: 18px; height: 18px; fill: #fff; }
-
-    /* Hero Banner & Trailer Card Box */
-    .hero-card-box {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16/10;
-      background-color: #12141c;
-      border-radius: 22px;
-      overflow: hidden;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      margin-bottom: 24px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
     }
 
-    .hero-banner-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: opacity 0.5s ease;
+    /* Subscribe Button Style: White Background with Dark Text */
+    .btn-cta-subscribe, .btn-cta-primary {
+      background-color: #ffffff !important;
+      color: #0f1015 !important;
     }
-
-    .hero-trailer-host {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.6s ease;
-      background: #000;
-      overflow: hidden;
-    }
-    .hero-trailer-host.playing {
-      opacity: 1;
-    }
-    .hero-trailer-host iframe {
-      width: calc(100% + 140px) !important;
-      height: calc(100% + 160px) !important;
-      position: absolute !important;
-      top: -80px !important;
-      left: -70px !important;
-      pointer-events: none;
-      border: none;
-    }
-    .hero-trailer-host video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .btn-cta-secondary {
+      background-color: var(--btn-dark) !important;
+      color: #ffffff !important;
+      border: 1px solid var(--border-color);
     }
 
     .trailer-badge {
       position: absolute;
-      bottom: 12px;
+      bottom: 14px;
       right: 14px;
       background: rgba(0,0,0,0.65);
       border: 1px solid rgba(255,255,255,0.15);
@@ -136,164 +577,17 @@
       z-index: 10;
     }
 
-    /* Content Details */
-    .content-details-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      padding: 0 6px;
-    }
-
-    .brand-logo-img {
-      max-width: 230px;
-      max-height: 85px;
-      object-fit: contain;
-      margin-bottom: 10px;
-      filter: drop-shadow(0 4px 14px rgba(0,0,0,0.85));
-    }
-
-    .title-fallback-hindi {
-      font-family: 'Noto Sans Devanagari', sans-serif;
-      font-size: 32px;
-      font-weight: 900;
-      line-height: 1.2;
-      margin-bottom: 10px;
-      color: #ffffff;
-      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
-      letter-spacing: 0.5px;
-    }
-
-    .blue-trend-line {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--accent-blue);
-      margin-bottom: 6px;
-    }
-    .blue-trend-line span.dot {
-      color: var(--text-muted);
-      font-size: 10px;
-    }
-
-    .meta-pills-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 7px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 18px;
-    }
-    .meta-pill-badge {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-      padding: 2px 7px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    .cta-container {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .btn-cta {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 13px 18px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-      border: none;
-    }
-    .btn-cta:active { transform: scale(0.98); opacity: 0.9; }
-    .btn-cta svg { width: 18px; height: 18px; fill: currentColor; }
-
-    .btn-cta-primary {
-      background-color: var(--btn-white);
-      color: var(--btn-white-text);
-    }
-    .btn-cta-secondary {
-      background-color: var(--btn-dark);
-      color: #fff;
-      border: 1px solid var(--border-color);
-    }
-    .btn-cta-subscribe {
-      background: linear-gradient(90deg, #0072ef 0%, #00d2ff 100%);
-      color: #fff;
-    }
-
-    .genres-tags-line {
-      font-size: 13px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-    .genres-tags-line span {
-      color: var(--text-muted);
-      margin: 0 4px;
-    }
-    .description-para {
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-    }
-
-    .action-icons-row {
-      display: flex;
-      justify-content: space-around;
-      width: 100%;
-      margin-bottom: 28px;
-      padding: 0 8px;
-    }
-    .action-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      opacity: 0.85;
-      transition: opacity 0.15s, transform 0.1s;
-    }
-    .action-item:active { transform: scale(0.92); opacity: 1; }
-    .action-item.active { color: var(--accent-blue); }
-    .action-item svg { width: 22px; height: 22px; fill: currentColor; }
-
-    /* Pop Bounce Keyframe Animation */
+    /* Keyframe Pop Animation for Watchlist */
     @keyframes bouncePop {
       0% { transform: scale(1); }
-      40% { transform: scale(1.4) rotate(-12deg); }
-      75% { transform: scale(0.9) rotate(6deg); }
+      40% { transform: scale(1.35) rotate(-10deg); }
+      75% { transform: scale(0.9) rotate(5deg); }
       100% { transform: scale(1) rotate(0deg); }
     }
-    .action-item.animating svg {
+    .animating svg {
       animation: bouncePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .section-container {
-      width: 100%;
-      margin-bottom: 26px;
-      text-align: left;
-    }
     .section-heading {
       font-size: 18px;
       font-weight: 800;
@@ -301,6 +595,7 @@
       color: #fff;
     }
 
+    /* TV Show Episodes */
     .episodes-wrapper { display: none; }
     .season-tab-row {
       display: flex;
@@ -334,11 +629,7 @@
       background: #fff;
     }
 
-    .episodes-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+    .episodes-list { display: flex; flex-direction: column; gap: 14px; }
     .ep-card {
       display: flex;
       align-items: center;
@@ -349,13 +640,12 @@
       cursor: pointer;
       text-decoration: none;
       color: #fff;
-      transition: background 0.15s ease;
     }
-    .ep-card:active { background: rgba(255, 255, 255, 0.08); }
+    .ep-card:hover { background: rgba(255, 255, 255, 0.06); }
     .ep-thumb-wrap {
       position: relative;
-      width: 120px;
-      min-width: 120px;
+      width: 130px;
+      min-width: 130px;
       aspect-ratio: 16/9;
       border-radius: 8px;
       overflow: hidden;
@@ -378,19 +668,8 @@
     .ep-play-circle svg { width: 10px; height: 10px; fill: #fff; margin-left: 1px; }
 
     .ep-info { flex: 1; min-width: 0; }
-    .ep-name {
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 1.3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .ep-subtext {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
+    .ep-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ep-subtext { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
     .view-more-btn {
       display: flex;
@@ -412,7 +691,7 @@
     /* 16:9 Recommendations Scroll */
     .rec-scroll-row {
       display: flex;
-      gap: 12px;
+      gap: 14px;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       -webkit-overflow-scrolling: touch;
@@ -422,8 +701,8 @@
     .rec-scroll-row::-webkit-scrollbar { display: none; }
 
     .rec-16-9-card {
-      min-width: 195px;
-      width: 195px;
+      min-width: 210px;
+      width: 210px;
       scroll-snap-align: start;
       text-decoration: none;
       color: #fff;
@@ -432,8 +711,7 @@
       flex-direction: column;
       transition: transform 0.15s ease;
     }
-    .rec-16-9-card:active { transform: scale(0.96); }
-    
+    .rec-16-9-card:hover { transform: translateY(-4px); }
     .rec-16-9-thumb {
       position: relative;
       width: 100%;
@@ -445,48 +723,8 @@
       margin-bottom: 6px;
     }
     .rec-16-9-thumb img { width: 100%; height: 100%; object-fit: cover; }
-    
-    .rec-title {
-      font-size: 13px;
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .rec-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    /* Bottom App Nav */
-    .bottom-app-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: rgba(9, 10, 15, 0.95);
-      backdrop-filter: blur(14px);
-      border-top: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 100;
-    }
-    .nav-tab-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    .nav-tab-item.active { color: #fff; }
-    .nav-tab-item svg { width: 22px; height: 22px; fill: currentColor; }
+    .rec-title { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rec-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
 
     .toast-box {
       position: fixed;
@@ -500,7 +738,7 @@
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
-      z-index: 200;
+      z-index: 2000;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s ease;
@@ -509,7 +747,7 @@
 
     .loader-wrap {
       text-align: center;
-      padding: 120px 20px;
+      padding: 140px 20px;
       color: var(--accent-blue);
       font-weight: 700;
       font-size: 16px;
@@ -518,10 +756,26 @@
 </head>
 <body>
 
-  <div class="main-wrap">
+  <!-- ================= DESKTOP SIDEBAR ================= -->
+  <div class="desktop-sidebar desktop-only">
+    <svg class="brand-star-icon" viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+    <div class="nav-icon-list">
+      <div class="sidebar-nav-item active" title="Home"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
+      <div class="sidebar-nav-item" title="Search"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
+      <div class="sidebar-nav-item" title="TV Shows"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
+      <div class="sidebar-nav-item" title="Movies"><svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg></div>
+      <div class="sidebar-nav-item" title="Sports"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg></div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user-avatar-pill" title="My Space"></div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN CONTENT WRAPPER ================= -->
+  <div class="desktop-content-body main-wrap">
     
-    <!-- Top Close Button -->
-    <div class="top-close-bar">
+    <!-- Mobile Top Close Button -->
+    <div class="top-close-bar mobile-only">
       <button class="close-btn" onclick="window.history.back()" title="Close">
         <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
@@ -531,41 +785,63 @@
 
     <div id="previewMain" style="display: none;">
       
-      <!-- Hero Box (Banner & Trailer) -->
+      <!-- Hero Box (Cinematic Banner & Trailer Player) -->
       <div class="hero-card-box" id="heroCardBox">
         <img id="heroBanner" class="hero-banner-img" src="" alt="Banner">
         <div id="heroTrailerHost" class="hero-trailer-host"></div>
-        <div class="trailer-badge" id="trailerBadge" style="display: none;">TRAILER</div>
+        <div class="hero-desktop-gradient desktop-only"></div>
+        <div class="trailer-badge mobile-only" id="trailerBadge" style="display: none;">TRAILER</div>
+        
+        <!-- Desktop Audio Toggle -->
+        <button class="desktop-audio-toggle desktop-only" id="desktopMuteBtn" title="Mute/Unmute">
+          <svg id="muteIcon" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+        </button>
+
+        <!-- Desktop Positioned Details (Inside Hero on Desktop) -->
+        <div class="content-details-wrap desktop-only" id="desktopDetailsWrap">
+          <img id="contentLogoDesk" class="brand-logo-img" src="" alt="Logo" style="display: none;">
+          <h1 id="contentTitleDesk" class="title-fallback-hindi" style="display: none;">Title</h1>
+
+          <div class="blue-trend-line" id="blueTrendLineDesk"></div>
+          <div class="meta-pills-row" id="metaPillsRowDesk"></div>
+          <div class="description-para" id="contentDescriptionDesk"></div>
+          <div class="genres-tags-line" id="genresTagsLineDesk"></div>
+
+          <!-- Desktop CTA Cluster -->
+          <div class="cta-container">
+            <div id="desktopCtaBtnBox"></div>
+            <div class="desktop-action-buttons">
+              <button class="btn-circle-action" id="btnWatchlistDesk" title="Watchlist">
+                <svg id="wlIconDesk" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              </button>
+              <button class="btn-circle-action" id="btnShareDesk" title="Share">
+                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Details -->
-      <div class="content-details-wrap">
-        <img id="contentLogo" class="brand-logo-img" src="" alt="Logo" style="display: none;">
-        <h1 id="contentTitle" class="title-fallback-hindi" style="display: none;">Title</h1>
+      <!-- Mobile Content Details (Below Hero on Mobile) -->
+      <div class="content-details-wrap mobile-only">
+        <img id="contentLogoMob" class="brand-logo-img" src="" alt="Logo" style="display: none;">
+        <h1 id="contentTitleMob" class="title-fallback-hindi" style="display: none;">Title</h1>
 
-        <div class="blue-trend-line" id="blueTrendLine"></div>
-        <div class="meta-pills-row" id="metaPillsRow"></div>
-        <div class="cta-container" id="ctaContainer"></div>
-        <div class="genres-tags-line" id="genresTagsLine"></div>
-        <div class="description-para" id="contentDescription"></div>
+        <div class="blue-trend-line" id="blueTrendLineMob"></div>
+        <div class="meta-pills-row" id="metaPillsRowMob"></div>
+        <div class="cta-container" id="mobileCtaBtnBox"></div>
+        <div class="genres-tags-line" id="genresTagsLineMob"></div>
+        <div class="description-para" id="contentDescriptionMob"></div>
 
-        <!-- Actions -->
+        <!-- Mobile 2-Button Action Row (Watchlist & Share only) -->
         <div class="action-icons-row">
-          <div class="action-item" id="btnWatchlist">
-            <svg id="wlIcon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-            <span id="wlLabel">Watchlist</span>
+          <div class="action-item" id="btnWatchlistMob">
+            <svg id="wlIconMob" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span id="wlLabelMob">Watchlist</span>
           </div>
-          <div class="action-item" id="btnShare">
+          <div class="action-item" id="btnShareMob">
             <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
             <span>Share</span>
-          </div>
-          <div class="action-item" id="btnDownload">
-            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-            <span>Download</span>
-          </div>
-          <div class="action-item" id="btnRate">
-            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            <span id="rateLabel">Rate</span>
           </div>
         </div>
       </div>
@@ -587,8 +863,8 @@
     </div>
   </div>
 
-  <!-- Bottom Nav -->
-  <div class="bottom-app-nav">
+  <!-- Mobile Bottom App Nav -->
+  <div class="bottom-app-nav mobile-only">
     <a class="nav-tab-item" href="1.html">
       <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
       <span>Search</span>
@@ -610,7 +886,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Content Database (internal-systems-46728)
+    // 1. Content Database (internal-systems-46728)
     const contentConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -623,7 +899,7 @@
     const contentApp = initializeApp(contentConfig, "contentApp");
     const contentDb = getFirestore(contentApp);
 
-    // User Database (question-metabase)
+    // 2. User Database (question-metabase)
     const userConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
@@ -637,7 +913,7 @@
     const userApp = initializeApp(userConfig, "userApp");
     const userDb = getFirestore(userApp);
 
-    // App State
+    // Runtime App State
     let currentItem = null;
     let contentType = 'movie'; 
     let currentCollection = 'Movies';
@@ -650,6 +926,7 @@
     let ytTrailerPlayer = null;
     let currentSeasonKey = null;
     let showAllEpisodes = false;
+    let isMuted = true;
 
     const urlParams = new URLSearchParams(window.location.search);
     const contentId = urlParams.get('preview') || urlParams.get('watch');
@@ -666,7 +943,6 @@
       return url.trim().replace(/^http:\/\//i, 'https://');
     }
 
-    // Horizontal Image Resolution Engine: Poster.h -> Banner -> Poster
     function getHorizontalImage(c) {
       if (!c) return '';
       return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster || c["Poster.v"] || '');
@@ -700,9 +976,7 @@
       return englishName;
     }
 
-    // ========================================================
-    // BULLETPROOF LOGIN & SUBSCRIPTION RESOLUTION
-    // ========================================================
+    // Load Plan and Studios from Firestore
     async function loadUserSubscriptionPlan() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
@@ -710,14 +984,10 @@
       } catch (e) { currentUser = null; }
 
       if (!currentUser) return;
-
-      // Extract local watchlist immediately to prevent UI lag
       userWatchlist = Array.isArray(currentUser.Watchlist) ? currentUser.Watchlist : [];
 
       try {
         let uData = null;
-
-        // Query Firestore UARM collection
         if (currentUser.Lotus) {
           const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
           if (!snap.empty) {
@@ -757,15 +1027,11 @@
               const studios = Array.isArray(pData.Studio) ? pData.Studio : (pData.Studios || []);
               studios.forEach(s => userAuthorizedStudios.add(String(s).trim().toLowerCase()));
             }
-          } catch (err) {
-            console.warn("Plan error:", planId, err);
-          }
+          } catch (err) {}
         });
 
         await Promise.all(planPromises);
-      } catch (err) {
-        console.warn("Auth check warning:", err);
-      }
+      } catch (err) {}
     }
 
     function checkContentAccess(content) {
@@ -825,7 +1091,7 @@
       document.getElementById('loader').style.display = 'none';
       document.getElementById('previewMain').style.display = 'block';
 
-      // 1. Banner with Poster.h fallback
+      // 1. Banner
       const bannerImg = document.getElementById('heroBanner');
       const primaryBanner = getHorizontalImage(currentItem);
       const secondaryBanner = safeUrl(currentItem.Banner || currentItem.Poster || '');
@@ -837,52 +1103,54 @@
         }
       };
 
-      // 2. Logo OR Bold Hindi Font Fallback
-      const logoImg = document.getElementById('contentLogo');
-      const titleFallback = document.getElementById('contentTitle');
+      // 2. Logo / Hindi Fallback for Desktop & Mobile
       const logoUrl = safeUrl(currentItem.Logo || currentItem["Logo.png"] || '');
+      const rawTitle = currentItem.Name || currentItem.Title || "कंटेंट";
+      const hindiText = currentItem["Hindi Name"] || currentItem.Hindi_Name || await getHindiName(rawTitle);
 
-      const applyHindiTitleFallback = async () => {
-        logoImg.style.display = 'none';
-        const rawTitle = currentItem.Name || currentItem.Title || "कंटेंट";
-        const hindiText = currentItem["Hindi Name"] || currentItem.Hindi_Name || await getHindiName(rawTitle);
-        titleFallback.innerText = hindiText;
-        titleFallback.style.display = 'block';
-      };
+      ['Desk', 'Mob'].forEach(target => {
+        const logoEl = document.getElementById(`contentLogo${target}`);
+        const titleEl = document.getElementById(`contentTitle${target}`);
+        if (logoUrl) {
+          logoEl.src = logoUrl;
+          logoEl.style.display = 'block';
+          titleEl.style.display = 'none';
+          logoEl.onerror = () => {
+            logoEl.style.display = 'none';
+            titleEl.innerText = hindiText;
+            titleEl.style.display = 'block';
+          };
+        } else {
+          logoEl.style.display = 'none';
+          titleEl.innerText = hindiText;
+          titleEl.style.display = 'block';
+        }
+      });
 
-      if (logoUrl) {
-        logoImg.src = logoUrl;
-        logoImg.style.display = 'block';
-        titleFallback.style.display = 'none';
-        logoImg.onerror = () => applyHindiTitleFallback();
-      } else {
-        await applyHindiTitleFallback();
-      }
-
-      // 3. Blue Trend & Rating Line
-      const blueLine = document.getElementById('blueTrendLine');
-      const trendText = currentItem.Trending || currentItem.Rank ? `#${currentItem.Trending || currentItem.Rank} in Hindi Today` : '';
+      // 3. Blue Trend / Awards
+      const trendText = currentItem.Trending || currentItem.Rank ? `#${currentItem.Trending || currentItem.Rank} in Hindi Today` : (currentItem.Awards || 'Emmy® Winner');
       const ratingVal = currentItem.Rating || currentItem.IMDb || currentItem.imdb;
       const ratingText = ratingVal ? `IMDb ${ratingVal}` : '';
 
-      if (trendText || ratingText) {
-        blueLine.innerHTML = `
-          ${trendText ? `<span>${trendText}</span>` : ''}
-          ${trendText && ratingText ? `<span class="dot">•</span>` : ''}
-          ${ratingText ? `<span>${ratingText}</span>` : ''}
-        `;
-        blueLine.style.display = 'flex';
-      } else {
-        blueLine.style.display = 'none';
-      }
+      ['Desk', 'Mob'].forEach(target => {
+        const el = document.getElementById(`blueTrendLine${target}`);
+        if (trendText || ratingText) {
+          el.innerHTML = `
+            ${trendText ? `<span>${trendText}</span>` : ''}
+            ${trendText && ratingText ? `<span class="dot">•</span>` : ''}
+            ${ratingText ? `<span>${ratingText}</span>` : ''}
+          `;
+          el.style.display = 'flex';
+        } else {
+          el.style.display = 'none';
+        }
+      });
 
       // 4. Meta Pills
-      const metaRow = document.getElementById('metaPillsRow');
-      const year = currentItem.Year || currentItem["Release Year"] || (contentType === 'live' ? 'LIVE' : '2024');
+      const year = currentItem.Year || currentItem["Release Year"] || (contentType === 'live' ? 'LIVE' : '2025');
       const age = currentItem.Age_Rating || currentItem["Age Rating"] || currentItem.Rating || 'U/A 13+';
-      
-      const langArr = Array.isArray(currentItem.Language) ? currentItem.Language : (currentItem.Language ? [currentItem.Language] : ['Hindi']);
-      const langText = langArr.length > 1 ? `${langArr.length} Languages` : (langArr[0] || 'Hindi');
+      const langArr = Array.isArray(currentItem.Language) ? currentItem.Language : (currentItem.Language ? [currentItem.Language] : ['English']);
+      const langText = langArr.length > 1 ? `${langArr.length} Languages` : (langArr[0] || 'English');
       
       let durationOrSeasons = '';
       if (contentType === 'show') {
@@ -892,29 +1160,31 @@
         durationOrSeasons = currentItem.Duration || '1h 50m';
       }
 
-      metaRow.innerHTML = `
+      const metaHtml = `
         <span>${year}</span>
         <span class="meta-pill-badge">${age}</span>
         ${durationOrSeasons ? `<span>•</span><span>${durationOrSeasons}</span>` : ''}
         <span>•</span><span>${langText}</span>
       `;
+      document.getElementById('metaPillsRowDesk').innerHTML = metaHtml;
+      document.getElementById('metaPillsRowMob').innerHTML = metaHtml;
 
-      // 5. CTA Buttons
-      renderCTAButtons();
+      // 5. Description & Genres
+      const desc = currentItem.Discription || currentItem.Description || "Brave Wakandan War Dogs, of the secret organization the Hatut Zeraze, throughout history must go on dangerous missions to retrieve Vibranium artifacts.";
+      document.getElementById('contentDescriptionDesk').innerText = desc;
+      document.getElementById('contentDescriptionMob').innerText = desc;
 
-      // 6. Genres & Description
-      const genresLine = document.getElementById('genresTagsLine');
-      const rawGenres = currentItem.Genres || currentItem.Tags || '';
+      const rawGenres = currentItem.Genres || currentItem.Tags || 'Super Heroes | Action | Adventure | Science Fiction';
       const genreItems = (Array.isArray(rawGenres) ? rawGenres : String(rawGenres).split(/[,/|]+/)).map(g => g.trim()).filter(Boolean);
-      genresLine.innerHTML = genreItems.map(g => `<b>${g}</b>`).join(' <span>|</span> ');
+      const genreHtml = genreItems.map(g => `<b>${g}</b>`).join(' <span>|</span> ');
+      document.getElementById('genresTagsLineDesk').innerHTML = genreHtml;
+      document.getElementById('genresTagsLineMob').innerHTML = genreHtml;
 
-      const desc = currentItem.Discription || currentItem.Description || "Enjoy full movies, shows and live TV streaming on Hotstar.";
-      document.getElementById('contentDescription').innerText = desc;
+      // 6. Action Buttons
+      renderCTAButtons();
+      updateWatchlistUI();
 
-      // 7. Watchlist state
-      updateWatchlistButtonState();
-
-      // 8. Episodes if Show
+      // 7. Episodes (if show)
       if (contentType === 'show') {
         renderEpisodesSection();
       } else {
@@ -923,52 +1193,52 @@
     }
 
     function renderCTAButtons() {
-      const ctaBox = document.getElementById('ctaContainer');
-      ctaBox.innerHTML = '';
+      let ctaHtml = '';
 
       if (!hasAccess) {
-        ctaBox.innerHTML = `
+        ctaHtml = `
           <a class="btn-cta btn-cta-subscribe" href="1.html?action=subscribe&studio=${encodeURIComponent(currentItem.Studio || '')}">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
-            Subscribe to Watch
-          </a>
-        `;
-        return;
-      }
-
-      let resumeKey = currentItem.id;
-      if (contentType === 'show' && currentSeasonKey) {
-        resumeKey = `${currentItem.id}_${currentSeasonKey}_ep0`;
-      }
-      const savedTime = parseFloat(localStorage.getItem(`progress_${resumeKey}`) || '0');
-      const hasWatchedBefore = savedTime > 15;
-
-      if (hasWatchedBefore && contentType !== 'live') {
-        const subLabel = contentType === 'show' ? 'S1 E1' : '';
-        ctaBox.innerHTML = `
-          <a class="btn-cta btn-cta-primary" href="1.html?watch=${currentItem.id}&action=resume">
             <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            Continue Watching ${subLabel}
-          </a>
-          <a class="btn-cta btn-cta-secondary" href="1.html?watch=${currentItem.id}&action=starting">
-            <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
-            Start from Beginning ${subLabel}
+            Upgrade to Watch
           </a>
         `;
-        return;
+      } else {
+        let resumeKey = currentItem.id;
+        if (contentType === 'show' && currentSeasonKey) {
+          resumeKey = `${currentItem.id}_${currentSeasonKey}_ep0`;
+        }
+        const savedTime = parseFloat(localStorage.getItem(`progress_${resumeKey}`) || '0');
+        const hasWatchedBefore = savedTime > 15;
+
+        if (hasWatchedBefore && contentType !== 'live') {
+          const subLabel = contentType === 'show' ? 'S1 E1' : '';
+          ctaHtml = `
+            <a class="btn-cta btn-cta-primary" href="1.html?watch=${currentItem.id}&action=resume">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              Resume ${subLabel}
+            </a>
+            <a class="btn-cta btn-cta-secondary" href="1.html?watch=${currentItem.id}&action=starting">
+              <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+              Watch from Beginning
+            </a>
+          `;
+        } else {
+          let primaryLabel = "Watch Now";
+          if (contentType === 'live') primaryLabel = "Watch Live";
+          ctaHtml = `
+            <a class="btn-cta btn-cta-primary" href="1.html?watch=${currentItem.id}&action=starting">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              ${primaryLabel}
+            </a>
+          `;
+        }
       }
 
-      let primaryLabel = "Watch Now";
-      if (contentType === 'live') primaryLabel = "Watch Live";
-      
-      ctaBox.innerHTML = `
-        <a class="btn-cta btn-cta-primary" href="1.html?watch=${currentItem.id}&action=starting">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          ${primaryLabel}
-        </a>
-      `;
+      document.getElementById('desktopCtaBtnBox').innerHTML = ctaHtml;
+      document.getElementById('mobileCtaBtnBox').innerHTML = ctaHtml;
     }
 
+    // Trailer Playback & Reset to Banner
     function scheduleTrailerPlayback() {
       const trailerBadge = document.getElementById('trailerBadge');
       const host = document.getElementById('heroTrailerHost');
@@ -983,7 +1253,6 @@
         }
 
         const ytId = extractYouTubeId(trailerUrl);
-
         if (ytId) {
           host.innerHTML = `<div id="ytTrailerActualPlayer"></div>`;
           host.classList.add('playing');
@@ -1001,7 +1270,7 @@
               modestbranding: 1,
               showinfo: 0,
               iv_load_policy: 3,
-              mute: 1,
+              mute: isMuted ? 1 : 0,
               playsinline: 1
             },
             events: {
@@ -1020,7 +1289,7 @@
             }
           });
         } else if (trailerUrl.endsWith('.mp4') || trailerUrl.includes('.m3u8')) {
-          host.innerHTML = `<video id="videoTrailerEl" src="${trailerUrl}" autoplay muted playsinline></video>`;
+          host.innerHTML = `<video id="videoTrailerEl" src="${trailerUrl}" autoplay ${isMuted ? 'muted' : ''} playsinline></video>`;
           host.classList.add('playing');
           trailerBadge.innerText = "TRAILER";
           trailerBadge.style.display = "block";
@@ -1037,6 +1306,24 @@
       }, 3000);
     }
 
+    // Desktop Audio Mute / Unmute Toggle
+    document.getElementById('desktopMuteBtn').onclick = () => {
+      isMuted = !isMuted;
+      const muteIcon = document.getElementById('muteIcon');
+      if (isMuted) {
+        muteIcon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+        if (ytTrailerPlayer && ytTrailerPlayer.mute) ytTrailerPlayer.mute();
+        const vid = document.getElementById('videoTrailerEl');
+        if (vid) vid.muted = true;
+      } else {
+        muteIcon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+        if (ytTrailerPlayer && ytTrailerPlayer.unMute) ytTrailerPlayer.unMute();
+        const vid = document.getElementById('videoTrailerEl');
+        if (vid) vid.muted = false;
+      }
+    };
+
+    // TV Show Episodes Section
     function renderEpisodesSection() {
       const epWrap = document.getElementById('episodesSection');
       const tabsRow = document.getElementById('seasonTabsRow');
@@ -1092,26 +1379,31 @@
       renderEpisodesSection();
     };
 
-    // Watchlist Updates
-    function updateWatchlistButtonState() {
-      const btn = document.getElementById('btnWatchlist');
+    // Watchlist Updates & Animating
+    function updateWatchlistUI() {
       const isAdded = userWatchlist.includes(currentItem.id);
-      btn.classList.toggle('active', isAdded);
-      document.getElementById('wlLabel').innerText = isAdded ? 'Added' : 'Watchlist';
-      document.getElementById('wlIcon').innerHTML = isAdded 
+      
+      // Desktop Circle Button
+      const btnDesk = document.getElementById('btnWatchlistDesk');
+      btnDesk.classList.toggle('active', isAdded);
+      document.getElementById('wlIconDesk').innerHTML = isAdded
+        ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>'
+        : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
+
+      // Mobile Action Item
+      const btnMob = document.getElementById('btnWatchlistMob');
+      btnMob.classList.toggle('active', isAdded);
+      document.getElementById('wlLabelMob').innerText = isAdded ? 'Added' : 'Watchlist';
+      document.getElementById('wlIconMob').innerHTML = isAdded 
         ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' 
         : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
     }
 
-    document.getElementById('btnWatchlist').onclick = async () => {
-      const btn = document.getElementById('btnWatchlist');
-      
-      // Trigger animation
-      btn.classList.remove('animating');
-      void btn.offsetWidth;
-      btn.classList.add('animating');
+    async function toggleWatchlist(el) {
+      el.classList.remove('animating');
+      void el.offsetWidth;
+      el.classList.add('animating');
 
-      // Check if user is logged in
       if (!currentUser) {
         try {
           const stored = localStorage.getItem('active_user') || localStorage.getItem('user');
@@ -1126,7 +1418,6 @@
 
       const isAdded = userWatchlist.includes(currentItem.id);
 
-      // 1. Update State & LocalStorage Immediately
       if (isAdded) {
         userWatchlist = userWatchlist.filter(id => id !== currentItem.id);
         showToast("Removed from Watchlist");
@@ -1134,17 +1425,16 @@
         userWatchlist.push(currentItem.id);
         showToast("Added to Watchlist");
       }
+
       currentUser.Watchlist = userWatchlist;
       localStorage.setItem('active_user', JSON.stringify(currentUser));
-      updateWatchlistButtonState();
+      updateWatchlistUI();
 
-      // 2. Sync to Firestore in Background
       try {
         if (!userDocRef && currentUser.Lotus) {
           const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
           if (!snap.empty) userDocRef = doc(userDb, "UARM", snap.docs[0].id);
         }
-
         if (userDocRef) {
           if (isAdded) {
             await updateDoc(userDocRef, { Watchlist: arrayRemove(currentItem.id) });
@@ -1152,17 +1442,18 @@
             await updateDoc(userDocRef, { Watchlist: arrayUnion(currentItem.id) });
           }
         }
-      } catch (err) {
-        console.warn("Watchlist background sync:", err);
-      }
-    };
+      } catch (err) {}
+    }
+
+    document.getElementById('btnWatchlistDesk').onclick = () => toggleWatchlist(document.getElementById('btnWatchlistDesk'));
+    document.getElementById('btnWatchlistMob').onclick = () => toggleWatchlist(document.getElementById('btnWatchlistMob'));
 
     // Share Action
-    document.getElementById('btnShare').onclick = async () => {
+    function handleShare() {
       const shareUrl = `${window.location.origin}${window.location.pathname}?preview=${currentItem.id}`;
       if (navigator.share) {
         try {
-          await navigator.share({
+          navigator.share({
             title: currentItem.Name || "Hotstar",
             text: `Watch ${currentItem.Name} on Hotstar!`,
             url: shareUrl
@@ -1172,21 +1463,11 @@
         navigator.clipboard.writeText(shareUrl);
         showToast("Link copied to clipboard!");
       }
-    };
+    }
+    document.getElementById('btnShareDesk').onclick = handleShare;
+    document.getElementById('btnShareMob').onclick = handleShare;
 
-    // Download Action
-    document.getElementById('btnDownload').onclick = () => {
-      showToast("Download started in standard quality");
-    };
-
-    // Rate Action
-    document.getElementById('btnRate').onclick = () => {
-      const btn = document.getElementById('btnRate');
-      btn.classList.toggle('active');
-      showToast(btn.classList.contains('active') ? "Rated ★★★★★" : "Rating removed");
-    };
-
-    // 16:9 Recommendations Engine with Poster.h -> Banner Fallback
+    // 16:9 Recommendations Engine
     async function fetchRecommendations() {
       const grid = document.getElementById('recommendationsGrid');
       try {
@@ -1235,9 +1516,7 @@
             </a>
           `;
         }).join('');
-      } catch (err) {
-        console.error("Recs error", err);
-      }
+      } catch (err) {}
     }
 
     // Launch
