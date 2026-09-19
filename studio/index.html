@@ -14,6 +14,7 @@
       --bg-dark: #0f1017;
       --card-bg: #1a1c29;
       --accent-blue: #0072d2;
+      --accent-glow: #66fcf1;
       --text-main: #f9f9f9;
       --text-muted: #8c93a8;
       --aspect-horizontal: 16 / 9;
@@ -62,6 +63,12 @@
       object-fit: cover;
       object-position: center 25%;
       z-index: 1;
+      opacity: 0;
+      transition: opacity 0.4s ease-in-out;
+    }
+
+    .hero-banner-img.loaded {
+      opacity: 1;
     }
 
     .hero-banner-overlay {
@@ -87,17 +94,12 @@
       margin-top: -60px;
       object-fit: contain;
       filter: drop-shadow(0 12px 25px rgba(0, 0, 0, 0.85));
+      animation: heroFadeIn 0.6s ease-out;
     }
 
-    .hero-title-fallback {
-      position: relative;
-      z-index: 3;
-      font-size: 3.8rem;
-      font-weight: 800;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      text-shadow: 0 8px 30px rgba(0,0,0,0.9);
-      margin-top: -60px;
+    @keyframes heroFadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .main-content {
@@ -127,7 +129,7 @@
     }
 
     .section-title:hover {
-      color: #66fcf1;
+      color: var(--accent-glow);
       transform: translateX(4px);
     }
 
@@ -192,6 +194,7 @@
       padding: 12px 4px;
       scrollbar-width: none;
       width: 100%;
+      -webkit-overflow-scrolling: touch;
     }
 
     .scroll-container::-webkit-scrollbar { display: none; }
@@ -222,7 +225,7 @@
     .carousel-arrow.left { left: 0; }
     .carousel-arrow.right { right: 0; }
 
-    /* Horizontal Cards (Home Row) */
+    /* Horizontal Cards */
     .content-card {
       flex: 0 0 calc(20% - 12px);
       min-width: 210px;
@@ -250,7 +253,7 @@
       display: block;
     }
 
-    /* ================= 2. SECTION GRID VIEW (VERTICAL POSTERS) ================= */
+    /* ================= 2. SECTION GRID VIEW ================= */
     #sectionDetailView {
       display: none;
       padding: 24px 4vw 80px 4vw;
@@ -292,7 +295,7 @@
 
     .back-btn:hover {
       transform: translateX(-4px);
-      color: #66fcf1;
+      color: var(--accent-glow);
     }
 
     .detail-title {
@@ -317,13 +320,12 @@
       position: relative;
       cursor: pointer;
       box-shadow: 0 6px 14px rgba(0,0,0,0.5);
-      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      transition: transform 0.25s ease, border-color 0.25s ease;
     }
 
     .vertical-card:hover {
       transform: scale(1.04);
       border-color: rgba(255, 255, 255, 0.7);
-      box-shadow: 0 10px 24px rgba(0,0,0,0.85);
       z-index: 5;
     }
 
@@ -360,7 +362,6 @@
     @media (max-width: 768px) {
       .hero-banner-container { height: 60vh; min-height: 400px; }
       .hero-logo { width: 70vw; max-height: 160px; margin-top: -80px; }
-      .hero-title-fallback { font-size: 2.6rem; margin-top: -80px; }
       .main-content { margin-top: -140px; padding: 0 4vw 40px 4vw; }
       .content-card { flex: 0 0 55%; min-width: 165px; border-radius: 6px; }
       .carousel-arrow { display: none; }
@@ -384,7 +385,6 @@
       <img id="heroBannerImg" class="hero-banner-img" src="" alt="Banner" />
       <div class="hero-banner-overlay"></div>
       <img id="heroLogo" class="hero-logo" src="" alt="Studio Logo" style="display: none;" />
-      <h1 id="heroTitle" class="hero-title-fallback" style="display: none;"></h1>
     </header>
 
     <main class="main-content">
@@ -397,7 +397,7 @@
     </main>
   </div>
 
-  <!-- 2. SECTION DETAIL VIEW (VERTICAL 3-COLUMN POSTER GRID) -->
+  <!-- 2. SECTION DETAIL VIEW (VERTICAL POSTERS) -->
   <div id="sectionDetailView">
     <div class="detail-header">
       <button class="back-btn" onclick="closeSectionDetail()">&#8592;</button>
@@ -430,7 +430,7 @@
     const mediaCache = new Map();
     let currentSectionsData = [];
 
-    // 3. Media Lookup with Poster.h Priority
+    // 3. Media Lookup
     async function fetchMediaDetails(id) {
       if (!id || typeof id !== 'string') return null;
       if (mediaCache.has(id)) return mediaCache.get(id);
@@ -444,14 +444,12 @@
 
       for (const key of lookups) {
         try {
-          // Check Movies Collection
           let docSnap = await db.collection('Movies').doc(key).get();
           if (docSnap.exists) {
             const data = docSnap.data();
             mediaCache.set(id, data);
             return data;
           }
-          // Check Shows Collection
           docSnap = await db.collection('Shows').doc(key).get();
           if (docSnap.exists) {
             const data = docSnap.data();
@@ -467,7 +465,6 @@
       return null;
     }
 
-    // Helper: Resolve Image Priority (Poster.h -> Poster -> Banner -> Tile)
     function resolvePosterImage(itemDoc) {
       if (!itemDoc) return null;
       return (
@@ -510,11 +507,10 @@
       });
     }
 
-    // 5. Render Main Page
+    // 5. Render Core UI
     async function renderHomePage(data, parentData) {
       const bannerImg = document.getElementById('heroBannerImg');
       const heroLogo = document.getElementById('heroLogo');
-      const heroTitle = document.getElementById('heroTitle');
 
       const bgUrl = data['Banner'] || data['Background.jpg'] || data['Background'] || data['Tile'] ||
                     (parentData && (parentData['Banner'] || parentData['Background.jpg'] || parentData['Background']));
@@ -522,33 +518,34 @@
       const logoUrl = data['Logo'] || data['Logo.png'] || 
                       (parentData && (parentData['Logo'] || parentData['Logo.png']));
 
-      const studioName = data['Name'] || data['Title'] || activeDocId.replace(/-/g, ' ');
+      // CHECK .View-Logo BOOLEAN
+      const shouldViewLogo = data['.View-Logo'] !== undefined ? data['.View-Logo'] : 
+                             (data['View-Logo'] !== undefined ? data['View-Logo'] : true);
 
       if (bgUrl) {
         bannerImg.src = bgUrl;
+        bannerImg.onload = () => bannerImg.classList.add('loaded');
         bannerImg.style.display = 'block';
       } else {
         bannerImg.style.display = 'none';
       }
 
-      if (logoUrl) {
+      // If .View-Logo is false, DO NOT show logo
+      if (shouldViewLogo && logoUrl) {
         heroLogo.src = logoUrl;
         heroLogo.style.display = 'block';
-        heroTitle.style.display = 'none';
       } else {
         heroLogo.style.display = 'none';
-        heroTitle.textContent = studioName;
-        heroTitle.style.display = 'block';
       }
 
-      // Render Sub-Studios
+      // Sub-Studios Grid
       if (!subParam && data['Sub-Studio'] && Array.isArray(data['Sub-Studio'])) {
         renderSubStudios(data['Sub-Studio']);
       } else {
         document.getElementById('subStudioSection').style.display = 'none';
       }
 
-      // Render S1., S2., S3... Sections
+      // Render Rows
       await renderSections(data);
     }
 
@@ -594,7 +591,6 @@
         const row = document.createElement('div');
         row.className = 'content-row';
 
-        // Clickable Section Title
         const rowTitle = document.createElement('h2');
         rowTitle.className = 'section-title';
         rowTitle.textContent = sec.title;
@@ -617,7 +613,6 @@
         const scrollContainer = document.createElement('div');
         scrollContainer.className = 'scroll-container';
 
-        // Preload metadata
         const mediaDetailsList = await Promise.all(sec.items.map(fetchMediaDetails));
 
         sec.items.forEach((item, idx) => {
@@ -650,7 +645,7 @@
       }
     }
 
-    // 6. Section Detail View Logic (Vertical Posters Grid)
+    // 6. Section Detail View Logic
     async function openSectionDetail(secIndex) {
       const sec = currentSectionsData[secIndex];
       if (!sec) return;
@@ -675,7 +670,6 @@
           card.innerHTML = `<img src="${item}" alt="" loading="lazy" />`;
         } else {
           const itemDoc = mediaDetailsList[idx];
-          // PRIORITY: Poster.h -> Poster -> Banner -> Tile
           const posterImg = resolvePosterImage(itemDoc);
           const displayName = itemDoc?.['Multi-Language']?.Name || itemDoc?.Name || itemDoc?.Title || item.replace(/-/g, ' ');
 
@@ -689,7 +683,6 @@
         grid.appendChild(card);
       });
 
-      // Browser history push
       history.pushState({ view: 'sectionDetail', title: sec.title }, sec.title, `#${encodeURIComponent(sec.title)}`);
     }
 
@@ -701,8 +694,7 @@
       }
     }
 
-    // Handle Browser Back Button
-    window.onpopstate = function(event) {
+    window.onpopstate = function() {
       if (document.getElementById('sectionDetailView').style.display === 'block') {
         closeSectionDetail();
       }
