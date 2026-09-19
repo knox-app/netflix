@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -200,9 +201,12 @@
 
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
     body:not(.landscape-mode) #lockBtn { display: none !important; }
+    
     body:not(.landscape-mode) #btnWatchNext,
     body:not(.landscape-mode) #btnEpisodes,
-    body:not(.landscape-mode) #btnPreviously { display: none !important; }
+    body:not(.landscape-mode) #btnPreviously {
+      display: none !important;
+    }
 
     .icon-btn {
       background: none;
@@ -219,7 +223,7 @@
     .icon-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.92); }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Center Controls */
+    /* Center Controls (Rewind, Play/Pause, Forward) */
     .ctrl-center {
       position: absolute;
       top: 50%;
@@ -227,9 +231,10 @@
       transform: translate(-50%, -50%);
       display: flex;
       align-items: center;
-      gap: 48px;
+      gap: 42px;
       pointer-events: auto;
     }
+    .ctrl-center .icon-btn svg { width: 32px; height: 32px; }
     .btn-main-play svg { width: 44px; height: 44px; fill: #ffffff; }
 
     /* Bottom Controls */
@@ -667,7 +672,7 @@
     .view-more-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.2s ease; }
     .view-more-btn.expanded svg { transform: rotate(180deg); }
 
-    /* Horizontal 16:9 Banner Recommendation Cards */
+    /* Recommendations */
     .horizontal-banners-scroll {
       display: flex;
       gap: 14px;
@@ -779,11 +784,19 @@
           </div>
         </div>
 
-        <!-- Center Controls -->
+        <!-- Center Controls: Rewind, Play/Pause, Forward -->
         <div class="ctrl-center">
+          <button class="icon-btn" id="rewindBtn" title="Rewind 10s">
+            <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+          </button>
+          
           <button class="icon-btn btn-main-play" id="playBtn" title="Play/Pause">
             <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+
+          <button class="icon-btn" id="forwardBtn" title="Forward 10s">
+            <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
           </button>
         </div>
 
@@ -985,7 +998,7 @@
 
   const YT_API_KEY = "AIzaSyD7JDCs5jfuy7f5_74gpjxGoqoAbUmKHVM";
 
-  // In-memory cache for fetched YouTube playlist videos to avoid quota limits
+  // In-memory cache for fetched YouTube playlist videos
   const playlistCache = {};
   const movieDurationCache = {}; 
   const DEFAULT_MOVIE_DURATION = 5400; // 90 minutes fallback
@@ -1110,19 +1123,60 @@
     return (h * 3600) + (m * 60);
   }
 
-  function extractYouTubeId(url) {
+  // Enhanced Universal YouTube & YouTube-NoCookie ID & Start Offset Extractor
+  function extractYouTubeInfo(url) {
+    if (!url) return null;
+    let cleanUrl = url.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+
+    let videoId = null;
+    let startSeconds = 0;
+
     try {
-      const u = new URL(url.trim());
-      if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('/')[0];
-      if (u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com')) {
-        if (u.pathname === '/watch') return u.searchParams.get('v');
-        if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
-        if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
+      const u = new URL(cleanUrl);
+      
+      // Check start parameter (?start=123, &t=123s, etc.)
+      const rawStart = u.searchParams.get('start') || u.searchParams.get('t');
+      if (rawStart) {
+        startSeconds = parseInt(rawStart.replace(/\D/g, '')) || 0;
+      }
+
+      // Check youtu.be/VIDEO_ID
+      if (u.hostname.includes('youtu.be')) {
+        videoId = u.pathname.slice(1).split('/')[0];
+      }
+      // Check youtube.com and youtube-nocookie.com
+      else if (u.hostname.includes('youtube.com') || u.hostname.includes('youtube-nocookie.com') || u.hostname.includes('m.youtube.com')) {
+        if (u.pathname.startsWith('/embed/')) {
+          videoId = u.pathname.split('/')[2];
+        } else if (u.pathname === '/watch') {
+          videoId = u.searchParams.get('v');
+        } else if (u.pathname.startsWith('/shorts/')) {
+          videoId = u.pathname.split('/')[2];
+        }
+        
+        // Fallback for playlist embedded in URL
+        if (!videoId && u.searchParams.get('playlist')) {
+          videoId = u.searchParams.get('playlist');
+        }
       }
     } catch(e) {
-      if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) {
+        videoId = url.trim();
+      }
+    }
+
+    if (videoId && /^[a-zA-Z0-9_-]+$/.test(videoId)) {
+      return { videoId, startSeconds };
     }
     return null;
+  }
+
+  function extractYouTubeId(url) {
+    const info = extractYouTubeInfo(url);
+    return info ? info.videoId : null;
   }
 
   function showToast(msg) {
@@ -1291,7 +1345,7 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  /* ================== DIGITAL FEED ENGINE (ZERO GAP + MULTI-MOVIE QUEUE) ================== */
+  /* ================== DIGITAL FEED ENGINE ================== */
   async function initDigitalFeedEngine(streamTag) {
     const cleanTag = streamTag.replace(/[{}]/g, '').trim();
     let feedSlug = '';
@@ -1366,7 +1420,6 @@
     return null;
   }
 
-  // Multi-Movie Pool Resolver: Handles progression across multiple movies in a single slot window
   function resolveMovieInSlot(slot, slotIndex, elapsedSeconds) {
     let pool = digitalFeedMoviesLibrary;
     if (slot.filterType && slot.filterType !== "all" && slot.filterValue && slot.filterValue !== "ALL") {
@@ -1383,7 +1436,6 @@
     const today = new Date();
     const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
     
-    // Hash based on day, slot index, and start time
     let slotHash = 0;
     const seedString = `${slot.from}_${slotIndex}_${slot.id || ''}`;
     for (let i = 0; i < seedString.length; i++) {
@@ -1392,7 +1444,6 @@
     }
     const initialBaseIndex = Math.abs((dayOfYear * 5) + Math.abs(slotHash)) % pool.length;
 
-    // Calculate how many movies have completed within this slot window
     let accumulatedTime = 0;
     let movieStep = 0;
     let selectedMovie = pool[initialBaseIndex];
@@ -1454,7 +1505,7 @@
 
     const timeTag = `${format12Hour(live.slot.from)} - ${format12Hour(live.slot.to)}`;
 
-    // 1. Movie Slot (Handles Progression & Multiple Movies)
+    // 1. Movie Slot
     if (live.slot.type === "movie") {
       const resolved = resolveMovieInSlot(live.slot, live.slotIndex, live.elapsedSeconds);
       if (!resolved || !resolved.movie || !resolved.movie.Stream) {
@@ -1481,14 +1532,14 @@
         });
       }
     }
-    // 2. Shows (Cloudinary MP4 episodes)
+    // 2. Shows (MP4 Episodes)
     else if (live.slot.type === "shows") {
       const episodes = live.slot.episodes || [];
       if (episodes.length === 0) {
         document.getElementById('chLangSub').innerText = "No episodes configured";
         return;
       }
-      const epDuration = 1320; // 22 mins per episode
+      const epDuration = 1320;
       const epIndex = Math.floor(live.elapsedSeconds / epDuration) % episodes.length;
       const currentEp = episodes[epIndex];
       const offsetIntoEpisode = live.elapsedSeconds % epDuration;
@@ -1507,7 +1558,7 @@
         }, offsetIntoEpisode);
       }
     }
-    // 3. TV Shows (YouTube Playlist or ID)
+    // 3. TV Shows (YouTube Playlist / URL)
     else if (live.slot.type === "tv") {
       const playlistId = live.slot.playlistId;
 
@@ -1515,7 +1566,7 @@
         const videos = await fetchYouTubePlaylistVideos(playlistId);
 
         if (videos.length > 0) {
-          const epDuration = 1200; // 20 mins estimate
+          const epDuration = 1200;
           const targetIndex = Math.floor(live.elapsedSeconds / epDuration) % videos.length;
           const currentVideo = videos[targetIndex];
           const videoOffset = live.elapsedSeconds % epDuration;
@@ -1543,7 +1594,7 @@
           document.getElementById('overlaySubtitle').innerText = `${title} • [${timeTag}]`;
 
           startStreamPlayback({
-            Stream: `https://www.youtube.com/watch?v=${playlistId}`,
+            Stream: playlistId.startsWith('http') ? playlistId : `https://www.youtube.com/watch?v=${playlistId}`,
             Name: title
           }, live.elapsedSeconds);
         }
@@ -1567,7 +1618,7 @@
     }
   }
 
-  /* ================== WATCHLIST LOGIC ================== */
+  /* ================== WATCHLIST ================== */
   async function initWatchlistState() {
     if (!currentUser) return;
     try {
@@ -1833,7 +1884,14 @@
     const streamUrl = safeUrl(data.Stream || '');
     const mpdObj = data.mpd || data.MPD || null;
     const resumeKey = data.id || currentDocId;
-    const savedTime = overrideStartTime !== undefined ? overrideStartTime : getSavedProgress(resumeKey);
+
+    const ytInfo = extractYouTubeInfo(streamUrl);
+    let savedTime = overrideStartTime !== undefined ? overrideStartTime : getSavedProgress(resumeKey);
+
+    // If stream URL contained explicit &start=123 offset
+    if (ytInfo && ytInfo.startSeconds > 0 && overrideStartTime === undefined) {
+      savedTime = ytInfo.startSeconds;
+    }
 
     let mpdFile = null;
     let keyId = null;
@@ -1855,8 +1913,8 @@
       return;
     }
 
-    const ytId = extractYouTubeId(streamUrl);
-    if (ytId) {
+    if (ytInfo && ytInfo.videoId) {
+      const ytId = ytInfo.videoId;
       if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
       video.pause();
       video.style.display = 'none';
@@ -2243,11 +2301,26 @@
     });
   }
 
+  function performSeek(sec) {
+    if (activePlayerType === 'youtube' && ytPlayerInstance) {
+      const cur = ytPlayerInstance.getCurrentTime() || 0;
+      ytPlayerInstance.seekTo(Math.max(0, cur + sec), true);
+    } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
+      const cur = jwPlayerInstance.getPosition() || 0;
+      jwPlayerInstance.seek(Math.max(0, cur + sec));
+    } else {
+      const video = document.getElementById('nativeVideoPlayer');
+      if (video) video.currentTime = Math.max(0, video.currentTime + sec);
+    }
+  }
+
   function setupInteractions() {
     const video = document.getElementById('nativeVideoPlayer');
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
     const playBtn = document.getElementById('playBtn');
+    const rewindBtn = document.getElementById('rewindBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
     const lockBtn = document.getElementById('lockBtn');
     const unlockBtn = document.getElementById('unlockBtn');
     const settingsBtn = document.getElementById('settingsBtn');
@@ -2267,7 +2340,6 @@
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
     };
 
-    // Single Tap to Toggle Controls (Seeking completely removed on tap)
     playerContainer.onpointerdown = (e) => {
       if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
@@ -2281,6 +2353,21 @@
       } else {
         showControls();
       }
+    };
+
+    // Forward & Rewind Button Click Events
+    rewindBtn.onclick = (e) => {
+      e.stopPropagation();
+      performSeek(-10);
+      showToast("-10s");
+      showControls();
+    };
+
+    forwardBtn.onclick = (e) => {
+      e.stopPropagation();
+      performSeek(10);
+      showToast("+10s");
+      showControls();
     };
 
     // Pinch-to-zoom gestures
