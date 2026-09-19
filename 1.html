@@ -1,14 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hotstar Video Player</title>
+  <title>Hotstar Video Player - Ad-Free Engine</title>
   
-  <!-- HLS.js for .m3u8 streams -->
+  <!-- HLS.js for .m3u8 & direct stream decoding -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <!-- YouTube IFrame Player API -->
+  <!-- YouTube IFrame Player API (Fallback Engine) -->
   <script src="https://www.youtube.com/iframe_api"></script>
   <!-- JWPlayer Library for .mpd DASH DRM -->
   <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
@@ -223,7 +222,7 @@
     .icon-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.92); }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Center Controls (Rewind, Play/Pause, Forward) */
+    /* Center Controls */
     .ctrl-center {
       position: absolute;
       top: 50%;
@@ -672,7 +671,7 @@
     .view-more-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.2s ease; }
     .view-more-btn.expanded svg { transform: rotate(180deg); }
 
-    /* Recommendations */
+    /* Horizontal Recommendations */
     .horizontal-banners-scroll {
       display: flex;
       gap: 14px;
@@ -1003,6 +1002,14 @@
   const movieDurationCache = {}; 
   const DEFAULT_MOVIE_DURATION = 5400; // 90 minutes fallback
 
+  // Public Invidious / Piped Resolver Proxies (Zero Ads Stream Extraction)
+  const AD_FREE_RESOLVERS = [
+    "https://inv.tux.pizza/api/v1/videos/",
+    "https://invidious.nerdvpn.de/api/v1/videos/",
+    "https://invidious.protokolla.fi/api/v1/videos/",
+    "https://vid.puffyan.us/api/v1/videos/"
+  ];
+
   // Runtime State
   let hlsInstance = null;
   let ytPlayerInstance = null;
@@ -1123,7 +1130,7 @@
     return (h * 3600) + (m * 60);
   }
 
-  // Enhanced Universal YouTube & YouTube-NoCookie ID & Start Offset Extractor
+  // Universal YouTube/No-Cookie URL Parser
   function extractYouTubeInfo(url) {
     if (!url) return null;
     let cleanUrl = url.trim();
@@ -1136,19 +1143,14 @@
 
     try {
       const u = new URL(cleanUrl);
-      
-      // Check start parameter (?start=123, &t=123s, etc.)
       const rawStart = u.searchParams.get('start') || u.searchParams.get('t');
       if (rawStart) {
         startSeconds = parseInt(rawStart.replace(/\D/g, '')) || 0;
       }
 
-      // Check youtu.be/VIDEO_ID
       if (u.hostname.includes('youtu.be')) {
         videoId = u.pathname.slice(1).split('/')[0];
-      }
-      // Check youtube.com and youtube-nocookie.com
-      else if (u.hostname.includes('youtube.com') || u.hostname.includes('youtube-nocookie.com') || u.hostname.includes('m.youtube.com')) {
+      } else if (u.hostname.includes('youtube.com') || u.hostname.includes('youtube-nocookie.com') || u.hostname.includes('m.youtube.com')) {
         if (u.pathname.startsWith('/embed/')) {
           videoId = u.pathname.split('/')[2];
         } else if (u.pathname === '/watch') {
@@ -1157,7 +1159,6 @@
           videoId = u.pathname.split('/')[2];
         }
         
-        // Fallback for playlist embedded in URL
         if (!videoId && u.searchParams.get('playlist')) {
           videoId = u.searchParams.get('playlist');
         }
@@ -1177,6 +1178,36 @@
   function extractYouTubeId(url) {
     const info = extractYouTubeInfo(url);
     return info ? info.videoId : null;
+  }
+
+  // Ad-Free Stream Extractor
+  async function resolveAdFreeYouTubeStream(videoId) {
+    for (const resolverBase of AD_FREE_RESOLVERS) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2600);
+        
+        const res = await fetch(`${resolverBase}${videoId}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) continue;
+        const data = await res.json();
+        
+        // Check for HLS master manifest (.m3u8)
+        if (data.hlsUrl) {
+          return { streamUrl: data.hlsUrl, isHls: true, title: data.title };
+        }
+        
+        // Pick top combined MP4 stream
+        if (data.formatStreams && data.formatStreams.length > 0) {
+          const stream = data.formatStreams[data.formatStreams.length - 1];
+          return { streamUrl: stream.url, isHls: false, title: data.title };
+        }
+      } catch (err) {
+        // Continue to fallback resolver
+      }
+    }
+    return null;
   }
 
   function showToast(msg) {
@@ -1330,7 +1361,6 @@
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
 
-        // Check for Digital Feed format: {.DIGI-FEED=channel_slug} or {.DIGI-FEED-channel_slug}
         const rawStream = (currentChannel.Stream || '').trim();
         if (rawStream.includes('.DIGI-FEED')) {
           initDigitalFeedEngine(rawStream);
@@ -1386,11 +1416,10 @@
 
       const feedData = snapshot.data();
       digitalFeedSchedule = feedData.schedule || [];
-      activeMediaKey = null; // Forces re-evaluation
+      activeMediaKey = null;
       syncDigitalFeedLive();
     });
 
-    // 1-Second Precision Tick for zero-gap real-time transitions
     digitalFeedInterval = setInterval(syncDigitalFeedLive, 1000);
   }
 
@@ -1618,7 +1647,7 @@
     }
   }
 
-  /* ================== WATCHLIST ================== */
+  /* ================== WATCHLIST LOGIC ================== */
   async function initWatchlistState() {
     if (!currentUser) return;
     try {
@@ -1875,7 +1904,7 @@
     });
   }
 
-  function startStreamPlayback(data, overrideStartTime, onDurationDiscovered) {
+  async function startStreamPlayback(data, overrideStartTime, onDurationDiscovered) {
     const video = document.getElementById('nativeVideoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
@@ -1888,7 +1917,6 @@
     const ytInfo = extractYouTubeInfo(streamUrl);
     let savedTime = overrideStartTime !== undefined ? overrideStartTime : getSavedProgress(resumeKey);
 
-    // If stream URL contained explicit &start=123 offset
     if (ytInfo && ytInfo.startSeconds > 0 && overrideStartTime === undefined) {
       savedTime = ytInfo.startSeconds;
     }
@@ -1913,7 +1941,58 @@
       return;
     }
 
+    // Direct Ad-Free Stream Extractor Pipeline
     if (ytInfo && ytInfo.videoId) {
+      showToast("Loading Ad-Free Stream...");
+      const adFreeResult = await resolveAdFreeYouTubeStream(ytInfo.videoId);
+
+      if (adFreeResult && adFreeResult.streamUrl) {
+        // Stream extracted successfully: Play in native HTML5 <video> (Zero Ads)
+        if (ytPlayerInstance && ytPlayerInstance.stopVideo) {
+          try { ytPlayerInstance.stopVideo(); } catch(e){}
+        }
+        ytHost.style.display = 'none';
+        iframe.style.display = 'none';
+        video.style.display = 'block';
+        overlay.style.display = 'flex';
+        activePlayerType = 'hls';
+
+        let metaHandled = false;
+        const applyResume = () => {
+          if (metaHandled) return;
+          metaHandled = true;
+
+          const dur = video.duration;
+          if (!isNaN(dur) && dur > 0) {
+            if (onDurationDiscovered) onDurationDiscovered(dur);
+            const targetTime = (savedTime % dur);
+            video.currentTime = targetTime;
+            if (contentType !== 'live') showToast(`Resumed from ${formatTime(targetTime)}`);
+          }
+          video.play().catch(() => {});
+        };
+
+        video.onended = () => {
+          syncDigitalFeedLive();
+        };
+
+        if (adFreeResult.isHls && Hls.isSupported()) {
+          if (hlsInstance) hlsInstance.destroy();
+          hlsInstance = new Hls({ enableWorker: true });
+          hlsInstance.loadSource(adFreeResult.streamUrl);
+          hlsInstance.attachMedia(video);
+          hlsInstance.on(Hls.Events.MANIFEST_PARSED, applyResume);
+        } else {
+          if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+          video.src = adFreeResult.streamUrl;
+          video.addEventListener("loadedmetadata", applyResume, { once: true });
+          if (video.readyState >= 1) applyResume();
+        }
+        setupInteractions();
+        return;
+      }
+
+      // Fallback: YouTube IFrame Engine
       const ytId = ytInfo.videoId;
       if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
       video.pause();
@@ -2355,7 +2434,6 @@
       }
     };
 
-    // Forward & Rewind Button Click Events
     rewindBtn.onclick = (e) => {
       e.stopPropagation();
       performSeek(-10);
@@ -2370,7 +2448,6 @@
       showControls();
     };
 
-    // Pinch-to-zoom gestures
     let initialDistance = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
