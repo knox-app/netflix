@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hotstar Video Player</title>
+  <title>Hotstar Video Player - Ad-Free Engine</title>
   
-  <!-- HLS.js for .m3u8 streams -->
+  <!-- HLS.js for .m3u8 & direct stream decoding -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <!-- YouTube IFrame Player API (Hardened Sandbox Fallback) -->
+  <!-- YouTube IFrame Player API (Fallback Engine) -->
   <script src="https://www.youtube.com/iframe_api"></script>
   <!-- JWPlayer Library for .mpd DASH DRM -->
   <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
@@ -93,14 +93,20 @@
       inset: 0;
       display: none;
       overflow: hidden;
+      pointer-events: none;
       z-index: 2;
       background: #000;
     }
     #ytFrameHost iframe {
-      width: 100% !important;
-      height: 100% !important;
-      border: none;
+      width: calc(100% + 140px) !important;
+      height: calc(100% + 200px) !important;
+      position: absolute !important;
+      top: -100px !important;
+      left: -70px !important;
+      pointer-events: none;
+      transition: transform 0.2s ease;
     }
+    #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
 
     #jwHost {
       position: absolute;
@@ -216,7 +222,7 @@
     .icon-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.92); }
     .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Center Controls (Rewind, Play/Pause, Forward) */
+    /* Center Controls */
     .ctrl-center {
       position: absolute;
       top: 50%;
@@ -665,7 +671,7 @@
     .view-more-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.2s ease; }
     .view-more-btn.expanded svg { transform: rotate(180deg); }
 
-    /* Recommendations */
+    /* Horizontal Recommendations */
     .horizontal-banners-scroll {
       display: flex;
       gap: 14px;
@@ -1001,9 +1007,7 @@
     "https://inv.tux.pizza/api/v1/videos/",
     "https://invidious.nerdvpn.de/api/v1/videos/",
     "https://invidious.protokolla.fi/api/v1/videos/",
-    "https://vid.puffyan.us/api/v1/videos/",
-    "https://pipedapi.kavin.rocks/streams/",
-    "https://api.piped.privacydev.net/streams/"
+    "https://vid.puffyan.us/api/v1/videos/"
   ];
 
   // Runtime State
@@ -1024,8 +1028,6 @@
   let userWatchlist = [];
   let availableHlsLevels = [];
   let lastProgressSave = 0;
-  let lastStreamTokenRefresh = 0;
-  let currentActiveVideoId = null;
 
   // Digital-Feed Dynamic State
   let digitalFeedUnsub = null;
@@ -1128,7 +1130,7 @@
     return (h * 3600) + (m * 60);
   }
 
-  // Enhanced Universal YouTube/No-Cookie URL Parser
+  // Universal YouTube/No-Cookie URL Parser
   function extractYouTubeInfo(url) {
     if (!url) return null;
     let cleanUrl = url.trim();
@@ -1178,7 +1180,7 @@
     return info ? info.videoId : null;
   }
 
-  // Multi-Instance Stream Extractor
+  // Ad-Free Stream Extractor
   async function resolveAdFreeYouTubeStream(videoId) {
     for (const resolverBase of AD_FREE_RESOLVERS) {
       try {
@@ -1191,21 +1193,18 @@
         if (!res.ok) continue;
         const data = await res.json();
         
-        // Adaptive master HLS stream (.m3u8)
-        if (data.hlsUrl) return { streamUrl: data.hlsUrl, isHls: true, title: data.title };
-        if (data.hls) return { streamUrl: data.hls, isHls: true, title: data.title };
+        // Check for HLS master manifest (.m3u8)
+        if (data.hlsUrl) {
+          return { streamUrl: data.hlsUrl, isHls: true, title: data.title };
+        }
         
-        // Direct MP4 stream fallback
+        // Pick top combined MP4 stream
         if (data.formatStreams && data.formatStreams.length > 0) {
           const stream = data.formatStreams[data.formatStreams.length - 1];
           return { streamUrl: stream.url, isHls: false, title: data.title };
         }
-        if (data.videoStreams && data.videoStreams.length > 0) {
-          const stream = data.videoStreams.find(s => s.videoOnly === false) || data.videoStreams[0];
-          return { streamUrl: stream.url, isHls: false, title: data.title };
-        }
       } catch (err) {
-        // Try next resolver
+        // Continue to fallback resolver
       }
     }
     return null;
@@ -1362,7 +1361,6 @@
         document.getElementById('chLangSub').innerText = subText;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
 
-        // Check for Digital Feed format: {.DIGI-FEED=channel_slug}
         const rawStream = (currentChannel.Stream || '').trim();
         if (rawStream.includes('.DIGI-FEED')) {
           initDigitalFeedEngine(rawStream);
@@ -1377,7 +1375,7 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  /* ================== DIGITAL FEED ENGINE (ZERO GAP + MULTI-MOVIE QUEUE) ================== */
+  /* ================== DIGITAL FEED ENGINE ================== */
   async function initDigitalFeedEngine(streamTag) {
     const cleanTag = streamTag.replace(/[{}]/g, '').trim();
     let feedSlug = '';
@@ -1418,7 +1416,7 @@
 
       const feedData = snapshot.data();
       digitalFeedSchedule = feedData.schedule || [];
-      activeMediaKey = null; // Forces re-evaluation
+      activeMediaKey = null;
       syncDigitalFeedLive();
     });
 
@@ -1631,7 +1629,7 @@
         }
       }
     }
-    // 4. Direct Streams
+    // 4. Direct / Raw Streams
     else {
       const slotTitle = live.slot.title || live.slot.name || "Live Broadcast";
       const mediaKey = `direct_${live.slot.from}_${live.slotIndex}`;
@@ -1945,10 +1943,7 @@
 
     // Direct Ad-Free Stream Extractor Pipeline
     if (ytInfo && ytInfo.videoId) {
-      currentActiveVideoId = ytInfo.videoId;
-      lastStreamTokenRefresh = Date.now();
       showToast("Loading Ad-Free Stream...");
-      
       const adFreeResult = await resolveAdFreeYouTubeStream(ytInfo.videoId);
 
       if (adFreeResult && adFreeResult.streamUrl) {
@@ -1997,7 +1992,7 @@
         return;
       }
 
-      // Hardened Fallback: YouTube IFrame Engine
+      // Fallback: YouTube IFrame Engine
       const ytId = ytInfo.videoId;
       if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
       video.pause();
@@ -2153,16 +2148,6 @@
 
     showToast("No playable stream URL found.");
   }
-
-  // Auto-Refresh Token Watchdog: Intercepts 4-hour expiration stalls
-  const videoNativeEl = document.getElementById('nativeVideoPlayer');
-  videoNativeEl.onerror = async () => {
-    if (currentActiveVideoId && (Date.now() - lastStreamTokenRefresh > 10000)) {
-      showToast("Refreshing ad-free stream token...");
-      const currentPos = videoNativeEl.currentTime || 0;
-      await startStreamPlayback({ Stream: `https://youtu.be/${currentActiveVideoId}` }, currentPos);
-    }
-  };
 
   function extractNativeTracks(videoEl) {
     if (videoEl.textTracks && videoEl.textTracks.length > 0) {
@@ -2449,7 +2434,6 @@
       }
     };
 
-    // Forward & Rewind Buttons
     rewindBtn.onclick = (e) => {
       e.stopPropagation();
       performSeek(-10);
@@ -2464,7 +2448,6 @@
       showControls();
     };
 
-    // Pinch-to-zoom gestures
     let initialDistance = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
