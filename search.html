@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Search & Explore</title>
+  
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-base: #0f1014;
+      --bg-surface: #181a21;
+      --bg-surface-elevated: #20242f;
+      --border-subtle: #2b303d;
+      --text-primary: #ffffff;
+      --text-secondary: #8e95a5;
+      --accent: #e1e6f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding-bottom: 80px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 560px;
+      padding: 16px;
+    }
+
+    /* --- SEARCH BAR --- */
+    .search-box-wrapper {
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 28px;
+      padding: 8px 16px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .search-box-wrapper:focus-within {
+      border-color: #ffffff;
+      background-color: var(--bg-surface-elevated);
+    }
+
+    .search-icon {
+      width: 20px;
+      height: 20px;
+      stroke: var(--text-secondary);
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .search-input::placeholder {
+      color: #636b7c;
+    }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 16px;
+      cursor: pointer;
+      display: none;
+      padding: 4px;
+      line-height: 1;
+    }
+
+    /* --- RECENT SEARCHES (PERSONALIZED) --- */
+    .recents-wrapper {
+      margin-bottom: 18px;
+      display: none;
+    }
+
+    .recents-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .recents-header span {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .clear-recents {
+      font-size: 12px;
+      color: #4b89dc;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .recents-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .recent-chip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .recent-chip:hover {
+      color: #fff;
+      border-color: #555;
+    }
+
+    .recent-chip .del-tag {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* --- CATEGORY CHIPS --- */
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .chips-container {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 14px;
+      scrollbar-width: none;
+    }
+    .chips-container::-webkit-scrollbar { display: none; }
+
+    .chip {
+      background: var(--bg-surface);
+      color: #c4c8d3;
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 7px 15px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .chip.active, .chip:hover {
+      background: var(--bg-surface-elevated);
+      color: #fff;
+      border-color: #5c6479;
+    }
+
+    /* --- TOP HERO MATCH (16:9) --- */
+    .top-result {
+      margin-bottom: 24px;
+      display: none;
+      cursor: pointer;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .top-result-poster {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 10px;
+      object-fit: cover;
+      background-color: var(--bg-surface);
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .top-result-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .top-result-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .play-btn {
+      width: 100%;
+      background: var(--accent);
+      color: var(--bg-base);
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .play-btn:active {
+      opacity: 0.85;
+    }
+
+    /* --- 16:9 GRID --- */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .movie-card {
+      cursor: pointer;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s ease;
+    }
+
+    .movie-card:active {
+      transform: scale(0.97);
+    }
+
+    .poster-img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 8px;
+      background: var(--bg-surface);
+      transition: opacity 0.3s ease;
+    }
+
+    .poster-img[loading] {
+      opacity: 0.7;
+    }
+
+    .movie-details {
+      padding: 6px 2px 2px;
+    }
+
+    .movie-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e5e7eb;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .movie-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* --- SHIMMER / SKELETON LOADING --- */
+    .skeleton-card {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #181a21 25%, #242936 50%, #181a21 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+      display: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Search Bar -->
+    <div class="search-box-wrapper">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+      </svg>
+      <input type="text" id="searchInput" class="search-input" placeholder="Search for movies, shows..." autocomplete="off" />
+      <button id="clearBtn" class="clear-btn">&#x2715;</button>
+    </div>
+
+    <!-- Personalized Recent Searches -->
+    <div id="recentsWrapper" class="recents-wrapper">
+      <div class="recents-header">
+        <span>Recent Searches</span>
+        <button id="clearRecentsBtn" class="clear-recents">Clear All</button>
+      </div>
+      <div id="recentsChips" class="recents-chips"></div>
+    </div>
+
+    <!-- Category Chips -->
+    <div class="section-title" id="chipsHeading">Popular Searches in</div>
+    <div class="chips-container" id="chipsContainer">
+      <div class="chip active" data-filter="all">⚡ All</div>
+      <div class="chip" data-filter="Animation">Animation</div>
+      <div class="chip" data-filter="Action">Action</div>
+      <div class="chip" data-filter="Comedy">Comedy</div>
+      <div class="chip" data-filter="Disney">Disney</div>
+      <div class="chip" data-filter="Hindi">Hindi</div>
+    </div>
+
+    <!-- Top Featured Match (16:9 Landscape) -->
+    <div id="topResult" class="top-result">
+      <img id="topPoster" class="top-result-poster" src="" alt="Featured Poster" loading="lazy" />
+      <div class="top-result-info">
+        <h2 id="topTitle" class="top-result-title">Title</h2>
+        <p id="topMeta" class="top-result-meta">Metadata</p>
+      </div>
+      <a id="topPlayBtn" href="#" class="play-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Watch Now
+      </a>
+    </div>
+
+    <!-- Grid Title -->
+    <div class="section-title" id="gridTitle" style="display:none; margin-top: 18px;">More Results</div>
+
+    <!-- Results Grid -->
+    <div id="resultsGrid" class="results-grid"></div>
+
+    <div id="noResults" class="no-results">No movies or shows found matching your search.</div>
+
+  </div>
+
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+      measurementId: "G-Y87B8VRQ1N"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Cache State
+    let allMovies = [];
+    let debounceTimer = null;
+    const STORAGE_KEY = "recent_searches_hotstar";
+    const FALLBACK_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=640&q=60";
+
+    // DOM Elements
+    const searchInput = document.getElementById("searchInput");
+    const clearBtn = document.getElementById("clearBtn");
+    const resultsGrid = document.getElementById("resultsGrid");
+    const noResults = document.getElementById("noResults");
+    const topResult = document.getElementById("topResult");
+    const topPoster = document.getElementById("topPoster");
+    const topTitle = document.getElementById("topTitle");
+    const topMeta = document.getElementById("topMeta");
+    const topPlayBtn = document.getElementById("topPlayBtn");
+    const gridTitle = document.getElementById("gridTitle");
+    const chips = document.querySelectorAll(".chip");
+    const recentsWrapper = document.getElementById("recentsWrapper");
+    const recentsChips = document.getElementById("recentsChips");
+    const clearRecentsBtn = document.getElementById("clearRecentsBtn");
+
+    // Show shimmer loading skeletons
+    function showLoadingSkeletons(count = 6) {
+      resultsGrid.innerHTML = "";
+      for (let i = 0; i < count; i++) {
+        const skel = document.createElement("div");
+        skel.className = "skeleton-card";
+        resultsGrid.appendChild(skel);
+      }
+    }
+
+    // Load from Firestore
+    async function loadData() {
+      showLoadingSkeletons(6);
+      try {
+        const querySnapshot = await getDocs(collection(db, "Movies"));
+        allMovies = [];
+        querySnapshot.forEach((doc) => {
+          allMovies.push({ id: doc.id, ...doc.data() });
+        });
+        renderResults(allMovies, false);
+      } catch (error) {
+        console.error("Firestore Read Error:", error);
+        resultsGrid.innerHTML = "<div style='grid-column:span 2;text-align:center;color:#8e95a5;'>Failed to load movies.</div>";
+      }
+    }
+
+    // Extract horizontal poster with safety fallbacks
+    function getHorizontalPoster(item) {
+      if (item["Poster.h"]) return item["Poster.h"];
+      if (item.Poster && item.Poster.h) return item.Poster.h;
+      if (item.Banner) return item.Banner;
+      if (item["Poster.v"]) return item["Poster.v"];
+      return FALLBACK_POSTER;
+    }
+
+    // Secure Redirection to preview.html?watch=<id>
+    function navigateToPreview(movieId) {
+      if (!movieId) return;
+      window.location.href = `preview.html?watch=${encodeURIComponent(movieId)}`;
+    }
+
+    // Render Function
+    function renderResults(movies, isSearchQuery = false) {
+      resultsGrid.innerHTML = "";
+      
+      if (!movies || movies.length === 0) {
+        noResults.style.display = "block";
+        topResult.style.display = "none";
+        gridTitle.style.display = "none";
+        return;
+      }
+
+      noResults.style.display = "none";
+      let listToRender = movies;
+
+      // Handle Hero Top Match Card
+      if (isSearchQuery && movies.length > 0) {
+        const topItem = movies[0];
+        topResult.style.display = "block";
+        
+        topPoster.src = getHorizontalPoster(topItem);
+        topPoster.onerror = () => { topPoster.src = FALLBACK_POSTER; };
+        topTitle.textContent = topItem.Name || "Untitled";
+
+        const metaArr = [];
+        if (topItem.Rating) metaArr.push(`★ ${topItem.Rating}`);
+        if (topItem.Studio) metaArr.push(topItem.Studio);
+        if (topItem.Language) metaArr.push(topItem.Language);
+        topMeta.textContent = metaArr.join(" • ") || "Movie";
+
+        // Click on top card or play button redirects with the doc ID
+        const targetUrl = `preview.html?watch=${encodeURIComponent(topItem.id)}`;
+        topPlayBtn.href = targetUrl;
+        topResult.onclick = (e) => {
+          if (e.target !== topPlayBtn && !topPlayBtn.contains(e.target)) {
+            navigateToPreview(topItem.id);
+          }
+        };
+
+        listToRender = movies.slice(1);
+        gridTitle.style.display = listToRender.length > 0 ? "block" : "none";
+      } else {
+        topResult.style.display = "none";
+        gridTitle.style.display = "none";
+      }
+
+      // Render 16:9 Grid
+      listToRender.forEach((movie) => {
+        const card = document.createElement("div");
+        card.className = "movie-card";
+
+        const titleText = movie.Name || "Untitled";
+        const metaText = [movie.Age_Rating, movie.Studio || movie.Language].filter(Boolean).join(" • ") || "Movie";
+        const posterUrl = getHorizontalPoster(movie);
+
+        // Safe DOM Injection
+        card.innerHTML = `
+          <img class="poster-img" src="${posterUrl}" alt="" loading="lazy" />
+          <div class="movie-details">
+            <div class="movie-title"></div>
+            <div class="movie-meta"></div>
+          </div>
+        `;
+
+        card.querySelector(".movie-title").textContent = titleText;
+        card.querySelector(".movie-meta").textContent = metaText;
+
+        const imgEl = card.querySelector(".poster-img");
+        imgEl.onerror = () => { imgEl.src = FALLBACK_POSTER; };
+
+        // Redirect on Click
+        card.addEventListener("click", () => navigateToPreview(movie.id));
+
+        resultsGrid.appendChild(card);
+      });
+    }
+
+    // Client-side filtering logic
+    function executeFilter(query) {
+      const q = query.trim().toLowerCase();
+
+      if (!q) {
+        clearBtn.style.display = "none";
+        renderResults(allMovies, false);
+        return;
+      }
+
+      clearBtn.style.display = "block";
+
+      const matches = allMovies.filter((movie) => {
+        const name = (movie.Name || "").toLowerCase();
+        const tags = (movie.Tags || "").toLowerCase();
+        const genres = (movie.Genres || "").toLowerCase();
+        const studio = (movie.Studio || "").toLowerCase();
+        return name.includes(q) || tags.includes(q) || genres.includes(q) || studio.includes(q);
+      });
+
+      renderResults(matches, true);
+    }
+
+    // Debounced Search Input (Smooth Performance)
+    searchInput.addEventListener("input", (e) => {
+      const val = e.target.value;
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        executeFilter(val);
+      }, 180);
+    });
+
+    // Save Search into LocalStorage on Enter
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && searchInput.value.trim().length > 1) {
+        saveRecentSearch(searchInput.value.trim());
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      clearBtn.style.display = "none";
+      executeFilter("");
+      searchInput.focus();
+    });
+
+    // Category chips
+    chips.forEach(chip => {
+      chip.addEventListener("click", () => {
+        chips.forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+
+        const filter = chip.getAttribute("data-filter");
+        if (filter === "all") {
+          searchInput.value = "";
+          executeFilter("");
+        } else {
+          searchInput.value = filter;
+          executeFilter(filter);
+        }
+      });
+    });
+
+    // --- PERSONALIZATION (RECENT SEARCHES) ---
+    function getRecentSearches() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecentSearch(query) {
+      let list = getRecentSearches().filter(item => item.toLowerCase() !== query.toLowerCase());
+      list.unshift(query);
+      if (list.length > 5) list = list.slice(0, 5);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      renderRecentSearches();
+    }
+
+    function removeRecentSearch(query, e) {
+      e.stopPropagation();
+      let list = getRecentSearches().filter(item => item !== query);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      renderRecentSearches();
+    }
+
+    function renderRecentSearches() {
+      const list = getRecentSearches();
+      recentsChips.innerHTML = "";
+      if (list.length === 0) {
+        recentsWrapper.style.display = "none";
+        return;
+      }
+
+      recentsWrapper.style.display = "block";
+      list.forEach(query => {
+        const chip = document.createElement("div");
+        chip.className = "recent-chip";
+        chip.innerHTML = `<span></span><span class="del-tag">&#x2715;</span>`;
+        chip.querySelector("span").textContent = query;
+        
+        chip.addEventListener("click", () => {
+          searchInput.value = query;
+          executeFilter(query);
+        });
+
+        chip.querySelector(".del-tag").addEventListener("click", (e) => removeRecentSearch(query, e));
+        recentsChips.appendChild(chip);
+      });
+    }
+
+    clearRecentsBtn.addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      renderRecentSearches();
+    });
+
+    // Initial load
+    renderRecentSearches();
+    loadData();
+  </script>
+
+</body>
+  </html>
