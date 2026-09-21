@@ -44,14 +44,48 @@
       user-select: none;
     }
 
-    /* Top Floating Close Button */
-    .top-close-bar {
-      position: absolute;
-      top: 24px;
-      right: 26px;
-      z-index: 50;
+    /* ==========================================================
+       STICKY TOP NAVIGATION (Reveals Title on Scroll)
+       ========================================================== */
+    .sticky-top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      transition: background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease;
+      pointer-events: none;
     }
-    .close-btn {
+    .sticky-top-nav.scrolled {
+      background: rgba(9, 10, 15, 0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-color);
+      pointer-events: auto;
+    }
+
+    .sticky-nav-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 75%;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .sticky-top-nav.scrolled .sticky-nav-title {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .nav-close-btn {
       background: rgba(15, 16, 23, 0.65);
       border: 1px solid rgba(255, 255, 255, 0.18);
       color: #fff;
@@ -63,14 +97,14 @@
       justify-content: center;
       cursor: pointer;
       backdrop-filter: blur(12px);
+      pointer-events: auto;
+      margin-left: auto;
       transition: transform 0.15s ease, background 0.15s ease;
     }
-    .close-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
-    .close-btn svg { width: 18px; height: 18px; fill: #fff; }
+    .nav-close-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+    .nav-close-btn svg { width: 18px; height: 18px; fill: #fff; }
 
-    /* ==========================================================
-       MOBILE / DEFAULT LAYOUT (Card Inset)
-       ========================================================== */
+    /* Main Container */
     .preview-stage {
       max-width: 600px;
       margin: 0 auto;
@@ -78,6 +112,7 @@
       position: relative;
     }
 
+    /* Hero Box (Banner & Trailer) */
     .hero-card-box {
       position: relative;
       width: 100%;
@@ -106,9 +141,7 @@
       background: #000;
       overflow: hidden;
     }
-    .hero-trailer-host.playing {
-      opacity: 1;
-    }
+    .hero-trailer-host.playing { opacity: 1; }
     .hero-trailer-host iframe {
       width: calc(100% + 140px) !important;
       height: calc(100% + 160px) !important;
@@ -124,31 +157,32 @@
       object-fit: cover;
     }
 
-    .hero-desktop-gradient {
+    .hero-desktop-gradient { display: none; }
+
+    /* ==========================================================
+       TRAILER STATUS: TOP LEFT WITHOUT BACKGROUND
+       ========================================================== */
+    .trailer-status-text {
+      position: absolute;
+      top: 16px;
+      left: 18px;
+      color: #ffffff;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0,0,0,0.8);
+      z-index: 10;
       display: none;
     }
 
-    .trailer-badge {
-      position: absolute;
-      bottom: 14px;
-      right: 14px;
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(255,255,255,0.18);
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      backdrop-filter: blur(8px);
-      z-index: 10;
-    }
-
+    /* Sound Mute Toggle */
     .mute-toggle-btn {
       position: absolute;
       bottom: 14px;
-      left: 14px;
+      right: 14px;
       background: rgba(0,0,0,0.65);
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.18);
       width: 32px;
       height: 32px;
       border-radius: 50%;
@@ -161,7 +195,7 @@
     }
     .mute-toggle-btn svg { width: 16px; height: 16px; fill: #fff; }
 
-    /* Content Details Section */
+    /* Details Wrapper */
     .content-details-wrap {
       display: flex;
       flex-direction: column;
@@ -186,7 +220,6 @@
       margin-bottom: 10px;
       color: #ffffff;
       text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
-      letter-spacing: 0.5px;
     }
 
     .blue-trend-line {
@@ -204,6 +237,7 @@
       font-size: 10px;
     }
 
+    /* Meta details row: Release Year, Age Rating, Seasons/Duration, Language */
     .meta-pills-row {
       display: flex;
       align-items: center;
@@ -213,7 +247,7 @@
       font-size: 13.5px;
       font-weight: 600;
       color: var(--text-muted);
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
     .meta-pill-badge {
       background: rgba(255, 255, 255, 0.12);
@@ -224,31 +258,13 @@
       font-weight: 700;
     }
 
-    .description-para {
-      font-size: 13.5px;
-      line-height: 1.55;
-      color: var(--text-muted);
-      margin-bottom: 14px;
-    }
-
-    .genres-tags-line {
-      font-size: 13px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 20px;
-    }
-    .genres-tags-line span {
-      color: var(--text-muted);
-      margin: 0 4px;
-    }
-
-    /* Primary & Secondary CTA Buttons */
+    /* CTA Watch Buttons (Placed Right After Metadata) */
     .cta-container {
       width: 100%;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin-bottom: 22px;
+      margin-bottom: 18px;
     }
     .btn-cta {
       display: flex;
@@ -268,7 +284,6 @@
     .btn-cta:active { transform: scale(0.98); opacity: 0.9; }
     .btn-cta svg { width: 18px; height: 18px; fill: currentColor; }
 
-    /* CTA Colors: White Background with Dark Black Text */
     .btn-cta-primary,
     .btn-cta-subscribe {
       background-color: var(--btn-white) !important;
@@ -280,7 +295,29 @@
       border: 1px solid var(--border-color);
     }
 
-    /* Action Icons (Watchlist & Share) */
+    /* Tags in Normal Font (Placed After CTA Buttons) */
+    .genres-tags-line {
+      font-size: 13.5px;
+      font-weight: 400; /* Normal Font */
+      color: #e2e4ee;
+      margin-bottom: 10px;
+      letter-spacing: 0.2px;
+    }
+    .genres-tags-line span.sep {
+      color: var(--text-muted);
+      margin: 0 6px;
+      font-weight: 300;
+    }
+
+    /* Description (Placed After Tags) */
+    .description-para {
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+    }
+
+    /* Watchlist & Share Icons (Placed After Description) */
     .action-icons-row {
       display: flex;
       justify-content: center;
@@ -304,7 +341,6 @@
     .action-item.active { color: var(--accent-blue); }
     .action-item svg { width: 22px; height: 22px; fill: currentColor; }
 
-    /* Keyframe Pop Animation for Watchlist */
     @keyframes bouncePop {
       0% { transform: scale(1); }
       40% { transform: scale(1.4) rotate(-12deg); }
@@ -328,7 +364,7 @@
       color: #fff;
     }
 
-    /* TV Shows Episodes List */
+    /* TV Show Episodes */
     .episodes-wrapper { display: none; }
     .season-tab-row {
       display: flex;
@@ -487,7 +523,7 @@
       margin-top: 2px;
     }
 
-    /* Bottom App Nav for Mobile */
+    /* Bottom Nav for Mobile */
     .bottom-app-nav {
       position: fixed;
       bottom: 0;
@@ -547,14 +583,8 @@
        DESKTOP & TV RESPONSIVE LAYOUT (MATCHING SCREENSHOT)
        ========================================================== */
     @media (min-width: 900px) {
-      body {
-        padding: 0;
-      }
-      
-      /* Hide mobile bottom navigation bar */
-      .bottom-app-nav {
-        display: none !important;
-      }
+      body { padding: 0; }
+      .bottom-app-nav { display: none !important; }
 
       .preview-stage {
         max-width: 100%;
@@ -562,7 +592,6 @@
         margin: 0;
       }
 
-      /* Fullscreen Billboard Hero */
       .hero-card-box {
         position: relative;
         width: 100vw;
@@ -575,7 +604,6 @@
         margin-bottom: 0;
       }
 
-      /* Desktop Dark Multi-Vignette Gradients */
       .hero-desktop-gradient {
         display: block;
         position: absolute;
@@ -587,23 +615,20 @@
         z-index: 2;
       }
 
-      .trailer-badge {
-        bottom: 28px;
-        right: 36px;
-        font-size: 12px;
-        padding: 5px 12px;
+      .trailer-status-text {
+        top: 24px;
+        left: 48px;
+        font-size: 13px;
       }
 
       .mute-toggle-btn {
         display: flex;
         bottom: 28px;
-        right: 170px;
-        left: auto;
+        right: 48px;
         width: 36px;
         height: 36px;
       }
 
-      /* Overlay Content Box on the Left */
       .content-details-wrap {
         position: absolute;
         top: 48%;
@@ -627,40 +652,25 @@
         margin-bottom: 12px;
       }
 
-      .blue-trend-line {
-        font-size: 15px;
-        margin-bottom: 10px;
-        justify-content: flex-start;
-      }
-
+      .blue-trend-line,
       .meta-pills-row {
-        font-size: 14.5px;
-        margin-bottom: 16px;
         justify-content: flex-start;
       }
 
       .description-para {
         font-size: 14px;
         line-height: 1.6;
-        margin-bottom: 14px;
         display: -webkit-box;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
 
-      .genres-tags-line {
-        font-size: 13.5px;
-        margin-bottom: 22px;
-      }
-
-      /* Horizontal Action Buttons Row */
       .cta-container {
         flex-direction: row;
         align-items: center;
         width: auto;
         gap: 12px;
-        margin-bottom: 0;
       }
       .btn-cta {
         width: auto;
@@ -668,13 +678,12 @@
         font-size: 15.5px;
       }
 
-      /* Watchlist button next to Watch Now on Desktop */
       .action-icons-row {
         display: inline-flex;
         width: auto;
         gap: 12px;
         margin-bottom: 0;
-        margin-left: 12px;
+        margin-top: 14px;
       }
       .action-item {
         flex-direction: row;
@@ -685,20 +694,14 @@
         font-size: 14px;
         gap: 8px;
       }
-      .action-item svg {
-        width: 18px;
-        height: 18px;
-      }
+      .action-item svg { width: 18px; height: 18px; }
 
-      /* Desktop Lower Sections */
       .section-container {
         max-width: 1320px;
         margin: 36px auto;
         padding: 0 48px;
       }
-      .section-heading {
-        font-size: 22px;
-      }
+      .section-heading { font-size: 22px; }
       .rec-16-9-card {
         min-width: 250px;
         width: 250px;
@@ -708,25 +711,28 @@
 </head>
 <body>
 
+  <!-- Sticky Top Nav Bar (Title appears when scrolled) -->
+  <div class="sticky-top-nav" id="stickyTopNav">
+    <div class="sticky-nav-title" id="stickyNavTitle"></div>
+    <button class="nav-close-btn" onclick="window.history.back()" title="Close">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+  </div>
+
   <div class="preview-stage">
     
-    <!-- Top Close Button -->
-    <div class="top-close-bar">
-      <button class="close-btn" onclick="window.history.back()" title="Close">
-        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-      </button>
-    </div>
-
     <div id="loader" class="loader-wrap">Loading details...</div>
 
     <div id="previewMain" style="display: none;">
       
-      <!-- Hero Billboard (Banner & Trailer) -->
+      <!-- 1. Hero Billboard (Banner & Trailer) -->
       <div class="hero-card-box" id="heroCardBox">
         <img id="heroBanner" class="hero-banner-img" src="" alt="Banner">
         <div id="heroTrailerHost" class="hero-trailer-host"></div>
         <div class="hero-desktop-gradient"></div>
-        <div class="trailer-badge" id="trailerBadge" style="display: none;">TRAILER</div>
+
+        <!-- Trailer Status: Top-Left without background -->
+        <div class="trailer-status-text" id="trailerStatusText"></div>
         
         <!-- Audio Mute Toggle Button -->
         <button class="mute-toggle-btn" id="muteToggleBtn" title="Toggle Sound">
@@ -734,35 +740,42 @@
         </button>
       </div>
 
-      <!-- Details Overlay -->
+      <!-- 2. Details in Ordered Sequence -->
       <div class="content-details-wrap">
+        
+        <!-- A. Logo / Title -->
         <img id="contentLogo" class="brand-logo-img" src="" alt="Logo" style="display: none;">
         <h1 id="contentTitle" class="title-fallback-hindi" style="display: none;">Title</h1>
 
         <div class="blue-trend-line" id="blueTrendLine"></div>
+
+        <!-- B. Release Date, Age Rating, Duration/Seasons, Language -->
         <div class="meta-pills-row" id="metaPillsRow"></div>
-        <div class="description-para" id="contentDescription"></div>
+
+        <!-- C. Watch / Action Button(s) (Directly after metadata) -->
+        <div class="cta-container" id="ctaContainer"></div>
+
+        <!-- D. Tags and All in Normal Font (Directly after buttons) -->
         <div class="genres-tags-line" id="genresTagsLine"></div>
 
-        <div style="display: flex; align-items: center; flex-wrap: wrap; width: 100%;">
-          <!-- Action Buttons -->
-          <div class="cta-container" id="ctaContainer"></div>
+        <!-- E. Description (Directly after tags) -->
+        <div class="description-para" id="contentDescription"></div>
 
-          <!-- Actions (Watchlist & Share Only) -->
-          <div class="action-icons-row">
-            <div class="action-item" id="btnWatchlist">
-              <svg id="wlIcon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-              <span id="wlLabel">Watchlist</span>
-            </div>
-            <div class="action-item" id="btnShare">
-              <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
-              <span>Share</span>
-            </div>
+        <!-- F. Watchlist and Share Buttons (Directly after description) -->
+        <div class="action-icons-row">
+          <div class="action-item" id="btnWatchlist">
+            <svg id="wlIcon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span id="wlLabel">Watchlist</span>
+          </div>
+          <div class="action-item" id="btnShare">
+            <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+            <span>Share</span>
           </div>
         </div>
+
       </div>
 
-      <!-- TV Shows Episodes -->
+      <!-- 3. TV Shows Episodes -->
       <div class="section-container episodes-wrapper" id="episodesSection">
         <div class="section-heading">Episodes</div>
         <div class="season-tab-row" id="seasonTabsRow"></div>
@@ -770,7 +783,7 @@
         <button class="view-more-btn" id="btnViewMoreEpisodes" style="display: none;">View More</button>
       </div>
 
-      <!-- 16:9 Recommendations -->
+      <!-- 4. 16:9 Recommendations -->
       <div class="section-container">
         <div class="section-heading">More Like This</div>
         <div class="rec-scroll-row" id="recommendationsGrid"></div>
@@ -847,6 +860,16 @@
     const urlParams = new URLSearchParams(window.location.search);
     const contentId = urlParams.get('preview') || urlParams.get('watch');
 
+    // Sticky Header Scroll Listener
+    window.addEventListener('scroll', () => {
+      const topNav = document.getElementById('stickyTopNav');
+      if (window.scrollY > 90) {
+        topNav.classList.add('scrolled');
+      } else {
+        topNav.classList.remove('scrolled');
+      }
+    }, { passive: true });
+
     function showToast(msg) {
       const toast = document.getElementById('toastAlert');
       toast.innerText = msg;
@@ -892,7 +915,6 @@
       return englishName;
     }
 
-    // Load Plan & Subscribed Studios
     async function loadUserSubscriptionPlan() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
@@ -1009,6 +1031,9 @@
       document.getElementById('loader').style.display = 'none';
       document.getElementById('previewMain').style.display = 'block';
 
+      const showName = currentItem.Name || currentItem.Title || "Content";
+      document.getElementById('stickyNavTitle').innerText = showName;
+
       // 1. Banner
       const bannerImg = document.getElementById('heroBanner');
       const primaryBanner = getHorizontalImage(currentItem);
@@ -1060,7 +1085,7 @@
         blueLine.style.display = 'none';
       }
 
-      // 4. Meta Pills
+      // 4. Release Date, Age Rating, Duration/Seasons, Language
       const metaRow = document.getElementById('metaPillsRow');
       const year = currentItem.Year || currentItem["Release Year"] || (contentType === 'live' ? 'LIVE' : '2024');
       const age = currentItem.Age_Rating || currentItem["Age Rating"] || currentItem.Rating || 'U/A 13+';
@@ -1083,22 +1108,23 @@
         <span>•</span><span>${langText}</span>
       `;
 
-      // 5. CTA Buttons
+      // 5. Watch Button(s) (Directly after metadata)
       renderCTAButtons();
 
-      // 6. Description & Genres
-      const desc = currentItem.Discription || currentItem.Description || "Enjoy full movies, shows and live TV streaming on Hotstar.";
-      document.getElementById('contentDescription').innerText = desc;
-
+      // 6. Tags in Normal Font (Directly after buttons)
       const genresLine = document.getElementById('genresTagsLine');
       const rawGenres = currentItem.Genres || currentItem.Tags || '';
       const genreItems = (Array.isArray(rawGenres) ? rawGenres : String(rawGenres).split(/[,/|]+/)).map(g => g.trim()).filter(Boolean);
-      genresLine.innerHTML = genreItems.map(g => `<b>${g}</b>`).join(' <span>|</span> ');
+      genresLine.innerHTML = genreItems.join(' <span class="sep">|</span> ');
 
-      // 7. Watchlist state
+      // 7. Description (Directly after tags)
+      const desc = currentItem.Discription || currentItem.Description || "Enjoy full movies, shows and live TV streaming on Hotstar.";
+      document.getElementById('contentDescription').innerText = desc;
+
+      // 8. Watchlist state
       updateWatchlistButtonState();
 
-      // 8. Episodes if Show
+      // 9. Episodes if Show
       if (contentType === 'show') {
         renderEpisodesSection();
       } else {
@@ -1153,17 +1179,17 @@
       `;
     }
 
-    // Auto Trailer Transition (Correct Spelling: TRAILER UNAVAILABLE)
+    // Auto Trailer Transition (Top-Left text without background layer)
     function scheduleTrailerPlayback() {
-      const trailerBadge = document.getElementById('trailerBadge');
+      const trailerStatusText = document.getElementById('trailerStatusText');
       const host = document.getElementById('heroTrailerHost');
       const trailerUrl = safeUrl(currentItem.Trailer || '');
 
       clearTimeout(trailerTimeout);
       trailerTimeout = setTimeout(() => {
         if (!trailerUrl) {
-          trailerBadge.innerText = "TRAILER UNAVAILABLE";
-          trailerBadge.style.display = "block";
+          trailerStatusText.innerText = "TRAILER UNAVAILABLE";
+          trailerStatusText.style.display = "block";
           return;
         }
 
@@ -1172,8 +1198,8 @@
         if (ytId) {
           host.innerHTML = `<div id="ytTrailerActualPlayer"></div>`;
           host.classList.add('playing');
-          trailerBadge.innerText = "TRAILER";
-          trailerBadge.style.display = "block";
+          trailerStatusText.innerText = "TRAILER";
+          trailerStatusText.style.display = "block";
 
           ytTrailerPlayer = new YT.Player('ytTrailerActualPlayer', {
             videoId: ytId,
@@ -1194,30 +1220,30 @@
               onStateChange: (e) => {
                 if (e.data === YT.PlayerState.ENDED) {
                   host.classList.remove('playing');
-                  trailerBadge.style.display = 'none';
+                  trailerStatusText.style.display = 'none';
                   try { ytTrailerPlayer.destroy(); } catch(err){}
                 }
               },
               onError: () => {
                 host.classList.remove('playing');
-                trailerBadge.innerText = "TRAILER UNAVAILABLE";
+                trailerStatusText.innerText = "TRAILER UNAVAILABLE";
               }
             }
           });
         } else if (trailerUrl.endsWith('.mp4') || trailerUrl.includes('.m3u8')) {
           host.innerHTML = `<video id="videoTrailerEl" src="${trailerUrl}" autoplay muted playsinline></video>`;
           host.classList.add('playing');
-          trailerBadge.innerText = "TRAILER";
-          trailerBadge.style.display = "block";
+          trailerStatusText.innerText = "TRAILER";
+          trailerStatusText.style.display = "block";
 
           const vid = document.getElementById('videoTrailerEl');
           vid.onended = () => {
             host.classList.remove('playing');
-            trailerBadge.style.display = 'none';
+            trailerStatusText.style.display = 'none';
           };
         } else {
-          trailerBadge.innerText = "TRAILER UNAVAILABLE";
-          trailerBadge.style.display = "block";
+          trailerStatusText.innerText = "TRAILER UNAVAILABLE";
+          trailerStatusText.style.display = "block";
         }
       }, 3000);
     }
@@ -1237,7 +1263,7 @@
         : '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
     };
 
-    // Episodes
+    // TV Show Episodes
     function renderEpisodesSection() {
       const epWrap = document.getElementById('episodesSection');
       const tabsRow = document.getElementById('seasonTabsRow');
@@ -1369,7 +1395,7 @@
       }
     };
 
-    // 16:9 Recommendations Engine
+    // Recommendations Engine
     async function fetchRecommendations() {
       const grid = document.getElementById('recommendationsGrid');
       try {
