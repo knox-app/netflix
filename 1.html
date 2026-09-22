@@ -252,7 +252,6 @@
       gap: 48px;
       pointer-events: auto;
     }
-    .ctrl-center .icon-btn svg { width: 34px; height: 34px; }
     .btn-main-play svg { width: 44px; height: 44px; fill: #ffffff; }
 
     /* Bottom Controls */
@@ -1503,7 +1502,7 @@
       Stream: item.stream,
       Name: item.name
     }, seekOffsetInItem, (actualDur) => {
-      // Dynamic duration update to eliminate static 44:00
+      // Dynamic real duration update to eliminate static 44:00
       if (actualDur && actualDur > 0 && item.duration !== Math.round(actualDur)) {
         item.duration = Math.round(actualDur);
         recalculateCollectionTimeline();
@@ -2144,6 +2143,21 @@
       overlay.style.display = 'flex';
       activePlayerType = 'youtube';
 
+      // Enhanced ad-suppression parameters for iframe embeds
+      const antiAdPlayerVars = {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        modestbranding: 1,
+        rel: 0,
+        start: Math.floor(savedTime),
+        fs: 0,
+        playsinline: 1,
+        enablejsapi: 1,
+        iv_load_policy: 3,
+        origin: window.location.origin
+      };
+
       if (ytPlayerInstance && ytPlayerInstance.loadVideoById) {
         ytPlayerInstance.loadVideoById({
           videoId: ytId,
@@ -2155,17 +2169,9 @@
 
       ytHost.innerHTML = '<div id="ytActualPlayer"></div>';
       ytPlayerInstance = new YT.Player('ytActualPlayer', {
+        host: 'https://www.youtube-nocookie.com', // Ad-reduced privacy endpoint
         videoId: ytId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          modestbranding: 1,
-          rel: 0,
-          start: Math.floor(savedTime),
-          fs: 0,
-          playsinline: 1
-        },
+        playerVars: antiAdPlayerVars,
         events: {
           onReady: (e) => {
             e.target.playVideo();
@@ -2187,7 +2193,6 @@
                 onDurationDiscovered(realDur);
               }
             } else if (e.data === YT.PlayerState.ENDED) {
-              // Automatically proceed to next without reloading
               if (isCollectionMode) {
                 if (currentCollectionItemIdx + 1 < collectionPlaylist.length) {
                   playCollectionItem(currentCollectionItemIdx + 1, 0);
