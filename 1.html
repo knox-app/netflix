@@ -272,7 +272,7 @@
       height: 20px;
     }
     
-    /* Fragmented Chapter Progress Bar Structure */
+    /* Fragmented Progress Bar */
     .timeline-track-wrap {
       position: relative;
       width: 100%;
@@ -304,7 +304,7 @@
     .timeline-segment-divider {
       position: relative;
       height: 100%;
-      border-right: 2px solid #000000; /* Fragment gap like YouTube */
+      border-right: 2.5px solid #000000;
     }
 
     .progress-bar-input {
@@ -784,7 +784,7 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- Chapter / Timestamp Tooltip on scrubber -->
+      <!-- Chapter / Timestamp Tooltip on Scrubber -->
       <div class="chapter-preview-tooltip" id="chapterTooltip">Episode 1</div>
 
       <!-- Video Engines (.m3u8, .mp4, .mkv, .webm) -->
@@ -825,7 +825,7 @@
           </div>
         </div>
 
-        <!-- Center Controls: Rewind & Forward dynamically shown for Movies / Shows / Collections -->
+        <!-- Center Controls -->
         <div class="ctrl-center">
           <button class="icon-btn" id="rewindBtn" title="Rewind 10s">
             <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
@@ -1043,7 +1043,7 @@
   // In-memory caches
   const playlistCache = {};
   const movieDurationCache = {}; 
-  const DEFAULT_MOVIE_DURATION = 5400; // 90 minutes fallback
+  const DEFAULT_MOVIE_DURATION = 5400;
 
   // Runtime State
   let hlsInstance = null;
@@ -1074,7 +1074,7 @@
   // Collection Mode State (Fragmented Video Playlist Chapters)
   let isCollectionMode = false;
   let activeCollectionKey = null;
-  let collectionPlaylist = []; // Array of items: [{ Name, Stream, duration, startTime, endTime }]
+  let collectionPlaylist = [];
   let currentCollectionItemIdx = 0;
   let collectionTotalDuration = 0;
 
@@ -1089,7 +1089,6 @@
   let channelDocUnsub = null;
   let collectionUnsub = null;
 
-  // Parse URL Parameters (handles ?watch=tmkoc&collection#tmkoc-01 or ?watch=tmkoc&collection=tmkoc-01)
   const urlParams = new URLSearchParams(window.location.search);
   const currentDocId = urlParams.get('watch');
   const actionParam = urlParams.get('action');
@@ -1311,7 +1310,7 @@
       currentChannel = { id: snap.id, ...snap.data() };
       showDocData = currentChannel;
 
-      // 1. Check if user requested a Collection Playlist (e.g., tmkoc-01 inside "Collection" map)
+      // 1. Collection Playlist Mode (URL Parameter collection#tmkoc-01 / collection=tmkoc-01)
       const collectionsMap = currentChannel.Collection || currentChannel.collection || null;
       activeCollectionKey = parseCollectionParam();
 
@@ -1329,7 +1328,7 @@
         }
       }
 
-      // 2. Standard Types
+      // 2. Standard Content Types
       isCollectionMode = false;
       const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
       if (targetCol === "Shows" || targetCol === "TV Shows" || seasonKeys.length > 0) {
@@ -1382,15 +1381,25 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  /* ================== COLLECTION PLAYLIST & FRAGMENTED TIMELINE ================== */
+  /* ================== DYNAMIC COLLECTION PLAYLIST ENGINE ================== */
+  function recalculateCollectionTimeline() {
+    let runningStart = 0;
+    collectionPlaylist.forEach(item => {
+      item.startTime = runningStart;
+      runningStart += item.duration;
+      item.endTime = runningStart;
+    });
+    collectionTotalDuration = runningStart;
+    buildFragmentedTimelineBar();
+  }
+
   function initCollectionPlaylistMode(collectionData) {
     const playlistRaw = collectionData.Playlist || [];
     const collectionName = collectionData.Name || activeCollectionKey;
 
     document.getElementById('chTitle').innerText = `${currentChannel.Name || 'TV Show'} - ${collectionName}`;
     document.getElementById('overlayTitle').innerText = `${currentChannel.Name || 'TV Show'} - ${collectionName}`;
-    
-    // Assume default duration per episode (e.g. 1320s / 22 mins) if not dynamically known
+
     let runningStart = 0;
     collectionPlaylist = playlistRaw.map((item, idx) => {
       const dur = item.duration ? parseInt(item.duration) : 1320;
@@ -1419,7 +1428,7 @@
     const segmentsHost = document.getElementById('timelineSegmentsHost');
     segmentsHost.innerHTML = '';
 
-    if (!isCollectionMode || collectionPlaylist.length <= 1) return;
+    if (!isCollectionMode || collectionPlaylist.length <= 1 || collectionTotalDuration === 0) return;
 
     collectionPlaylist.forEach((item) => {
       const widthPercent = (item.duration / collectionTotalDuration) * 100;
@@ -1493,7 +1502,13 @@
       id: `${currentDocId}_${activeCollectionKey}_part${itemIdx}`,
       Stream: item.stream,
       Name: item.name
-    }, seekOffsetInItem);
+    }, seekOffsetInItem, (actualDur) => {
+      // Dynamic duration update to eliminate static 44:00
+      if (actualDur && actualDur > 0 && item.duration !== Math.round(actualDur)) {
+        item.duration = Math.round(actualDur);
+        recalculateCollectionTimeline();
+      }
+    });
   }
 
   function getContinuousCollectionTime(currentVideoTime) {
@@ -1505,7 +1520,6 @@
   function seekContinuousCollection(targetGlobalSeconds) {
     targetGlobalSeconds = Math.max(0, Math.min(collectionTotalDuration, targetGlobalSeconds));
     
-    // Find which episode/chapter this global second belongs to
     let targetIdx = collectionPlaylist.findIndex(item => targetGlobalSeconds >= item.startTime && targetGlobalSeconds <= item.endTime);
     if (targetIdx === -1) targetIdx = collectionPlaylist.length - 1;
 
@@ -1516,7 +1530,6 @@
       currentCollectionItemIdx = targetIdx;
       playCollectionItem(targetIdx, offsetInItem);
     } else {
-      // Seek within current video
       if (activePlayerType === 'youtube' && ytPlayerInstance) {
         ytPlayerInstance.seekTo(offsetInItem, true);
       } else {
@@ -1937,7 +1950,6 @@
       drawerTabPreviously.style.display = 'none';
       overlaySubtitle.style.display = 'none';
     } else {
-      // Live TV Broadcasts
       rewindBtn.style.display = 'none';
       forwardBtn.style.display = 'none';
       btnEpisodes.style.display = 'none';
@@ -2165,10 +2177,17 @@
           onStateChange: (e) => {
             const playIcon = document.getElementById('playIcon');
             const pauseIcon = document.getElementById('pauseIcon');
+            
             if (e.data === YT.PlayerState.PLAYING) {
               playIcon.style.display = 'none';
               pauseIcon.style.display = 'block';
+              
+              const realDur = e.target.getDuration();
+              if (realDur && realDur > 0 && onDurationDiscovered) {
+                onDurationDiscovered(realDur);
+              }
             } else if (e.data === YT.PlayerState.ENDED) {
+              // Automatically proceed to next without reloading
               if (isCollectionMode) {
                 if (currentCollectionItemIdx + 1 < collectionPlaylist.length) {
                   playCollectionItem(currentCollectionItemIdx + 1, 0);
@@ -2224,7 +2243,6 @@
       return;
     }
 
-    // Direct multi-format media (.m3u8, .mp4, .mkv, .webm, Cloudinary)
     if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('cloudinary')) {
       if (ytPlayerInstance && ytPlayerInstance.stopVideo) {
         try { ytPlayerInstance.stopVideo(); } catch(e){}
