@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Hotstar Video Player</title>
   
   <!-- HLS.js for .m3u8 streams -->
@@ -252,7 +252,6 @@
       gap: 48px;
       pointer-events: auto;
     }
-    .ctrl-center .icon-btn svg { width: 34px; height: 34px; }
     .btn-main-play svg { width: 44px; height: 44px; fill: #ffffff; }
 
     /* Bottom Controls */
@@ -272,7 +271,6 @@
       height: 20px;
     }
     
-    /* Fragmented Progress Bar */
     .timeline-track-wrap {
       position: relative;
       width: 100%;
@@ -710,7 +708,7 @@
     .view-more-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.2s ease; }
     .view-more-btn.expanded svg { transform: rotate(180deg); }
 
-    /* Horizontal 16:9 Banner Recommendation Cards */
+    /* Recommendations */
     .horizontal-banners-scroll {
       display: flex;
       gap: 14px;
@@ -784,7 +782,7 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- Chapter / Timestamp Tooltip on Scrubber -->
+      <!-- Chapter / Tooltip on Scrubber -->
       <div class="chapter-preview-tooltip" id="chapterTooltip">Episode 1</div>
 
       <!-- Video Engines (.m3u8, .mp4, .mkv, .webm) -->
@@ -990,7 +988,7 @@
         </div>
       </div>
 
-      <!-- TV SHOW EPISODES (Rendered in portrait mode) -->
+      <!-- EPISODES WRAPPER -->
       <div class="episodes-vertical-wrap" id="episodesVerticalWrap">
         <div class="section-head" id="epSectionHead">Episodes</div>
         <div class="ep-seasons-row" id="verticalSeasonsRow"></div>
@@ -1043,7 +1041,7 @@
   // In-memory caches
   const playlistCache = {};
   const mediaDurationCache = {};
-  const DEFAULT_DURATION = 1500; // 25 mins fallback
+  const DEFAULT_DURATION = 1500;
 
   // Runtime State
   let hlsInstance = null;
@@ -1071,12 +1069,18 @@
   let activeMediaKey = null;
   let digitalFeedMoviesLibrary = [];
 
-  // Collection Mode State (Fragmented Video Playlist Chapters)
+  // Collection Mode State
   let isCollectionMode = false;
   let activeCollectionKey = null;
   let collectionPlaylist = [];
   let currentCollectionItemIdx = 0;
   let collectionTotalDuration = 0;
+
+  // "Episodes Playlists" Range Mode State (e.g. 1-1000, 4501-4600)
+  let isRangePlaylistMode = false;
+  let rangePlaylistsMap = {}; // { "1-1000": "PL...", "4501-4600": "PL..." }
+  let currentRangeKey = null;
+  let currentRangeVideos = [];
 
   // In-Memory Item Cache
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [], "TV Shows": [] };
@@ -1094,6 +1098,7 @@
   const actionParam = urlParams.get('action');
   const paramSeason = urlParams.get('season');
   const paramEp = urlParams.get('ep');
+  const paramRange = urlParams.get('range');
 
   function parseCollectionParam() {
     let col = urlParams.get('collection');
@@ -1165,22 +1170,6 @@
     return `${hh}${mm}:${ss}`;
   }
 
-  function format12Hour(time24) {
-    if (!time24) return "";
-    const [hStr, mStr] = time24.split(":");
-    let h = parseInt(hStr, 10);
-    const period = h >= 12 ? "PM" : "AM";
-    if (h === 0) h = 12;
-    else if (h > 12) h -= 12;
-    const hDisplay = h < 10 ? `0${h}` : `${h}`;
-    return `${hDisplay}:${mStr} ${period}`;
-  }
-
-  function timeToSeconds(timeStr) {
-    const [h, m] = timeStr.split(":").map(Number);
-    return (h * 3600) + (m * 60);
-  }
-
   function extractYouTubeId(url) {
     try {
       const u = new URL(url.trim());
@@ -1192,6 +1181,16 @@
       }
     } catch(e) {
       if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+    }
+    return null;
+  }
+
+  function extractPlaylistId(url) {
+    try {
+      const u = new URL(url.trim());
+      return u.searchParams.get('list');
+    } catch(e) {
+      if (url.startsWith('PL') || url.startsWith('RD') || url.startsWith('UU')) return url.trim();
     }
     return null;
   }
@@ -1310,15 +1309,19 @@
       currentChannel = { id: snap.id, ...snap.data() };
       showDocData = currentChannel;
 
-      // 1. Collection Playlist Mode (URL Parameter collection#tmkoc-01 / collection=tmkoc-01)
+      // 1. Check for "Episodes Playlists" map (e.g. 1-1000, 4501-4600)
+      const epPlaylistsMap = currentChannel["Episodes Playlists"] || currentChannel["Episodes_Playlists"] || currentChannel.episodesPlaylists || null;
+
+      // 2. Check for "Collection" (fragmented chapter playlists)
       const collectionsMap = currentChannel.Collection || currentChannel.collection || null;
       activeCollectionKey = parseCollectionParam();
 
-      if (collectionsMap && (activeCollectionKey || Object.keys(collectionsMap).length > 0)) {
+      if (collectionsMap && (activeCollectionKey || (!epPlaylistsMap && Object.keys(collectionsMap).length > 0))) {
         if (!activeCollectionKey) activeCollectionKey = Object.keys(collectionsMap)[0];
         const selectedCol = collectionsMap[activeCollectionKey];
         if (selectedCol && Array.isArray(selectedCol.Playlist) && selectedCol.Playlist.length > 0) {
           isCollectionMode = true;
+          isRangePlaylistMode = false;
           contentType = 'collection';
           initCollectionPlaylistMode(selectedCol);
           loader.style.display = 'none';
@@ -1328,11 +1331,23 @@
         }
       }
 
-      // 2. Standard Content Types with Last Season First
+      if (epPlaylistsMap && Object.keys(epPlaylistsMap).length > 0) {
+        isRangePlaylistMode = true;
+        isCollectionMode = false;
+        contentType = 'show';
+        initRangePlaylistsMode(epPlaylistsMap);
+        loader.style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
+        if (currentUser) initWatchlistState();
+        return;
+      }
+
+      // 3. Standard Seasons / Movies / Live
       isCollectionMode = false;
+      isRangePlaylistMode = false;
       const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
       
-      // Sort seasons descending (e.g. Season 3, Season 2, Season 1)
+      // Last Season First (descending order)
       seasonKeys.sort((a, b) => {
         const numA = parseInt(a.replace(/\D/g, '')) || 0;
         const numB = parseInt(b.replace(/\D/g, '')) || 0;
@@ -1353,9 +1368,7 @@
       loader.style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
 
-      if (currentUser) {
-        initWatchlistState();
-      }
+      if (currentUser) initWatchlistState();
 
       if (contentType === 'show') {
         renderVerticalEpisodesSection();
@@ -1389,7 +1402,154 @@
     listenToRecommendations(docId, targetCol);
   }
 
-  /* ================== DYNAMIC COLLECTION PLAYLIST ENGINE ================== */
+  /* ================== EPISODES PLAYLISTS (RANGE MODE) ================== */
+  async function fetchYouTubePlaylistVideos(playlistId) {
+    if (playlistCache[playlistId]) return playlistCache[playlistId];
+
+    try {
+      const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${YT_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.items && data.items.length > 0) {
+        const videos = data.items
+          .filter(item => item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId)
+          .map(item => ({
+            id: item.snippet.resourceId.videoId,
+            title: item.snippet.title,
+            thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || ''
+          }));
+        playlistCache[playlistId] = videos;
+        return videos;
+      }
+    } catch (e) {
+      console.error("YouTube API fetch error:", e);
+    }
+    return [];
+  }
+
+  function initRangePlaylistsMode(playlistsMap) {
+    rangePlaylistsMap = playlistsMap;
+    const rangeKeys = Object.keys(playlistsMap);
+
+    // Sort range keys in descending order (highest/newest range first, e.g. 4501-4600 before 1-1000)
+    rangeKeys.sort((a, b) => {
+      const numA = parseInt(a.split('-')[0].replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.split('-')[0].replace(/\D/g, '')) || 0;
+      return numB - numA;
+    });
+
+    currentRangeKey = paramRange && rangeKeys.includes(paramRange) ? paramRange : rangeKeys[0];
+    configureUIForContentType();
+    renderRangeTabs(rangeKeys);
+    loadAndPlayRange(currentRangeKey);
+  }
+
+  function renderRangeTabs(rangeKeys) {
+    const wrap = document.getElementById('episodesVerticalWrap');
+    const seasonsRow = document.getElementById('verticalSeasonsRow');
+    const epHead = document.getElementById('epSectionHead');
+
+    wrap.style.display = 'block';
+    epHead.innerText = "Episodes Playlists";
+
+    seasonsRow.innerHTML = rangeKeys.map(rKey => `
+      <button class="ep-season-tab ${rKey === currentRangeKey ? 'active' : ''}" onclick="window.switchRange('${rKey}')">
+        Episodes ${rKey}
+      </button>
+    `).join('');
+  }
+
+  window.switchRange = function(rKey) {
+    currentRangeKey = rKey;
+    renderRangeTabs(Object.keys(rangePlaylistsMap));
+    loadAndPlayRange(rKey);
+  };
+
+  async function loadAndPlayRange(rKey) {
+    const playlistUrl = rangePlaylistsMap[rKey];
+    const playlistId = extractPlaylistId(playlistUrl);
+    const epListEl = document.getElementById('verticalEpisodesList');
+
+    epListEl.innerHTML = '<div style="color:var(--text-muted); padding:16px; font-size:13px;">Loading episodes for ' + rKey + '...</div>';
+
+    if (!playlistId) {
+      epListEl.innerHTML = '<div style="color:var(--text-muted); padding:16px; font-size:13px;">Invalid Playlist URL</div>';
+      return;
+    }
+
+    const videos = await fetchYouTubePlaylistVideos(playlistId);
+    currentRangeVideos = videos;
+
+    if (videos.length === 0) {
+      epListEl.innerHTML = '<div style="color:var(--text-muted); padding:16px; font-size:13px;">No episodes found in this range.</div>';
+      startStreamPlayback({ Stream: `https://www.youtube.com/watch?v=${playlistId}` });
+      return;
+    }
+
+    renderRangeEpisodeCards(videos);
+    
+    // Auto-play requested episode index or 1st video
+    const startIdx = paramEp ? Math.max(0, parseInt(paramEp) - 1) : 0;
+    playRangeVideo(startIdx < videos.length ? startIdx : 0);
+  }
+
+  function renderRangeEpisodeCards(videos) {
+    const epListEl = document.getElementById('verticalEpisodesList');
+    const viewMoreBtn = document.getElementById('viewMoreEpBtn');
+    const limit = showAllEpisodesVertical ? videos.length : 4;
+
+    epListEl.innerHTML = videos.slice(0, limit).map((vid, idx) => `
+      <div onclick="window.selectRangeVideo(${idx})" class="ep-item-card">
+        <div class="ep-thumb-box">
+          <img src="${vid.thumbnail || getPosterH(showDocData)}" alt="${vid.title}" loading="lazy">
+          <div class="ep-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+        </div>
+        <div class="ep-info-box">
+          <div class="ep-item-title">${vid.title}</div>
+          <div class="ep-item-meta">Episode ${idx + 1} • ${currentRangeKey}</div>
+        </div>
+      </div>
+    `).join('');
+
+    if (videos.length > 4) {
+      viewMoreBtn.style.display = 'flex';
+      viewMoreBtn.classList.toggle('expanded', showAllEpisodesVertical);
+      viewMoreBtn.querySelector('span').innerText = showAllEpisodesVertical ? 'View Less' : 'View More';
+      viewMoreBtn.onclick = () => {
+        showAllEpisodesVertical = !showAllEpisodesVertical;
+        renderRangeEpisodeCards(videos);
+      };
+    } else {
+      viewMoreBtn.style.display = 'none';
+    }
+  }
+
+  window.selectRangeVideo = function(idx) {
+    playRangeVideo(idx);
+  };
+
+  function playRangeVideo(idx) {
+    currentEpisodeIdx = idx;
+    const vid = currentRangeVideos[idx];
+    if (!vid) return;
+
+    document.getElementById('chTitle').innerText = currentChannel.Name || "TV Show";
+    document.getElementById('chLangSub').innerText = `${vid.title} (${currentRangeKey})`;
+
+    document.getElementById('overlayTitle').innerText = currentChannel.Name || "TV Show";
+    const subLabel = document.getElementById('overlaySubtitle');
+    subLabel.style.display = 'block';
+    subLabel.innerText = `${vid.title} • Ep ${idx + 1}`;
+
+    startStreamPlayback({
+      id: `${currentDocId}_${currentRangeKey}_ep${idx}`,
+      Stream: `https://www.youtube.com/watch?v=${vid.id}`,
+      Name: vid.title
+    });
+  }
+
+  /* ================== COLLECTION PLAYLIST ================== */
   function recalculateCollectionTimeline() {
     let runningStart = 0;
     collectionPlaylist.forEach(item => {
@@ -1546,451 +1706,7 @@
     }
   }
 
-  /* ================== UPDATED DIGITAL FEED ENGINE ================== */
-  async function initDigitalFeedEngine(streamTag) {
-    const cleanTag = streamTag.replace(/[{}]/g, '').trim();
-    let feedSlug = '';
-
-    if (cleanTag.includes('=')) {
-      feedSlug = cleanTag.split('=')[1].trim();
-    } else if (cleanTag.includes('-FEED-')) {
-      feedSlug = cleanTag.split('-FEED-')[1].trim();
-    } else if (cleanTag.startsWith('.DIGI-FEED-')) {
-      feedSlug = cleanTag.replace('.DIGI-FEED-', '').trim();
-    } else {
-      feedSlug = cleanTag.replace(/^\.DIGI-FEED[=-]?/, '').trim();
-    }
-
-    if (!feedSlug) {
-      showToast("Invalid Digital Feed identifier");
-      return;
-    }
-
-    if (digitalFeedMoviesLibrary.length === 0) {
-      try {
-        const movieSnaps = await getDocs(collection(channelDb, "Movies"));
-        digitalFeedMoviesLibrary = [];
-        movieSnaps.forEach(d => digitalFeedMoviesLibrary.push({ id: d.id, ...d.data() }));
-      } catch (err) {
-        console.warn("Could not pre-load movies library for digital feed:", err);
-      }
-    }
-
-    if (digitalFeedUnsub) digitalFeedUnsub();
-    if (digitalFeedInterval) clearInterval(digitalFeedInterval);
-
-    digitalFeedUnsub = onSnapshot(doc(channelDb, "Digital-Feed", feedSlug), (snapshot) => {
-      if (!snapshot.exists()) {
-        document.getElementById('chLangSub').innerText = "Digital Feed Channel Not Found";
-        return;
-      }
-
-      const feedData = snapshot.data();
-      digitalFeedSchedule = feedData.schedule || [];
-      activeMediaKey = null;
-      syncDigitalFeedLive();
-    });
-
-    digitalFeedInterval = setInterval(syncDigitalFeedLive, 1000);
-  }
-
-  function resolveCurrentDigitalFeedSlot() {
-    if (!digitalFeedSchedule || digitalFeedSchedule.length === 0) return null;
-
-    const now = new Date();
-    const currentSeconds = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-
-    for (let i = 0; i < digitalFeedSchedule.length; i++) {
-      const slot = digitalFeedSchedule[i];
-      const start = timeToSeconds(slot.from);
-      const end = timeToSeconds(slot.to);
-
-      let isCurrent = false;
-      if (start < end) {
-        isCurrent = currentSeconds >= start && currentSeconds < end;
-      } else {
-        isCurrent = currentSeconds >= start || currentSeconds < end;
-      }
-
-      if (isCurrent) {
-        let elapsed = currentSeconds >= start ? (currentSeconds - start) : (86400 - start + currentSeconds);
-        return { slot, slotIndex: i, elapsedSeconds: elapsed };
-      }
-    }
-    return null;
-  }
-
-  // Daily Episode Progress + Intra-Slot Loop Calculator
-  function resolveShowEpisode(slot, elapsedSeconds) {
-    const episodes = slot.episodes || [];
-    if (episodes.length === 0) return null;
-
-    let targetIndex = slot.startEpisodeIndex || 0;
-
-    if (slot.progressionMode === "daily_increment" || !slot.progressionMode) {
-      const today = new Date();
-      const anchor = slot.anchorDate ? new Date(slot.anchorDate) : today;
-      const diffTime = today.setHours(0,0,0,0) - anchor.setHours(0,0,0,0);
-      const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
-      targetIndex = (targetIndex + diffDays) % episodes.length;
-    } else if (slot.progressionMode === "entire_loop") {
-      const epDuration = mediaDurationCache[episodes[targetIndex].stream] || 1800;
-      targetIndex = Math.floor(elapsedSeconds / epDuration) % episodes.length;
-    }
-
-    const currentEp = episodes[targetIndex];
-    const knownDuration = mediaDurationCache[currentEp.stream] || DEFAULT_DURATION;
-    const offsetIntoEp = elapsedSeconds % knownDuration;
-
-    return {
-      episode: currentEp,
-      episodeIndex: targetIndex,
-      offset: offsetIntoEp
-    };
-  }
-
-  function resolveMovieInSlot(slot, slotIndex, elapsedSeconds) {
-    let pool = digitalFeedMoviesLibrary;
-    if (slot.filterType && slot.filterType !== "all" && slot.filterValue && slot.filterValue !== "ALL") {
-      pool = digitalFeedMoviesLibrary.filter(m => {
-        const val = m[slot.filterType] || m[slot.filterType.toLowerCase()] || m["Franchise"] || m["Genres"];
-        if (!val) return false;
-        return Array.isArray(val) ? val.includes(slot.filterValue) : String(val).trim().toLowerCase() === String(slot.filterValue).toLowerCase();
-      });
-    }
-
-    if (!pool || pool.length === 0) pool = digitalFeedMoviesLibrary;
-    if (!pool || pool.length === 0) return null;
-
-    const today = new Date();
-    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-    
-    let slotHash = 0;
-    const seedString = `${slot.from}_${slotIndex}_${slot.id || ''}`;
-    for (let i = 0; i < seedString.length; i++) {
-      slotHash = (slotHash << 5) - slotHash + seedString.charCodeAt(i);
-      slotHash |= 0;
-    }
-    const initialBaseIndex = Math.abs((dayOfYear * 5) + Math.abs(slotHash)) % pool.length;
-
-    let accumulatedTime = 0;
-    let movieStep = 0;
-    let selectedMovie = pool[initialBaseIndex];
-    let offsetIntoCurrentMovie = elapsedSeconds;
-
-    while (movieStep < 20) {
-      const currentCandidate = pool[(initialBaseIndex + movieStep) % pool.length];
-      const movieDur = mediaDurationCache[currentCandidate.id] || 5400;
-
-      if (accumulatedTime + movieDur > elapsedSeconds) {
-        selectedMovie = currentCandidate;
-        offsetIntoCurrentMovie = elapsedSeconds - accumulatedTime;
-        break;
-      }
-
-      accumulatedTime += movieDur;
-      movieStep++;
-    }
-
-    return {
-      movie: selectedMovie,
-      offset: offsetIntoCurrentMovie,
-      movieIndexInPool: (initialBaseIndex + movieStep) % pool.length
-    };
-  }
-
-  async function fetchYouTubePlaylistVideos(playlistId) {
-    if (playlistCache[playlistId]) return playlistCache[playlistId];
-
-    try {
-      const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${YT_API_KEY}`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.items && data.items.length > 0) {
-        const videos = data.items
-          .filter(item => item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId)
-          .map(item => ({
-            id: item.snippet.resourceId.videoId,
-            title: item.snippet.title
-          }));
-        playlistCache[playlistId] = videos;
-        return videos;
-      }
-    } catch (e) {
-      console.error("YouTube API fetch error:", e);
-    }
-    return [];
-  }
-
-  async function syncDigitalFeedLive() {
-    const live = resolveCurrentDigitalFeedSlot();
-
-    if (!live) {
-      document.getElementById('chLangSub').innerText = "Channel Currently Off-Air";
-      destroyPlayers();
-      return;
-    }
-
-    const timeTag = `${format12Hour(live.slot.from)} - ${format12Hour(live.slot.to)}`;
-
-    // 1. SHOWS / DIRECT SEASONS (Yeh Rishta, Doraemon, etc.)
-    if (live.slot.type === "shows" || (live.slot.type === "tv" && live.slot.mediaType === "direct_season")) {
-      const res = resolveShowEpisode(live.slot, live.elapsedSeconds);
-      if (!res || !res.episode || !res.episode.stream) {
-        document.getElementById('chLangSub').innerText = "Episode stream not available";
-        return;
-      }
-
-      const mediaKey = `show_${live.slot.showId}_ep_${res.episodeIndex}_${live.slotIndex}`;
-      if (activeMediaKey !== mediaKey) {
-        activeMediaKey = mediaKey;
-        const epNum = res.episodeIndex + 1;
-        const epTitle = `${live.slot.showName || ''} - Ep ${epNum}: ${res.episode.name || ''}`;
-        document.getElementById('chLangSub').innerText = `${epTitle} • [${timeTag}]`;
-        document.getElementById('overlaySubtitle').style.display = 'block';
-        document.getElementById('overlaySubtitle').innerText = `${epTitle} • [${timeTag}]`;
-
-        startStreamPlayback({
-          Stream: res.episode.stream,
-          Name: epTitle
-        }, res.offset, (actualDur) => {
-          mediaDurationCache[res.episode.stream] = actualDur;
-        });
-      }
-    }
-    // 2. TV SHOWS (YouTube Playlists / Single ID)
-    else if (live.slot.type === "tv") {
-      const playlistId = live.slot.playlistId;
-
-      if (playlistId && (playlistId.startsWith("PL") || playlistId.startsWith("RD") || playlistId.startsWith("UU"))) {
-        const videos = await fetchYouTubePlaylistVideos(playlistId);
-
-        if (videos.length > 0) {
-          const epDuration = 1800; // 30 mins
-          const targetIndex = Math.floor(live.elapsedSeconds / epDuration) % videos.length;
-          const currentVideo = videos[targetIndex];
-          const videoOffset = live.elapsedSeconds % epDuration;
-          const mediaKey = `yt_${currentVideo.id}`;
-
-          if (activeMediaKey !== mediaKey) {
-            activeMediaKey = mediaKey;
-            document.getElementById('chLangSub').innerText = `${currentVideo.title} • [${timeTag}]`;
-            document.getElementById('overlaySubtitle').style.display = 'block';
-            document.getElementById('overlaySubtitle').innerText = `${currentVideo.title} • [${timeTag}]`;
-
-            startStreamPlayback({
-              Stream: `https://www.youtube.com/watch?v=${currentVideo.id}`,
-              Name: currentVideo.title
-            }, videoOffset);
-          }
-        }
-      } else if (playlistId) {
-        const mediaKey = `yt_${playlistId}`;
-        if (activeMediaKey !== mediaKey) {
-          activeMediaKey = mediaKey;
-          const title = live.slot.title || "Live Broadcast";
-          document.getElementById('chLangSub').innerText = `${title} • [${timeTag}]`;
-          document.getElementById('overlaySubtitle').style.display = 'block';
-          document.getElementById('overlaySubtitle').innerText = `${title} • [${timeTag}]`;
-
-          startStreamPlayback({
-            Stream: `https://www.youtube.com/watch?v=${playlistId}`,
-            Name: title
-          }, live.elapsedSeconds);
-        }
-      }
-    }
-    // 3. MOVIES
-    else if (live.slot.type === "movie") {
-      const resolved = resolveMovieInSlot(live.slot, live.slotIndex, live.elapsedSeconds);
-      if (!resolved || !resolved.movie || !resolved.movie.Stream) {
-        document.getElementById('chLangSub').innerText = `Live Movie Unavailable • [${timeTag}]`;
-        return;
-      }
-
-      const movie = resolved.movie;
-      const mediaKey = `movie_${movie.id}_${live.slotIndex}`;
-
-      if (activeMediaKey !== mediaKey) {
-        activeMediaKey = mediaKey;
-        const movieTitle = movie.Name || movie.Title || live.slot.title || "Live Movie";
-        document.getElementById('chLangSub').innerText = `${movieTitle} • [${timeTag}]`;
-        document.getElementById('overlaySubtitle').style.display = 'block';
-        document.getElementById('overlaySubtitle').innerText = `${movieTitle} • [${timeTag}]`;
-
-        startStreamPlayback({
-          Stream: movie.Stream,
-          mpd: movie.mpd || movie.MPD,
-          Name: movieTitle
-        }, resolved.offset, (actualDuration) => {
-          mediaDurationCache[movie.id] = actualDuration;
-        });
-      }
-    }
-  }
-
-  /* ================== WATCHLIST LOGIC ================== */
-  async function initWatchlistState() {
-    if (!currentUser) return;
-    try {
-      let q = null;
-      if (currentUser.Lotus) {
-        q = query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus));
-      } else if (currentUser.Email) {
-        q = query(collection(authDb, "UARM"), where("Email", "==", currentUser.Email));
-      } else if (currentUser.id) {
-        userDocRef = doc(authDb, "UARM", currentUser.id);
-      }
-
-      if (q) {
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          userDocRef = doc(authDb, "UARM", snap.docs[0].id);
-          const udata = snap.docs[0].data();
-          userWatchlist = udata.Watchlist || [];
-          updateWatchlistUI(userWatchlist.includes(currentDocId));
-          return;
-        }
-      } else if (userDocRef) {
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const udata = docSnap.data();
-          userWatchlist = udata.Watchlist || [];
-          updateWatchlistUI(userWatchlist.includes(currentDocId));
-          return;
-        }
-      }
-    } catch(e) {}
-  }
-
-  function updateWatchlistUI(isAdded) {
-    const el = document.getElementById('actionWatchlist');
-    const txt = document.getElementById('watchlistText');
-    if (isAdded) {
-      el.classList.add('active');
-      txt.innerText = "Added";
-      el.querySelector('svg').innerHTML = '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
-    } else {
-      el.classList.remove('active');
-      txt.innerText = "Watchlist";
-      el.querySelector('svg').innerHTML = '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
-    }
-  }
-
-  document.getElementById('actionWatchlist').onclick = async () => {
-    if (!userDocRef && !currentUser) {
-      showToast("Please login to use Watchlist");
-      return;
-    }
-    const isAdded = document.getElementById('actionWatchlist').classList.contains('active');
-    try {
-      if (userDocRef) {
-        if (isAdded) {
-          await updateDoc(userDocRef, { Watchlist: arrayRemove(currentDocId) });
-          userWatchlist = userWatchlist.filter(id => id !== currentDocId);
-          updateWatchlistUI(false);
-          showToast("Removed from Watchlist");
-        } else {
-          await updateDoc(userDocRef, { Watchlist: arrayUnion(currentDocId) });
-          userWatchlist.push(currentDocId);
-          updateWatchlistUI(true);
-          showToast("Added to Watchlist");
-        }
-        if (currentChannel) {
-          listenToRecommendations(currentDocId, contentType === 'show' || contentType === 'collection' ? 'TV Shows' : (contentType === 'movie' ? 'Movies' : 'Live TV'));
-        }
-      } else {
-        updateWatchlistUI(!isAdded);
-        showToast(!isAdded ? "Added to Watchlist" : "Removed from Watchlist");
-      }
-    } catch(e) {
-      updateWatchlistUI(!isAdded);
-      showToast("Watchlist updated");
-    }
-  };
-
-  document.getElementById('actionShare').onclick = async () => {
-    let shareUrl = `${window.location.origin}${window.location.pathname}?watch=${currentDocId}`;
-    if (isCollectionMode && activeCollectionKey) {
-      shareUrl += `&collection#${encodeURIComponent(activeCollectionKey)}`;
-    } else if (contentType === 'show' && currentSeasonKey) {
-      shareUrl += `&season=${encodeURIComponent(currentSeasonKey)}&ep=${currentEpisodeIdx + 1}`;
-    }
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: currentChannel?.Name || "Hotstar",
-          text: `Watch ${currentChannel?.Name || 'this stream'} on Hotstar!`,
-          url: shareUrl
-        });
-      } catch(e){}
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      showToast("Link copied to clipboard!");
-    }
-  };
-
-  function configureUIForContentType() {
-    const rewindBtn = document.getElementById('rewindBtn');
-    const forwardBtn = document.getElementById('forwardBtn');
-    const btnEpisodes = document.getElementById('btnEpisodes');
-    const btnPreviously = document.getElementById('btnPreviously');
-    const btnNextEpisode = document.getElementById('btnNextEpisode');
-    const speedBtn = document.getElementById('speedBtn');
-    const tabSpeed = document.getElementById('tabSpeed');
-    const drawerTabEpisodes = document.getElementById('drawerTabEpisodes');
-    const drawerTabPreviously = document.getElementById('drawerTabPreviously');
-    const overlaySubtitle = document.getElementById('overlaySubtitle');
-    const timeDisplay = document.getElementById('timeDisplay');
-    const timelineFill = document.getElementById('timelineFill');
-    const thumbIndicator = document.getElementById('thumbIndicator');
-    const progressBarInput = document.getElementById('progressBarInput');
-
-    const hasPreviously = Boolean(currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl || currentChannel?.Previously_Url);
-
-    if (contentType === 'show' || contentType === 'collection') {
-      rewindBtn.style.display = 'flex';
-      forwardBtn.style.display = 'flex';
-      btnEpisodes.style.display = 'flex';
-      btnNextEpisode.style.display = 'flex';
-      btnPreviously.style.display = 'none';
-      speedBtn.style.display = 'flex';
-      tabSpeed.style.display = 'inline-block';
-      drawerTabEpisodes.style.display = 'inline-block';
-      drawerTabPreviously.style.display = 'none';
-      overlaySubtitle.style.display = 'block';
-    } else if (contentType === 'movie') {
-      rewindBtn.style.display = 'flex';
-      forwardBtn.style.display = 'flex';
-      btnEpisodes.style.display = 'none';
-      btnNextEpisode.style.display = 'none';
-      btnPreviously.style.display = 'none';
-      speedBtn.style.display = 'flex';
-      tabSpeed.style.display = 'inline-block';
-      drawerTabEpisodes.style.display = 'none';
-      drawerTabPreviously.style.display = 'none';
-      overlaySubtitle.style.display = 'none';
-    } else {
-      rewindBtn.style.display = 'none';
-      forwardBtn.style.display = 'none';
-      btnEpisodes.style.display = 'none';
-      btnNextEpisode.style.display = 'none';
-      btnPreviously.style.display = hasPreviously ? 'flex' : 'none';
-      speedBtn.style.display = 'none';
-      tabSpeed.style.display = 'none';
-      drawerTabEpisodes.style.display = 'none';
-      drawerTabPreviously.style.display = hasPreviously ? 'inline-block' : 'none';
-      overlaySubtitle.style.display = 'none';
-
-      timelineFill.style.width = '100%';
-      thumbIndicator.style.left = '100%';
-      progressBarInput.value = 100;
-      timeDisplay.innerText = "LIVE";
-    }
-  }
-
+  /* ================== STANDARD SEASONS SETUP ================== */
   function setupShowSeasons(seasonKeys) {
     if (!seasonKeys || seasonKeys.length === 0) return;
 
@@ -2026,7 +1742,7 @@
       return;
     }
 
-    // Sort seasons descending (e.g. Season 3, Season 2, Season 1)
+    // Last Season First
     seasonKeys.sort((a, b) => {
       const numA = parseInt(a.replace(/\D/g, '')) || 0;
       const numB = parseInt(b.replace(/\D/g, '')) || 0;
@@ -2043,7 +1759,6 @@
     const epList = showDocData[currentSeasonKey] || [];
     const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
     
-    // For Live TV feeds, show upcoming episodes first (e.g. Ep 5, 4, 3, 2, 1)
     let displayList = epList.map((ep, originalIdx) => ({ ...ep, originalIdx }));
     if (contentType === 'live') {
       displayList.reverse();
@@ -2112,35 +1827,7 @@
     });
   }
 
-  function performSeek(sec) {
-    if (contentType === 'live') return;
-
-    if (isCollectionMode) {
-      let currentGlobalSec = 0;
-      if (activePlayerType === 'youtube' && ytPlayerInstance) {
-        currentGlobalSec = getContinuousCollectionTime(ytPlayerInstance.getCurrentTime() || 0);
-      } else {
-        const video = document.getElementById('nativeVideoPlayer');
-        currentGlobalSec = getContinuousCollectionTime(video?.currentTime || 0);
-      }
-      seekContinuousCollection(currentGlobalSec + sec);
-      return;
-    }
-
-    if (activePlayerType === 'youtube' && ytPlayerInstance) {
-      const cur = ytPlayerInstance.getCurrentTime() || 0;
-      ytPlayerInstance.seekTo(Math.max(0, cur + sec), true);
-    } else if (activePlayerType === 'jwplayer' && jwPlayerInstance) {
-      const cur = jwPlayerInstance.getPosition() || 0;
-      jwPlayerInstance.seek(Math.max(0, cur + sec));
-    } else {
-      const video = document.getElementById('nativeVideoPlayer');
-      if (video && video.duration) {
-        video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + sec));
-      }
-    }
-  }
-
+  /* ================== MEDIA PLAYBACK ENGINE ================== */
   function startStreamPlayback(data, overrideStartTime, onDurationDiscovered) {
     const video = document.getElementById('nativeVideoPlayer');
     const iframe = document.getElementById('iframePlayer');
@@ -2235,6 +1922,10 @@
                 if (currentCollectionItemIdx + 1 < collectionPlaylist.length) {
                   playCollectionItem(currentCollectionItemIdx + 1, 0);
                 }
+              } else if (isRangePlaylistMode) {
+                if (currentEpisodeIdx + 1 < currentRangeVideos.length) {
+                  playRangeVideo(currentEpisodeIdx + 1);
+                }
               } else {
                 syncDigitalFeedLive();
               }
@@ -2315,6 +2006,10 @@
         if (isCollectionMode) {
           if (currentCollectionItemIdx + 1 < collectionPlaylist.length) {
             playCollectionItem(currentCollectionItemIdx + 1, 0);
+          }
+        } else if (isRangePlaylistMode) {
+          if (currentEpisodeIdx + 1 < currentRangeVideos.length) {
+            playRangeVideo(currentEpisodeIdx + 1);
           }
         } else {
           syncDigitalFeedLive();
@@ -2740,6 +2435,12 @@
         } else {
           showToast("End of Collection reached");
         }
+      } else if (isRangePlaylistMode) {
+        if (currentEpisodeIdx + 1 < currentRangeVideos.length) {
+          playRangeVideo(currentEpisodeIdx + 1);
+        } else {
+          showToast("End of range reached");
+        }
       } else if (contentType === 'show' && showDocData && currentSeasonKey) {
         const epList = showDocData[currentSeasonKey];
         if (Array.isArray(epList) && currentEpisodeIdx + 1 < epList.length) {
@@ -3024,6 +2725,20 @@
           </div>
           <div class="watch-card-name">${ep.name}</div>
           <div class="watch-card-sub">Part ${idx + 1}</div>
+        </div>
+      `).join('');
+      return;
+    }
+
+    if (isRangePlaylistMode) {
+      cardsRow.innerHTML = currentRangeVideos.map((vid, idx) => `
+        <div onclick="window.selectRangeVideo(${idx})" class="watch-card">
+          <div class="watch-card-thumb-wrap">
+            <img src="${vid.thumbnail || getPosterH(showDocData)}" alt="${vid.title}" loading="lazy">
+            <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="watch-card-name">${vid.title}</div>
+          <div class="watch-card-sub">Episode ${idx + 1}</div>
         </div>
       `).join('');
       return;
