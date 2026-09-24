@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hotstar Video Player</title>
   
-  <!-- HLS.js for .m3u8 streams & proxies -->
+  <!-- HLS.js for .m3u8 streams -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <!-- YouTube IFrame Player API -->
   <script src="https://www.youtube.com/iframe_api"></script>
@@ -140,7 +140,7 @@
     }
     .toast-alert.show { opacity: 1; }
 
-    /* Chapter / Episode Tooltip above scrubber */
+    /* Chapter Tooltip */
     .chapter-preview-tooltip {
       position: absolute;
       bottom: 30px;
@@ -252,6 +252,7 @@
       gap: 48px;
       pointer-events: auto;
     }
+    .ctrl-center .icon-btn svg { width: 34px; height: 34px; }
     .btn-main-play svg { width: 44px; height: 44px; fill: #ffffff; }
 
     /* Bottom Controls */
@@ -786,7 +787,7 @@
       <!-- Chapter / Timestamp Tooltip on Scrubber -->
       <div class="chapter-preview-tooltip" id="chapterTooltip">Episode 1</div>
 
-      <!-- Video Engines (.m3u8, .mp4, .mkv, .webm, proxy) -->
+      <!-- Video Engines (.m3u8, .mp4, .mkv, .webm) -->
       <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
@@ -1041,7 +1042,7 @@
 
   // In-memory caches
   const playlistCache = {};
-  const mediaDurationCache = {}; 
+  const mediaDurationCache = {};
   const DEFAULT_DURATION = 1500; // 25 mins fallback
 
   // Runtime State
@@ -1327,9 +1328,17 @@
         }
       }
 
-      // 2. Standard Content Types
+      // 2. Standard Content Types with Last Season First
       isCollectionMode = false;
       const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
+      
+      // Sort seasons descending (e.g. Season 3, Season 2, Season 1)
+      seasonKeys.sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.replace(/\D/g, '')) || 0;
+        return numB - numA;
+      });
+
       if (targetCol === "Shows" || targetCol === "TV Shows" || seasonKeys.length > 0) {
         contentType = 'show';
         setupShowSeasons(seasonKeys);
@@ -1537,7 +1546,7 @@
     }
   }
 
-  /* ================== DIGITAL FEED ENGINE (PROXIES + SHOW LOOPS) ================== */
+  /* ================== UPDATED DIGITAL FEED ENGINE ================== */
   async function initDigitalFeedEngine(streamTag) {
     const cleanTag = streamTag.replace(/[{}]/g, '').trim();
     let feedSlug = '';
@@ -1623,7 +1632,6 @@
       const anchor = slot.anchorDate ? new Date(slot.anchorDate) : today;
       const diffTime = today.setHours(0,0,0,0) - anchor.setHours(0,0,0,0);
       const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
-
       targetIndex = (targetIndex + diffDays) % episodes.length;
     } else if (slot.progressionMode === "entire_loop") {
       const epDuration = mediaDurationCache[episodes[targetIndex].stream] || 1800;
@@ -1641,7 +1649,6 @@
     };
   }
 
-  // Multi-Movie Pool Resolver
   function resolveMovieInSlot(slot, slotIndex, elapsedSeconds) {
     let pool = digitalFeedMoviesLibrary;
     if (slot.filterType && slot.filterType !== "all" && slot.filterValue && slot.filterValue !== "ALL") {
@@ -1673,20 +1680,22 @@
 
     while (movieStep < 20) {
       const currentCandidate = pool[(initialBaseIndex + movieStep) % pool.length];
-      const movieDur = mediaDurationCache[currentCandidate.id] || 5400; // 90 min fallback
+      const movieDur = mediaDurationCache[currentCandidate.id] || 5400;
 
       if (accumulatedTime + movieDur > elapsedSeconds) {
         selectedMovie = currentCandidate;
         offsetIntoCurrentMovie = elapsedSeconds - accumulatedTime;
         break;
       }
+
       accumulatedTime += movieDur;
       movieStep++;
     }
 
     return {
       movie: selectedMovie,
-      offset: offsetIntoCurrentMovie
+      offset: offsetIntoCurrentMovie,
+      movieIndexInPool: (initialBaseIndex + movieStep) % pool.length
     };
   }
 
@@ -1725,15 +1734,15 @@
 
     const timeTag = `${format12Hour(live.slot.from)} - ${format12Hour(live.slot.to)}`;
 
-    // 1. SHOWS / DIRECT SEASONS
+    // 1. SHOWS / DIRECT SEASONS (Yeh Rishta, Doraemon, etc.)
     if (live.slot.type === "shows" || (live.slot.type === "tv" && live.slot.mediaType === "direct_season")) {
       const res = resolveShowEpisode(live.slot, live.elapsedSeconds);
       if (!res || !res.episode || !res.episode.stream) {
-        document.getElementById('chLangSub').innerText = `Episode stream not available • [${timeTag}]`;
+        document.getElementById('chLangSub').innerText = "Episode stream not available";
         return;
       }
 
-      const mediaKey = `show_${live.slot.showId || live.slot.showName}_ep_${res.episodeIndex}_${live.slotIndex}`;
+      const mediaKey = `show_${live.slot.showId}_ep_${res.episodeIndex}_${live.slotIndex}`;
       if (activeMediaKey !== mediaKey) {
         activeMediaKey = mediaKey;
         const epNum = res.episodeIndex + 1;
@@ -1750,8 +1759,8 @@
         });
       }
     }
-    // 2. TV SHOWS (YouTube)
-    else if (live.slot.type === "tv" && (live.slot.mediaType === "youtube" || !live.slot.mediaType)) {
+    // 2. TV SHOWS (YouTube Playlists / Single ID)
+    else if (live.slot.type === "tv") {
       const playlistId = live.slot.playlistId;
 
       if (playlistId && (playlistId.startsWith("PL") || playlistId.startsWith("RD") || playlistId.startsWith("UU"))) {
@@ -1817,22 +1826,6 @@
         }, resolved.offset, (actualDuration) => {
           mediaDurationCache[movie.id] = actualDuration;
         });
-      }
-    }
-    // 4. DIRECT / RAW STREAMS
-    else {
-      const slotTitle = live.slot.title || live.slot.name || "Live Broadcast";
-      const mediaKey = `direct_${live.slot.from}_${live.slotIndex}`;
-      if (activeMediaKey !== mediaKey) {
-        activeMediaKey = mediaKey;
-        document.getElementById('chLangSub').innerText = `${slotTitle} • [${timeTag}]`;
-        document.getElementById('overlaySubtitle').style.display = 'block';
-        document.getElementById('overlaySubtitle').innerText = `${slotTitle} • [${timeTag}]`;
-
-        startStreamPlayback({
-          Stream: live.slot.rawUrl || live.slot.Stream || live.slot.stream || '',
-          Name: slotTitle
-        }, live.elapsedSeconds);
       }
     }
   }
@@ -2033,6 +2026,13 @@
       return;
     }
 
+    // Sort seasons descending (e.g. Season 3, Season 2, Season 1)
+    seasonKeys.sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.replace(/\D/g, '')) || 0;
+      return numB - numA;
+    });
+
     wrap.style.display = 'block';
     seasonsRow.innerHTML = seasonKeys.map(sKey => `
       <button class="ep-season-tab ${sKey === currentSeasonKey ? 'active' : ''}" onclick="window.selectVerticalSeason('${sKey}')">
@@ -2042,25 +2042,33 @@
 
     const epList = showDocData[currentSeasonKey] || [];
     const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
-    const limit = showAllEpisodesVertical ? epList.length : 3;
+    
+    // For Live TV feeds, show upcoming episodes first (e.g. Ep 5, 4, 3, 2, 1)
+    let displayList = epList.map((ep, originalIdx) => ({ ...ep, originalIdx }));
+    if (contentType === 'live') {
+      displayList.reverse();
+    }
 
-    epListEl.innerHTML = epList.slice(0, limit).map((ep, idx) => {
+    const limit = showAllEpisodesVertical ? displayList.length : 3;
+
+    epListEl.innerHTML = displayList.slice(0, limit).map((ep) => {
       const epDur = formatDynamicDuration(ep.Duration || ep.duration) || '24m';
+      const actualIdx = ep.originalIdx;
       return `
-        <div onclick="window.selectEpisode(${idx})" class="ep-item-card">
+        <div onclick="window.selectEpisode(${actualIdx})" class="ep-item-card">
           <div class="ep-thumb-box">
             <img src="${getPosterH(showDocData)}" alt="${ep.Name}" loading="lazy">
             <div class="ep-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="ep-info-box">
-            <div class="ep-item-title">${ep.Name || `Episode ${idx + 1}`}</div>
-            <div class="ep-item-meta">S${seasonNum} E${idx + 1} • ${epDur}</div>
+            <div class="ep-item-title">${ep.Name || `Episode ${actualIdx + 1}`}</div>
+            <div class="ep-item-meta">S${seasonNum} E${actualIdx + 1} • ${epDur}</div>
           </div>
         </div>
       `;
     }).join('');
 
-    if (epList.length > 3) {
+    if (displayList.length > 3) {
       viewMoreBtn.style.display = 'flex';
       viewMoreBtn.classList.toggle('expanded', showAllEpisodesVertical);
       viewMoreBtn.querySelector('span').innerText = showAllEpisodesVertical ? 'View Less' : 'View More';
@@ -2228,9 +2236,6 @@
                   playCollectionItem(currentCollectionItemIdx + 1, 0);
                 }
               } else {
-                // Seamlessly restart or queue live TV loop
-                e.target.seekTo(0, true);
-                e.target.playVideo();
                 syncDigitalFeedLive();
               }
             } else {
@@ -2281,8 +2286,7 @@
       return;
     }
 
-    // Direct multi-format media (.m3u8, .mp4, .mkv, .webm, proxy, Cloudinary)
-    if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('proxy.') || streamUrl.includes('cloudinary')) {
+    if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('cloudinary')) {
       if (ytPlayerInstance && ytPlayerInstance.stopVideo) {
         try { ytPlayerInstance.stopVideo(); } catch(e){}
       }
@@ -2313,14 +2317,19 @@
             playCollectionItem(currentCollectionItemIdx + 1, 0);
           }
         } else {
-          // Restart loop or trigger next slot
-          video.currentTime = 0;
-          video.play();
           syncDigitalFeedLive();
         }
       };
 
-      if ((streamUrl.includes('.m3u8') || streamUrl.includes('proxy.')) && Hls.isSupported()) {
+      if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('cloudinary')) {
+        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+        video.src = streamUrl;
+        video.onloadedmetadata = () => {
+          applyResume();
+          extractNativeTracks(video);
+        };
+        if (video.readyState >= 1) applyResume();
+      } else if (Hls.isSupported()) {
         if (hlsInstance) hlsInstance.destroy();
         hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8, enableWorker: true });
         hlsInstance.loadSource(streamUrl);
@@ -2331,14 +2340,6 @@
           populateM3u8DynamicAudio(hlsInstance.audioTracks);
         });
         hlsInstance.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (e, d) => setupSubtitleOptions(d.subtitleTracks));
-      } else if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('cloudinary')) {
-        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-        video.src = streamUrl;
-        video.onloadedmetadata = () => {
-          applyResume();
-          extractNativeTracks(video);
-        };
-        if (video.readyState >= 1) applyResume();
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
         video.src = streamUrl;
@@ -2656,7 +2657,6 @@
       chapterTooltip.style.display = 'none';
     };
 
-    // Pinch-to-zoom
     let initialDistance = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -3032,6 +3032,13 @@
     const seasonKeys = Object.keys(showDocData).filter(k => k.toLowerCase().startsWith('season'));
     if (seasonKeys.length === 0) return;
 
+    // Last Season First
+    seasonKeys.sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.replace(/\D/g, '')) || 0;
+      return numB - numA;
+    });
+
     seasonsBar.style.display = 'flex';
     seasonsBar.innerHTML = seasonKeys.map(sKey => `
       <button class="season-btn ${sKey === currentSeasonKey ? 'active' : ''}" onclick="window.switchSeason('${sKey}')">
@@ -3041,15 +3048,20 @@
 
     const epList = showDocData[currentSeasonKey] || [];
     const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
+    
+    let displayList = epList.map((ep, originalIdx) => ({ ...ep, originalIdx }));
+    if (contentType === 'live') {
+      displayList.reverse();
+    }
 
-    cardsRow.innerHTML = epList.map((ep, idx) => `
-      <div onclick="window.selectEpisode(${idx})" class="watch-card">
+    cardsRow.innerHTML = displayList.map((ep) => `
+      <div onclick="window.selectEpisode(${ep.originalIdx})" class="watch-card">
         <div class="watch-card-thumb-wrap">
           <img src="${getPosterH(showDocData)}" alt="${ep.Name}" loading="lazy">
           <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
         </div>
-        <div class="watch-card-name">${ep.Name || `Episode ${idx + 1}`}</div>
-        <div class="watch-card-sub">S${seasonNum} E${idx + 1}</div>
+        <div class="watch-card-name">${ep.Name || `Episode ${ep.originalIdx + 1}`}</div>
+        <div class="watch-card-sub">S${seasonNum} E${ep.originalIdx + 1}</div>
       </div>
     `).join('');
   }
