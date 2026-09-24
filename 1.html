@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Hotstar Video Player</title>
   
-  <!-- HLS.js for .m3u8 streams -->
+  <!-- HLS.js for .m3u8 streams & proxies -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <!-- YouTube IFrame Player API -->
   <script src="https://www.youtube.com/iframe_api"></script>
@@ -786,7 +786,7 @@
       <!-- Chapter / Timestamp Tooltip on Scrubber -->
       <div class="chapter-preview-tooltip" id="chapterTooltip">Episode 1</div>
 
-      <!-- Video Engines (.m3u8, .mp4, .mkv, .webm) -->
+      <!-- Video Engines (.m3u8, .mp4, .mkv, .webm, proxy) -->
       <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
@@ -1041,8 +1041,8 @@
 
   // In-memory caches
   const playlistCache = {};
-  const movieDurationCache = {}; 
-  const DEFAULT_MOVIE_DURATION = 5400;
+  const mediaDurationCache = {}; 
+  const DEFAULT_DURATION = 1500; // 25 mins fallback
 
   // Runtime State
   let hlsInstance = null;
@@ -1502,7 +1502,6 @@
       Stream: item.stream,
       Name: item.name
     }, seekOffsetInItem, (actualDur) => {
-      // Dynamic real duration update to eliminate static 44:00
       if (actualDur && actualDur > 0 && item.duration !== Math.round(actualDur)) {
         item.duration = Math.round(actualDur);
         recalculateCollectionTimeline();
@@ -1538,7 +1537,7 @@
     }
   }
 
-  /* ================== DIGITAL FEED ENGINE ================== */
+  /* ================== DIGITAL FEED ENGINE (PROXIES + SHOW LOOPS) ================== */
   async function initDigitalFeedEngine(streamTag) {
     const cleanTag = streamTag.replace(/[{}]/g, '').trim();
     let feedSlug = '';
@@ -1612,6 +1611,37 @@
     return null;
   }
 
+  // Daily Episode Progress + Intra-Slot Loop Calculator
+  function resolveShowEpisode(slot, elapsedSeconds) {
+    const episodes = slot.episodes || [];
+    if (episodes.length === 0) return null;
+
+    let targetIndex = slot.startEpisodeIndex || 0;
+
+    if (slot.progressionMode === "daily_increment" || !slot.progressionMode) {
+      const today = new Date();
+      const anchor = slot.anchorDate ? new Date(slot.anchorDate) : today;
+      const diffTime = today.setHours(0,0,0,0) - anchor.setHours(0,0,0,0);
+      const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+      targetIndex = (targetIndex + diffDays) % episodes.length;
+    } else if (slot.progressionMode === "entire_loop") {
+      const epDuration = mediaDurationCache[episodes[targetIndex].stream] || 1800;
+      targetIndex = Math.floor(elapsedSeconds / epDuration) % episodes.length;
+    }
+
+    const currentEp = episodes[targetIndex];
+    const knownDuration = mediaDurationCache[currentEp.stream] || DEFAULT_DURATION;
+    const offsetIntoEp = elapsedSeconds % knownDuration;
+
+    return {
+      episode: currentEp,
+      episodeIndex: targetIndex,
+      offset: offsetIntoEp
+    };
+  }
+
+  // Multi-Movie Pool Resolver
   function resolveMovieInSlot(slot, slotIndex, elapsedSeconds) {
     let pool = digitalFeedMoviesLibrary;
     if (slot.filterType && slot.filterType !== "all" && slot.filterValue && slot.filterValue !== "ALL") {
@@ -1643,22 +1673,20 @@
 
     while (movieStep < 20) {
       const currentCandidate = pool[(initialBaseIndex + movieStep) % pool.length];
-      const movieDur = movieDurationCache[currentCandidate.id] || DEFAULT_MOVIE_DURATION;
+      const movieDur = mediaDurationCache[currentCandidate.id] || 5400; // 90 min fallback
 
       if (accumulatedTime + movieDur > elapsedSeconds) {
         selectedMovie = currentCandidate;
         offsetIntoCurrentMovie = elapsedSeconds - accumulatedTime;
         break;
       }
-
       accumulatedTime += movieDur;
       movieStep++;
     }
 
     return {
       movie: selectedMovie,
-      offset: offsetIntoCurrentMovie,
-      movieIndexInPool: (initialBaseIndex + movieStep) % pool.length
+      offset: offsetIntoCurrentMovie
     };
   }
 
@@ -1697,65 +1725,40 @@
 
     const timeTag = `${format12Hour(live.slot.from)} - ${format12Hour(live.slot.to)}`;
 
-    if (live.slot.type === "movie") {
-      const resolved = resolveMovieInSlot(live.slot, live.slotIndex, live.elapsedSeconds);
-      if (!resolved || !resolved.movie || !resolved.movie.Stream) {
-        document.getElementById('chLangSub').innerText = `Live Movie Unavailable • [${timeTag}]`;
+    // 1. SHOWS / DIRECT SEASONS
+    if (live.slot.type === "shows" || (live.slot.type === "tv" && live.slot.mediaType === "direct_season")) {
+      const res = resolveShowEpisode(live.slot, live.elapsedSeconds);
+      if (!res || !res.episode || !res.episode.stream) {
+        document.getElementById('chLangSub').innerText = `Episode stream not available • [${timeTag}]`;
         return;
       }
 
-      const movie = resolved.movie;
-      const mediaKey = `movie_${movie.id}_${live.slotIndex}`;
-
+      const mediaKey = `show_${live.slot.showId || live.slot.showName}_ep_${res.episodeIndex}_${live.slotIndex}`;
       if (activeMediaKey !== mediaKey) {
         activeMediaKey = mediaKey;
-        const movieTitle = movie.Name || movie.Title || live.slot.title || "Live Movie";
-        document.getElementById('chLangSub').innerText = `${movieTitle} • [${timeTag}]`;
-        document.getElementById('overlaySubtitle').style.display = 'block';
-        document.getElementById('overlaySubtitle').innerText = `${movieTitle} • [${timeTag}]`;
-
-        startStreamPlayback({
-          Stream: movie.Stream,
-          mpd: movie.mpd || movie.MPD,
-          Name: movieTitle
-        }, resolved.offset, (actualDuration) => {
-          movieDurationCache[movie.id] = actualDuration;
-        });
-      }
-    }
-    else if (live.slot.type === "shows") {
-      const episodes = live.slot.episodes || [];
-      if (episodes.length === 0) {
-        document.getElementById('chLangSub').innerText = "No episodes configured";
-        return;
-      }
-      const epDuration = 1320;
-      const epIndex = Math.floor(live.elapsedSeconds / epDuration) % episodes.length;
-      const currentEp = episodes[epIndex];
-      const offsetIntoEpisode = live.elapsedSeconds % epDuration;
-      const mediaKey = `shows_${live.slot.showId || live.slot.showName}_${epIndex}`;
-
-      if (activeMediaKey !== mediaKey) {
-        activeMediaKey = mediaKey;
-        const epTitle = `${live.slot.showName || ''} - ${currentEp.name || 'Episode'}`;
+        const epNum = res.episodeIndex + 1;
+        const epTitle = `${live.slot.showName || ''} - Ep ${epNum}: ${res.episode.name || ''}`;
         document.getElementById('chLangSub').innerText = `${epTitle} • [${timeTag}]`;
         document.getElementById('overlaySubtitle').style.display = 'block';
         document.getElementById('overlaySubtitle').innerText = `${epTitle} • [${timeTag}]`;
 
         startStreamPlayback({
-          Stream: currentEp.stream,
+          Stream: res.episode.stream,
           Name: epTitle
-        }, offsetIntoEpisode);
+        }, res.offset, (actualDur) => {
+          mediaDurationCache[res.episode.stream] = actualDur;
+        });
       }
     }
-    else if (live.slot.type === "tv") {
+    // 2. TV SHOWS (YouTube)
+    else if (live.slot.type === "tv" && (live.slot.mediaType === "youtube" || !live.slot.mediaType)) {
       const playlistId = live.slot.playlistId;
 
       if (playlistId && (playlistId.startsWith("PL") || playlistId.startsWith("RD") || playlistId.startsWith("UU"))) {
         const videos = await fetchYouTubePlaylistVideos(playlistId);
 
         if (videos.length > 0) {
-          const epDuration = 1200;
+          const epDuration = 1800; // 30 mins
           const targetIndex = Math.floor(live.elapsedSeconds / epDuration) % videos.length;
           const currentVideo = videos[targetIndex];
           const videoOffset = live.elapsedSeconds % epDuration;
@@ -1789,6 +1792,34 @@
         }
       }
     }
+    // 3. MOVIES
+    else if (live.slot.type === "movie") {
+      const resolved = resolveMovieInSlot(live.slot, live.slotIndex, live.elapsedSeconds);
+      if (!resolved || !resolved.movie || !resolved.movie.Stream) {
+        document.getElementById('chLangSub').innerText = `Live Movie Unavailable • [${timeTag}]`;
+        return;
+      }
+
+      const movie = resolved.movie;
+      const mediaKey = `movie_${movie.id}_${live.slotIndex}`;
+
+      if (activeMediaKey !== mediaKey) {
+        activeMediaKey = mediaKey;
+        const movieTitle = movie.Name || movie.Title || live.slot.title || "Live Movie";
+        document.getElementById('chLangSub').innerText = `${movieTitle} • [${timeTag}]`;
+        document.getElementById('overlaySubtitle').style.display = 'block';
+        document.getElementById('overlaySubtitle').innerText = `${movieTitle} • [${timeTag}]`;
+
+        startStreamPlayback({
+          Stream: movie.Stream,
+          mpd: movie.mpd || movie.MPD,
+          Name: movieTitle
+        }, resolved.offset, (actualDuration) => {
+          mediaDurationCache[movie.id] = actualDuration;
+        });
+      }
+    }
+    // 4. DIRECT / RAW STREAMS
     else {
       const slotTitle = live.slot.title || live.slot.name || "Live Broadcast";
       const mediaKey = `direct_${live.slot.from}_${live.slotIndex}`;
@@ -2143,7 +2174,6 @@
       overlay.style.display = 'flex';
       activePlayerType = 'youtube';
 
-      // Enhanced ad-suppression parameters for iframe embeds
       const antiAdPlayerVars = {
         autoplay: 1,
         controls: 0,
@@ -2169,7 +2199,7 @@
 
       ytHost.innerHTML = '<div id="ytActualPlayer"></div>';
       ytPlayerInstance = new YT.Player('ytActualPlayer', {
-        host: 'https://www.youtube-nocookie.com', // Ad-reduced privacy endpoint
+        host: 'https://www.youtube-nocookie.com',
         videoId: ytId,
         playerVars: antiAdPlayerVars,
         events: {
@@ -2198,6 +2228,9 @@
                   playCollectionItem(currentCollectionItemIdx + 1, 0);
                 }
               } else {
+                // Seamlessly restart or queue live TV loop
+                e.target.seekTo(0, true);
+                e.target.playVideo();
                 syncDigitalFeedLive();
               }
             } else {
@@ -2248,7 +2281,8 @@
       return;
     }
 
-    if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('cloudinary')) {
+    // Direct multi-format media (.m3u8, .mp4, .mkv, .webm, proxy, Cloudinary)
+    if (streamUrl.includes('.m3u8') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('proxy.') || streamUrl.includes('cloudinary')) {
       if (ytPlayerInstance && ytPlayerInstance.stopVideo) {
         try { ytPlayerInstance.stopVideo(); } catch(e){}
       }
@@ -2279,19 +2313,14 @@
             playCollectionItem(currentCollectionItemIdx + 1, 0);
           }
         } else {
+          // Restart loop or trigger next slot
+          video.currentTime = 0;
+          video.play();
           syncDigitalFeedLive();
         }
       };
 
-      if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('cloudinary')) {
-        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-        video.src = streamUrl;
-        video.onloadedmetadata = () => {
-          applyResume();
-          extractNativeTracks(video);
-        };
-        if (video.readyState >= 1) applyResume();
-      } else if (Hls.isSupported()) {
+      if ((streamUrl.includes('.m3u8') || streamUrl.includes('proxy.')) && Hls.isSupported()) {
         if (hlsInstance) hlsInstance.destroy();
         hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8, enableWorker: true });
         hlsInstance.loadSource(streamUrl);
@@ -2302,6 +2331,14 @@
           populateM3u8DynamicAudio(hlsInstance.audioTracks);
         });
         hlsInstance.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (e, d) => setupSubtitleOptions(d.subtitleTracks));
+      } else if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('cloudinary')) {
+        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+        video.src = streamUrl;
+        video.onloadedmetadata = () => {
+          applyResume();
+          extractNativeTracks(video);
+        };
+        if (video.readyState >= 1) applyResume();
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
         video.src = streamUrl;
@@ -2598,7 +2635,6 @@
       }
     };
 
-    // Scrubber hover / drag tooltip for chapters
     progressBarInput.onmousemove = (e) => {
       if (!isCollectionMode || collectionPlaylist.length === 0) {
         chapterTooltip.style.display = 'none';
@@ -2620,7 +2656,7 @@
       chapterTooltip.style.display = 'none';
     };
 
-    // Pinch-to-zoom gestures
+    // Pinch-to-zoom
     let initialDistance = 0;
     playerContainer.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
