@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Hotstar Video Player</title>
   
   <!-- HLS.js for .m3u8 streams -->
@@ -140,7 +140,7 @@
     }
     .toast-alert.show { opacity: 1; }
 
-    /* Chapter Tooltip */
+    /* Chapter / Episode Tooltip above scrubber */
     .chapter-preview-tooltip {
       position: absolute;
       bottom: 30px;
@@ -1043,7 +1043,7 @@
   // In-memory caches
   const playlistCache = {};
   const mediaDurationCache = {};
-  const DEFAULT_DURATION = 1500; // 25 mins fallback
+  const DEFAULT_DURATION = 1500;
 
   // Runtime State
   let hlsInstance = null;
@@ -1063,6 +1063,7 @@
   let userWatchlist = [];
   let availableHlsLevels = [];
   let lastProgressSave = 0;
+  let currentActiveAudioStream = null;
 
   // Digital-Feed Dynamic State
   let digitalFeedUnsub = null;
@@ -1332,7 +1333,6 @@
       isCollectionMode = false;
       const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
       
-      // Sort seasons descending (e.g. Season 3, Season 2, Season 1)
       seasonKeys.sort((a, b) => {
         const numA = parseInt(a.replace(/\D/g, '')) || 0;
         const numB = parseInt(b.replace(/\D/g, '')) || 0;
@@ -1546,7 +1546,7 @@
     }
   }
 
-  /* ================== UPDATED DIGITAL FEED ENGINE ================== */
+  /* ================== DIGITAL FEED ENGINE ================== */
   async function initDigitalFeedEngine(streamTag) {
     const cleanTag = streamTag.replace(/[{}]/g, '').trim();
     let feedSlug = '';
@@ -1620,7 +1620,6 @@
     return null;
   }
 
-  // Daily Episode Progress + Intra-Slot Loop Calculator
   function resolveShowEpisode(slot, elapsedSeconds) {
     const episodes = slot.episodes || [];
     if (episodes.length === 0) return null;
@@ -1734,7 +1733,6 @@
 
     const timeTag = `${format12Hour(live.slot.from)} - ${format12Hour(live.slot.to)}`;
 
-    // 1. SHOWS / DIRECT SEASONS (Yeh Rishta, Doraemon, etc.)
     if (live.slot.type === "shows" || (live.slot.type === "tv" && live.slot.mediaType === "direct_season")) {
       const res = resolveShowEpisode(live.slot, live.elapsedSeconds);
       if (!res || !res.episode || !res.episode.stream) {
@@ -1759,7 +1757,6 @@
         });
       }
     }
-    // 2. TV SHOWS (YouTube Playlists / Single ID)
     else if (live.slot.type === "tv") {
       const playlistId = live.slot.playlistId;
 
@@ -1767,7 +1764,7 @@
         const videos = await fetchYouTubePlaylistVideos(playlistId);
 
         if (videos.length > 0) {
-          const epDuration = 1800; // 30 mins
+          const epDuration = 1800;
           const targetIndex = Math.floor(live.elapsedSeconds / epDuration) % videos.length;
           const currentVideo = videos[targetIndex];
           const videoOffset = live.elapsedSeconds % epDuration;
@@ -1801,7 +1798,6 @@
         }
       }
     }
-    // 3. MOVIES
     else if (live.slot.type === "movie") {
       const resolved = resolveMovieInSlot(live.slot, live.slotIndex, live.elapsedSeconds);
       if (!resolved || !resolved.movie || !resolved.movie.Stream) {
@@ -2026,7 +2022,6 @@
       return;
     }
 
-    // Sort seasons descending (e.g. Season 3, Season 2, Season 1)
     seasonKeys.sort((a, b) => {
       const numA = parseInt(a.replace(/\D/g, '')) || 0;
       const numB = parseInt(b.replace(/\D/g, '')) || 0;
@@ -2043,7 +2038,6 @@
     const epList = showDocData[currentSeasonKey] || [];
     const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
     
-    // For Live TV feeds, show upcoming episodes first (e.g. Ep 5, 4, 3, 2, 1)
     let displayList = epList.map((ep, originalIdx) => ({ ...ep, originalIdx }));
     if (contentType === 'live') {
       displayList.reverse();
@@ -2108,7 +2102,9 @@
       Stream: ep.Stream, 
       mpd: ep.mpd || ep.MPD, 
       Studio: showDocData.Studio, 
-      Partner: showDocData.Partner 
+      Partner: showDocData.Partner,
+      "Multi-Language": ep["Multi-Language"] || ep.multiLanguage || showDocData["Multi-Language"] || showDocData.multiLanguage,
+      Language: ep.Language || showDocData.Language
     });
   }
 
@@ -2148,6 +2144,7 @@
     const overlay = document.getElementById('controlsOverlay');
 
     const streamUrl = safeUrl(data.Stream || '');
+    currentActiveAudioStream = streamUrl;
     const mpdObj = data.mpd || data.MPD || null;
     const resumeKey = data.id || currentDocId;
     const savedTime = overrideStartTime !== undefined ? overrideStartTime : getSavedProgress(resumeKey);
@@ -2326,24 +2323,30 @@
         video.src = streamUrl;
         video.onloadedmetadata = () => {
           applyResume();
-          extractNativeTracks(video);
+          extractNativeTracks(video, data);
         };
-        if (video.readyState >= 1) applyResume();
+        if (video.readyState >= 1) {
+          applyResume();
+          extractNativeTracks(video, data);
+        }
       } else if (Hls.isSupported()) {
         if (hlsInstance) hlsInstance.destroy();
         hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8, enableWorker: true });
         hlsInstance.loadSource(streamUrl);
         hlsInstance.attachMedia(video);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, (e, d) => {
           applyResume();
-          availableHlsLevels = data.levels || [];
-          populateM3u8DynamicAudio(hlsInstance.audioTracks);
+          availableHlsLevels = d.levels || [];
+          populateM3u8DynamicAudio(hlsInstance.audioTracks, data);
         });
         hlsInstance.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (e, d) => setupSubtitleOptions(d.subtitleTracks));
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
         video.src = streamUrl;
-        video.onloadedmetadata = applyResume;
+        video.onloadedmetadata = () => {
+          applyResume();
+          extractNativeTracks(video, data);
+        };
       }
       setupInteractions();
       return;
@@ -2363,7 +2366,8 @@
     showToast("No playable stream URL found.");
   }
 
-  function extractNativeTracks(videoEl) {
+  /* ================== HIGH SPEED MULTI-LANGUAGE AUDIO PARSER (.MKV / .MP4 / HLS / FIRESTORE) ================== */
+  function extractNativeTracks(videoEl, dataObj) {
     if (videoEl.textTracks && videoEl.textTracks.length > 0) {
       const subTracks = Array.from(videoEl.textTracks).map((t, idx) => ({
         name: t.label || t.language || `Track ${idx + 1}`
@@ -2371,29 +2375,129 @@
       setupSubtitleOptions(subTracks);
     }
 
-    if (videoEl.audioTracks && videoEl.audioTracks.length > 1) {
-      const list = document.getElementById('audioOptionsList');
-      list.innerHTML = '';
-      Array.from(videoEl.audioTracks).forEach((track, idx) => {
+    const list = document.getElementById('audioOptionsList');
+    list.innerHTML = '';
+
+    const multi = (dataObj && (dataObj["Multi-Language"] || dataObj.multiLanguage || dataObj.MultiLanguage)) || (currentChannel && (currentChannel["Multi-Language"] || currentChannel.multiLanguage)) || {};
+    const defaultLang = (dataObj && dataObj.Language) || (currentChannel && currentChannel.Language) || "Hindi";
+    let hasMultiStreamObj = Object.keys(multi).length > 0;
+
+    // 1. If Firestore Multi-Language dictionary exists
+    if (hasMultiStreamObj) {
+      const mainUrl = safeUrl(dataObj?.Stream || currentChannel?.Stream || '');
+      const isMainActive = !currentActiveAudioStream || currentActiveAudioStream === mainUrl;
+
+      list.innerHTML += `
+        <div class="lang-item" data-stream-type="custom" data-url="${mainUrl}">
+          <div class="lang-check">${isMainActive ? '✓' : ''}</div>
+          <div class="lang-label">${defaultLang} (Default)</div>
+        </div>
+      `;
+
+      Object.keys(multi).forEach(langKey => {
+        const audioUrl = safeUrl(multi[langKey]);
+        const isActive = currentActiveAudioStream === audioUrl;
         list.innerHTML += `
-          <div class="lang-item" data-native-track="${idx}">
-            <div class="lang-check">${track.enabled ? '✓' : ''}</div>
-            <div><div class="lang-label">${track.label || track.language || `Audio ${idx+1}`}</div></div>
+          <div class="lang-item" data-stream-type="custom" data-url="${audioUrl}">
+            <div class="lang-check">${isActive ? '✓' : ''}</div>
+            <div class="lang-label">${langKey}</div>
           </div>
         `;
       });
-
-      document.querySelectorAll('#audioOptionsList .lang-item').forEach(el => {
-        el.onclick = (e) => {
-          e.stopPropagation();
-          document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
-          el.querySelector('.lang-check').innerText = '✓';
-          const tIdx = parseInt(el.dataset.nativeTrack);
-          Array.from(videoEl.audioTracks).forEach((t, i) => t.enabled = (i === tIdx));
-          document.getElementById('settingsModal').classList.remove('active');
-        };
+    } 
+    // 2. If browser exposes embedded audioTracks for .mkv / .mp4 containers
+    else if (videoEl.audioTracks && videoEl.audioTracks.length > 0) {
+      Array.from(videoEl.audioTracks).forEach((track, idx) => {
+        const langName = track.label || track.language || `Audio Track ${idx + 1}`;
+        list.innerHTML += `
+          <div class="lang-item" data-stream-type="embedded" data-native-idx="${idx}">
+            <div class="lang-check">${track.enabled ? '✓' : (idx === 0 ? '✓' : '')}</div>
+            <div class="lang-label">${langName}</div>
+          </div>
+        `;
       });
+    } 
+    // 3. Single default fallback
+    else {
+      list.innerHTML = `
+        <div class="lang-item" data-stream-type="custom" data-url="${safeUrl(dataObj?.Stream || currentChannel?.Stream || '')}">
+          <div class="lang-check">✓</div>
+          <div class="lang-label">${defaultLang}</div>
+        </div>
+      `;
     }
+
+    bindAudioClickEvents(videoEl);
+  }
+
+  function populateM3u8DynamicAudio(audioTracks, dataObj) {
+    const list = document.getElementById('audioOptionsList');
+    list.innerHTML = '';
+    const videoEl = document.getElementById('nativeVideoPlayer');
+
+    const multi = (dataObj && (dataObj["Multi-Language"] || dataObj.multiLanguage)) || (currentChannel && (currentChannel["Multi-Language"] || currentChannel.multiLanguage)) || {};
+    if (Object.keys(multi).length > 0) {
+      extractNativeTracks(videoEl, dataObj);
+      return;
+    }
+
+    if (!audioTracks || audioTracks.length <= 1) {
+      const defLang = currentChannel?.Language || "Original Audio";
+      list.innerHTML = `
+        <div class="lang-item" data-stream-type="hls" data-hls-idx="0">
+          <div class="lang-check">✓</div>
+          <div class="lang-label">${defLang}</div>
+        </div>
+      `;
+      return;
+    }
+
+    audioTracks.forEach((track, idx) => {
+      list.innerHTML += `
+        <div class="lang-item" data-stream-type="hls" data-hls-idx="${idx}">
+          <div class="lang-check">${(hlsInstance && hlsInstance.audioTrack === idx) || idx === 0 ? '✓' : ''}</div>
+          <div class="lang-label">${track.name || track.lang || `Audio Track ${idx + 1}`}</div>
+        </div>
+      `;
+    });
+
+    bindAudioClickEvents(videoEl);
+  }
+
+  function bindAudioClickEvents(videoEl) {
+    document.querySelectorAll('#audioOptionsList .lang-item').forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
+        el.querySelector('.lang-check').innerText = '✓';
+
+        const type = el.dataset.streamType;
+        if (type === 'custom') {
+          const targetUrl = el.dataset.url;
+          if (targetUrl && targetUrl !== currentActiveAudioStream) {
+            const curTime = videoEl.currentTime || 0;
+            currentActiveAudioStream = targetUrl;
+            videoEl.src = targetUrl;
+            videoEl.currentTime = curTime;
+            videoEl.play().catch(() => {});
+            showToast(`Audio: ${el.querySelector('.lang-label').innerText}`);
+          }
+        } else if (type === 'hls') {
+          const hlsIdx = parseInt(el.dataset.hlsIdx);
+          if (hlsInstance) {
+            hlsInstance.audioTrack = hlsIdx;
+            showToast(`Audio: ${el.querySelector('.lang-label').innerText}`);
+          }
+        } else if (type === 'embedded') {
+          const nIdx = parseInt(el.dataset.nativeIdx);
+          if (videoEl.audioTracks) {
+            Array.from(videoEl.audioTracks).forEach((t, i) => t.enabled = (i === nIdx));
+            showToast(`Audio: ${el.querySelector('.lang-label').innerText}`);
+          }
+        }
+        document.getElementById('settingsModal').classList.remove('active');
+      };
+    });
   }
 
   document.querySelectorAll('#qualityOptionsList .q-item').forEach(item => {
@@ -2438,32 +2542,6 @@
     if (matchedIdx !== -1) {
       hlsInstance.currentLevel = matchedIdx;
     }
-  }
-
-  function populateM3u8DynamicAudio(audioTracks) {
-    if (!audioTracks || audioTracks.length <= 1) return;
-    const list = document.getElementById('audioOptionsList');
-    list.innerHTML = '';
-
-    audioTracks.forEach((track, idx) => {
-      list.innerHTML += `
-        <div class="lang-item" data-track="${idx}">
-          <div class="lang-check">${idx === 0 ? '✓' : ''}</div>
-          <div><div class="lang-label">${track.name || track.lang || `Audio ${idx+1}`}</div></div>
-        </div>
-      `;
-    });
-
-    document.querySelectorAll('#audioOptionsList .lang-item').forEach(el => {
-      el.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
-        el.querySelector('.lang-check').innerText = '✓';
-        const trackIdx = parseInt(el.dataset.track);
-        if (hlsInstance) hlsInstance.audioTrack = trackIdx;
-        document.getElementById('settingsModal').classList.remove('active');
-      };
-    });
   }
 
   function playDashMPD(mpdUrl, keyId, key, savedTime) {
@@ -2536,39 +2614,7 @@
   }
 
   function setupAudioOptions(ch) {
-    const list = document.getElementById('audioOptionsList');
-    list.innerHTML = '';
-    const defaultLang = ch.Language || 'Hindi';
-    const multiLang = ch["Multi-Language"] || ch.multiLanguage || {};
-
-    list.innerHTML += `
-      <div class="lang-item" data-stream="${safeUrl(ch.Stream)}">
-        <div class="lang-check">✓</div>
-        <div>
-          <div class="lang-label">${defaultLang}</div>
-        </div>
-      </div>
-    `;
-
-    Object.keys(multiLang).forEach(k => {
-      list.innerHTML += `
-        <div class="lang-item" data-stream="${safeUrl(multiLang[k])}">
-          <div class="lang-check"></div>
-          <div><div class="lang-label">${k}</div></div>
-        </div>
-      `;
-    });
-
-    document.querySelectorAll('#audioOptionsList .lang-item').forEach(el => {
-      el.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#audioOptionsList .lang-item').forEach(i => i.querySelector('.lang-check').innerText = '');
-        el.querySelector('.lang-check').innerText = '✓';
-        const stream = el.dataset.stream;
-        if (stream) startStreamPlayback({ Stream: stream, Studio: ch.Studio, Partner: ch.Partner });
-        document.getElementById('settingsModal').classList.remove('active');
-      };
-    });
+    extractNativeTracks(document.getElementById('nativeVideoPlayer'), ch);
   }
 
   function setupSubtitleOptions(tracks) {
@@ -3032,7 +3078,6 @@
     const seasonKeys = Object.keys(showDocData).filter(k => k.toLowerCase().startsWith('season'));
     if (seasonKeys.length === 0) return;
 
-    // Last Season First
     seasonKeys.sort((a, b) => {
       const numA = parseInt(a.replace(/\D/g, '')) || 0;
       const numB = parseInt(b.replace(/\D/g, '')) || 0;
