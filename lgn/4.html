@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Settings</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/knox-app/cloud/d235b91b67a58037117f8f0c2d1391ffd209a463/logo/ca81fecf-2d54-4aea-8de0-f189a43e1002.png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/knox-app/cloud/d235b91b67a58037117f8f0c2d1391ffd209a463/logo/ca81fecf-2d54-4aea-8de0-f189a43e1002.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -90,36 +95,23 @@
             padding: 1rem 2rem;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
         }
 
         .nav-brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-weight: 600;
             font-size: 1.05rem;
             letter-spacing: -0.02em;
         }
 
-        .sync-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            background: var(--surface-subtle);
-            padding: 4px 10px;
-            border-radius: var(--radius-full);
-            border: 1px solid var(--border-subtle);
-        }
-
-        .sync-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #10b981;
-            box-shadow: 0 0 6px #10b981;
+        .nav-brand img {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            object-fit: cover;
         }
 
         /* Main Container */
@@ -367,11 +359,8 @@
 
 <header>
     <div class="nav-brand">
+        <img src="https://raw.githubusercontent.com/knox-app/cloud/d235b91b67a58037117f8f0c2d1391ffd209a463/logo/ca81fecf-2d54-4aea-8de0-f189a43e1002.png" alt="Logo">
         <span>Account</span>
-    </div>
-    <div class="sync-badge" title="Live Sync Active">
-        <span class="sync-dot"></span>
-        <span>Live Sync</span>
     </div>
 </header>
 
@@ -537,82 +526,3 @@
             'kids': 'Kids Account',
             'personal': 'Personal Account'
         };
-        const badgeText = typeLabels[type] || 'Personal Account';
-        document.getElementById('accountBadge').innerText = badgeText;
-        document.getElementById('valType').innerText = badgeText;
-
-        // DP / Avatar Image Lazy Loading
-        const avatarInitialElem = document.getElementById('avatarInitial');
-        const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
-        avatarInitialElem.innerText = initial;
-
-        const avatarImg = document.getElementById('avatarImage');
-        if (profilePicUrl) {
-            avatarImg.src = profilePicUrl;
-            avatarImg.onload = () => {
-                avatarImg.classList.add('loaded');
-                avatarInitialElem.style.display = 'none';
-            };
-            avatarImg.onerror = () => {
-                avatarImg.style.display = 'none';
-                avatarInitialElem.style.display = 'block';
-            };
-        } else {
-            avatarImg.style.display = 'none';
-            avatarInitialElem.style.display = 'block';
-        }
-    }
-
-    // 5. Initial LocalStorage Hydration & Firebase Real-Time Listener
-    const activeUserStr = localStorage.getItem('active_user');
-
-    if (!activeUserStr) {
-        const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
-        window.location.href = dest;
-    } else {
-        try {
-            let activeUser = JSON.parse(activeUserStr);
-            renderUserData(activeUser);
-
-            // Document ID from Firestore is the Lotus ID or document key
-            const docId = activeUser["Lotus"] || activeUser["UARM ID"];
-
-            if (docId) {
-                // Realtime Sync with Firestore (collection: UARM)
-                db.collection("UARM").doc(docId).onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const cloudData = doc.data();
-                        
-                        // Merge and save updated changes into LocalStorage
-                        const mergedUser = { ...activeUser, ...cloudData };
-                        localStorage.setItem('active_user', JSON.stringify(mergedUser));
-                        
-                        // Update UI seamlessly
-                        renderUserData(mergedUser);
-                    }
-                }, (error) => {
-                    console.warn("Firestore live sync warning:", error);
-                });
-            }
-        } catch (e) {
-            console.error("User parsing failed:", e);
-            const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
-            window.location.href = dest;
-        }
-    }
-
-    // 6. Action Handlers
-    function goToSwitch() {
-        const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
-        window.location.href = dest;
-    }
-
-    document.getElementById('switchAccountBtn').onclick = goToSwitch;
-
-    document.getElementById('logoutBtn').onclick = () => {
-        localStorage.removeItem('active_user');
-        goToSwitch();
-    };
-</script>
-</body>
-</html>
