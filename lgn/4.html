@@ -3,151 +3,531 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile</title>
+    <title>Account Settings & Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* CSS Variables for Dynamic Light/Dark Mode */
         :root {
-            --bg-color: #f5f5f5;
-            --card-bg: #ffffff;
-            --text-primary: #000000;
-            --text-secondary: #666666;
-            --info-row-border: #eeeeee;
-            --info-grid-bg: #fafafa;
-            --btn-border: #d32f2f;
-            --btn-text: #d32f2f;
-            --btn-hover-bg: #d32f2f;
-            --btn-hover-text: #ffffff;
-            --switch-bg: #eeeeee;
-            --switch-text: #333333;
+            --bg-page: #f8f9fa;
+            --surface-card: #ffffff;
+            --surface-subtle: #f3f4f6;
+            --surface-hover: #e5e7eb;
+            --border-subtle: rgba(0, 0, 0, 0.07);
+            --border-focus: rgba(0, 0, 0, 0.15);
+            --text-main: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --accent-primary: #000000;
+            --accent-primary-text: #ffffff;
+            --accent-badge-bg: rgba(0, 0, 0, 0.05);
+            --accent-badge-text: #1e293b;
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.08);
+            --danger-hover: #dc2626;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px -2px rgba(0,0,0,0.06), 0 2px 6px -1px rgba(0,0,0,0.04);
+            --blur-nav: blur(20px);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 8px;
+            --shimmer-bg: linear-gradient(90deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
         }
 
         body.dark {
-            --bg-color: #000000;
-            --card-bg: #111111;
-            --text-primary: #ffffff;
-            --text-secondary: #aaaaaa;
-            --info-row-border: #222222;
-            --info-grid-bg: #1a1a1a;
-            --btn-border: #ff4d4d;
-            --btn-text: #ff4d4d;
-            --btn-hover-bg: #ff4d4d;
-            --btn-hover-text: #ffffff;
-            --switch-bg: #333333;
-            --switch-text: #dddddd;
+            --bg-page: #090a0f;
+            --surface-card: #12141a;
+            --surface-subtle: #1a1d26;
+            --surface-hover: #222634;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-focus: rgba(255, 255, 255, 0.2);
+            --text-main: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-primary: #ffffff;
+            --accent-primary-text: #090a0f;
+            --accent-badge-bg: rgba(255, 255, 255, 0.08);
+            --accent-badge-text: #f1f5f9;
+            --danger: #f87171;
+            --danger-bg: rgba(248, 113, 113, 0.1);
+            --danger-hover: #ef4444;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.5);
+            --shimmer-bg: linear-gradient(90deg, #161922 0%, #252a3a 50%, #161922 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            color: var(--text-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .card {
-            max-width: 500px;
-            margin: 50px auto;
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            text-align: center;
-            transition: background-color 0.3s ease;
-        }
-
-        .avatar-large {
-            width: 80px;
-            height: 80px;
-            background: var(--text-primary);
-            color: var(--card-bg);
-            border-radius: 50%;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        /* Top Navigation Header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(var(--bg-page), 0.75);
+            backdrop-filter: var(--blur-nav);
+            -webkit-backdrop-filter: var(--blur-nav);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0.85rem 2rem;
+            display: flex;
             align-items: center;
-            font-size: 32px;
-            font-weight: bold;
-            margin: 0 auto 20px;
-            transition: background-color 0.3s, color 0.3s;
+            justify-content: space-between;
         }
 
-        h1 { margin: 0 0 5px 0; font-size: 24px; color: var(--text-primary); }
-        p { color: var(--text-secondary); margin: 0 0 20px 0; }
-        
-        .info-grid {
-            text-align: left;
-            background: var(--info-grid-bg);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            transition: background-color 0.3s;
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: -0.3px;
         }
 
-        .info-row { padding: 10px 0; border-bottom: 1px solid var(--info-row-border); display: flex; justify-content: space-between; }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { font-weight: 600; color: var(--text-primary); }
-        
+        .nav-brand svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--text-main);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Container Layout */
+        .main-container {
+            max-width: 1080px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+            flex: 1;
+        }
+
+        /* Hero Profile Banner */
+        .profile-hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 36px;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 36px;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .profile-identity {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .avatar-container {
+            position: relative;
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            border: 2px solid var(--border-focus);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            background: var(--surface-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        .avatar-img.loaded {
+            opacity: 1;
+        }
+
+        .avatar-fallback {
+            position: absolute;
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-transform: uppercase;
+        }
+
+        .profile-headings h1 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 4px;
+        }
+
+        .profile-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .profile-email-sub {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        .account-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: var(--accent-badge-bg);
+            color: var(--accent-badge-text);
+            border: 1px solid var(--border-subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-action-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Buttons */
         .btn {
-            background: transparent;
-            color: var(--btn-text);
-            border: 1px solid var(--btn-border);
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 15px;
-            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
             font-weight: 600;
-            transition: all 0.2s;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid transparent;
+            text-decoration: none;
         }
 
-        .btn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-text); }
-        
-        .switch-btn {
-            background: var(--switch-bg);
-            color: var(--switch-text);
-            border: none;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 15px;
-            cursor: pointer;
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-primary);
+            color: var(--accent-primary-text);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-subtle);
+            color: var(--text-main);
+            border-color: var(--border-subtle);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--surface-hover);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-bg);
+            color: var(--danger);
+            border-color: transparent;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger);
+            color: #ffffff;
+        }
+
+        /* Bento Grid Sections */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+
+        .grid-col-8 {
+            grid-column: span 8;
+        }
+
+        .grid-col-4 {
+            grid-column: span 4;
+        }
+
+        .grid-col-12 {
+            grid-column: span 12;
+        }
+
+        @media (max-width: 900px) {
+            .grid-col-8, .grid-col-4 {
+                grid-column: span 12;
+            }
+        }
+
+        .bento-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .bento-card:hover {
+            border-color: var(--border-focus);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
             font-weight: 600;
-            margin-right: 10px;
-            transition: background-color 0.3s, color 0.3s;
+            letter-spacing: -0.02em;
+        }
+
+        .card-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Details List */
+        .data-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.92rem;
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .data-row:first-child {
+            padding-top: 0;
+        }
+
+        .data-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .data-value {
+            color: var(--text-main);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .code-pill {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            letter-spacing: -0.2px;
+        }
+
+        /* Skeleton Loaders */
+        .skeleton {
+            background-size: 200% 100%;
+            background-image: var(--shimmer-bg);
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .skeleton-text {
+            height: 16px;
+            width: 140px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Subtle Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-focus);
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="avatar-large" id="profAvatar">U</div>
-    <h1 id="profName">Loading...</h1>
-    <p id="profType">Personal Account</p>
+<header>
+    <div class="nav-brand">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+        </svg>
+        <span>Account Central</span>
+    </div>
+    <div class="nav-actions">
+        <button class="btn btn-secondary" id="navSwitchBtn">Switch User</button>
+        <button class="btn btn-danger" id="navLogoutBtn">Sign out</button>
+    </div>
+</header>
 
-    <div class="info-grid">
-        <div class="info-row">
-            <span class="info-label">Email</span>
-            <span id="profEmail">...</span>
+<main class="main-container">
+    <!-- Hero Profile Section -->
+    <section class="profile-hero">
+        <div class="profile-identity">
+            <div class="avatar-container">
+                <span class="avatar-fallback" id="avatarInitial"></span>
+                <img id="avatarImage" class="avatar-img" alt="Profile Picture" loading="lazy">
+            </div>
+            <div class="profile-headings">
+                <h1 id="fullName"><span class="skeleton skeleton-text" style="width: 200px; height: 28px;"></span></h1>
+                <div class="profile-meta-row">
+                    <span class="profile-email-sub" id="primaryEmail"><span class="skeleton skeleton-text"></span></span>
+                    <span class="account-badge" id="accountBadge">Personal</span>
+                </div>
+            </div>
         </div>
-        <div class="info-row">
-            <span class="info-label">Phone Number</span>
-            <span id="profMobile">...</span>
+
+        <div class="profile-action-group">
+            <button class="btn btn-secondary" onclick="document.getElementById('navSwitchBtn').click()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Accounts
+            </button>
+            <button class="btn btn-primary" id="manageBtn">Manage Security</button>
         </div>
-        <div class="info-row">
-            <span class="info-label">Date of Birth</span>
-            <span id="profDob">...</span>
+    </section>
+
+    <!-- Bento Grid Section -->
+    <div class="bento-grid">
+        <!-- Personal Information -->
+        <div class="bento-card grid-col-8">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Personal Details</h2>
+                    <p class="card-description">Your primary personal and contact identifiers</p>
+                </div>
+            </div>
+            <div class="data-list">
+                <div class="data-row">
+                    <span class="data-label">First Name</span>
+                    <span class="data-value" id="valFirstName">—</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Last Name</span>
+                    <span class="data-value" id="valLastName">—</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Phone Number</span>
+                    <span class="data-value" id="valPhone">—</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Date of Birth</span>
+                    <span class="data-value" id="valDob">—</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Gender</span>
+                    <span class="data-value" id="valGender">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Tier & Team -->
+        <div class="bento-card grid-col-4">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Subscription & Team</h2>
+                    <p class="card-description">Workspace and privilege tier</p>
+                </div>
+            </div>
+            <div class="data-list">
+                <div class="data-row">
+                    <span class="data-label">Account Tier</span>
+                    <span class="data-value" id="valPlanBadge">Standard</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Team Email</span>
+                    <span class="data-value" id="valTeamEmail" style="word-break: break-all; max-width: 160px;">—</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Account Type</span>
+                    <span class="data-value" id="valAccountType">Personal</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security & System Metadata -->
+        <div class="bento-card grid-col-12">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Security & Identifiers</h2>
+                    <p class="card-description">Session tokens and system credentials</p>
+                </div>
+            </div>
+            <div class="data-list">
+                <div class="data-row">
+                    <span class="data-label">Recovery ID</span>
+                    <span class="data-value code-pill" id="valRecoveryId">—</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Lotus Session Key</span>
+                    <span class="data-value code-pill" id="valLotusKey">—</span>
+                </div>
+            </div>
         </div>
     </div>
-
-    <button class="switch-btn">Switch Account</button>
-    <button class="btn" id="logoutBtn">Sign out</button>
-</div>
+</main>
 
 <script>
-    // 1. Handle Google-style Multi-Account URL parameters (e.g., ?u=0 or ?user=1)
+    // 1. URL & Theme Configuration
     const urlParams = new URLSearchParams(window.location.search);
     const uParam = urlParams.has('u') ? urlParams.get('u') : urlParams.get('user');
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
 
-    /* ================= LIVE THEME ================= */
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     function applyTheme() {
@@ -167,13 +547,11 @@
     }
 
     applyTheme();
-
     mediaQuery.addEventListener("change", () => {
-        if (!theme) {
-            applyTheme();
-        }
+        if (!theme) applyTheme();
     });
 
+    // 2. Multi-Account URL Handling
     if (uParam !== null) {
         const index = parseInt(uParam, 10);
         let savedAccounts = [];
@@ -182,8 +560,7 @@
         } catch (e) {
             savedAccounts = [];
         }
-        
-        // Ensure the index actually exists in the user's saved accounts list
+
         if (!isNaN(index) && index >= 0 && index < savedAccounts.length) {
             const targetLotus = savedAccounts[index].lotus;
             let activeUser = {};
@@ -192,80 +569,111 @@
             } catch (e) {
                 activeUser = {};
             }
-            
-            // Only redirect to fetch new data if the requested user isn't already the active one
+
             if (activeUser["Lotus"] !== targetLotus) {
-                // Push them to the auto-login logic in 1.html using Capitalized parameter, then bounce right back here
-                let redirectUrl = `1.html?Lotus=${targetLotus}&continue=4.html`;
-                if (theme) {
-                    redirectUrl += `&theme=${theme}`;
-                }
+                let redirectUrl = `1.html?Lotus=${encodeURIComponent(targetLotus)}&continue=4.html`;
+                if (theme) redirectUrl += `&theme=${encodeURIComponent(theme)}`;
                 window.location.href = redirectUrl;
             }
         } else {
-            // Invalid user index (e.g. u=9 but they only have 2 accounts), redirect to chooser
-            const dest = theme ? `3.html?theme=${theme}` : '3.html';
+            const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
             window.location.href = dest;
         }
     }
 
-    // 2. Load active user from LocalStorage for UI Rendering
+    // 3. Populate User Data with Lazy Avatar Loading
     const activeUserStr = localStorage.getItem('active_user');
-    
+
     if (!activeUserStr) {
-        // Stop execution and go to login if absolutely no active user is found
-        const dest = theme ? `1.html?theme=${theme}` : '1.html';
+        const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
         window.location.href = dest;
     } else {
         try {
             const user = JSON.parse(activeUserStr);
-            
+
             const firstName = user["First Name"] || "";
             const lastName = user["Last Name"] || "";
-            const email = user["Email"] || "";
-            const phone = user["Phone Number"] || "N/A";
-            const dob = user["Date of Birth"] || "N/A";
-            const type = user["Type"] || "personal";
+            const fullName = `${firstName} ${lastName}`.trim() || "User";
+            const email = user["Email"] || "No email available";
+            const phone = user["Phone Number"] || "—";
+            const dob = user["Date of Birth"] || "—";
+            const gender = user["Gender"] || "—";
+            const type = (user["Type"] || "personal").toLowerCase();
+            const recoveryId = user["Recovery ID"] || "—";
+            const lotus = user["Lotus"] || "—";
+            const teamEmail = user["Team Gmail"] || "—";
+            const profilePicUrl = user["Profile_Picture"] || null;
 
-            document.getElementById('profName').innerText = `${firstName} ${lastName}`.trim() || "User";
-            document.getElementById('profEmail').innerText = email;
-            document.getElementById('profMobile').innerText = phone;
-            document.getElementById('profDob').innerText = dob;
+            // Update UI elements
+            document.getElementById('fullName').innerText = fullName;
+            document.getElementById('primaryEmail').innerText = email;
+            document.getElementById('valFirstName').innerText = firstName || "—";
+            document.getElementById('valLastName').innerText = lastName || "—";
+            document.getElementById('valPhone').innerText = phone;
+            document.getElementById('valDob').innerText = dob;
+            document.getElementById('valGender').innerText = gender;
+            document.getElementById('valTeamEmail').innerText = teamEmail;
+            document.getElementById('valRecoveryId').innerText = recoveryId;
+            document.getElementById('valLotusKey').innerText = lotus !== "—" ? lotus.slice(0, 16) + '...' : "—";
 
-            // Handle dynamic account type string
-            let typeString = 'Personal Account';
-            if (type === 'kids') {
-                typeString = 'Kids Account';
-            } else if (type === 'business') {
-                typeString = 'Business Account';
+            // Account Type Formatting
+            const typeLabels = {
+                'business': 'Business Account',
+                'kids': 'Kids Account',
+                'personal': 'Personal Account'
+            };
+            const badgeText = typeLabels[type] || 'Personal Account';
+            document.getElementById('accountBadge').innerText = badgeText;
+            document.getElementById('valAccountType').innerText = badgeText;
+
+            // Plan Formatting
+            if (user["Plans"] && Array.isArray(user["Plans"]) && user["Plans"].length > 0) {
+                document.getElementById('valPlanBadge').innerText = user["Plans"].join(", ");
+            } else {
+                document.getElementById('valPlanBadge').innerText = "Free Tier";
             }
-            document.getElementById('profType').innerText = typeString;
-            
+
+            // Fallback avatar initial
             const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
-            document.getElementById('profAvatar').innerText = initial;
+            const avatarInitialElem = document.getElementById('avatarInitial');
+            avatarInitialElem.innerText = initial;
+
+            // Lazy Profile Picture Handler
+            if (profilePicUrl) {
+                const avatarImg = document.getElementById('avatarImage');
+                avatarImg.src = profilePicUrl;
+                avatarImg.onload = () => {
+                    avatarImg.classList.add('loaded');
+                    avatarInitialElem.style.display = 'none';
+                };
+                avatarImg.onerror = () => {
+                    avatarImg.style.display = 'none';
+                    avatarInitialElem.style.display = 'block';
+                };
+            }
         } catch (e) {
-            console.error("Failed to parse active user data:", e);
-            const dest = theme ? `1.html?theme=${theme}` : '1.html';
+            console.error("Failed to render user data:", e);
+            const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
             window.location.href = dest;
         }
     }
 
-    // 3. Navigation Events preserving Theme Parameters
-    const switchBtn = document.querySelector('.switch-btn');
-    if (switchBtn) {
-        switchBtn.onclick = () => {
-            const dest = theme ? `3.html?theme=${theme}` : '3.html';
-            window.location.href = dest;
-        };
+    // 4. Action Handlers
+    function goToSwitch() {
+        const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
+        window.location.href = dest;
     }
 
-    // 4. Handle Logout
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-        localStorage.removeItem('active_user'); // Remove active session
-        // Note: we leave 'saved_accounts' so they appear in 3.html later
-        const dest = theme ? `3.html?theme=${theme}` : '3.html';
-        window.location.href = dest;
-    });
+    document.getElementById('navSwitchBtn').onclick = goToSwitch;
+
+    document.getElementById('navLogoutBtn').onclick = () => {
+        localStorage.removeItem('active_user');
+        goToSwitch();
+    };
+
+    document.getElementById('manageBtn').onclick = () => {
+        alert("Security management settings will be available shortly.");
+    };
 </script>
 </body>
 </html>
