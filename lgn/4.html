@@ -173,7 +173,8 @@
             height: 100%;
             object-fit: cover;
             opacity: 0;
-            transition: opacity 0.4s ease-in-out;
+            transition: opacity 0.3s ease-in-out;
+            display: block;
         }
 
         .avatar-img.loaded {
@@ -592,7 +593,8 @@
     <section class="profile-hero">
         <div class="avatar-container">
             <span class="avatar-fallback" id="avatarInitial"></span>
-            <img id="avatarImage" class="avatar-img" alt="Profile Picture" loading="lazy">
+            <!-- Added referrerpolicy="no-referrer" to prevent 403 Google image blocking -->
+            <img id="avatarImage" class="avatar-img" alt="Profile Picture" referrerpolicy="no-referrer">
         </div>
         <div class="profile-headings">
             <div class="name-row">
@@ -751,13 +753,13 @@
             activeUser = null;
         }
 
-        // If active_user is missing, auto-recover from saved_accounts so session NEVER expires
         if (!activeUser) {
             try {
                 const savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
                 if (savedAccounts.length > 0) {
                     activeUser = {
                         "Lotus": savedAccounts[0].lotus,
+                        "UARM ID": savedAccounts[0].uarmId || savedAccounts[0].lotus,
                         "First Name": savedAccounts[0].name ? savedAccounts[0].name.split(' ')[0] : '',
                         "Last Name": savedAccounts[0].name ? savedAccounts[0].name.split(' ').slice(1).join(' ') : '',
                         "Email": savedAccounts[0].email || '',
@@ -817,7 +819,7 @@
         };
     }
 
-    // 6. Render User Data
+    // 6. Render User Data (With Guaranteed Image Loading)
     let currentUserData = {};
 
     function renderUserData(user) {
@@ -831,7 +833,9 @@
         const phone = user["Phone Number"] || "—";
         const dob = user["Date of Birth"] || "—";
         const gender = user["Gender"] || "—";
-        const profilePicUrl = user["Profile_Picture"] || null;
+        
+        // Check all casing possibilities from Firestore & auth
+        const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["profile_picture"] || user["photoURL"] || null;
 
         document.getElementById('fullName').innerText = fullName;
         document.getElementById('primaryEmail').innerText = email;
@@ -852,23 +856,32 @@
         rowBadge.className = `account-badge ${badgeConfig.className}`;
         rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
 
+        // Avatar Initial / Profile Picture Display
         const avatarInitialElem = document.getElementById('avatarInitial');
         const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
         avatarInitialElem.innerText = initial;
 
         const avatarImg = document.getElementById('avatarImage');
-        if (profilePicUrl) {
+
+        if (profilePicUrl && profilePicUrl.trim() !== "") {
             avatarImg.src = profilePicUrl;
-            avatarImg.onload = () => {
+
+            // Handle pre-cached or fast loaded images
+            if (avatarImg.complete && avatarImg.naturalWidth > 0) {
                 avatarImg.classList.add('loaded');
                 avatarInitialElem.style.display = 'none';
-            };
-            avatarImg.onerror = () => {
-                avatarImg.style.display = 'none';
-                avatarInitialElem.style.display = 'block';
-            };
+            } else {
+                avatarImg.onload = () => {
+                    avatarImg.classList.add('loaded');
+                    avatarInitialElem.style.display = 'none';
+                };
+                avatarImg.onerror = () => {
+                    avatarImg.classList.remove('loaded');
+                    avatarInitialElem.style.display = 'block';
+                };
+            }
         } else {
-            avatarImg.style.display = 'none';
+            avatarImg.classList.remove('loaded');
             avatarInitialElem.style.display = 'block';
         }
     }
@@ -892,7 +905,7 @@
         return result;
     }
 
-    // 8. Self-Contained Firestore Live-Sync Engine (Runs directly on 4.html without visiting 3.html)
+    // 8. Self-Contained Direct Live-Sync Engine (No-Cache Polling)
     let syncRunning = false;
 
     async function syncUserDataFromCloud() {
@@ -910,42 +923,67 @@
         const uarmId = localUser["UARM ID"];
 
         try {
-            // Query Firestore directly to fetch live document
-            const queryFilter = uarmId 
-                ? { fieldPath: "UARM ID", op: "EQUAL", value: { stringValue: uarmId } }
-                : (lotus ? { fieldPath: "Lotus", op: "EQUAL", value: { stringValue: lotus } } : { fieldPath: "Email", op: "EQUAL", value: { stringValue: email } });
+            let docData = null;
+            let foundDocId = uarmId;
 
-            const queryPayload = {
-                structuredQuery: {
-                    from: [{ collectionId: COLLECTION_NAME }],
-                    where: { fieldFilter: queryFilter },
-                    limit: 1
-                }
-            };
+            // Strategy 1: Direct Document GET (Fastest & Never Caches)
+            if (uarmId) {
+                try {
+                    const directRes = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${uarmId}?_t=${Date.now()}`, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+                    });
+                    if (directRes.ok) {
+                        const directJson = await directRes.json();
+                        if (directJson && directJson.fields) {
+                            docData = parseFirestoreFields(directJson.fields);
+                        }
+                    }
+                } catch (e) {}
+            }
 
-            const response = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(queryPayload)
-            });
+            // Strategy 2: If Direct GET wasn't possible, query by Lotus / Email
+            if (!docData && (lotus || email)) {
+                const queryFilter = lotus 
+                    ? { fieldPath: "Lotus", op: "EQUAL", value: { stringValue: lotus } }
+                    : { fieldPath: "Email", op: "EQUAL", value: { stringValue: email } };
 
-            const data = await response.json();
-            if (data && data[0] && data[0].document) {
-                const docPath = data[0].document.name;
-                const foundDocId = docPath.split('/').pop();
-                const cloudFields = parseFirestoreFields(data[0].document.fields);
-
-                const mergedUser = { 
-                    ...localUser, 
-                    ...cloudFields, 
-                    "UARM ID": foundDocId 
+                const queryPayload = {
+                    structuredQuery: {
+                        from: [{ collectionId: COLLECTION_NAME }],
+                        where: { fieldFilter: queryFilter },
+                        limit: 1
+                    }
                 };
 
-                // Update session
+                const response = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery?_t=${Date.now()}`, {
+                    method: 'POST',
+                    cache: 'no-store',
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+                    body: JSON.stringify(queryPayload)
+                });
+
+                const data = await response.json();
+                if (data && data[0] && data[0].document) {
+                    const docPath = data[0].document.name;
+                    foundDocId = docPath.split('/').pop();
+                    docData = parseFirestoreFields(data[0].document.fields);
+                }
+            }
+
+            // If new data arrived, update immediately
+            if (docData) {
+                const mergedUser = { 
+                    ...localUser, 
+                    ...docData, 
+                    "UARM ID": foundDocId || localUser["UARM ID"] 
+                };
+
                 localStorage.setItem('active_user', JSON.stringify(mergedUser));
                 renderUserData(mergedUser);
 
-                // Attach onSnapshot directly if not already attached
+                // Attach onSnapshot directly if available
                 if (!window._firestoreListenerAttached && foundDocId) {
                     window._firestoreListenerAttached = true;
                     try {
@@ -961,7 +999,7 @@
                 }
             }
         } catch (e) {
-            console.warn("Cloud sync check:", e);
+            console.warn("Cloud live sync check:", e);
         } finally {
             syncRunning = false;
         }
@@ -971,20 +1009,17 @@
     const activeUser = getActiveSessionUser();
 
     if (!activeUser) {
-        // Only redirect to login if there is no session anywhere in the browser
         const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
         window.location.href = dest;
     } else {
-        // Immediate local render
         renderUserData(activeUser);
 
-        // Immediate background cloud sync
+        // Immediate fetch from Firestore
         syncUserDataFromCloud();
 
-        // Active background sync every 3.5s for seamless multi-device updates
-        setInterval(syncUserDataFromCloud, 3500);
+        // 3-second live loop for instant cross-device updates without reloading
+        setInterval(syncUserDataFromCloud, 3000);
 
-        // Instant sync when user refocuses tab
         window.addEventListener('focus', syncUserDataFromCloud);
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') syncUserDataFromCloud();
@@ -1042,9 +1077,8 @@
         let docId = currentUserData["UARM ID"] || currentUserData["Lotus"];
 
         try {
-            // Direct REST update
             if (docId) {
-                const patchUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${encodeURIComponent(docId)}?updateMask.fieldPaths=First%20Name&updateMask.fieldPaths=Last%20Name`;
+                const patchUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${encodeURIComponent(docId)}?updateMask.fieldPaths=First%20Name&updateMask.fieldPaths=Last%20Name&_t=${Date.now()}`;
                 await fetch(patchUrl, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -1057,7 +1091,6 @@
                 });
             }
 
-            // Also try Web SDK set
             try {
                 if (docId) {
                     await db.collection(COLLECTION_NAME).doc(docId).set({
@@ -1067,12 +1100,10 @@
                 }
             } catch (sdkErr) {}
 
-            // Update Session Data
             currentUserData["First Name"] = newFirst;
             currentUserData["Last Name"] = newLast;
             localStorage.setItem('active_user', JSON.stringify(currentUserData));
 
-            // Sync saved accounts list
             try {
                 let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
                 const accIndex = savedAccounts.findIndex(acc => acc.lotus === currentUserData["Lotus"] || acc.lotus === docId);
@@ -1084,6 +1115,7 @@
 
             renderUserData(currentUserData);
             closeEditModal();
+            syncUserDataFromCloud();
         } catch (err) {
             console.error("Save error:", err);
             currentUserData["First Name"] = newFirst;
@@ -1105,7 +1137,6 @@
 
     document.getElementById('switchAccountBtn').onclick = goToSwitch;
 
-    // Explicit Sign Out: Only action that clears user session
     document.getElementById('logoutBtn').onclick = () => {
         localStorage.removeItem('active_user');
         goToSwitch();
