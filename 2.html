@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enter Password</title>
     <style>
-        /* CSS Variables for Dynamic Light/Dark Mode */
         :root {
             --bg-color: #ffffff;
             --text-primary: #000000;
@@ -35,7 +34,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -46,19 +45,8 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        .container { 
-            text-align: center; 
-            max-width: 400px; 
-            width: 90%; 
-            padding: 20px; 
-        }
-        
-        h1 { 
-            font-size: 28px; 
-            font-weight: 600; 
-            margin-bottom: 5px; 
-            color: var(--text-primary); 
-        }
+        .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
+        h1 { font-size: 28px; font-weight: 600; margin-bottom: 5px; color: var(--text-primary); }
         
         .user-badge {
             display: inline-block;
@@ -69,15 +57,9 @@
             color: var(--badge-text);
             margin-bottom: 20px;
             font-weight: 500;
-            transition: background-color 0.3s, color 0.3s;
         }
 
-        .input-group { 
-            position: relative; 
-            margin-bottom: 20px; 
-            text-align: left; 
-        }
-        
+        .input-group { position: relative; margin-bottom: 20px; text-align: left; }
         .input-group label {
             position: absolute;
             top: -10px;
@@ -86,7 +68,6 @@
             padding: 0 5px;
             font-size: 12px;
             color: var(--text-secondary);
-            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         input[type="password"] {
@@ -99,12 +80,9 @@
             outline: none;
             background-color: var(--input-bg);
             color: var(--text-primary);
-            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
         }
 
-        input[type="password"]:focus { 
-            border-color: var(--input-focus); 
-        }
+        input[type="password"]:focus { border-color: var(--input-focus); }
 
         .btn {
             background: var(--btn-bg);
@@ -116,12 +94,9 @@
             font-size: 16px;
             cursor: pointer;
             margin-top: 10px;
-            transition: background 0.2s, color 0.2s;
         }
 
-        .btn:hover { 
-            background: var(--btn-hover); 
-        }
+        .btn:hover { background: var(--btn-hover); }
     </style>
 </head>
 <body>
@@ -160,34 +135,10 @@
     let currentUserDocId = null;
     let currentUserData = null;
 
-    /* ================= LIVE THEME ================= */
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-    function applyTheme() {
-        if (theme === "dark" || theme === "d") {
-            document.body.classList.add("dark");
-            return;
-        }
-        if (theme === "light" || theme === "l") {
-            document.body.classList.remove("dark");
-            return;
-        }
-        if (mediaQuery.matches) {
-            document.body.classList.add("dark");
-        } else {
-            document.body.classList.remove("dark");
-        }
+    if (theme === "dark" || theme === "d" || window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.body.classList.add("dark");
     }
 
-    applyTheme();
-
-    mediaQuery.addEventListener("change", () => {
-        if (!theme) {
-            applyTheme();
-        }
-    });
-
-    // Fetch user details by Lotus
     async function fetchUser() {
         try {
             if (!lotus) return window.location.href = '1.html';
@@ -210,17 +161,12 @@
     }
     fetchUser();
 
-    // Generate random alphanumeric string for new Lotus
     function generateNewLotus() {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
-    // Submit on Enter key press
-    document.getElementById('password').addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            document.getElementById('loginBtn').click();
-        }
+    document.getElementById('password').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('loginBtn').click();
     });
 
     document.getElementById('loginBtn').addEventListener('click', async () => {
@@ -231,45 +177,41 @@
 
         try {
             if (currentUserData["Password"] === pass) {
-                // 1. Update Lotus in DB for security
+                // 1. Refresh user Lotus
                 const newLotus = generateNewLotus();
                 await updateDoc(doc(db, "UARM", currentUserDocId), { "Lotus": newLotus });
-                currentUserData["Lotus"] = newLotus; // Update local reference
+                currentUserData["Lotus"] = newLotus;
 
-                // 2. Sync cross-device authentication via ASPX Keys
+                // 2. Notify QR Device via ASPX Keys
                 if (session) {
                     try {
-                        const sessionRef = doc(db, "ASPX Keys", session);
-                        await setDoc(sessionRef, {
+                        await setDoc(doc(db, "ASPX Keys", session), {
                             status: "authenticated",
-                            userData: currentUserData,
-                            updatedAt: new Date()
-                        }, { merge: true });
+                            userData: {
+                                "Email": currentUserData["Email"] || "",
+                                "First Name": currentUserData["First Name"] || "",
+                                "Lotus": newLotus
+                            },
+                            authenticatedAt: new Date().toISOString()
+                        });
+                        console.log("QR session document successfully updated:", session);
                     } catch (err) {
-                        console.error("Cross-device sync update error:", err);
+                        console.error("Failed to notify QR device:", err);
                     }
                 }
 
-                // 3. Save to Multi-Account System on current device
-                let accounts = [];
-                try {
-                    accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                } catch (e) {
-                    accounts = [];
-                }
-                
-                // Avoid duplicate accounts
+                // 3. Save locally on this phone/device
+                let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
                 accounts = accounts.filter(acc => acc.email !== currentUserData["Email"]);
                 accounts.push({
                     email: currentUserData["Email"],
                     firstName: currentUserData["First Name"] || "",
                     lotus: newLotus
                 });
-                
                 localStorage.setItem('saved_accounts', JSON.stringify(accounts));
                 localStorage.setItem('active_user', JSON.stringify(currentUserData));
 
-                // 4. Redirect
+                // 4. Redirect current device
                 window.location.href = continueUrl;
             } else {
                 alert("Incorrect password");
