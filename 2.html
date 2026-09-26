@@ -1,645 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Live Stream Player</title>
-  <!-- HLS.js for .m3u8 streaming -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <!-- Remix Icons for crisp media icons -->
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter Password</title>
+    <style>
+        /* CSS Variables for Dynamic Light/Dark Mode */
+        :root {
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #555555;
+            --input-border: #dddddd;
+            --input-focus: #000000;
+            --input-bg: #ffffff;
+            --btn-bg: #111111;
+            --btn-text: #ffffff;
+            --btn-hover: #333333;
+            --badge-bg: #f0f0f0;
+            --badge-text: #333333;
+        }
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    body, html {
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      overflow: hidden;
-    }
-    .player-wrapper {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-    video, .yt-frame-container {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-    /* Touch Shield over YouTube to route touches/clicks through custom controls */
-    .touch-shield {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 2;
-      background: transparent;
-    }
+        body.dark {
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --input-border: #3a3a3a;
+            --input-focus: #ffffff;
+            --input-bg: #000000;
+            --btn-bg: #ffffff;
+            --btn-text: #000000;
+            --btn-hover: #e0e0e0;
+            --badge-bg: #222222;
+            --badge-text: #dddddd;
+        }
 
-    /* Top Metadata Overlay */
-    .top-bar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 10;
-      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-    .channel-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .badge-live {
-      background: #ef4444;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .badge-live::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      background: #fff;
-      border-radius: 50%;
-      animation: pulse 1.2s infinite ease-in-out;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.3; transform: scale(0.8); }
-    }
-    .stream-meta {
-      display: flex;
-      flex-direction: column;
-    }
-    .stream-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #fff;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
-    }
-    .stream-channel {
-      font-size: 0.85rem;
-      color: #a1a1aa;
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
 
-    /* Bottom Player Controls */
-    .bottom-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 16px 20px;
-      background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-    .progress-bar-container {
-      width: 100%;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 3px;
-      cursor: pointer;
-      position: relative;
-    }
-    .progress-bar {
-      height: 100%;
-      background: #6366f1;
-      width: 0%;
-      border-radius: 3px;
-      position: relative;
-    }
-    .controls-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .controls-left, .controls-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .ctrl-btn {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 1.4rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      transition: background-color 0.2s;
-    }
-    .ctrl-btn:hover {
-      background: rgba(255,255,255,0.1);
-    }
-    .volume-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .volume-slider {
-      -webkit-appearance: none;
-      width: 70px;
-      height: 4px;
-      background: rgba(255,255,255,0.3);
-      border-radius: 2px;
-      outline: none;
-    }
-    .volume-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #fff;
-      cursor: pointer;
-    }
-    .time-stamp {
-      font-size: 0.85rem;
-      color: #d4d4d8;
-    }
+        .container { 
+            text-align: center; 
+            max-width: 400px; 
+            width: 90%; 
+            padding: 20px; 
+        }
+        
+        h1 { 
+            font-size: 28px; 
+            font-weight: 600; 
+            margin-bottom: 5px; 
+            color: var(--text-primary); 
+        }
+        
+        .user-badge {
+            display: inline-block;
+            background: var(--badge-bg);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--badge-text);
+            margin-bottom: 20px;
+            font-weight: 500;
+            transition: background-color 0.3s, color 0.3s;
+        }
 
-    /* Unmute / Autoplay Blocker Fallback */
-    .unmute-box {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 20;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid rgba(255,255,255,0.15);
-      padding: 14px 24px;
-      border-radius: 30px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      color: #fff;
-      backdrop-filter: blur(8px);
-    }
+        .input-group { 
+            position: relative; 
+            margin-bottom: 20px; 
+            text-align: left; 
+        }
+        
+        .input-group label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-color);
+            padding: 0 5px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
 
-    /* Hidden UI State */
-    .controls-hidden {
-      opacity: 0 !important;
-      visibility: hidden !important;
-    }
-    .hidden {
-      display: none !important;
-    }
+        input[type="password"] {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            box-sizing: border-box;
+            outline: none;
+            background-color: var(--input-bg);
+            color: var(--text-primary);
+            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
+        }
 
-    /* Responsive Mobile Queries */
-    @media (max-width: 768px) {
-      .volume-group {
-        display: none; /* Hide volume slider on mobile, hardware buttons handle this */
-      }
-      .stream-title {
-        font-size: 0.95rem;
-      }
-      .top-bar {
-        padding: 14px;
-      }
-      .bottom-bar {
-        padding: 10px 14px;
-      }
-      .ctrl-btn {
-        font-size: 1.25rem;
-      }
-    }
-  </style>
+        input[type="password"]:focus { 
+            border-color: var(--input-focus); 
+        }
+
+        .btn {
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            padding: 16px;
+            width: 100%;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .btn:hover { 
+            background: var(--btn-hover); 
+        }
+    </style>
 </head>
 <body>
 
-<div class="player-wrapper" id="playerWrapper">
-  
-  <!-- Touch layer to toggle controls -->
-  <div class="touch-shield" id="touchShield"></div>
+<div class="container">
+    <h1>Welcome</h1>
+    <div class="user-badge" id="userEmailDisplay">Loading...</div>
 
-  <!-- Video Engine Nodes -->
-  <video id="hlsVideo" playsinline preload="auto" class="hidden"></video>
-  <div id="ytContainer" class="yt-frame-container hidden"></div>
-
-  <!-- Unmute Floating CTA -->
-  <div id="unmutePrompt" class="unmute-box hidden">
-    <i class="ri-volume-mute-fill"></i>
-    <span>Tap to Unmute</span>
-  </div>
-
-  <!-- Overlay: Header Info -->
-  <div class="top-bar" id="topBar">
-    <div class="channel-info">
-      <div class="badge-live">LIVE</div>
-      <div class="stream-meta">
-        <div class="stream-title" id="displayTitle">Fetching Stream...</div>
-        <div class="stream-channel" id="displayChannel">Channel Feed</div>
-      </div>
+    <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="">
     </div>
-  </div>
 
-  <!-- Overlay: Footer Controls -->
-  <div class="bottom-bar" id="bottomBar">
-    <div class="progress-bar-container" id="progressBarContainer">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
-    
-    <div class="controls-row">
-      <div class="controls-left">
-        <button class="ctrl-btn" id="playBtn"><i class="ri-play-fill"></i></button>
-        <div class="volume-group">
-          <button class="ctrl-btn" id="muteBtn"><i class="ri-volume-up-line"></i></button>
-          <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1" />
-        </div>
-        <span class="time-stamp" id="timeDisplay">00:00:00</span>
-      </div>
-
-      <div class="controls-right">
-        <button class="ctrl-btn" id="syncLiveBtn" title="Jump to sync live"><i class="ri-broadcast-line"></i></button>
-        <button class="ctrl-btn" id="fullscreenBtn"><i class="ri-fullscreen-line"></i></button>
-      </div>
-    </div>
-  </div>
-
+    <button class="btn" id="loginBtn">Login</button>
 </div>
 
-<!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
-    authDomain: "internal-systems-46728.firebaseapp.com",
-    projectId: "internal-systems-46728",
-    storageBucket: "internal-systems-46728.firebasestorage.app",
-    messagingSenderId: "172177452674",
-    appId: "1:172177452674:web:155a2417da5531dd7ece9b",
-    measurementId: "G-Y87B8VRQ1N"
-  };
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        projectId: "question-metabase"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  // Setup References
-  const params = new URLSearchParams(window.location.search);
-  const channelSlug = params.get("channel");
-
-  const wrapper = document.getElementById("playerWrapper");
-  const touchShield = document.getElementById("touchShield");
-  const hlsVideo = document.getElementById("hlsVideo");
-  const ytContainer = document.getElementById("ytContainer");
-  const topBar = document.getElementById("topBar");
-  const bottomBar = document.getElementById("bottomBar");
-  const playBtn = document.getElementById("playBtn");
-  const muteBtn = document.getElementById("muteBtn");
-  const volumeSlider = document.getElementById("volumeSlider");
-  const fullscreenBtn = document.getElementById("fullscreenBtn");
-  const syncLiveBtn = document.getElementById("syncLiveBtn");
-  const displayTitle = document.getElementById("displayTitle");
-  const displayChannel = document.getElementById("displayChannel");
-  const timeDisplay = document.getElementById("timeDisplay");
-  const progressBar = document.getElementById("progressBar");
-  const unmutePrompt = document.getElementById("unmutePrompt");
-
-  let hlsInstance = null;
-  let ytPlayer = null;
-  let activeMode = null; // 'movie' | 'tv'
-  let isPlaying = false;
-  let currentSlot = null;
-  let channelSchedule = [];
-  let controlsTimeout = null;
-
-  // Auto Hide Overlay Logic
-  function showControls() {
-    topBar.classList.remove("controls-hidden");
-    bottomBar.classList.remove("controls-hidden");
-    clearTimeout(controlsTimeout);
-    controlsTimeout = setTimeout(() => {
-      if (isPlaying) {
-        topBar.classList.add("controls-hidden");
-        bottomBar.classList.add("controls-hidden");
-      }
-    }, 3500);
-  }
-
-  touchShield.addEventListener("mousemove", showControls);
-  touchShield.addEventListener("click", () => {
-    if (topBar.classList.contains("controls-hidden")) {
-      showControls();
-    } else {
-      topBar.classList.add("controls-hidden");
-      bottomBar.classList.add("controls-hidden");
-    }
-  });
-
-  // Mobile Double-tap gesture (left: -10s, right: +10s)
-  let lastTap = 0;
-  touchShield.addEventListener("touchend", (e) => {
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - lastTap;
-    if (tapLength < 300 && tapLength > 0) {
-      const touchX = e.changedTouches[0].clientX;
-      const screenWidth = window.innerWidth;
-      if (touchX > screenWidth / 2) {
-        seekRelative(10);
-      } else {
-        seekRelative(-10);
-      }
-    } else {
-      showControls();
-    }
-    lastTap = currentTime;
-  });
-
-  function seekRelative(seconds) {
-    if (activeMode === "movie") {
-      hlsVideo.currentTime += seconds;
-    } else if (ytPlayer && ytPlayer.getCurrentTime) {
-      ytPlayer.seekTo(ytPlayer.getCurrentTime() + seconds, true);
-    }
-  }
-
-  // Live Slot Calculation
-  function timeToMinutes(t) {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-  }
-
-  function getActiveSlot() {
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    for (let slot of channelSchedule) {
-      const start = timeToMinutes(slot.from);
-      const end = timeToMinutes(slot.to);
-
-      let isActive = start < end 
-        ? currentMinutes >= start && currentMinutes < end
-        : currentMinutes >= start || currentMinutes < end;
-
-      if (isActive) {
-        const elapsedMinutes = currentMinutes >= start 
-          ? (currentMinutes - start) 
-          : (1440 - start + currentMinutes);
-        return { slot, elapsedSeconds: (elapsedMinutes * 60) + now.getSeconds() };
-      }
-    }
-    return null;
-  }
-
-  // Synchronizer
-  function checkScheduleSync() {
-    const active = getActiveSlot();
-    if (!active) {
-      displayTitle.innerText = "Channel Off-Air";
-      stopAll();
-      return;
-    }
-
-    if (currentSlot && currentSlot.title === active.slot.title) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const session = urlParams.get('session');
+    const lotus = urlParams.get('lotus') || urlParams.get('Lotus');
+    const continueUrl = urlParams.get('continue') || '4.html';
+    const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
     
-    currentSlot = active.slot;
-    displayTitle.innerText = active.slot.title;
-    stopAll();
+    let currentUserDocId = null;
+    let currentUserData = null;
 
-    if (active.slot.type === "movie") {
-      activeMode = "movie";
-      hlsVideo.classList.remove("hidden");
-      playMovie(active.slot.streamUrl, active.elapsedSeconds);
-    } else {
-      activeMode = "tv";
-      ytContainer.classList.remove("hidden");
-      playTV(active.slot.playlistId, active.slot.mode, active.slot.startIndex, active.elapsedSeconds);
-    }
-  }
+    /* ================= LIVE THEME ================= */
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-  function stopAll() {
-    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-    hlsVideo.pause();
-    hlsVideo.src = "";
-    hlsVideo.classList.add("hidden");
-
-    if (ytPlayer && ytPlayer.destroy) { ytPlayer.destroy(); ytPlayer = null; }
-    ytContainer.innerHTML = "";
-    ytContainer.classList.add("hidden");
-  }
-
-  // Players Management
-  function playMovie(url, offset) {
-    if (Hls.isSupported() && url.includes(".m3u8")) {
-      hlsInstance = new Hls({ startPosition: offset });
-      hlsInstance.loadSource(url);
-      hlsInstance.attachMedia(hlsVideo);
-      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-        hlsVideo.play().catch(handleAutoplayBlock);
-      });
-    } else {
-      hlsVideo.src = url;
-      hlsVideo.currentTime = offset;
-      hlsVideo.play().catch(handleAutoplayBlock);
-    }
-  }
-
-  function playTV(playlistId, mode, startIndex, offset) {
-    const tempDiv = document.createElement("div");
-    tempDiv.id = "ytFrame";
-    ytContainer.appendChild(tempDiv);
-
-    ytPlayer = new YT.Player("ytFrame", {
-      height: "100%",
-      width: "100%",
-      playerVars: {
-        listType: "playlist",
-        list: playlistId,
-        autoplay: 1,
-        index: startIndex || 0,
-        start: offset,
-        controls: 0,
-        disablekb: 1,
-        rel: 0
-      },
-      events: {
-        onReady: (e) => {
-          if (mode === "random") {
-            e.target.setShuffle(true);
-            e.target.nextVideo();
-          }
-          e.target.playVideo();
-        },
-        onStateChange: (e) => {
-          if (e.data === YT.PlayerState.PLAYING) {
-            isPlaying = true;
-            updatePlayIcon(true);
-          } else if (e.data === YT.PlayerState.PAUSED) {
-            isPlaying = false;
-            updatePlayIcon(false);
-          }
+    function applyTheme() {
+        if (theme === "dark" || theme === "d") {
+            document.body.classList.add("dark");
+            return;
         }
-      }
+        if (theme === "light" || theme === "l") {
+            document.body.classList.remove("dark");
+            return;
+        }
+        if (mediaQuery.matches) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    }
+
+    applyTheme();
+
+    mediaQuery.addEventListener("change", () => {
+        if (!theme) {
+            applyTheme();
+        }
     });
-  }
 
-  function handleAutoplayBlock() {
-    unmutePrompt.classList.remove("hidden");
-    hlsVideo.muted = true;
-    hlsVideo.play();
-  }
-
-  unmutePrompt.addEventListener("click", () => {
-    if (activeMode === "movie") {
-      hlsVideo.muted = false;
-    } else if (ytPlayer) {
-      ytPlayer.unMute();
+    // Fetch user details by Lotus
+    async function fetchUser() {
+        try {
+            if (!lotus) return window.location.href = '1.html';
+            const q = query(collection(db, "UARM"), where("Lotus", "==", lotus));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                currentUserDocId = querySnapshot.docs[0].id;
+                currentUserData = querySnapshot.docs[0].data();
+                document.getElementById('userEmailDisplay').innerText = currentUserData["Email"];
+            } else {
+                alert("Security token invalid.");
+                window.location.href = '1.html';
+            }
+        } catch (error) {
+            console.error("Fetch user error:", error);
+            alert("Database connection error.");
+            window.location.href = '1.html';
+        }
     }
-    unmutePrompt.classList.add("hidden");
-  });
+    fetchUser();
 
-  // UI Updates & Controls
-  function updatePlayIcon(playing) {
-    playBtn.innerHTML = playing ? '<i class="ri-pause-fill"></i>' : '<i class="ri-play-fill"></i>';
-  }
-
-  playBtn.addEventListener("click", () => {
-    if (activeMode === "movie") {
-      if (hlsVideo.paused) { hlsVideo.play(); updatePlayIcon(true); }
-      else { hlsVideo.pause(); updatePlayIcon(false); }
-    } else if (ytPlayer) {
-      const state = ytPlayer.getPlayerState();
-      if (state === 1) { ytPlayer.pauseVideo(); updatePlayIcon(false); }
-      else { ytPlayer.playVideo(); updatePlayIcon(true); }
-    }
-  });
-
-  hlsVideo.addEventListener("play", () => updatePlayIcon(true));
-  hlsVideo.addEventListener("pause", () => updatePlayIcon(false));
-
-  muteBtn.addEventListener("click", () => {
-    if (activeMode === "movie") {
-      hlsVideo.muted = !hlsVideo.muted;
-      muteBtn.innerHTML = hlsVideo.muted ? '<i class="ri-volume-mute-fill"></i>' : '<i class="ri-volume-up-line"></i>';
-    } else if (ytPlayer) {
-      if (ytPlayer.isMuted()) {
-        ytPlayer.unMute();
-        muteBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
-      } else {
-        ytPlayer.mute();
-        muteBtn.innerHTML = '<i class="ri-volume-mute-fill"></i>';
-      }
-    }
-  });
-
-  volumeSlider.addEventListener("input", (e) => {
-    const val = parseFloat(e.target.value);
-    if (activeMode === "movie") {
-      hlsVideo.volume = val;
-    } else if (ytPlayer) {
-      ytPlayer.setVolume(val * 100);
-    }
-  });
-
-  fullscreenBtn.addEventListener("click", () => {
-    if (!document.fullscreenElement) {
-      wrapper.requestFullscreen().catch(err => alert(err.message));
-    } else {
-      document.exitFullscreen();
-    }
-  });
-
-  // Jump to actual live stream sync
-  syncLiveBtn.addEventListener("click", () => {
-    const active = getActiveSlot();
-    if (!active) return;
-    if (activeMode === "movie") {
-      hlsVideo.currentTime = active.elapsedSeconds;
-    } else if (ytPlayer) {
-      ytPlayer.seekTo(active.elapsedSeconds, true);
-    }
-  });
-
-  // Track progress & timer
-  setInterval(() => {
-    let curr = 0;
-    let dur = 0;
-
-    if (activeMode === "movie" && !hlsVideo.paused) {
-      curr = hlsVideo.currentTime;
-      dur = hlsVideo.duration || 1;
-    } else if (activeMode === "tv" && ytPlayer && ytPlayer.getCurrentTime) {
-      curr = ytPlayer.getCurrentTime();
-      dur = ytPlayer.getDuration() || 1;
+    // Generate random alphanumeric string for new Lotus
+    function generateNewLotus() {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
-    if (dur > 0) {
-      progressBar.style.width = `${(curr / dur) * 100}%`;
-      const date = new Date(curr * 1000).toISOString().substr(11, 8);
-      timeDisplay.innerText = date;
-    }
-  }, 1000);
+    // Submit on Enter key press
+    document.getElementById('password').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            document.getElementById('loginBtn').click();
+        }
+    });
 
-  // Firestore loader
-  async function initChannel() {
-    if (!channelSlug) {
-      displayTitle.innerText = "No channel provided (?channel=SLUG)";
-      return;
-    }
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const pass = document.getElementById('password').value;
+        if (!pass) return;
 
-    try {
-      const snap = await getDoc(doc(db, "Live TV", channelSlug));
-      if (!snap.exists()) {
-        displayTitle.innerText = "Channel not found";
-        return;
-      }
-      const data = snap.data();
-      displayChannel.innerText = data.name || "Live Channel";
-      channelSchedule = data.schedule || [];
-      checkScheduleSync();
-      setInterval(checkScheduleSync, 10000); // Verify live schedule periodically
-    } catch (e) {
-      console.error(e);
-      displayTitle.innerText = "Error loading channel";
-    }
-  }
+        document.getElementById('loginBtn').innerText = "Verifying...";
 
-  // Load YouTube API
-  const tag = document.createElement("script");
-  tag.src = "https://www.youtube.com/iframe_api";
-  document.body.appendChild(tag);
+        try {
+            if (currentUserData["Password"] === pass) {
+                // 1. Update Lotus in DB for security
+                const newLotus = generateNewLotus();
+                await updateDoc(doc(db, "UARM", currentUserDocId), { "Lotus": newLotus });
+                currentUserData["Lotus"] = newLotus; // Update local reference
 
-  window.onYouTubeIframeAPIReady = () => {
-    initChannel();
-  };
+                // 2. Sync cross-device authentication via ASPX Keys
+                if (session) {
+                    try {
+                        const sessionRef = doc(db, "ASPX Keys", session);
+                        await setDoc(sessionRef, {
+                            status: "authenticated",
+                            userData: currentUserData,
+                            updatedAt: new Date()
+                        }, { merge: true });
+                    } catch (err) {
+                        console.error("Cross-device sync update error:", err);
+                    }
+                }
+
+                // 3. Save to Multi-Account System on current device
+                let accounts = [];
+                try {
+                    accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+                } catch (e) {
+                    accounts = [];
+                }
+                
+                // Avoid duplicate accounts
+                accounts = accounts.filter(acc => acc.email !== currentUserData["Email"]);
+                accounts.push({
+                    email: currentUserData["Email"],
+                    firstName: currentUserData["First Name"] || "",
+                    lotus: newLotus
+                });
+                
+                localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+                localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+                // 4. Redirect
+                window.location.href = continueUrl;
+            } else {
+                alert("Incorrect password");
+                document.getElementById('loginBtn').innerText = "Login";
+            }
+        } catch (error) {
+            console.error("Login verification failed:", error);
+            alert("Error verifying password. Please try again.");
+            document.getElementById('loginBtn').innerText = "Login";
+        }
+    });
 </script>
 </body>
 </html>
