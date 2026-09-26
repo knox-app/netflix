@@ -7,53 +7,58 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase App & Firestore SDKs for Real-Time Sync -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
-            --bg-page: #f8f9fa;
+            --bg-page: #fbfbfd;
             --surface-card: #ffffff;
-            --surface-subtle: #f1f3f5;
-            --surface-hover: #e9ecef;
+            --surface-subtle: #f5f5f7;
+            --surface-hover: #ebebee;
             --border-subtle: rgba(0, 0, 0, 0.08);
             --border-focus: rgba(0, 0, 0, 0.16);
-            --text-main: #0f172a;
-            --text-secondary: #64748b;
-            --text-muted: #94a3b8;
-            --accent-primary: #000000;
+            --text-main: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --text-muted: #86868b;
+            --accent-primary: #0071e3;
             --accent-primary-text: #ffffff;
             --accent-badge-bg: rgba(0, 0, 0, 0.05);
-            --accent-badge-text: #1e293b;
-            --danger: #ef4444;
-            --danger-bg: rgba(239, 68, 68, 0.08);
-            --danger-hover: #dc2626;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
-            --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            --accent-badge-text: #1d1d1f;
+            --danger: #ff3b30;
+            --danger-bg: rgba(255, 59, 48, 0.08);
+            --danger-hover: #e02d23;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
             --blur-nav: blur(20px);
-            --radius-lg: 20px;
+            --radius-lg: 22px;
             --radius-md: 12px;
             --radius-full: 9999px;
-            --shimmer-bg: linear-gradient(90deg, #f0f0f0 0%, #e4e4e7 50%, #f0f0f0 100%);
+            --shimmer-bg: linear-gradient(90deg, #f0f0f2 0%, #e4e4e7 50%, #f0f0f2 100%);
         }
 
         body.dark {
-            --bg-page: #0a0b0e;
-            --surface-card: #12141a;
-            --surface-subtle: #191c24;
-            --surface-hover: #222632;
-            --border-subtle: rgba(255, 255, 255, 0.08);
-            --border-focus: rgba(255, 255, 255, 0.18);
-            --text-main: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent-primary: #ffffff;
-            --accent-primary-text: #090a0f;
+            --bg-page: #000000;
+            --surface-card: #121214;
+            --surface-subtle: #1c1c1e;
+            --surface-hover: #2c2c2e;
+            --border-subtle: rgba(255, 255, 255, 0.1);
+            --border-focus: rgba(255, 255, 255, 0.25);
+            --text-main: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-muted: #6e6e73;
+            --accent-primary: #2997ff;
+            --accent-primary-text: #ffffff;
             --accent-badge-bg: rgba(255, 255, 255, 0.08);
-            --accent-badge-text: #f1f5f9;
-            --danger: #f87171;
-            --danger-bg: rgba(248, 113, 113, 0.1);
-            --danger-hover: #ef4444;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-            --shadow-md: 0 12px 30px rgba(0,0,0,0.5);
-            --shimmer-bg: linear-gradient(90deg, #151821 0%, #252a3a 50%, #151821 100%);
+            --accent-badge-text: #f5f5f7;
+            --danger: #ff453a;
+            --danger-bg: rgba(255, 69, 58, 0.12);
+            --danger-hover: #ff3b30;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+            --shadow-md: 0 10px 40px rgba(0,0,0,0.7);
+            --shimmer-bg: linear-gradient(90deg, #1c1c1e 0%, #2c2c2e 50%, #1c1c1e 100%);
         }
 
         * {
@@ -64,7 +69,7 @@
         }
 
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
             background-color: var(--bg-page);
             color: var(--text-main);
             min-height: 100vh;
@@ -73,7 +78,7 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* Top Header */
+        /* Top Bar */
         header {
             position: sticky;
             top: 0;
@@ -88,43 +93,37 @@
             justify-content: space-between;
         }
 
-        .brand-logo {
+        .nav-brand {
             display: flex;
             align-items: center;
             gap: 10px;
-            font-weight: 700;
+            font-weight: 600;
             font-size: 1.05rem;
-            letter-spacing: -0.4px;
+            letter-spacing: -0.02em;
         }
 
-        .brand-logo svg {
-            width: 20px;
-            height: 20px;
-            fill: var(--text-main);
-        }
-
-        .live-status {
-            display: flex;
+        .sync-badge {
+            display: inline-flex;
             align-items: center;
             gap: 6px;
             font-size: 0.75rem;
-            color: var(--text-secondary);
+            color: var(--text-muted);
             background: var(--surface-subtle);
             padding: 4px 10px;
             border-radius: var(--radius-full);
             border: 1px solid var(--border-subtle);
         }
 
-        .status-dot {
+        .sync-dot {
             width: 7px;
             height: 7px;
             border-radius: 50%;
-            background-color: #10b981;
-            box-shadow: 0 0 8px #10b981;
+            background: #10b981;
+            box-shadow: 0 0 6px #10b981;
         }
 
         /* Main Container */
-        .container {
+        .main-container {
             max-width: 860px;
             width: 100%;
             margin: 0 auto;
@@ -132,24 +131,24 @@
             flex: 1;
         }
 
-        /* Profile Hero */
-        .hero-section {
+        /* Hero / Name Area */
+        .profile-hero {
             display: flex;
             align-items: center;
-            gap: 24px;
-            padding-bottom: 40px;
+            gap: 28px;
+            padding-bottom: 36px;
             border-bottom: 1px solid var(--border-subtle);
-            margin-bottom: 40px;
+            margin-bottom: 36px;
             flex-wrap: wrap;
         }
 
-        .avatar-frame {
+        .avatar-container {
             position: relative;
-            width: 90px;
-            height: 90px;
+            width: 96px;
+            height: 96px;
             border-radius: 50%;
             border: 2px solid var(--border-focus);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
             background: var(--surface-subtle);
             display: flex;
@@ -163,7 +162,7 @@
             height: 100%;
             object-fit: cover;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s ease-in-out;
         }
 
         .avatar-img.loaded {
@@ -178,57 +177,54 @@
             text-transform: uppercase;
         }
 
-        .hero-info {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+        .profile-headings {
             flex: 1;
+            min-width: 250px;
         }
 
+        /* Name + Switch Account Container */
         .name-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+
+        .name-row h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .btn-switch-inline {
+            background-color: var(--surface-subtle);
+            color: var(--text-main);
+            border: 1px solid var(--border-subtle);
+            padding: 5px 14px;
+            border-radius: var(--radius-full);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-switch-inline:hover {
+            background-color: var(--surface-hover);
+            border-color: var(--border-focus);
+        }
+
+        .profile-sub-row {
             display: flex;
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
         }
 
-        .name-row h1 {
-            font-size: 1.85rem;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-        }
-
-        .switch-pill-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--surface-subtle);
-            color: var(--text-main);
-            border: 1px solid var(--border-subtle);
-            padding: 6px 14px;
-            border-radius: var(--radius-full);
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            font-family: inherit;
-        }
-
-        .switch-pill-btn:hover {
-            background: var(--surface-hover);
-            border-color: var(--border-focus);
-            transform: translateY(-1px);
-        }
-
-        .meta-tags {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .email-sub {
+        .profile-email-text {
             color: var(--text-secondary);
             font-size: 0.95rem;
         }
@@ -238,28 +234,31 @@
             align-items: center;
             padding: 3px 10px;
             border-radius: var(--radius-full);
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 600;
             background: var(--accent-badge-bg);
             color: var(--accent-badge-text);
             border: 1px solid var(--border-subtle);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            text-transform: capitalize;
         }
 
-        /* Bento Card Layout */
-        .bento-card {
+        /* Card Section */
+        .details-card {
             background-color: var(--surface-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-lg);
-            padding: 28px 32px;
+            padding: 24px 32px;
             box-shadow: var(--shadow-sm);
-            margin-bottom: 32px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 40px;
+            transition: border-color 0.2s ease;
+        }
+
+        .details-card:hover {
+            border-color: var(--border-focus);
         }
 
         .card-header {
-            margin-bottom: 22px;
+            margin-bottom: 20px;
         }
 
         .card-title {
@@ -271,10 +270,10 @@
         .card-description {
             font-size: 0.85rem;
             color: var(--text-secondary);
-            margin-top: 3px;
+            margin-top: 2px;
         }
 
-        /* Detail Rows */
+        /* List Rows */
         .data-list {
             display: flex;
             flex-direction: column;
@@ -284,18 +283,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 14px 0;
+            padding: 16px 0;
             border-bottom: 1px solid var(--border-subtle);
-            font-size: 0.94rem;
+            font-size: 0.95rem;
         }
 
         .data-row:last-child {
             border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .data-row:first-child {
-            padding-top: 0;
+            padding-bottom: 4px;
         }
 
         .data-label {
@@ -306,65 +301,60 @@
         .data-value {
             color: var(--text-main);
             font-weight: 600;
+            text-align: right;
         }
 
-        /* Sign Out Bottom Area */
-        .danger-zone {
+        /* Bottom Sign Out Area */
+        .bottom-actions {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            background: var(--surface-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 24px 32px;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .danger-text h3 {
-            font-size: 0.98rem;
-            font-weight: 600;
-        }
-
-        .danger-text p {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
+            justify-content: center;
+            padding-top: 20px;
+            gap: 12px;
         }
 
         .btn-signout {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 22px;
-            border-radius: var(--radius-md);
-            font-size: 0.88rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
             background-color: var(--danger-bg);
             color: var(--danger);
             border: 1px solid transparent;
-            transition: all 0.2s ease;
+            padding: 14px 36px;
+            border-radius: var(--radius-full);
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 280px;
+            justify-content: center;
         }
 
         .btn-signout:hover {
             background-color: var(--danger);
             color: #ffffff;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+            box-shadow: 0 4px 14px rgba(255, 59, 48, 0.3);
         }
 
         .btn-signout:active {
             transform: scale(0.98);
         }
 
-        /* Shimmer Loading Skeleton */
+        /* Skeleton Loaders */
         .skeleton {
             background-size: 200% 100%;
             background-image: var(--shimmer-bg);
             animation: shimmer 1.5s infinite;
             border-radius: 6px;
             display: inline-block;
+        }
+
+        .skeleton-text {
+            height: 18px;
+            width: 140px;
         }
 
         @keyframes shimmer {
@@ -376,48 +366,42 @@
 <body>
 
 <header>
-    <div class="brand-logo">
-        <svg viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-        </svg>
-        <span>Account Central</span>
+    <div class="nav-brand">
+        <span>Account</span>
     </div>
-    <div class="live-status">
-        <span class="status-dot"></span>
-        <span>Realtime Sync</span>
+    <div class="sync-badge" title="Live Sync Active">
+        <span class="sync-dot"></span>
+        <span>Live Sync</span>
     </div>
 </header>
 
-<main class="container">
-    <!-- Hero Profile -->
-    <section class="hero-section">
-        <div class="avatar-frame">
-            <span class="avatar-fallback" id="avatarInitial">U</span>
-            <img id="avatarImage" class="avatar-img" alt="Profile DP" loading="lazy">
+<main class="main-container">
+    <!-- Hero Profile Section with Switch Account inside Name Area -->
+    <section class="profile-hero">
+        <div class="avatar-container">
+            <span class="avatar-fallback" id="avatarInitial"></span>
+            <img id="avatarImage" class="avatar-img" alt="Profile Picture" loading="lazy">
         </div>
-        
-        <div class="hero-info">
+        <div class="profile-headings">
             <div class="name-row">
-                <h1 id="fullName">Loading...</h1>
-                <button class="switch-pill-btn" id="switchAccountBtn">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
+                <h1 id="fullName"><span class="skeleton skeleton-text" style="width: 200px; height: 32px;"></span></h1>
+                <button class="btn-switch-inline" id="switchAccountBtn" title="Switch to another account">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     Switch Account
                 </button>
             </div>
-            <div class="meta-tags">
-                <span class="email-sub" id="primaryEmail">...</span>
+            <div class="profile-sub-row">
+                <span class="profile-email-text" id="primaryEmail"><span class="skeleton skeleton-text"></span></span>
                 <span class="account-badge" id="accountBadge">Personal</span>
             </div>
         </div>
     </section>
 
-    <!-- Personal Details Bento Card -->
-    <section class="bento-card">
+    <!-- Personal Information Card -->
+    <div class="details-card">
         <div class="card-header">
             <h2 class="card-title">Personal Details</h2>
-            <p class="card-description">Your primary personal and contact identifiers</p>
+            <p class="card-description">Your identity and account contact details</p>
         </div>
         <div class="data-list">
             <div class="data-row">
@@ -427,6 +411,10 @@
             <div class="data-row">
                 <span class="data-label">Last Name</span>
                 <span class="data-value" id="valLastName">—</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Email Address</span>
+                <span class="data-value" id="valEmail">—</span>
             </div>
             <div class="data-row">
                 <span class="data-label">Phone Number</span>
@@ -440,26 +428,34 @@
                 <span class="data-label">Gender</span>
                 <span class="data-value" id="valGender">—</span>
             </div>
+            <div class="data-row">
+                <span class="data-label">Account Type</span>
+                <span class="data-value" id="valType">—</span>
+            </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Bottom Sign Out Card -->
-    <section class="danger-zone">
-        <div class="danger-text">
-            <h3>Sign Out of Session</h3>
-            <p>You will be redirected back to the account picker.</p>
-        </div>
+    <!-- Sign Out placed at the bottom -->
+    <div class="bottom-actions">
         <button class="btn-signout" id="logoutBtn">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Sign out
         </button>
-    </section>
+    </div>
 </main>
 
 <script>
-    // 1. URL & Theme Configuration
+    // 1. Firebase Setup (Project: question-metabase from your Firestore console)
+    const firebaseConfig = {
+        projectId: "question-metabase"
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    // 2. Theme & Param Handling
     const urlParams = new URLSearchParams(window.location.search);
     const uParam = urlParams.has('u') ? urlParams.get('u') : urlParams.get('user');
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
@@ -481,13 +477,10 @@
             document.body.classList.remove("dark");
         }
     }
-
     applyTheme();
-    mediaQuery.addEventListener("change", () => {
-        if (!theme) applyTheme();
-    });
+    mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
-    // 2. Multi-Account URL Handling
+    // 3. Multi-Account URL Handling
     if (uParam !== null) {
         const index = parseInt(uParam, 10);
         let savedAccounts = [];
@@ -517,92 +510,98 @@
         }
     }
 
-    // 3. Render Profile Data
-    let lastRenderedState = "";
+    // 4. Render UI Function
+    function renderUserData(user) {
+        const firstName = user["First Name"] || "";
+        const lastName = user["Last Name"] || "";
+        const fullName = `${firstName} ${lastName}`.trim() || "User";
+        const email = user["Email"] || "—";
+        const phone = user["Phone Number"] || "—";
+        const dob = user["Date of Birth"] || "—";
+        const gender = user["Gender"] || "—";
+        const type = (user["Type"] || "personal").toLowerCase();
+        const profilePicUrl = user["Profile_Picture"] || null;
 
-    function renderUserData() {
-        const activeUserStr = localStorage.getItem('active_user');
+        // Headings & Labels
+        document.getElementById('fullName').innerText = fullName;
+        document.getElementById('primaryEmail').innerText = email;
+        document.getElementById('valFirstName').innerText = firstName || "—";
+        document.getElementById('valLastName').innerText = lastName || "—";
+        document.getElementById('valEmail').innerText = email;
+        document.getElementById('valPhone').innerText = phone;
+        document.getElementById('valDob').innerText = dob;
+        document.getElementById('valGender').innerText = gender;
 
-        if (!activeUserStr) {
-            const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
-            window.location.href = dest;
-            return;
-        }
+        const typeLabels = {
+            'business': 'Business Account',
+            'kids': 'Kids Account',
+            'personal': 'Personal Account'
+        };
+        const badgeText = typeLabels[type] || 'Personal Account';
+        document.getElementById('accountBadge').innerText = badgeText;
+        document.getElementById('valType').innerText = badgeText;
 
-        // Avoid unnecessary re-renders if nothing changed
-        if (activeUserStr === lastRenderedState) return;
-        lastRenderedState = activeUserStr;
+        // DP / Avatar Image Lazy Loading
+        const avatarInitialElem = document.getElementById('avatarInitial');
+        const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
+        avatarInitialElem.innerText = initial;
 
-        try {
-            const user = JSON.parse(activeUserStr);
-
-            const firstName = user["First Name"] || "";
-            const lastName = user["Last Name"] || "";
-            const fullName = `${firstName} ${lastName}`.trim() || "User";
-            const email = user["Email"] || "—";
-            const phone = user["Phone Number"] || "—";
-            const dob = user["Date of Birth"] || "—";
-            const gender = user["Gender"] || "—";
-            const type = (user["Type"] || "personal").toLowerCase();
-            const profilePicUrl = user["Profile_Picture"] || null;
-
-            // DOM Updates
-            document.getElementById('fullName').innerText = fullName;
-            document.getElementById('primaryEmail').innerText = email;
-            document.getElementById('valFirstName').innerText = firstName || "—";
-            document.getElementById('valLastName').innerText = lastName || "—";
-            document.getElementById('valPhone').innerText = phone;
-            document.getElementById('valDob').innerText = dob;
-            document.getElementById('valGender').innerText = gender;
-
-            const typeLabels = {
-                'business': 'Business Account',
-                'kids': 'Kids Account',
-                'personal': 'Personal Account'
+        const avatarImg = document.getElementById('avatarImage');
+        if (profilePicUrl) {
+            avatarImg.src = profilePicUrl;
+            avatarImg.onload = () => {
+                avatarImg.classList.add('loaded');
+                avatarInitialElem.style.display = 'none';
             };
-            document.getElementById('accountBadge').innerText = typeLabels[type] || 'Personal Account';
-
-            // Avatar Handling & DP Lazy loading
-            const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
-            const avatarInitialElem = document.getElementById('avatarInitial');
-            const avatarImg = document.getElementById('avatarImage');
-
-            avatarInitialElem.innerText = initial;
-
-            if (profilePicUrl) {
-                avatarImg.src = profilePicUrl;
-                avatarImg.onload = () => {
-                    avatarImg.classList.add('loaded');
-                    avatarInitialElem.style.display = 'none';
-                };
-                avatarImg.onerror = () => {
-                    avatarImg.style.display = 'none';
-                    avatarInitialElem.style.display = 'block';
-                };
-            } else {
+            avatarImg.onerror = () => {
                 avatarImg.style.display = 'none';
                 avatarInitialElem.style.display = 'block';
-            }
-        } catch (e) {
-            console.error("Failed to render user data:", e);
+            };
+        } else {
+            avatarImg.style.display = 'none';
+            avatarInitialElem.style.display = 'block';
         }
     }
 
-    // Initial render
-    renderUserData();
+    // 5. Initial LocalStorage Hydration & Firebase Real-Time Listener
+    const activeUserStr = localStorage.getItem('active_user');
 
-    // 4. Real-time Live Updates
-    // React immediately to storage changes across browser tabs
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'active_user') {
-            renderUserData();
+    if (!activeUserStr) {
+        const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
+        window.location.href = dest;
+    } else {
+        try {
+            let activeUser = JSON.parse(activeUserStr);
+            renderUserData(activeUser);
+
+            // Document ID from Firestore is the Lotus ID or document key
+            const docId = activeUser["Lotus"] || activeUser["UARM ID"];
+
+            if (docId) {
+                // Realtime Sync with Firestore (collection: UARM)
+                db.collection("UARM").doc(docId).onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const cloudData = doc.data();
+                        
+                        // Merge and save updated changes into LocalStorage
+                        const mergedUser = { ...activeUser, ...cloudData };
+                        localStorage.setItem('active_user', JSON.stringify(mergedUser));
+                        
+                        // Update UI seamlessly
+                        renderUserData(mergedUser);
+                    }
+                }, (error) => {
+                    console.warn("Firestore live sync warning:", error);
+                });
+            }
+        } catch (e) {
+            console.error("User parsing failed:", e);
+            const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
+            window.location.href = dest;
         }
-    });
+    }
 
-    // Fast interval check for real-time updates within the same window
-    setInterval(renderUserData, 1000);
-
-    // 5. Button Actions
+    // 6. Action Handlers
     function goToSwitch() {
         const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
         window.location.href = dest;
