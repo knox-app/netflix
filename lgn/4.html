@@ -38,10 +38,9 @@
             --radius-lg: 22px;
             --radius-md: 12px;
             --radius-full: 9999px;
-            --shimmer-bg: linear-gradient(90deg, #f0f0f2 0%, #e4e4e7 50%, #f0f0f2 100%);
             --modal-overlay: rgba(0, 0, 0, 0.4);
 
-            /* Dynamic Badge Themes */
+            /* Dynamic Badges */
             --badge-kids-bg: rgba(37, 99, 235, 0.1);
             --badge-kids-text: #2563eb;
             --badge-kids-border: rgba(37, 99, 235, 0.2);
@@ -72,7 +71,6 @@
             --danger-hover: #ff3b30;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
             --shadow-md: 0 16px 50px rgba(0,0,0,0.7);
-            --shimmer-bg: linear-gradient(90deg, #1c1c1e 0%, #2c2c2e 50%, #1c1c1e 100%);
             --modal-overlay: rgba(0, 0, 0, 0.7);
 
             --badge-kids-bg: rgba(96, 165, 250, 0.15);
@@ -172,13 +170,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
             display: block;
-        }
-
-        .avatar-img.loaded {
-            opacity: 1;
         }
 
         .avatar-fallback {
@@ -278,7 +270,7 @@
             border-color: var(--badge-personal-border);
         }
 
-        /* Card Section */
+        /* Details Card */
         .details-card {
             background-color: var(--surface-card);
             border: 1px solid var(--border-subtle);
@@ -401,24 +393,6 @@
             background-color: var(--danger);
             color: #ffffff;
             box-shadow: 0 4px 14px rgba(255, 59, 48, 0.3);
-        }
-
-        .skeleton {
-            background-size: 200% 100%;
-            background-image: var(--shimmer-bg);
-            animation: shimmer 1.5s infinite;
-            border-radius: 6px;
-            display: inline-block;
-        }
-
-        .skeleton-text {
-            height: 18px;
-            width: 140px;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
         }
 
         /* Modal & Bottom Sheet */
@@ -547,11 +521,6 @@
             transition: opacity 0.2s ease;
         }
 
-        .btn-modal-save:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
         @media (max-width: 640px) {
             .modal-backdrop {
                 align-items: flex-end;
@@ -592,12 +561,12 @@
     <!-- Hero Profile Section -->
     <section class="profile-hero">
         <div class="avatar-container">
-            <span class="avatar-fallback" id="avatarInitial"></span>
-            <img id="avatarImage" class="avatar-img" alt="Profile Picture" referrerpolicy="no-referrer">
+            <span class="avatar-fallback" id="avatarInitial">U</span>
+            <img id="avatarImage" class="avatar-img" alt="Profile Picture" referrerpolicy="no-referrer" style="display:none;">
         </div>
         <div class="profile-headings">
             <div class="name-row">
-                <h1 id="fullName"><span class="skeleton skeleton-text" style="width: 200px; height: 32px;"></span></h1>
+                <h1 id="fullName">Loading...</h1>
                 
                 <button class="btn-action-pill" id="editNameBtn" title="Edit your name">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -610,7 +579,7 @@
                 </button>
             </div>
             <div class="profile-sub-row">
-                <span class="profile-email-text" id="primaryEmail"><span class="skeleton skeleton-text"></span></span>
+                <span class="profile-email-text" id="primaryEmail">...</span>
                 <span class="account-badge badge-personal" id="accountBadge">
                     <span id="accountBadgeText">Personal Account</span>
                 </span>
@@ -625,7 +594,6 @@
             <p class="card-description">Your identity and account contact details</p>
         </div>
         <div class="data-list">
-            <!-- First Name Row with Edit Pen -->
             <div class="data-row">
                 <span class="data-label">First Name</span>
                 <div class="data-value-group">
@@ -636,7 +604,6 @@
                 </div>
             </div>
 
-            <!-- Last Name Row with Edit Pen -->
             <div class="data-row">
                 <span class="data-label">Last Name</span>
                 <div class="data-value-group">
@@ -720,7 +687,7 @@
     }
     const db = firebase.firestore();
 
-    // 2. Theme & URL Parameter Handling
+    // 2. URL Parameters & Theme Logic (Original logic preserved)
     const urlParams = new URLSearchParams(window.location.search);
     const uParam = urlParams.has('u') ? urlParams.get('u') : urlParams.get('user');
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
@@ -745,35 +712,7 @@
     applyTheme();
     mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
-    // 3. Persistent Session Handler (Never expires unless explicitly signed out)
-    function getActiveSessionUser() {
-        let activeUser = null;
-        try {
-            activeUser = JSON.parse(localStorage.getItem('active_user') || 'null');
-        } catch (e) {
-            activeUser = null;
-        }
-
-        if (!activeUser) {
-            try {
-                const savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                if (savedAccounts.length > 0) {
-                    activeUser = {
-                        "Lotus": savedAccounts[0].lotus || '',
-                        "docId": savedAccounts[0].docId || savedAccounts[0].uarmId || '',
-                        "First Name": savedAccounts[0].name ? savedAccounts[0].name.split(' ')[0] : '',
-                        "Last Name": savedAccounts[0].name ? savedAccounts[0].name.split(' ').slice(1).join(' ') : '',
-                        "Email": savedAccounts[0].email || '',
-                        "Profile_Picture": savedAccounts[0].profilePicture || ''
-                    };
-                    localStorage.setItem('active_user', JSON.stringify(activeUser));
-                }
-            } catch (e) {}
-        }
-        return activeUser;
-    }
-
-    // 4. Multi-Account URL Navigation
+    // 3. Multi-Account URL Handling (Exact Original Logic)
     if (uParam !== null) {
         const index = parseInt(uParam, 10);
         let savedAccounts = [];
@@ -782,20 +721,28 @@
         } catch (e) {
             savedAccounts = [];
         }
-
+        
         if (!isNaN(index) && index >= 0 && index < savedAccounts.length) {
             const targetLotus = savedAccounts[index].lotus;
-            let activeUser = getActiveSessionUser() || {};
-
+            let activeUser = {};
+            try {
+                activeUser = JSON.parse(localStorage.getItem('active_user') || '{}');
+            } catch (e) {
+                activeUser = {};
+            }
+            
             if (activeUser["Lotus"] !== targetLotus) {
                 let redirectUrl = `1.html?Lotus=${encodeURIComponent(targetLotus)}&continue=4.html`;
                 if (theme) redirectUrl += `&theme=${encodeURIComponent(theme)}`;
                 window.location.href = redirectUrl;
             }
+        } else {
+            const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
+            window.location.href = dest;
         }
     }
 
-    // 5. Dynamic Badge Config
+    // 4. Badge Config Function
     function getBadgeConfig(typeRaw) {
         const type = (typeRaw || "").trim().toLowerCase();
 
@@ -820,212 +767,109 @@
         };
     }
 
-    // 6. Render User Profile
+    // 5. Synchronous UI Render from LocalStorage (Zero Lag / Zero Flash)
     let currentUserData = {};
 
-    function renderUserData(user) {
-        if (!user) return;
-        currentUserData = user;
-
-        const firstName = user["First Name"] || "";
-        const lastName = user["Last Name"] || "";
-        const fullName = `${firstName} ${lastName}`.trim() || "User";
-        const email = user["Email"] || "—";
-        const phone = user["Phone Number"] || "—";
-        const dob = user["Date of Birth"] || "—";
-        const gender = user["Gender"] || "—";
-        const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["photoURL"] || null;
-
-        document.getElementById('fullName').innerText = fullName;
-        document.getElementById('primaryEmail').innerText = email;
-        document.getElementById('valFirstName').innerText = firstName || "—";
-        document.getElementById('valLastName').innerText = lastName || "—";
-        document.getElementById('valEmail').innerText = email;
-        document.getElementById('valPhone').innerText = phone;
-        document.getElementById('valDob').innerText = dob;
-        document.getElementById('valGender').innerText = gender;
-
-        const badgeConfig = getBadgeConfig(user["Type"]);
+    function renderActiveUser() {
+        const activeUserStr = localStorage.getItem('active_user');
         
-        const heroBadge = document.getElementById('accountBadge');
-        heroBadge.className = `account-badge ${badgeConfig.className}`;
-        heroBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
-
-        const rowBadge = document.getElementById('valTypeBadge');
-        rowBadge.className = `account-badge ${badgeConfig.className}`;
-        rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
-
-        // Avatar Image & Initial Fallback
-        const avatarInitialElem = document.getElementById('avatarInitial');
-        const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
-        avatarInitialElem.innerText = initial;
-
-        const avatarImg = document.getElementById('avatarImage');
-        if (profilePicUrl && profilePicUrl.trim() !== "") {
-            avatarImg.src = profilePicUrl;
-
-            if (avatarImg.complete && avatarImg.naturalWidth > 0) {
-                avatarImg.classList.add('loaded');
-                avatarInitialElem.style.display = 'none';
-            } else {
-                avatarImg.onload = () => {
-                    avatarImg.classList.add('loaded');
-                    avatarInitialElem.style.display = 'none';
-                };
-                avatarImg.onerror = () => {
-                    avatarImg.classList.remove('loaded');
-                    avatarInitialElem.style.display = 'block';
-                };
-            }
-        } else {
-            avatarImg.classList.remove('loaded');
-            avatarInitialElem.style.display = 'block';
-        }
-    }
-
-    // 7. Parse Firestore REST Structured Format
-    function parseFirestoreFields(fields) {
-        if (!fields) return {};
-        const result = {};
-        for (const key in fields) {
-            const valObj = fields[key];
-            if ('stringValue' in valObj) result[key] = valObj.stringValue;
-            else if ('booleanValue' in valObj) result[key] = valObj.booleanValue;
-            else if ('integerValue' in valObj) result[key] = parseInt(valObj.integerValue, 10);
-            else if ('doubleValue' in valObj) result[key] = parseFloat(valObj.doubleValue);
-            else if ('arrayValue' in valObj) {
-                result[key] = (valObj.arrayValue.values || []).map(v => v.stringValue || Object.values(v)[0]);
-            } else if ('mapValue' in valObj) {
-                result[key] = parseFirestoreFields(valObj.mapValue.fields);
-            }
-        }
-        return result;
-    }
-
-    // 8. FASTEST SYNC ENGINE: Direct Document ID & Email Lookup
-    let syncRunning = false;
-
-    async function syncUserDataFromCloud() {
-        if (syncRunning) return;
-        syncRunning = true;
-
-        const localUser = getActiveSessionUser();
-        if (!localUser) {
-            syncRunning = false;
+        if (!activeUserStr) {
+            const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
+            window.location.href = dest;
             return;
         }
 
-        const email = localUser["Email"];
-        // Priority 1: Direct Document ID (Fastest O(1) fetch)
-        let docId = localUser["docId"] || localUser["UARM ID"] || localUser["id"];
-
         try {
-            let docData = null;
-            let foundDocId = docId;
+            currentUserData = JSON.parse(activeUserStr);
+            const user = currentUserData;
 
-            // Strategy 1: Direct Document GET by Document ID
-            if (docId) {
-                try {
-                    const directRes = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${docId}?_t=${Date.now()}`, {
-                        method: 'GET',
-                        cache: 'no-store',
-                        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-                    });
-                    if (directRes.ok) {
-                        const directJson = await directRes.json();
-                        if (directJson && directJson.fields) {
-                            docData = parseFirestoreFields(directJson.fields);
-                        }
-                    }
-                } catch (e) {}
-            }
+            const firstName = user["First Name"] || "";
+            const lastName = user["Last Name"] || "";
+            const fullName = `${firstName} ${lastName}`.trim() || "User";
+            const email = user["Email"] || "—";
+            const phone = user["Phone Number"] || "—";
+            const dob = user["Date of Birth"] || "—";
+            const gender = user["Gender"] || "—";
+            const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["photoURL"] || null;
 
-            // Strategy 2: If Document ID is unknown or failed, Query via Email Address
-            if (!docData && email) {
-                const queryPayload = {
-                    structuredQuery: {
-                        from: [{ collectionId: COLLECTION_NAME }],
-                        where: {
-                            fieldFilter: {
-                                field: { fieldPath: "Email" },
-                                op: "EQUAL",
-                                value: { stringValue: email }
-                            }
-                        },
-                        limit: 1
-                    }
+            document.getElementById('fullName').innerText = fullName;
+            document.getElementById('primaryEmail').innerText = email;
+            document.getElementById('valFirstName').innerText = firstName || "—";
+            document.getElementById('valLastName').innerText = lastName || "—";
+            document.getElementById('valEmail').innerText = email;
+            document.getElementById('valPhone').innerText = phone;
+            document.getElementById('valDob').innerText = dob;
+            document.getElementById('valGender').innerText = gender;
+
+            // Badges
+            const badgeConfig = getBadgeConfig(user["Type"]);
+            const heroBadge = document.getElementById('accountBadge');
+            heroBadge.className = `account-badge ${badgeConfig.className}`;
+            heroBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
+
+            const rowBadge = document.getElementById('valTypeBadge');
+            rowBadge.className = `account-badge ${badgeConfig.className}`;
+            rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
+
+            // Profile Picture
+            const avatarInitialElem = document.getElementById('avatarInitial');
+            const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
+            avatarInitialElem.innerText = initial;
+
+            const avatarImg = document.getElementById('avatarImage');
+            if (profilePicUrl && profilePicUrl.trim() !== "") {
+                avatarImg.src = profilePicUrl;
+                avatarImg.style.display = "block";
+                avatarInitialElem.style.display = "none";
+                avatarImg.onerror = () => {
+                    avatarImg.style.display = "none";
+                    avatarInitialElem.style.display = "block";
                 };
-
-                const response = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery?_t=${Date.now()}`, {
-                    method: 'POST',
-                    cache: 'no-store',
-                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-                    body: JSON.stringify(queryPayload)
-                });
-
-                const data = await response.json();
-                if (data && data[0] && data[0].document) {
-                    const docPath = data[0].document.name;
-                    foundDocId = docPath.split('/').pop(); // Extract exact Firestore Document ID
-                    docData = parseFirestoreFields(data[0].document.fields);
-                }
-            }
-
-            // When new data arrives, update local session and UI instantly
-            if (docData) {
-                const mergedUser = { 
-                    ...localUser, 
-                    ...docData, 
-                    "docId": foundDocId || localUser["docId"]
-                };
-
-                localStorage.setItem('active_user', JSON.stringify(mergedUser));
-                renderUserData(mergedUser);
-
-                // Attach direct WebSocket listener
-                if (!window._firestoreListenerAttached && foundDocId) {
-                    window._firestoreListenerAttached = true;
-                    try {
-                        db.collection(COLLECTION_NAME).doc(foundDocId).onSnapshot((doc) => {
-                            if (doc.exists) {
-                                const liveData = doc.data();
-                                const liveMerged = { ...mergedUser, ...liveData, "docId": foundDocId };
-                                localStorage.setItem('active_user', JSON.stringify(liveMerged));
-                                renderUserData(liveMerged);
-                            }
-                        });
-                    } catch (e) {}
-                }
+            } else {
+                avatarImg.style.display = "none";
+                avatarInitialElem.style.display = "block";
             }
         } catch (e) {
-            console.warn("Real-time cloud sync warning:", e);
-        } finally {
-            syncRunning = false;
+            console.error("Render parse error:", e);
         }
     }
 
-    // 9. Boot Execution
-    const activeUser = getActiveSessionUser();
+    // 6. Direct Firestore Live Listener for Instant Cloud Sync
+    function attachFirestoreLiveListener() {
+        const activeUserStr = localStorage.getItem('active_user');
+        if (!activeUserStr) return;
 
-    if (!activeUser) {
-        const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
-        window.location.href = dest;
-    } else {
-        renderUserData(activeUser);
+        try {
+            const user = JSON.parse(activeUserStr);
+            // Document ID from your Firestore database (e.g. 7I4d9vmIm9WiUAuNeQGByq6jT)
+            const docId = user["UARM ID"] || user["docId"] || user["id"];
 
-        // Immediate Firestore sync
-        syncUserDataFromCloud();
-
-        // 3-second live loop for instant cross-device updates without reloading
-        setInterval(syncUserDataFromCloud, 3000);
-
-        window.addEventListener('focus', syncUserDataFromCloud);
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') syncUserDataFromCloud();
-        });
+            if (docId) {
+                db.collection(COLLECTION_NAME).doc(docId).onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const freshData = doc.data();
+                        const merged = { ...user, ...freshData, "UARM ID": docId };
+                        localStorage.setItem('active_user', JSON.stringify(merged));
+                        renderActiveUser();
+                    }
+                }, (err) => {
+                    console.warn("Firestore listener note:", err);
+                });
+            }
+        } catch (e) {}
     }
 
-    // 10. Modal & Bottom Sheet Controls
+    // Immediate Boot
+    renderActiveUser();
+    attachFirestoreLiveListener();
+
+    // Multi-tab sync & Window focus sync
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'active_user') renderActiveUser();
+    });
+    window.addEventListener('focus', renderActiveUser);
+
+    // 7. Modal & Bottom Sheet Controls
     const editModal = document.getElementById('editModalBackdrop');
     const inputFirstName = document.getElementById('inputFirstName');
     const inputLastName = document.getElementById('inputLastName');
@@ -1062,7 +906,7 @@
         }
     });
 
-    // 11. Save Name Directly via Document ID / Email
+    // 8. Save Name Directly to Database and Local Storage
     async function handleSaveName(e) {
         e.preventDefault();
         const newFirst = inputFirstName.value.trim();
@@ -1073,62 +917,56 @@
         btnSaveName.disabled = true;
         btnSaveName.innerText = "Saving...";
 
-        let docId = currentUserData["docId"] || currentUserData["UARM ID"] || currentUserData["id"];
+        const docId = currentUserData["UARM ID"] || currentUserData["docId"] || currentUserData["id"];
 
-        try {
-            // Direct PATCH by Document ID
-            if (docId) {
-                const patchUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${encodeURIComponent(docId)}?updateMask.fieldPaths=First%20Name&updateMask.fieldPaths=Last%20Name&_t=${Date.now()}`;
-                await fetch(patchUrl, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fields: {
-                            "First Name": { stringValue: newFirst },
-                            "Last Name": { stringValue: newLast }
-                        }
-                    })
-                });
-
-                try {
-                    await db.collection(COLLECTION_NAME).doc(docId).set({
-                        "First Name": newFirst,
-                        "Last Name": newLast
-                    }, { merge: true });
-                } catch (sdkErr) {}
-            }
-
-            // Update Session Data
-            currentUserData["First Name"] = newFirst;
-            currentUserData["Last Name"] = newLast;
-            localStorage.setItem('active_user', JSON.stringify(currentUserData));
-
+        // 1. Direct Cloud Database Update
+        if (docId) {
             try {
-                let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                const accIndex = savedAccounts.findIndex(acc => acc.email === currentUserData["Email"] || acc.docId === docId);
-                if (accIndex !== -1) {
-                    savedAccounts[accIndex].name = `${newFirst} ${newLast}`.trim();
-                    localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
-                }
-            } catch (err) {}
-
-            renderUserData(currentUserData);
-            closeEditModal();
-            syncUserDataFromCloud();
-        } catch (err) {
-            console.error("Save error:", err);
-            currentUserData["First Name"] = newFirst;
-            currentUserData["Last Name"] = newLast;
-            localStorage.setItem('active_user', JSON.stringify(currentUserData));
-            renderUserData(currentUserData);
-            closeEditModal();
-        } finally {
-            btnSaveName.disabled = false;
-            btnSaveName.innerText = "Save";
+                await db.collection(COLLECTION_NAME).doc(docId).set({
+                    "First Name": newFirst,
+                    "Last Name": newLast
+                }, { merge: true });
+            } catch (err) {
+                // Fallback to REST patch if SDK lacks write rules
+                try {
+                    const patchUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${encodeURIComponent(docId)}?updateMask.fieldPaths=First%20Name&updateMask.fieldPaths=Last%20Name`;
+                    await fetch(patchUrl, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            fields: {
+                                "First Name": { stringValue: newFirst },
+                                "Last Name": { stringValue: newLast }
+                            }
+                        })
+                    });
+                } catch (patchErr) {}
+            }
         }
+
+        // 2. Immediate Local Storage Update
+        currentUserData["First Name"] = newFirst;
+        currentUserData["Last Name"] = newLast;
+        localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+        // Update saved_accounts list
+        try {
+            let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            const accIndex = savedAccounts.findIndex(acc => acc.email === currentUserData["Email"] || acc.lotus === currentUserData["Lotus"]);
+            if (accIndex !== -1) {
+                savedAccounts[accIndex].name = `${newFirst} ${newLast}`.trim();
+                localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
+            }
+        } catch (err) {}
+
+        renderActiveUser();
+        closeEditModal();
+
+        btnSaveName.disabled = false;
+        btnSaveName.innerText = "Save";
     }
 
-    // 12. Navigation Actions
+    // 9. Navigation Actions (Exact Original Handlers)
     function goToSwitch() {
         const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
         window.location.href = dest;
@@ -1136,7 +974,7 @@
 
     document.getElementById('switchAccountBtn').onclick = goToSwitch;
 
-    // Explicit Sign Out
+    // Explicit Sign Out (The only action that terminates the session)
     document.getElementById('logoutBtn').onclick = () => {
         localStorage.removeItem('active_user');
         goToSwitch();
