@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Settings</title>
+    <title>Manage Account</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/knox-app/cloud/d235b91b67a58037117f8f0c2d1391ffd209a463/logo/ca81fecf-2d54-4aea-8de0-f189a43e1002.png">
@@ -11,10 +11,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         :root {
@@ -40,7 +36,7 @@
             --radius-full: 9999px;
             --modal-overlay: rgba(0, 0, 0, 0.4);
 
-            /* Dynamic Badges */
+            /* Badges */
             --badge-kids-bg: rgba(37, 99, 235, 0.1);
             --badge-kids-text: #2563eb;
             --badge-kids-border: rgba(37, 99, 235, 0.2);
@@ -598,7 +594,7 @@
                 <span class="data-label">First Name</span>
                 <div class="data-value-group">
                     <span class="data-value" id="valFirstName">—</span>
-                    <button class="btn-inline-edit" onclick="openEditModal('first')" title="Edit First Name">
+                    <button class="btn-inline-edit" id="btnEditFirst" title="Edit First Name">
                         <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
                 </div>
@@ -608,7 +604,7 @@
                 <span class="data-label">Last Name</span>
                 <div class="data-value-group">
                     <span class="data-value" id="valLastName">—</span>
-                    <button class="btn-inline-edit" onclick="openEditModal('last')" title="Edit Last Name">
+                    <button class="btn-inline-edit" id="btnEditLast" title="Edit Last Name">
                         <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
                 </div>
@@ -658,7 +654,7 @@
         <h3 class="modal-title">Edit Name</h3>
         <p class="modal-subtitle">Update your personal display name across all devices.</p>
 
-        <form id="editNameForm" onsubmit="handleSaveName(event)">
+        <form id="editNameForm">
             <div class="input-group">
                 <label for="inputFirstName">First Name</label>
                 <input type="text" id="inputFirstName" class="input-control" required placeholder="Enter first name" autocomplete="given-name">
@@ -677,17 +673,25 @@
     </div>
 </div>
 
-<script>
-    const PROJECT_ID = "question-metabase";
-    const COLLECTION_NAME = "UARM";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // 1. Firebase Initialization
-    if (!firebase.apps.length) {
-        firebase.initializeApp({ projectId: PROJECT_ID });
-    }
-    const db = firebase.firestore();
+    // 1. Exact Firebase Configuration from your 1.html & 2.html
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "question-metabase",
+        storageBucket: "question-metabase.firebasestorage.app",
+        messagingSenderId: "770698198753",
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+    };
 
-    // 2. URL Parameters & Theme Logic (Original logic preserved)
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 2. URL Parameters & Theme Logic
     const urlParams = new URLSearchParams(window.location.search);
     const uParam = urlParams.has('u') ? urlParams.get('u') : urlParams.get('user');
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
@@ -712,7 +716,7 @@
     applyTheme();
     mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
-    // 3. Multi-Account URL Handling (Exact Original Logic)
+    // 3. Multi-Account URL Handling (Original logic)
     if (uParam !== null) {
         const index = parseInt(uParam, 10);
         let savedAccounts = [];
@@ -742,7 +746,7 @@
         }
     }
 
-    // 4. Badge Config Function
+    // 4. Badge Config Helper
     function getBadgeConfig(typeRaw) {
         const type = (typeRaw || "").trim().toLowerCase();
 
@@ -767,10 +771,64 @@
         };
     }
 
-    // 5. Synchronous UI Render from LocalStorage (Zero Lag / Zero Flash)
+    // 5. Render User Profile
     let currentUserData = {};
+    let currentDocId = null;
 
-    function renderActiveUser() {
+    function renderUserData(user) {
+        if (!user) return;
+        currentUserData = user;
+
+        const firstName = user["First Name"] || "";
+        const lastName = user["Last Name"] || "";
+        const fullName = `${firstName} ${lastName}`.trim() || "User";
+        const email = user["Email"] || "—";
+        const phone = user["Phone Number"] || "—";
+        const dob = user["Date of Birth"] || "—";
+        const gender = user["Gender"] || "—";
+        const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["photoURL"] || null;
+
+        document.getElementById('fullName').innerText = fullName;
+        document.getElementById('primaryEmail').innerText = email;
+        document.getElementById('valFirstName').innerText = firstName || "—";
+        document.getElementById('valLastName').innerText = lastName || "—";
+        document.getElementById('valEmail').innerText = email;
+        document.getElementById('valPhone').innerText = phone;
+        document.getElementById('valDob').innerText = dob;
+        document.getElementById('valGender').innerText = gender;
+
+        // Dynamic Badges
+        const badgeConfig = getBadgeConfig(user["Type"]);
+        const heroBadge = document.getElementById('accountBadge');
+        heroBadge.className = `account-badge ${badgeConfig.className}`;
+        heroBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
+
+        const rowBadge = document.getElementById('valTypeBadge');
+        rowBadge.className = `account-badge ${badgeConfig.className}`;
+        rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
+
+        // Avatar Image & Initial Fallback
+        const avatarInitialElem = document.getElementById('avatarInitial');
+        const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
+        avatarInitialElem.innerText = initial;
+
+        const avatarImg = document.getElementById('avatarImage');
+        if (profilePicUrl && profilePicUrl.trim() !== "") {
+            avatarImg.src = profilePicUrl;
+            avatarImg.style.display = "block";
+            avatarInitialElem.style.display = "none";
+            avatarImg.onerror = () => {
+                avatarImg.style.display = "none";
+                avatarInitialElem.style.display = "block";
+            };
+        } else {
+            avatarImg.style.display = "none";
+            avatarInitialElem.style.display = "block";
+        }
+    }
+
+    // 6. Direct Live-Sync Engine using Firebase Modular SDK
+    async function initLiveSync() {
         const activeUserStr = localStorage.getItem('active_user');
         
         if (!activeUserStr) {
@@ -780,94 +838,47 @@
         }
 
         try {
-            currentUserData = JSON.parse(activeUserStr);
-            const user = currentUserData;
+            const localUser = JSON.parse(activeUserStr);
+            renderUserData(localUser);
 
-            const firstName = user["First Name"] || "";
-            const lastName = user["Last Name"] || "";
-            const fullName = `${firstName} ${lastName}`.trim() || "User";
-            const email = user["Email"] || "—";
-            const phone = user["Phone Number"] || "—";
-            const dob = user["Date of Birth"] || "—";
-            const gender = user["Gender"] || "—";
-            const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["photoURL"] || null;
+            const email = localUser["Email"];
+            const lotus = localUser["Lotus"];
 
-            document.getElementById('fullName').innerText = fullName;
-            document.getElementById('primaryEmail').innerText = email;
-            document.getElementById('valFirstName').innerText = firstName || "—";
-            document.getElementById('valLastName').innerText = lastName || "—";
-            document.getElementById('valEmail').innerText = email;
-            document.getElementById('valPhone').innerText = phone;
-            document.getElementById('valDob').innerText = dob;
-            document.getElementById('valGender').innerText = gender;
-
-            // Badges
-            const badgeConfig = getBadgeConfig(user["Type"]);
-            const heroBadge = document.getElementById('accountBadge');
-            heroBadge.className = `account-badge ${badgeConfig.className}`;
-            heroBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
-
-            const rowBadge = document.getElementById('valTypeBadge');
-            rowBadge.className = `account-badge ${badgeConfig.className}`;
-            rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
-
-            // Profile Picture
-            const avatarInitialElem = document.getElementById('avatarInitial');
-            const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
-            avatarInitialElem.innerText = initial;
-
-            const avatarImg = document.getElementById('avatarImage');
-            if (profilePicUrl && profilePicUrl.trim() !== "") {
-                avatarImg.src = profilePicUrl;
-                avatarImg.style.display = "block";
-                avatarInitialElem.style.display = "none";
-                avatarImg.onerror = () => {
-                    avatarImg.style.display = "none";
-                    avatarInitialElem.style.display = "block";
-                };
-            } else {
-                avatarImg.style.display = "none";
-                avatarInitialElem.style.display = "block";
+            // Query UARM by Lotus or Email to obtain exact Document ID and Live Stream
+            let q;
+            if (lotus) {
+                q = query(collection(db, "UARM"), where("Lotus", "==", lotus));
+            } else if (email) {
+                q = query(collection(db, "UARM"), where("Email", "==", email));
             }
-        } catch (e) {
-            console.error("Render parse error:", e);
+
+            if (q) {
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    currentDocId = snap.docs[0].id;
+                    const freshData = snap.docs[0].data();
+
+                    // Update local storage and UI
+                    localStorage.setItem('active_user', JSON.stringify(freshData));
+                    renderUserData(freshData);
+
+                    // Attach Real-Time Firebase Listener
+                    onSnapshot(doc(db, "UARM", currentDocId), (docSnap) => {
+                        if (docSnap.exists()) {
+                            const liveData = docSnap.data();
+                            localStorage.setItem('active_user', JSON.stringify(liveData));
+                            renderUserData(liveData);
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Live sync initialization error:", err);
         }
     }
 
-    // 6. Direct Firestore Live Listener for Instant Cloud Sync
-    function attachFirestoreLiveListener() {
-        const activeUserStr = localStorage.getItem('active_user');
-        if (!activeUserStr) return;
-
-        try {
-            const user = JSON.parse(activeUserStr);
-            // Document ID from your Firestore database (e.g. 7I4d9vmIm9WiUAuNeQGByq6jT)
-            const docId = user["UARM ID"] || user["docId"] || user["id"];
-
-            if (docId) {
-                db.collection(COLLECTION_NAME).doc(docId).onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const freshData = doc.data();
-                        const merged = { ...user, ...freshData, "UARM ID": docId };
-                        localStorage.setItem('active_user', JSON.stringify(merged));
-                        renderActiveUser();
-                    }
-                }, (err) => {
-                    console.warn("Firestore listener note:", err);
-                });
-            }
-        } catch (e) {}
-    }
-
-    // Immediate Boot
-    renderActiveUser();
-    attachFirestoreLiveListener();
-
-    // Multi-tab sync & Window focus sync
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'active_user') renderActiveUser();
-    });
-    window.addEventListener('focus', renderActiveUser);
+    // Run live sync immediately
+    initLiveSync();
 
     // 7. Modal & Bottom Sheet Controls
     const editModal = document.getElementById('editModalBackdrop');
@@ -894,6 +905,8 @@
     }
 
     document.getElementById('editNameBtn').onclick = () => openEditModal('first');
+    document.getElementById('btnEditFirst').onclick = () => openEditModal('first');
+    document.getElementById('btnEditLast').onclick = () => openEditModal('last');
     document.getElementById('btnCancelEdit').onclick = closeEditModal;
 
     editModal.addEventListener('click', (e) => {
@@ -906,8 +919,8 @@
         }
     });
 
-    // 8. Save Name Directly to Database and Local Storage
-    async function handleSaveName(e) {
+    // 8. Save Name directly to Firebase Firestore
+    document.getElementById('editNameForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const newFirst = inputFirstName.value.trim();
         const newLast = inputLastName.value.trim();
@@ -917,56 +930,42 @@
         btnSaveName.disabled = true;
         btnSaveName.innerText = "Saving...";
 
-        const docId = currentUserData["UARM ID"] || currentUserData["docId"] || currentUserData["id"];
-
-        // 1. Direct Cloud Database Update
-        if (docId) {
-            try {
-                await db.collection(COLLECTION_NAME).doc(docId).set({
+        try {
+            // Update Firestore Document directly
+            if (currentDocId) {
+                await updateDoc(doc(db, "UARM", currentDocId), {
                     "First Name": newFirst,
                     "Last Name": newLast
-                }, { merge: true });
-            } catch (err) {
-                // Fallback to REST patch if SDK lacks write rules
-                try {
-                    const patchUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${encodeURIComponent(docId)}?updateMask.fieldPaths=First%20Name&updateMask.fieldPaths=Last%20Name`;
-                    await fetch(patchUrl, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            fields: {
-                                "First Name": { stringValue: newFirst },
-                                "Last Name": { stringValue: newLast }
-                            }
-                        })
-                    });
-                } catch (patchErr) {}
+                });
             }
+
+            // Update Local Data
+            currentUserData["First Name"] = newFirst;
+            currentUserData["Last Name"] = newLast;
+            localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+            // Sync with saved_accounts
+            try {
+                let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+                const accIndex = savedAccounts.findIndex(acc => acc.email === currentUserData["Email"]);
+                if (accIndex !== -1) {
+                    savedAccounts[accIndex].firstName = newFirst;
+                    localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
+                }
+            } catch (err) {}
+
+            renderUserData(currentUserData);
+            closeEditModal();
+        } catch (err) {
+            console.error("Firestore name update failed:", err);
+            alert("Error saving name. Please check your connection.");
+        } finally {
+            btnSaveName.disabled = false;
+            btnSaveName.innerText = "Save";
         }
+    });
 
-        // 2. Immediate Local Storage Update
-        currentUserData["First Name"] = newFirst;
-        currentUserData["Last Name"] = newLast;
-        localStorage.setItem('active_user', JSON.stringify(currentUserData));
-
-        // Update saved_accounts list
-        try {
-            let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-            const accIndex = savedAccounts.findIndex(acc => acc.email === currentUserData["Email"] || acc.lotus === currentUserData["Lotus"]);
-            if (accIndex !== -1) {
-                savedAccounts[accIndex].name = `${newFirst} ${newLast}`.trim();
-                localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
-            }
-        } catch (err) {}
-
-        renderActiveUser();
-        closeEditModal();
-
-        btnSaveName.disabled = false;
-        btnSaveName.innerText = "Save";
-    }
-
-    // 9. Navigation Actions (Exact Original Handlers)
+    // 9. Navigation Handlers
     function goToSwitch() {
         const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
         window.location.href = dest;
@@ -974,7 +973,7 @@
 
     document.getElementById('switchAccountBtn').onclick = goToSwitch;
 
-    // Explicit Sign Out (The only action that terminates the session)
+    // Explicit Logout
     document.getElementById('logoutBtn').onclick = () => {
         localStorage.removeItem('active_user');
         goToSwitch();
