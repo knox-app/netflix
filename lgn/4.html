@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Account</title>
+    <title>Account Settings</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/knox-app/cloud/d235b91b67a58037117f8f0c2d1391ffd209a463/logo/ca81fecf-2d54-4aea-8de0-f189a43e1002.png">
@@ -41,7 +41,7 @@
             --shimmer-bg: linear-gradient(90deg, #f0f0f2 0%, #e4e4e7 50%, #f0f0f2 100%);
             --modal-overlay: rgba(0, 0, 0, 0.4);
 
-            /* Badges */
+            /* Dynamic Badge Themes */
             --badge-kids-bg: rgba(37, 99, 235, 0.1);
             --badge-kids-text: #2563eb;
             --badge-kids-border: rgba(37, 99, 235, 0.2);
@@ -241,7 +241,7 @@
             font-size: 0.95rem;
         }
 
-        /* Dynamic Badges */
+        /* Badges */
         .account-badge {
             display: inline-flex;
             align-items: center;
@@ -593,7 +593,6 @@
     <section class="profile-hero">
         <div class="avatar-container">
             <span class="avatar-fallback" id="avatarInitial"></span>
-            <!-- Added referrerpolicy="no-referrer" to prevent 403 Google image blocking -->
             <img id="avatarImage" class="avatar-img" alt="Profile Picture" referrerpolicy="no-referrer">
         </div>
         <div class="profile-headings">
@@ -619,13 +618,14 @@
         </div>
     </section>
 
-    <!-- Personal Information Card -->
+    <!-- Personal Details Card -->
     <div class="details-card">
         <div class="card-header">
             <h2 class="card-title">Personal Details</h2>
             <p class="card-description">Your identity and account contact details</p>
         </div>
         <div class="data-list">
+            <!-- First Name Row with Edit Pen -->
             <div class="data-row">
                 <span class="data-label">First Name</span>
                 <div class="data-value-group">
@@ -636,6 +636,7 @@
                 </div>
             </div>
 
+            <!-- Last Name Row with Edit Pen -->
             <div class="data-row">
                 <span class="data-label">Last Name</span>
                 <div class="data-value-group">
@@ -744,7 +745,7 @@
     applyTheme();
     mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
-    // 3. Robust Session Retention (Never expires unless signed out)
+    // 3. Persistent Session Handler (Never expires unless explicitly signed out)
     function getActiveSessionUser() {
         let activeUser = null;
         try {
@@ -758,8 +759,8 @@
                 const savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
                 if (savedAccounts.length > 0) {
                     activeUser = {
-                        "Lotus": savedAccounts[0].lotus,
-                        "UARM ID": savedAccounts[0].uarmId || savedAccounts[0].lotus,
+                        "Lotus": savedAccounts[0].lotus || '',
+                        "docId": savedAccounts[0].docId || savedAccounts[0].uarmId || '',
                         "First Name": savedAccounts[0].name ? savedAccounts[0].name.split(' ')[0] : '',
                         "Last Name": savedAccounts[0].name ? savedAccounts[0].name.split(' ').slice(1).join(' ') : '',
                         "Email": savedAccounts[0].email || '',
@@ -772,7 +773,7 @@
         return activeUser;
     }
 
-    // 4. Multi-Account Index Navigation
+    // 4. Multi-Account URL Navigation
     if (uParam !== null) {
         const index = parseInt(uParam, 10);
         let savedAccounts = [];
@@ -794,7 +795,7 @@
         }
     }
 
-    // 5. Badge Configuration
+    // 5. Dynamic Badge Config
     function getBadgeConfig(typeRaw) {
         const type = (typeRaw || "").trim().toLowerCase();
 
@@ -819,7 +820,7 @@
         };
     }
 
-    // 6. Render User Data (With Guaranteed Image Loading)
+    // 6. Render User Profile
     let currentUserData = {};
 
     function renderUserData(user) {
@@ -833,9 +834,7 @@
         const phone = user["Phone Number"] || "—";
         const dob = user["Date of Birth"] || "—";
         const gender = user["Gender"] || "—";
-        
-        // Check all casing possibilities from Firestore & auth
-        const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["profile_picture"] || user["photoURL"] || null;
+        const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["photoURL"] || null;
 
         document.getElementById('fullName').innerText = fullName;
         document.getElementById('primaryEmail').innerText = email;
@@ -856,17 +855,15 @@
         rowBadge.className = `account-badge ${badgeConfig.className}`;
         rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
 
-        // Avatar Initial / Profile Picture Display
+        // Avatar Image & Initial Fallback
         const avatarInitialElem = document.getElementById('avatarInitial');
         const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
         avatarInitialElem.innerText = initial;
 
         const avatarImg = document.getElementById('avatarImage');
-
         if (profilePicUrl && profilePicUrl.trim() !== "") {
             avatarImg.src = profilePicUrl;
 
-            // Handle pre-cached or fast loaded images
             if (avatarImg.complete && avatarImg.naturalWidth > 0) {
                 avatarImg.classList.add('loaded');
                 avatarInitialElem.style.display = 'none';
@@ -905,7 +902,7 @@
         return result;
     }
 
-    // 8. Self-Contained Direct Live-Sync Engine (No-Cache Polling)
+    // 8. FASTEST SYNC ENGINE: Direct Document ID & Email Lookup
     let syncRunning = false;
 
     async function syncUserDataFromCloud() {
@@ -918,18 +915,18 @@
             return;
         }
 
-        const lotus = localUser["Lotus"];
         const email = localUser["Email"];
-        const uarmId = localUser["UARM ID"];
+        // Priority 1: Direct Document ID (Fastest O(1) fetch)
+        let docId = localUser["docId"] || localUser["UARM ID"] || localUser["id"];
 
         try {
             let docData = null;
-            let foundDocId = uarmId;
+            let foundDocId = docId;
 
-            // Strategy 1: Direct Document GET (Fastest & Never Caches)
-            if (uarmId) {
+            // Strategy 1: Direct Document GET by Document ID
+            if (docId) {
                 try {
-                    const directRes = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${uarmId}?_t=${Date.now()}`, {
+                    const directRes = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${docId}?_t=${Date.now()}`, {
                         method: 'GET',
                         cache: 'no-store',
                         headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
@@ -943,16 +940,18 @@
                 } catch (e) {}
             }
 
-            // Strategy 2: If Direct GET wasn't possible, query by Lotus / Email
-            if (!docData && (lotus || email)) {
-                const queryFilter = lotus 
-                    ? { fieldPath: "Lotus", op: "EQUAL", value: { stringValue: lotus } }
-                    : { fieldPath: "Email", op: "EQUAL", value: { stringValue: email } };
-
+            // Strategy 2: If Document ID is unknown or failed, Query via Email Address
+            if (!docData && email) {
                 const queryPayload = {
                     structuredQuery: {
                         from: [{ collectionId: COLLECTION_NAME }],
-                        where: { fieldFilter: queryFilter },
+                        where: {
+                            fieldFilter: {
+                                field: { fieldPath: "Email" },
+                                op: "EQUAL",
+                                value: { stringValue: email }
+                            }
+                        },
                         limit: 1
                     }
                 };
@@ -967,30 +966,30 @@
                 const data = await response.json();
                 if (data && data[0] && data[0].document) {
                     const docPath = data[0].document.name;
-                    foundDocId = docPath.split('/').pop();
+                    foundDocId = docPath.split('/').pop(); // Extract exact Firestore Document ID
                     docData = parseFirestoreFields(data[0].document.fields);
                 }
             }
 
-            // If new data arrived, update immediately
+            // When new data arrives, update local session and UI instantly
             if (docData) {
                 const mergedUser = { 
                     ...localUser, 
                     ...docData, 
-                    "UARM ID": foundDocId || localUser["UARM ID"] 
+                    "docId": foundDocId || localUser["docId"]
                 };
 
                 localStorage.setItem('active_user', JSON.stringify(mergedUser));
                 renderUserData(mergedUser);
 
-                // Attach onSnapshot directly if available
+                // Attach direct WebSocket listener
                 if (!window._firestoreListenerAttached && foundDocId) {
                     window._firestoreListenerAttached = true;
                     try {
                         db.collection(COLLECTION_NAME).doc(foundDocId).onSnapshot((doc) => {
                             if (doc.exists) {
                                 const liveData = doc.data();
-                                const liveMerged = { ...mergedUser, ...liveData, "UARM ID": foundDocId };
+                                const liveMerged = { ...mergedUser, ...liveData, "docId": foundDocId };
                                 localStorage.setItem('active_user', JSON.stringify(liveMerged));
                                 renderUserData(liveMerged);
                             }
@@ -999,13 +998,13 @@
                 }
             }
         } catch (e) {
-            console.warn("Cloud live sync check:", e);
+            console.warn("Real-time cloud sync warning:", e);
         } finally {
             syncRunning = false;
         }
     }
 
-    // 9. Boot Execution & Polling Setup
+    // 9. Boot Execution
     const activeUser = getActiveSessionUser();
 
     if (!activeUser) {
@@ -1014,7 +1013,7 @@
     } else {
         renderUserData(activeUser);
 
-        // Immediate fetch from Firestore
+        // Immediate Firestore sync
         syncUserDataFromCloud();
 
         // 3-second live loop for instant cross-device updates without reloading
@@ -1063,7 +1062,7 @@
         }
     });
 
-    // 11. Save Name Directly to Cloud & Local Storage
+    // 11. Save Name Directly via Document ID / Email
     async function handleSaveName(e) {
         e.preventDefault();
         const newFirst = inputFirstName.value.trim();
@@ -1074,9 +1073,10 @@
         btnSaveName.disabled = true;
         btnSaveName.innerText = "Saving...";
 
-        let docId = currentUserData["UARM ID"] || currentUserData["Lotus"];
+        let docId = currentUserData["docId"] || currentUserData["UARM ID"] || currentUserData["id"];
 
         try {
+            // Direct PATCH by Document ID
             if (docId) {
                 const patchUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${encodeURIComponent(docId)}?updateMask.fieldPaths=First%20Name&updateMask.fieldPaths=Last%20Name&_t=${Date.now()}`;
                 await fetch(patchUrl, {
@@ -1089,24 +1089,23 @@
                         }
                     })
                 });
-            }
 
-            try {
-                if (docId) {
+                try {
                     await db.collection(COLLECTION_NAME).doc(docId).set({
                         "First Name": newFirst,
                         "Last Name": newLast
                     }, { merge: true });
-                }
-            } catch (sdkErr) {}
+                } catch (sdkErr) {}
+            }
 
+            // Update Session Data
             currentUserData["First Name"] = newFirst;
             currentUserData["Last Name"] = newLast;
             localStorage.setItem('active_user', JSON.stringify(currentUserData));
 
             try {
                 let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                const accIndex = savedAccounts.findIndex(acc => acc.lotus === currentUserData["Lotus"] || acc.lotus === docId);
+                const accIndex = savedAccounts.findIndex(acc => acc.email === currentUserData["Email"] || acc.docId === docId);
                 if (accIndex !== -1) {
                     savedAccounts[accIndex].name = `${newFirst} ${newLast}`.trim();
                     localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
@@ -1137,6 +1136,7 @@
 
     document.getElementById('switchAccountBtn').onclick = goToSwitch;
 
+    // Explicit Sign Out
     document.getElementById('logoutBtn').onclick = () => {
         localStorage.removeItem('active_user');
         goToSwitch();
