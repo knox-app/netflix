@@ -3,31 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In</title>
+    <title>Scan QR to Sign In</title>
+    <!-- Lightweight QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* CSS Variables for Dynamic Light/Dark Mode */
         :root {
             --bg-color: #ffffff;
             --text-primary: #000000;
             --text-secondary: #555555;
-            --input-border: #dddddd;
-            --input-focus: #000000;
-            --input-bg: #ffffff;
-            --btn-bg: #111111;
-            --btn-text: #ffffff;
-            --btn-hover: #333333;
+            --card-border: #dddddd;
         }
 
-        body.dark {
-            --bg-color: #000000;
-            --text-primary: #ffffff;
-            --text-secondary: #aaaaaa;
-            --input-border: #3a3a3a;
-            --input-focus: #ffffff;
-            --input-bg: #000000; /* Inner input background is set to black */
-            --btn-bg: #ffffff;
-            --btn-text: #000000;
-            --btn-hover: #e0e0e0;
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --text-primary: #ffffff;
+                --text-secondary: #aaaaaa;
+                --card-border: #3a3a3a;
+            }
         }
 
         body {
@@ -39,313 +32,145 @@
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
-        
-        h1 { font-size: 32px; font-weight: 600; margin-bottom: 10px; color: var(--text-primary); }
-        
-        p.subtitle { color: var(--text-secondary); font-size: 15px; margin-bottom: 30px; line-height: 1.5; }
-        
-        .input-group { position: relative; margin-bottom: 20px; text-align: left; }
-        
-        .input-group label {
-            position: absolute;
-            top: -10px;
-            left: 15px;
-            background: var(--bg-color);
-            padding: 0 5px;
-            font-size: 12px;
-            color: var(--text-secondary);
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 16px;
-            font-size: 16px;
-            border: 1px solid var(--input-border);
-            border-radius: 12px;
-            box-sizing: border-box;
-            outline: none;
-            background-color: var(--input-bg);
-            color: var(--text-primary);
-            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
-        }
-
-        input[type="text"]:focus { border-color: var(--input-focus); }
-
-        .btn {
-            background: var(--btn-bg);
-            color: var(--btn-text);
-            border: none;
-            padding: 16px;
-            width: 100%;
-            border-radius: 30px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: background 0.2s, color 0.2s;
-        }
-
-        .btn:hover { background: var(--btn-hover); }
-        .links { margin-top: 20px; font-size: 14px; }
-        .links a { color: #0066cc; text-decoration: none; cursor: pointer; }
-
-        /* Already Logged In Warn Block */
-        .already-logged-in {
-            display: none;
-            box-sizing: border-box;
-            background: rgba(0, 128, 0, 0.08);
-            border: 1px solid rgba(0, 128, 0, 0.3);
-            color: var(--text-primary);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 13px;
-            text-align: left;
-            margin-bottom: 15px;
-        }
-
-        .already-logged-in.visible {
-            display: block;
-        }
-
-        /* Profile Picker Overlay */
-        .profile-picker-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .profile-picker-card {
-            background: var(--bg-color);
-            color: var(--text-primary);
-            border-radius: 16px;
-            padding: 28px 24px;
-            max-width: 380px;
-            width: 90%;
+        .container {
             text-align: center;
+            max-width: 420px;
+            width: 90%;
+            padding: 30px;
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
         }
 
-        .profile-picker-card h2 { font-size: 20px; margin: 0 0 6px 0; }
-        .profile-picker-card p { color: var(--text-secondary); font-size: 13px; margin: 0 0 20px 0; }
-
-        .profile-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 320px;
-            overflow-y: auto;
-        }
-
-        .profile-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            border: 1px solid var(--input-border);
-            border-radius: 10px;
-            cursor: pointer;
-            text-align: left;
-            background: none;
-            width: 100%;
-            box-sizing: border-box;
-            transition: background 0.15s;
-        }
-
-        .profile-option:hover { background: rgba(128, 128, 128, 0.1); }
-
-        .profile-option img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #ccc;
-            flex-shrink: 0;
-        }
-
-        .profile-option .profile-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .profile-option .profile-sub { font-size: 12px; color: var(--text-secondary); }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            font-size: 10px;
+        h1 {
+            font-size: 24px;
             font-weight: 600;
-            padding: 2px 7px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            margin-bottom: 8px;
         }
-        .badge-loggedin { background: rgba(128, 128, 128, 0.15); color: #666666; border: 1px solid rgba(128, 128, 128, 0.4); }
-        .badge-kids { background: rgba(0, 102, 204, 0.12); color: #0066cc; border: 1px solid rgba(0, 102, 204, 0.35); }
-        .badge-business { background: rgba(224, 176, 255, 0.15); color: #8a2be2; border: 1px solid rgba(138, 43, 226, 0.35); }
-        .badge svg { width: 10px; height: 10px; flex-shrink: 0; }
 
-        .profile-picker-cancel {
-            margin-top: 18px;
+        p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .qr-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            background: #ffffff;
+            border-radius: 12px;
+            width: fit-content;
+            margin: 0 auto 20px auto;
+        }
+
+        .status {
             font-size: 13px;
-            color: #0066cc;
-            cursor: pointer;
-            background: none;
-            border: none;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--text-secondary);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Sign in</h1>
-    <p class="subtitle">Use your 021 Account. The account will be added to this device and available to other our Apps & Services.</p>
+    <h1>Log in with QR Code</h1>
+    <p>Scan this QR code from your mobile device or child's account to sign in automatically.</p>
 
-    <div class="already-logged-in" id="alreadyLoggedInMsg"></div>
-
-    <div class="input-group">
-        <label>Email or Mobile</label>
-        <input type="text" id="identifier" placeholder="" autocomplete="off">
+    <div class="qr-wrapper">
+        <div id="qrcode"></div>
     </div>
 
-    <button class="btn" id="continueBtn">Continue</button>
-    
-    <div class="links" id="accountChooserLink" style="display: none;">
-        <a href="3.html">Choose an existing account</a>
-    </div>
-</div>
-
-<div class="profile-picker-overlay" id="profilePickerOverlay">
-    <div class="profile-picker-card">
-        <h2>Who's Trying to Log In?</h2>
-        <p>This phone number is linked to more than one account.</p>
-        <div class="profile-list" id="profileList"></div>
-        <button class="profile-picker-cancel" id="profilePickerCancel">Cancel</button>
+    <div class="status" id="statusText">
+        <span class="spinner"></span> Waiting for scan...
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
         authDomain: "question-metabase.firebaseapp.com",
-        databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "question-metabase",
-        storageBucket: "question-metabase.firebasestorage.app",
-        messagingSenderId: "770698198753",
-        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+        projectId: "question-metabase"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    try {
-        if (localStorage.getItem('saved_accounts')) {
-            let accounts = JSON.parse(localStorage.getItem('saved_accounts'));
-            if (accounts && accounts.length > 0) {
-                document.getElementById('accountChooserLink').style.display = 'block';
-            }
-        }
-    } catch (e) {
-        console.error("Local storage read error:", e);
-    }
+    // 1. Generate unique session ID
+    const sessionId = "sess_" + Math.random().toString(36).substring(2, 12) + Date.now();
+    const continueUrl = new URLSearchParams(window.location.search).get('continue') || '4.html';
 
-    const urlParams = new URLSearchParams(window.location.search);
-    let session = urlParams.get('session');
-    let continueUrl = urlParams.get('continue') || '4.html';
-    const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
-
-    /* ================= LIVE THEME ================= */
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-    function applyTheme() {
-        if (theme === "dark" || theme === "d") {
-            document.body.classList.add("dark");
-            return;
-        }
-        if (theme === "light" || theme === "l") {
-            document.body.classList.remove("dark");
-            return;
-        }
-        if (mediaQuery.matches) {
-            document.body.classList.add("dark");
-        } else {
-            document.body.classList.remove("dark");
-        }
-    }
-
-    applyTheme();
-
-    mediaQuery.addEventListener("change", () => {
-        if (!theme) {
-            applyTheme();
-        }
-    });
-
-    // 1. Session Generation
-    async function initSession() {
-        if (!session) {
-            session = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-            try {
-                await setDoc(doc(db, "ASPX Keys", session), {
-                    sessionId: session,
-                    createdAt: new Date()
-                });
-            } catch (err) {
-                console.error("Session database write failed:", err);
-            }
-            
-            // Dynamically build the search query relative to your current file name
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('session', session);
-            currentUrl.searchParams.set('continue', continueUrl);
-            
-            // Updates address bar without altering your specific file name (e.g. preserves 1 (27).html)
-            window.history.replaceState({}, '', currentUrl.pathname + currentUrl.search);
-        }
-    }
-
-    // 2. Auto Login Checks (Passwordless & Lotus Link)
-    async function checkAutoLogins() {
+    async function initQRLogin() {
         try {
-            if (urlParams.get('env') === 'safeopt' && urlParams.get('e') && urlParams.get('p')) {
-                const email = urlParams.get('e');
-                const pass = urlParams.get('p');
-                
-                const q = query(collection(db, "UARM"), where("Email", "==", email), where("Password", "==", pass));
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    const userData = querySnapshot.docs[0].data();
-                    saveAccountAndLogin(userData);
-                    window.location.href = continueUrl;
-                } else {
-                    alert("Invalid passwordless login link.");
-                }
-            }
+            // 2. Register initial pending session in ASPX Keys
+            const sessionRef = doc(db, "ASPX Keys", sessionId);
+            await setDoc(sessionRef, {
+                status: "pending",
+                createdAt: new Date()
+            });
 
-            const lotusId = urlParams.get('lotus') || urlParams.get('Lotus');
-            if (lotusId) {
-                document.getElementById('continueBtn').innerText = "Logging in...";
-                const q = query(collection(db, "UARM"), where("Lotus", "==", lotusId));
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    const userData = querySnapshot.docs[0].data();
-                    saveAccountAndLogin(userData);
-                    window.location.href = continueUrl;
-                } else {
-                    alert("Invalid automatic login token.");
-                    document.getElementById('continueBtn').innerText = "Continue";
+            // 3. Build target URL for the scanning device
+            const scanUrl = `${window.location.origin}/1.html?session=${encodeURIComponent(sessionId)}&continue=${encodeURIComponent(continueUrl)}`;
+
+            // 4. Render QR code
+            new QRCode(document.getElementById("qrcode"), {
+                text: scanUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            // 5. Listen for updates in real-time
+            const unsubscribe = onSnapshot(sessionRef, async (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+
+                    if (data.status === "authenticated" && data.userData) {
+                        document.getElementById("statusText").innerText = "Authentication approved! Redirecting...";
+
+                        // Save account locally
+                        saveAccountAndLogin(data.userData);
+
+                        // Cleanup session document
+                        try {
+                            await deleteDoc(sessionRef);
+                        } catch (e) {
+                            console.error("Session cleanup error:", e);
+                        }
+
+                        // Stop listener and redirect
+                        unsubscribe();
+                        window.location.href = continueUrl;
+                    }
                 }
-            }
-        } catch (err) {
-            console.error("Auto-login error:", err);
+            });
+
+        } catch (error) {
+            console.error("QR Init error:", error);
+            document.getElementById("statusText").innerText = "Failed to initialize QR session.";
         }
     }
 
@@ -357,239 +182,16 @@
             const lotus = userData["Lotus"];
 
             if (email && !accounts.some(acc => acc.email === email)) {
-                accounts.push({ email: email, firstName: firstName || "", lotus: lotus || "" });
+                accounts.push({ email, firstName: firstName || "", lotus: lotus || "" });
                 localStorage.setItem('saved_accounts', JSON.stringify(accounts));
             }
             localStorage.setItem('active_user', JSON.stringify(userData));
         } catch (e) {
-            console.error("Local storage save error:", e);
+            console.error("Local storage error:", e);
         }
     }
 
-    // Initialize session and check automated parameters
-    initSession().then(checkAutoLogins);
-
-    // Save Lotus ID securely inside the session document and redirect
-    async function goToNextStep(userData) {
-        try {
-            await updateDoc(doc(db, "ASPX Keys", session), {
-                Lotus: userData["Lotus"],
-                loggedInAt: new Date()
-            });
-        } catch (err) {
-            console.error("Failed to attach Lotus to session:", err);
-            alert("Could not complete login. Please try again.");
-            document.getElementById('continueBtn').innerText = "Continue";
-            document.getElementById('continueBtn').disabled = false;
-            return;
-        }
-
-        let redirectUrl = `2.html?session=${session}&continue=${encodeURIComponent(continueUrl)}`;
-        if (theme) {
-            redirectUrl += `&theme=${theme}`;
-        }
-        window.location.href = redirectUrl;
-    }
-
-    function setAlreadyLoggedInMessage(matchedText) {
-        const msgEl = document.getElementById('alreadyLoggedInMsg');
-        msgEl.innerHTML = '';
-
-        if (!matchedText) {
-            msgEl.classList.remove('visible');
-            return;
-        }
-
-        msgEl.textContent = `${matchedText} already logged in the device`;
-        msgEl.classList.add('visible');
-    }
-
-    function showProfilePicker(accountDocs) {
-        const listEl = document.getElementById('profileList');
-        listEl.innerHTML = '';
-
-        let activeLotus = null;
-        try {
-            const activeUserRaw = localStorage.getItem('active_user');
-            if (activeUserRaw) {
-                const activeUser = JSON.parse(activeUserRaw);
-                activeLotus = activeUser && activeUser["Lotus"] ? activeUser["Lotus"] : null;
-            }
-        } catch (e) {
-            console.error("Active user read error:", e);
-        }
-
-        accountDocs.forEach((docSnap) => {
-            const userData = docSnap.data();
-            const name = userData["First Name"] || "Account";
-            const pictureUrl = userData["Profile Picture"] || '';
-            const isKids = (userData["Type"] || '').toLowerCase() === 'kids';
-            const isBusiness = (userData["Type"] || '').toLowerCase() === 'business';
-            const isLoggedIn = activeLotus && userData["Lotus"] && userData["Lotus"] === activeLotus;
-
-            const optionBtn = document.createElement('button');
-            optionBtn.type = 'button';
-            optionBtn.className = 'profile-option';
-
-            const img = document.createElement('img');
-            img.src = pictureUrl || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"></svg>';
-            img.alt = name;
-
-            const textWrap = document.createElement('div');
-            const nameEl = document.createElement('div');
-            nameEl.className = 'profile-name';
-            nameEl.textContent = name;
-
-            if (isLoggedIn) {
-                const loggedInBadge = document.createElement('span');
-                loggedInBadge.className = 'badge badge-loggedin';
-                loggedInBadge.textContent = 'Logged in';
-                nameEl.appendChild(loggedInBadge);
-            }
-            if (isKids) {
-                const kidsBadge = document.createElement('span');
-                kidsBadge.className = 'badge badge-kids';
-                kidsBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Kids</span>';
-                nameEl.appendChild(kidsBadge);
-            }
-            if (isBusiness) {
-                const businessBadge = document.createElement('span');
-                businessBadge.className = 'badge badge-business';
-                businessBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" stroke="currentColor" stroke-width="2"/></svg><span>Business</span>';
-                nameEl.appendChild(businessBadge);
-            }
-
-            const subEl = document.createElement('div');
-            subEl.className = 'profile-sub';
-            subEl.textContent = userData["Email"] || '';
-            textWrap.appendChild(nameEl);
-            textWrap.appendChild(subEl);
-
-            optionBtn.appendChild(img);
-            optionBtn.appendChild(textWrap);
-
-            optionBtn.addEventListener('click', () => {
-                document.getElementById('profilePickerOverlay').style.display = 'none';
-                goToNextStep(userData);
-            });
-
-            listEl.appendChild(optionBtn);
-        });
-
-        document.getElementById('profilePickerOverlay').style.display = 'flex';
-    }
-
-    document.getElementById('profilePickerCancel').addEventListener('click', () => {
-        document.getElementById('profilePickerOverlay').style.display = 'none';
-        document.getElementById('continueBtn').innerText = "Continue";
-        document.getElementById('continueBtn').disabled = false;
-        isSubmitting = false;
-    });
-
-    // Reset inline warnings as soon as user edits the input field again
-    document.getElementById('identifier').addEventListener('input', () => {
-        setAlreadyLoggedInMessage(null);
-    });
-
-    // 3. Handle Manual Form Submit
-    let isSubmitting = false;
-    document.getElementById('continueBtn').addEventListener('click', async () => {
-        if (isSubmitting) return;
-
-        let identifier = document.getElementById('identifier').value.trim();
-        if(!identifier) return alert("Please enter email or mobile");
-
-        // Format identifier
-        const isMobile = /^\+?\d+$/.test(identifier);
-        if (!isMobile && !identifier.includes('@')) {
-            identifier += '@AAAAAA.com';
-        }
-
-        // Hide any previous warnings
-        setAlreadyLoggedInMessage(null);
-
-        // Pre-check already logged in status strictly on "Continue" click
-        // Only run instant redirect bypass for single unique email entries.
-        if (!isMobile) {
-            try {
-                const activeUserRaw = localStorage.getItem('active_user');
-                if (activeUserRaw) {
-                    const activeUser = JSON.parse(activeUserRaw);
-                    const activeEmail = activeUser && activeUser["Email"];
-                    const alreadyThisUser = activeEmail && activeEmail.toLowerCase() === identifier.toLowerCase();
-
-                    if (alreadyThisUser) {
-                        setAlreadyLoggedInMessage(activeEmail);
-                        return; // Keep them on the page with the inline alert visible
-                    }
-                }
-            } catch (e) {
-                console.error("Active user read error:", e);
-            }
-        }
-
-        isSubmitting = true;
-        const continueBtn = document.getElementById('continueBtn');
-        continueBtn.disabled = true;
-        continueBtn.innerText = "Checking...";
-
-        try {
-            let q;
-            if (isMobile) {
-                q = query(collection(db, "UARM"), where("Phone Number", "==", identifier));
-            } else {
-                q = query(collection(db, "UARM"), where("Email", "==", identifier));
-            }
-
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                // If the phone number is connected to multiple accounts, always open profile picker
-                if (isMobile && querySnapshot.size > 1) {
-                    showProfilePicker(querySnapshot.docs);
-                    continueBtn.innerText = "Continue";
-                    continueBtn.disabled = false;
-                    isSubmitting = false;
-                } else {
-                    const userData = querySnapshot.docs[0].data();
-                    
-                    // Verify if this unique matched account is already the active user
-                    let isAlreadyActive = false;
-                    try {
-                        const activeUserRaw = localStorage.getItem('active_user');
-                        if (activeUserRaw) {
-                            const activeUser = JSON.parse(activeUserRaw);
-                            if (activeUser && activeUser["Lotus"] === userData["Lotus"]) {
-                                isAlreadyActive = true;
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Active user read error:", e);
-                    }
-
-                    if (isAlreadyActive) {
-                        setAlreadyLoggedInMessage(isMobile ? userData["Phone Number"] : userData["Email"]);
-                        continueBtn.innerText = "Continue";
-                        continueBtn.disabled = false;
-                        isSubmitting = false;
-                    } else {
-                        await goToNextStep(userData);
-                    }
-                }
-            } else {
-                alert("Account not found in our database.");
-                continueBtn.innerText = "Continue";
-                continueBtn.disabled = false;
-                isSubmitting = false;
-            }
-        } catch (error) {
-            console.error("Form submission error:", error);
-            alert("Database connection error. Please try again.");
-            continueBtn.innerText = "Continue";
-            continueBtn.disabled = false;
-            isSubmitting = false;
-        }
-    });
+    initQRLogin();
 </script>
 </body>
 </html>
