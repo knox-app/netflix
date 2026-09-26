@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase App & Firestore SDKs for Real-Time Sync -->
+    <!-- Firebase SDKs for Real-Time Sync -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -29,8 +29,6 @@
             --text-muted: #86868b;
             --accent-primary: #0071e3;
             --accent-primary-text: #ffffff;
-            --accent-badge-bg: rgba(0, 0, 0, 0.05);
-            --accent-badge-text: #1d1d1f;
             --danger: #ff3b30;
             --danger-bg: rgba(255, 59, 48, 0.08);
             --danger-hover: #e02d23;
@@ -56,8 +54,6 @@
             --text-muted: #6e6e73;
             --accent-primary: #2997ff;
             --accent-primary-text: #ffffff;
-            --accent-badge-bg: rgba(255, 255, 255, 0.08);
-            --accent-badge-text: #f5f5f7;
             --danger: #ff453a;
             --danger-bg: rgba(255, 69, 58, 0.12);
             --danger-hover: #ff3b30;
@@ -135,19 +131,46 @@
             flex-wrap: wrap;
         }
 
+        /* Google Premium Style Avatar Outer Rings */
+        .avatar-ring-wrapper {
+            position: relative;
+            padding: 4px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+        }
+
+        /* Kids Account Ring (Blue Google Premium Style) */
+        .avatar-ring-wrapper.ring-kids {
+            background: linear-gradient(135deg, #0284c7, #38bdf8, #0071e3, #60a5fa);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+        }
+
+        /* Business Account Ring (Gold/Indigo Premium) */
+        .avatar-ring-wrapper.ring-business {
+            background: linear-gradient(135deg, #f59e0b, #d97706, #fbbf24, #b45309);
+            box-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+        }
+
+        /* Personal Account (Neutral clean border) */
+        .avatar-ring-wrapper.ring-personal {
+            background: var(--border-focus);
+        }
+
         .avatar-container {
             position: relative;
-            width: 96px;
-            height: 96px;
+            width: 92px;
+            height: 92px;
             border-radius: 50%;
-            border: 2px solid var(--border-focus);
-            box-shadow: var(--shadow-sm);
             overflow: hidden;
             background: var(--surface-subtle);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            border: 3px solid var(--surface-card);
         }
 
         .avatar-img {
@@ -178,7 +201,7 @@
         .name-row {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             flex-wrap: wrap;
             margin-bottom: 6px;
         }
@@ -189,6 +212,7 @@
             letter-spacing: -0.03em;
         }
 
+        /* Action Buttons */
         .btn-action-pill {
             background-color: var(--surface-subtle);
             color: var(--text-main);
@@ -210,10 +234,30 @@
             border-color: var(--border-focus);
         }
 
+        .btn-icon-pen {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon-pen:hover {
+            background: var(--surface-hover);
+            color: var(--text-main);
+            border-color: var(--border-focus);
+        }
+
         .profile-sub-row {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
@@ -222,17 +266,35 @@
             font-size: 0.95rem;
         }
 
+        /* Badges for Account Types */
         .account-badge {
             display: inline-flex;
             align-items: center;
-            padding: 3px 10px;
+            gap: 6px;
+            padding: 4px 12px;
             border-radius: var(--radius-full);
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             font-weight: 600;
-            background: var(--accent-badge-bg);
-            color: var(--accent-badge-text);
-            border: 1px solid var(--border-subtle);
             text-transform: capitalize;
+            border: 1px solid transparent;
+        }
+
+        .account-badge.badge-kids {
+            background: rgba(2, 132, 199, 0.12);
+            color: #0284c7;
+            border-color: rgba(2, 132, 199, 0.25);
+        }
+
+        .account-badge.badge-business {
+            background: rgba(245, 158, 11, 0.12);
+            color: #d97706;
+            border-color: rgba(245, 158, 11, 0.25);
+        }
+
+        .account-badge.badge-personal {
+            background: var(--surface-subtle);
+            color: var(--text-secondary);
+            border-color: var(--border-subtle);
         }
 
         /* Card Section */
@@ -297,6 +359,9 @@
             color: var(--text-main);
             font-weight: 600;
             text-align: right;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         /* Bottom Sign Out Area */
@@ -536,15 +601,24 @@
 <main class="main-container">
     <!-- Hero Profile Section -->
     <section class="profile-hero">
-        <div class="avatar-container">
-            <span class="avatar-fallback" id="avatarInitial"></span>
-            <img id="avatarImage" class="avatar-img" alt="Profile Picture" loading="lazy">
+        <!-- Google Premium Avatar Ring -->
+        <div class="avatar-ring-wrapper ring-personal" id="avatarRing">
+            <div class="avatar-container">
+                <span class="avatar-fallback" id="avatarInitial"></span>
+                <img id="avatarImage" class="avatar-img" alt="Profile Picture" loading="lazy">
+            </div>
         </div>
+
         <div class="profile-headings">
             <div class="name-row">
                 <h1 id="fullName"><span class="skeleton skeleton-text" style="width: 200px; height: 32px;"></span></h1>
                 
-                <!-- Edit Name Trigger -->
+                <!-- Quick Pen Icon Button -->
+                <button class="btn-icon-pen" id="editNameIconBtn" title="Edit your name">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </button>
+
+                <!-- Edit Text Button Pill -->
                 <button class="btn-action-pill" id="editNameBtn" title="Edit your name">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
@@ -556,9 +630,14 @@
                     Switch Account
                 </button>
             </div>
+            
             <div class="profile-sub-row">
                 <span class="profile-email-text" id="primaryEmail"><span class="skeleton skeleton-text"></span></span>
-                <span class="account-badge" id="accountBadge">Personal</span>
+                <!-- Dynamic Account Type Badge -->
+                <span class="account-badge badge-personal" id="accountBadge">
+                    <span id="badgeIcon"></span>
+                    <span id="badgeText">Personal</span>
+                </span>
             </div>
         </div>
     </section>
@@ -570,6 +649,9 @@
                 <h2 class="card-title">Personal Details</h2>
                 <p class="card-description">Your identity and account contact details</p>
             </div>
+            <button class="btn-icon-pen" onclick="openEditModal()" title="Edit Name">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
         </div>
         <div class="data-list">
             <div class="data-row">
@@ -640,16 +722,18 @@
 
 <script>
     // 1. Firebase Initialization
-    const firebaseConfig = {
-        projectId: "question-metabase"
-    };
-
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
+    let db = null;
+    try {
+        const firebaseConfig = { projectId: "question-metabase" };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+    } catch (e) {
+        console.warn("Firebase Init note:", e);
     }
-    const db = firebase.firestore();
 
-    // 2. Theme & Param Handling
+    // 2. Theme Handling
     const urlParams = new URLSearchParams(window.location.search);
     const uParam = urlParams.has('u') ? urlParams.get('u') : urlParams.get('user');
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
@@ -704,7 +788,14 @@
         }
     }
 
-    // 4. Render UI Function
+    // 4. SVG Icons for Account Types
+    const icons = {
+        kids: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+        business: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+        personal: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+    };
+
+    // 5. Render UI Function
     let currentUserData = {};
 
     function renderUserData(user) {
@@ -716,7 +807,7 @@
         const phone = user["Phone Number"] || "—";
         const dob = user["Date of Birth"] || "—";
         const gender = user["Gender"] || "—";
-        const type = (user["Type"] || "personal").toLowerCase();
+        const rawType = (user["Type"] || "personal").toLowerCase();
         const profilePicUrl = user["Profile_Picture"] || null;
 
         document.getElementById('fullName').innerText = fullName;
@@ -728,14 +819,36 @@
         document.getElementById('valDob').innerText = dob;
         document.getElementById('valGender').innerText = gender;
 
-        const typeLabels = {
-            'business': 'Business Account',
-            'kids': 'Kids Account',
-            'personal': 'Personal Account'
-        };
-        const badgeText = typeLabels[type] || 'Personal Account';
-        document.getElementById('accountBadge').innerText = badgeText;
-        document.getElementById('valType').innerText = badgeText;
+        // Account Type & Dynamic Google Premium Rings
+        const avatarRing = document.getElementById('avatarRing');
+        const badgeElem = document.getElementById('accountBadge');
+        const badgeIcon = document.getElementById('badgeIcon');
+        const badgeText = document.getElementById('badgeText');
+        const valType = document.getElementById('valType');
+
+        // Reset classes
+        avatarRing.className = "avatar-ring-wrapper";
+        badgeElem.className = "account-badge";
+
+        if (rawType.includes('kid')) {
+            avatarRing.classList.add('ring-kids');
+            badgeElem.classList.add('badge-kids');
+            badgeIcon.innerHTML = icons.kids;
+            badgeText.innerText = "Kids Account";
+            valType.innerHTML = `${icons.kids} Kids`;
+        } else if (rawType.includes('buss') || rawType.includes('busin')) {
+            avatarRing.classList.add('ring-business');
+            badgeElem.classList.add('badge-business');
+            badgeIcon.innerHTML = icons.business;
+            badgeText.innerText = "Business Account";
+            valType.innerHTML = `${icons.business} Business`;
+        } else {
+            avatarRing.classList.add('ring-personal');
+            badgeElem.classList.add('badge-personal');
+            badgeIcon.innerHTML = icons.personal;
+            badgeText.innerText = "Personal Account";
+            valType.innerHTML = `${icons.personal} Personal`;
+        }
 
         // DP / Avatar Image Lazy Loading
         const avatarInitialElem = document.getElementById('avatarInitial');
@@ -759,7 +872,7 @@
         }
     }
 
-    // 5. Initial Hydration & Firebase Real-Time Listener
+    // 6. Initial Hydration & Real-Time Listener
     const activeUserStr = localStorage.getItem('active_user');
 
     if (!activeUserStr) {
@@ -772,8 +885,7 @@
 
             const docId = activeUser["Lotus"] || activeUser["UARM ID"];
 
-            if (docId) {
-                // Realtime Sync with Firestore
+            if (docId && db) {
                 db.collection("UARM").doc(docId).onSnapshot((doc) => {
                     if (doc.exists) {
                         const cloudData = doc.data();
@@ -792,7 +904,7 @@
         }
     }
 
-    // 6. Modal / Bottom-Sheet Editing Controls
+    // 7. Modal / Bottom Sheet Handlers
     const editModal = document.getElementById('editModalBackdrop');
     const inputFirstName = document.getElementById('inputFirstName');
     const inputLastName = document.getElementById('inputLastName');
@@ -810,22 +922,20 @@
     }
 
     document.getElementById('editNameBtn').onclick = openEditModal;
+    document.getElementById('editNameIconBtn').onclick = openEditModal;
     document.getElementById('btnCancelEdit').onclick = closeEditModal;
 
     editModal.addEventListener('click', (e) => {
-        if (e.target === editModal) {
-            closeEditModal();
-        }
+        if (e.target === editModal) closeEditModal();
     });
 
-    // Handle ESC key to close modal
     document.addEventListener('keydown', (e) => {
         if (e.key === "Escape" && editModal.classList.contains('active')) {
             closeEditModal();
         }
     });
 
-    // 7. Save Name to Firestore & Local Storage
+    // 8. Robust Name Save with Firestore Merge & Local Fallback
     async function handleSaveName(e) {
         e.preventDefault();
         const newFirst = inputFirstName.value.trim();
@@ -838,41 +948,40 @@
 
         const docId = currentUserData["Lotus"] || currentUserData["UARM ID"];
 
+        // 1. Instantly update LocalStorage & UI (Optimistic response)
+        currentUserData["First Name"] = newFirst;
+        currentUserData["Last Name"] = newLast;
+        localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
         try {
-            if (docId) {
-                await db.collection("UARM").doc(docId).update({
+            let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            const accIndex = savedAccounts.findIndex(acc => acc.lotus === docId);
+            if (accIndex !== -1) {
+                savedAccounts[accIndex].name = `${newFirst} ${newLast}`.trim();
+                localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
+            }
+        } catch (err) {}
+
+        renderUserData(currentUserData);
+
+        // 2. Cloud Firestore Write with Set Merge
+        if (docId && db) {
+            try {
+                await db.collection("UARM").doc(docId).set({
                     "First Name": newFirst,
                     "Last Name": newLast
-                });
+                }, { merge: true });
+            } catch (err) {
+                console.warn("Cloud write warning (offline or rule restriction):", err);
             }
-
-            // Update Local Data immediately
-            currentUserData["First Name"] = newFirst;
-            currentUserData["Last Name"] = newLast;
-            localStorage.setItem('active_user', JSON.stringify(currentUserData));
-
-            // Also update saved_accounts cache if present
-            try {
-                let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                const accIndex = savedAccounts.findIndex(acc => acc.lotus === docId);
-                if (accIndex !== -1) {
-                    savedAccounts[accIndex].name = `${newFirst} ${newLast}`.trim();
-                    localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
-                }
-            } catch (err) {}
-
-            renderUserData(currentUserData);
-            closeEditModal();
-        } catch (err) {
-            console.error("Failed to update name in Firestore:", err);
-            alert("Could not update name. Please check your connection and try again.");
-        } finally {
-            btnSaveName.disabled = false;
-            btnSaveName.innerText = "Save";
         }
+
+        btnSaveName.disabled = false;
+        btnSaveName.innerText = "Save";
+        closeEditModal();
     }
 
-    // 8. Navigation Handlers
+    // 9. Navigation Handlers
     function goToSwitch() {
         const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
         window.location.href = dest;
