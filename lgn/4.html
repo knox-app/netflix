@@ -41,7 +41,7 @@
             --shimmer-bg: linear-gradient(90deg, #f0f0f2 0%, #e4e4e7 50%, #f0f0f2 100%);
             --modal-overlay: rgba(0, 0, 0, 0.4);
 
-            /* Account Badge Color Variables */
+            /* Badges */
             --badge-kids-bg: rgba(37, 99, 235, 0.1);
             --badge-kids-text: #2563eb;
             --badge-kids-border: rgba(37, 99, 235, 0.2);
@@ -614,7 +614,6 @@
                 <span class="profile-email-text" id="primaryEmail"><span class="skeleton skeleton-text"></span></span>
                 <!-- Account Type Badge Hero -->
                 <span class="account-badge badge-personal" id="accountBadge">
-                    <!-- Icon inserted dynamically -->
                     <span id="accountBadgeText">Personal Account</span>
                 </span>
             </div>
@@ -715,13 +714,12 @@
 </div>
 
 <script>
-    // 1. Firebase Initialization
-    const firebaseConfig = {
-        projectId: "question-metabase"
-    };
+    const PROJECT_ID = "question-metabase";
+    const COLLECTION_NAME = "UARM";
 
+    // 1. Firebase Initialization
     if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp({ projectId: PROJECT_ID });
     }
     const db = firebase.firestore();
 
@@ -780,11 +778,10 @@
         }
     }
 
-    // 4. Badge Configuration (Kids, Business, Personal)
+    // 4. Badge Config
     function getBadgeConfig(typeRaw) {
         const type = (typeRaw || "").trim().toLowerCase();
 
-        // 1. Kids Account (Blue + Smiley/Child icon)
         if (type === 'kids') {
             return {
                 className: 'badge-kids',
@@ -792,7 +789,6 @@
                 icon: `<svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`
             };
         }
-        // 2. Business Account (Purple/Indigo + Suitcase icon)
         if (type === 'business' || type === 'bussniess') {
             return {
                 className: 'badge-business',
@@ -800,7 +796,6 @@
                 icon: `<svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
             };
         }
-        // 3. Personal Account (Neutral + User icon)
         return {
             className: 'badge-personal',
             label: 'Personal Account',
@@ -831,7 +826,6 @@
         document.getElementById('valDob').innerText = dob;
         document.getElementById('valGender').innerText = gender;
 
-        // Apply Dynamic Badges
         const badgeConfig = getBadgeConfig(user["Type"]);
         
         const heroBadge = document.getElementById('accountBadge');
@@ -842,7 +836,6 @@
         rowBadge.className = `account-badge ${badgeConfig.className}`;
         rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
 
-        // Avatar Initial / DP
         const avatarInitialElem = document.getElementById('avatarInitial');
         const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
         avatarInitialElem.innerText = initial;
@@ -864,7 +857,51 @@
         }
     }
 
-    // 6. Firestore Real-time Listener & Local Hydration
+    // 6. Firestore Document Resolver (Finds actual Doc ID from Lotus or UARM ID)
+    async function resolveDocumentId(user) {
+        if (user["UARM ID"]) return user["UARM ID"];
+
+        const lotus = user["Lotus"];
+        const email = user["Email"];
+
+        // Query Firestore via REST to find the document key
+        try {
+            const queryPayload = {
+                structuredQuery: {
+                    from: [{ collectionId: COLLECTION_NAME }],
+                    where: {
+                        fieldFilter: {
+                            field: { fieldPath: lotus ? "Lotus" : "Email" },
+                            op: "EQUAL",
+                            value: { stringValue: lotus || email }
+                        }
+                    },
+                    limit: 1
+                }
+            };
+
+            const response = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(queryPayload)
+            });
+
+            const data = await response.json();
+            if (data && data[0] && data[0].document) {
+                const docPath = data[0].document.name;
+                const foundDocId = docPath.split('/').pop();
+                user["UARM ID"] = foundDocId;
+                localStorage.setItem('active_user', JSON.stringify(user));
+                return foundDocId;
+            }
+        } catch (e) {
+            console.warn("Document resolution error:", e);
+        }
+
+        return user["Lotus"] || null;
+    }
+
+    // 7. Initial Hydration & Live Sync
     const activeUserStr = localStorage.getItem('active_user');
 
     if (!activeUserStr) {
@@ -875,20 +912,20 @@
             let activeUser = JSON.parse(activeUserStr);
             renderUserData(activeUser);
 
-            const docId = activeUser["UARM ID"] || activeUser["Lotus"] || activeUser["id"];
-
-            if (docId) {
-                db.collection("UARM").doc(docId).onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const cloudData = doc.data();
-                        const mergedUser = { ...activeUser, ...cloudData };
-                        localStorage.setItem('active_user', JSON.stringify(mergedUser));
-                        renderUserData(mergedUser);
-                    }
-                }, (error) => {
-                    console.warn("Firestore listener fallback:", error);
-                });
-            }
+            resolveDocumentId(activeUser).then(docId => {
+                if (docId) {
+                    db.collection(COLLECTION_NAME).doc(docId).onSnapshot((doc) => {
+                        if (doc.exists) {
+                            const cloudData = doc.data();
+                            const mergedUser = { ...currentUserData, ...cloudData, "UARM ID": docId };
+                            localStorage.setItem('active_user', JSON.stringify(mergedUser));
+                            renderUserData(mergedUser);
+                        }
+                    }, (error) => {
+                        console.warn("Real-time listener warning:", error);
+                    });
+                }
+            });
         } catch (e) {
             console.error("User parsing failed:", e);
             const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
@@ -896,7 +933,7 @@
         }
     }
 
-    // 7. Modal & Bottom Sheet Functions
+    // 8. Modal & Bottom Sheet Controls
     const editModal = document.getElementById('editModalBackdrop');
     const inputFirstName = document.getElementById('inputFirstName');
     const inputLastName = document.getElementById('inputLastName');
@@ -933,7 +970,7 @@
         }
     });
 
-    // 8. Robust Name Save to Firestore & Local Storage
+    // 9. Save Name with Dual Firestore SDK & Direct REST API Fallback
     async function handleSaveName(e) {
         e.preventDefault();
         const newFirst = inputFirstName.value.trim();
@@ -944,69 +981,76 @@
         btnSaveName.disabled = true;
         btnSaveName.innerText = "Saving...";
 
-        const docId = currentUserData["UARM ID"] || currentUserData["Lotus"] || currentUserData["id"];
+        let docId = await resolveDocumentId(currentUserData);
+        let saveSuccess = false;
 
-        try {
-            // Write to Firestore using merge: true (avoids "no document" errors)
-            if (docId) {
-                await db.collection("UARM").doc(docId).set({
+        // Method 1: Try Firestore Web SDK
+        if (docId) {
+            try {
+                await db.collection(COLLECTION_NAME).doc(docId).set({
                     "First Name": newFirst,
                     "Last Name": newLast
                 }, { merge: true });
+                saveSuccess = true;
+            } catch (sdkErr) {
+                console.warn("Firestore SDK save failed, attempting REST API directly:", sdkErr);
             }
+        }
 
-            // Immediately persist in LocalStorage
-            currentUserData["First Name"] = newFirst;
-            currentUserData["Last Name"] = newLast;
-            localStorage.setItem('active_user', JSON.stringify(currentUserData));
-
-            // Update cached saved_accounts list
+        // Method 2: Firestore Direct REST API (guarantees DB change)
+        if (!saveSuccess && docId) {
             try {
-                let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                const accIndex = savedAccounts.findIndex(acc => acc.lotus === currentUserData["Lotus"] || acc.lotus === docId);
-                if (accIndex !== -1) {
-                    savedAccounts[accIndex].name = `${newFirst} ${newLast}`.trim();
-                    localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
-                }
-            } catch (err) {}
+                const patchUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${COLLECTION_NAME}/${encodeURIComponent(docId)}?updateMask.fieldPaths=First%20Name&updateMask.fieldPaths=Last%20Name`;
+                const res = await fetch(patchUrl, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fields: {
+                            "First Name": { stringValue: newFirst },
+                            "Last Name": { stringValue: newLast }
+                        }
+                    })
+                });
 
-            renderUserData(currentUserData);
-            closeEditModal();
-        } catch (err) {
-            console.warn("Direct Firestore doc write failed, attempting query lookup:", err);
-            
-            // Secondary fallback: query by Lotus property
-            try {
-                if (currentUserData["Lotus"]) {
-                    const snap = await db.collection("UARM").where("Lotus", "==", currentUserData["Lotus"]).get();
-                    if (!snap.empty) {
-                        await snap.docs[0].ref.set({
-                            "First Name": newFirst,
-                            "Last Name": newLast
-                        }, { merge: true });
-                    }
+                if (res.ok) {
+                    saveSuccess = true;
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    console.error("REST API error details:", errData);
                 }
-                currentUserData["First Name"] = newFirst;
-                currentUserData["Last Name"] = newLast;
-                localStorage.setItem('active_user', JSON.stringify(currentUserData));
-                renderUserData(currentUserData);
-                closeEditModal();
-            } catch (fallbackErr) {
-                console.error("Critical write failure:", fallbackErr);
-                // Still update locally so the user session is never blocked
-                currentUserData["First Name"] = newFirst;
-                currentUserData["Last Name"] = newLast;
-                localStorage.setItem('active_user', JSON.stringify(currentUserData));
-                renderUserData(currentUserData);
-                closeEditModal();
+            } catch (restErr) {
+                console.error("REST API call failed:", restErr);
             }
-        } finally {
-            btnSaveName.disabled = false;
-            btnSaveName.innerText = "Save";
+        }
+
+        // Apply changes locally
+        currentUserData["First Name"] = newFirst;
+        currentUserData["Last Name"] = newLast;
+        if (docId) currentUserData["UARM ID"] = docId;
+
+        localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+        try {
+            let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            const accIndex = savedAccounts.findIndex(acc => acc.lotus === currentUserData["Lotus"] || acc.lotus === docId);
+            if (accIndex !== -1) {
+                savedAccounts[accIndex].name = `${newFirst} ${newLast}`.trim();
+                localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
+            }
+        } catch (err) {}
+
+        renderUserData(currentUserData);
+        closeEditModal();
+
+        btnSaveName.disabled = false;
+        btnSaveName.innerText = "Save";
+
+        if (!saveSuccess) {
+            alert("Name updated locally. Please check your Firestore security rules if cloud changes are not appearing.");
         }
     }
 
-    // 9. Navigation Actions
+    // 10. Navigation Actions
     function goToSwitch() {
         const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
         window.location.href = dest;
