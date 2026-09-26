@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan QR to Sign In</title>
-    <!-- Lightweight QR Code Library -->
+    <!-- QRCode library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
             --bg-color: #ffffff;
             --text-primary: #000000;
             --text-secondary: #555555;
-            --card-border: #dddddd;
+            --border-color: #dddddd;
+            --card-bg: #ffffff;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -19,94 +20,104 @@
                 --bg-color: #000000;
                 --text-primary: #ffffff;
                 --text-secondary: #aaaaaa;
-                --card-border: #3a3a3a;
+                --border-color: #333333;
+                --card-bg: #111111;
             }
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-primary);
         }
 
-        .container {
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 36px;
             text-align: center;
-            max-width: 420px;
+            max-width: 380px;
             width: 90%;
-            padding: 30px;
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
 
         h1 {
             font-size: 24px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin: 0 0 10px 0;
         }
 
         p {
             font-size: 14px;
             color: var(--text-secondary);
-            margin-bottom: 24px;
+            margin: 0 0 24px 0;
             line-height: 1.5;
         }
 
-        .qr-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
+        .qr-box {
+            display: inline-block;
             background: #ffffff;
+            padding: 16px;
             border-radius: 12px;
-            width: fit-content;
-            margin: 0 auto 20px auto;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
         }
 
-        .status {
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             font-size: 13px;
             color: var(--text-secondary);
+            font-weight: 500;
         }
 
-        .spinner {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid var(--text-secondary);
-            border-top-color: transparent;
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #f59e0b;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 6px;
-            vertical-align: middle;
+            animation: pulse 1.5s infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .dot.success {
+            background-color: #10b981;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.9); }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Log in with QR Code</h1>
-    <p>Scan this QR code from your mobile device or child's account to sign in automatically.</p>
+<div class="card">
+    <h1>Sign In with QR</h1>
+    <p>Scan this QR code with your phone or kid's device to sign in automatically.</p>
 
-    <div class="qr-wrapper">
+    <div class="qr-box">
         <div id="qrcode"></div>
     </div>
 
-    <div class="status" id="statusText">
-        <span class="spinner"></span> Waiting for scan...
+    <div>
+        <span class="status-badge" id="statusBadge">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">Waiting for scan...</span>
+        </span>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
@@ -117,61 +128,61 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 1. Generate unique session ID
-    const sessionId = "sess_" + Math.random().toString(36).substring(2, 12) + Date.now();
-    const continueUrl = new URLSearchParams(window.location.search).get('continue') || '4.html';
+    // 1. Generate session ID
+    const sessionId = "sess_" + Math.random().toString(36).substring(2, 10) + Date.now().toString().slice(-4);
+    const urlParams = new URLSearchParams(window.location.search);
+    const continueUrl = urlParams.get('continue') || '4.html';
 
-    async function initQRLogin() {
-        try {
-            // 2. Register initial pending session in ASPX Keys
-            const sessionRef = doc(db, "ASPX Keys", sessionId);
-            await setDoc(sessionRef, {
-                status: "pending",
-                createdAt: new Date()
-            });
+    async function init() {
+        const sessionRef = doc(db, "ASPX Keys", sessionId);
 
-            // 3. Build target URL for the scanning device
-            const scanUrl = `${window.location.origin}/1.html?session=${encodeURIComponent(sessionId)}&continue=${encodeURIComponent(continueUrl)}`;
+        // 2. Register initial session in Firestore
+        await setDoc(sessionRef, {
+            status: "pending",
+            createdAt: new Date().toISOString()
+        });
 
-            // 4. Render QR code
-            new QRCode(document.getElementById("qrcode"), {
-                text: scanUrl,
-                width: 200,
-                height: 200,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
+        // 3. Build Login URL for QR (Replaces localhost with current host)
+        const currentOrigin = window.location.origin;
+        const scanUrl = `${currentOrigin}/1.html?session=${encodeURIComponent(sessionId)}&continue=${encodeURIComponent(continueUrl)}`;
 
-            // 5. Listen for updates in real-time
-            const unsubscribe = onSnapshot(sessionRef, async (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
+        // 4. Render QR code
+        new QRCode(document.getElementById("qrcode"), {
+            text: scanUrl,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+        });
 
-                    if (data.status === "authenticated" && data.userData) {
-                        document.getElementById("statusText").innerText = "Authentication approved! Redirecting...";
+        console.log("Session listening on ID:", sessionId);
 
-                        // Save account locally
-                        saveAccountAndLogin(data.userData);
+        // 5. Real-time Listener on Firestore
+        const unsubscribe = onSnapshot(sessionRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                console.log("Session snapshot update:", data);
 
-                        // Cleanup session document
-                        try {
-                            await deleteDoc(sessionRef);
-                        } catch (e) {
-                            console.error("Session cleanup error:", e);
-                        }
+                if (data.status === "authenticated" && data.userData) {
+                    // Update UI
+                    document.getElementById("statusDot").classList.add("success");
+                    document.getElementById("statusText").innerText = "Approved! Logging in...";
 
-                        // Stop listener and redirect
-                        unsubscribe();
+                    // Save Account into LocalStorage on this device
+                    saveAccountAndLogin(data.userData);
+
+                    // Unsubscribe listener & redirect
+                    unsubscribe();
+                    setTimeout(() => {
                         window.location.href = continueUrl;
-                    }
+                    }, 800);
                 }
-            });
-
-        } catch (error) {
-            console.error("QR Init error:", error);
-            document.getElementById("statusText").innerText = "Failed to initialize QR session.";
-        }
+            }
+        }, (error) => {
+            console.error("Firestore listen error:", error);
+            document.getElementById("statusText").innerText = "Connection error. Please refresh.";
+        });
     }
 
     function saveAccountAndLogin(userData) {
@@ -181,8 +192,13 @@
             const firstName = userData["First Name"];
             const lotus = userData["Lotus"];
 
-            if (email && !accounts.some(acc => acc.email === email)) {
-                accounts.push({ email, firstName: firstName || "", lotus: lotus || "" });
+            if (email) {
+                accounts = accounts.filter(acc => acc.email !== email);
+                accounts.push({
+                    email: email,
+                    firstName: firstName || "",
+                    lotus: lotus || ""
+                });
                 localStorage.setItem('saved_accounts', JSON.stringify(accounts));
             }
             localStorage.setItem('active_user', JSON.stringify(userData));
@@ -191,7 +207,7 @@
         }
     }
 
-    initQRLogin();
+    init();
 </script>
 </body>
 </html>
