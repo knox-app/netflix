@@ -17,6 +17,7 @@
             --btn-hover: #333333;
             --badge-bg: #f0f0f0;
             --badge-text: #333333;
+            --avatar-border: #eeeeee;
         }
 
         body.dark {
@@ -31,6 +32,7 @@
             --btn-hover: #e0e0e0;
             --badge-bg: #222222;
             --badge-text: #dddddd;
+            --avatar-border: #2a2a2a;
         }
 
         body {
@@ -45,21 +47,52 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
-        h1 { font-size: 28px; font-weight: 600; margin-bottom: 5px; color: var(--text-primary); }
+        .container { 
+            text-align: center; 
+            max-width: 400px; 
+            width: 90%; 
+            padding: 20px; 
+        }
+
+        .profile-wrapper {
+            margin-bottom: 15px;
+        }
+
+        .profile-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--avatar-border);
+            display: none; /* hidden until loaded */
+            margin: 0 auto;
+        }
+        
+        h1 { 
+            font-size: 26px; 
+            font-weight: 600; 
+            margin-top: 0;
+            margin-bottom: 8px; 
+            color: var(--text-primary); 
+        }
         
         .user-badge {
             display: inline-block;
             background: var(--badge-bg);
-            padding: 5px 15px;
+            padding: 6px 16px;
             border-radius: 20px;
             font-size: 14px;
             color: var(--badge-text);
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             font-weight: 500;
         }
 
-        .input-group { position: relative; margin-bottom: 20px; text-align: left; }
+        .input-group { 
+            position: relative; 
+            margin-bottom: 20px; 
+            text-align: left; 
+        }
+        
         .input-group label {
             position: absolute;
             top: -10px;
@@ -82,7 +115,9 @@
             color: var(--text-primary);
         }
 
-        input[type="password"]:focus { border-color: var(--input-focus); }
+        input[type="password"]:focus { 
+            border-color: var(--input-focus); 
+        }
 
         .btn {
             background: var(--btn-bg);
@@ -94,23 +129,33 @@
             font-size: 16px;
             cursor: pointer;
             margin-top: 10px;
+            font-weight: 500;
+            transition: background 0.2s ease;
         }
 
-        .btn:hover { background: var(--btn-hover); }
+        .btn:hover { 
+            background: var(--btn-hover); 
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="profile-wrapper">
+        <img id="userAvatar" class="profile-img" alt="Profile Picture" />
+    </div>
+
     <h1>Welcome</h1>
     <div class="user-badge" id="userEmailDisplay">Loading...</div>
 
-    <div class="input-group">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="">
-    </div>
+    <form id="loginForm" onsubmit="return false;">
+        <div class="input-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" autocomplete="current-password" autofocus />
+        </div>
 
-    <button class="btn" id="loginBtn">Login</button>
+        <button type="submit" class="btn" id="loginBtn">Login</button>
+    </form>
 </div>
 
 <script type="module">
@@ -148,7 +193,19 @@
             if (!querySnapshot.empty) {
                 currentUserDocId = querySnapshot.docs[0].id;
                 currentUserData = querySnapshot.docs[0].data();
-                document.getElementById('userEmailDisplay').innerText = currentUserData["Email"];
+                
+                // Display Email
+                document.getElementById('userEmailDisplay').innerText = currentUserData["Email"] || currentUserData["Guardian Email"] || "User";
+
+                // Display Profile Picture if available
+                const profilePicUrl = currentUserData["Profile_Picture"] || currentUserData["Profile Picture"];
+                if (profilePicUrl) {
+                    const avatarImg = document.getElementById('userAvatar');
+                    avatarImg.src = profilePicUrl;
+                    avatarImg.style.display = 'block';
+                }
+
+                document.getElementById('password').focus();
             } else {
                 alert("Security token invalid.");
                 window.location.href = '1.html';
@@ -165,15 +222,13 @@
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
-    document.getElementById('password').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('loginBtn').click();
-    });
-
-    document.getElementById('loginBtn').addEventListener('click', async () => {
+    async function handleLogin() {
         const pass = document.getElementById('password').value;
-        if (!pass) return;
+        if (!pass || !currentUserData) return;
 
-        document.getElementById('loginBtn').innerText = "Verifying...";
+        const loginBtn = document.getElementById('loginBtn');
+        loginBtn.innerText = "Verifying...";
+        loginBtn.disabled = true;
 
         try {
             if (currentUserData["Password"] === pass) {
@@ -215,14 +270,24 @@
                 window.location.href = continueUrl;
             } else {
                 alert("Incorrect password");
-                document.getElementById('loginBtn').innerText = "Login";
+                loginBtn.innerText = "Login";
+                loginBtn.disabled = false;
             }
         } catch (error) {
             console.error("Login verification failed:", error);
             alert("Error verifying password. Please try again.");
-            document.getElementById('loginBtn').innerText = "Login";
+            loginBtn.innerText = "Login";
+            loginBtn.disabled = false;
         }
+    }
+
+    // Handles Enter key via form submission
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleLogin();
     });
+
+    document.getElementById('loginBtn').addEventListener('click', handleLogin);
 </script>
 </body>
 </html>
