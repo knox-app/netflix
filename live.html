@@ -689,7 +689,7 @@
 
         <!-- Bottom Controls -->
         <div class="ctrl-bottom">
-          <!-- Timeline Bar (Hidden if Bars: "True") -->
+          <!-- Timeline Bar (Dynamically handled by Bars check) -->
           <div class="timeline-container" id="liveTimelineRow">
             <div class="timeline-track-wrap" id="timelineTrack">
               <div class="timeline-fill" id="timelineFill"></div>
@@ -811,7 +811,6 @@
   let currentChannel = null;
   let hideControlsTimer = null;
   let isScreenLocked = false;
-  let isFillScreen = false;
   let availableHlsLevels = [];
   let isUserSeeking = false;
   let channelDocUnsub = null;
@@ -823,12 +822,35 @@
   let liveChannelsCache = [];
 
   // Gesture HUD State (Smooth Brightness & Volume)
-  let currentBrightness = 1.0; // 0.2 to 1.0
-  let currentVolume = 1.0;     // 0.0 to 1.0
+  let currentBrightness = 1.0;
+  let currentVolume = 1.0;
   let hudTimeout = null;
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentDocId = urlParams.get('watch');
+  /* ===================== HOTSTAR ROUTE & PARAM EXTRACTOR ===================== */
+  function extractChannelId() {
+    // 1. Check path format: /live.html/<id> or /live/<id>
+    const pathname = window.location.pathname;
+    const pathMatch = pathname.match(/(?:live\.html|live)\/([^/?#]+)/i);
+    if (pathMatch && pathMatch[1]) {
+      return decodeURIComponent(pathMatch[1]);
+    }
+    // 2. Query param fallback: ?watch=<id> or ?id=<id>
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('watch') || urlParams.get('id') || null;
+  }
+
+  function generateChannelUrl(id) {
+    const pathname = window.location.pathname;
+    if (/(?:live\.html|live)\/[^/?#]+/i.test(pathname)) {
+      return pathname.replace(/(?:live\.html|live)\/[^/?#]+/i, (match) => {
+        const prefix = match.split('/')[0];
+        return `${prefix}/${id}`;
+      });
+    }
+    return `live.html?watch=${id}`;
+  }
+
+  const initialDocId = extractChannelId();
 
   function checkOrientation() {
     const isLandscape = window.innerWidth > window.innerHeight;
@@ -843,10 +865,10 @@
   document.addEventListener('fullscreenchange', checkOrientation);
   checkOrientation();
 
-  if (!currentDocId) {
-    document.getElementById('loader').innerText = "Channel Parameter Missing (?watch=CHANNEL_ID)";
+  if (!initialDocId) {
+    document.getElementById('loader').innerText = "Live Channel Not Found. Use /live.html/<channel_id> or ?watch=<channel_id>";
   } else {
-    initLiveStream(currentDocId);
+    initLiveStream(initialDocId);
   }
 
   function safeUrl(url) {
@@ -908,14 +930,18 @@
       document.getElementById('overlayTitle').innerText = title;
       document.getElementById('chLangSub').innerText = currentChannel.Genres || currentChannel.Language || "Live Broadcast";
 
-      // Bars Check: Hide progress bar if Bars === "True"
-      const hideBars = String(currentChannel.Bars || currentChannel.bars || "").trim().toLowerCase() === "true";
+      /* ================= BARS LOGIC ================= */
+      // If Bars === "True" (case-insensitive string or boolean true) -> HIDE bar.
+      // If Bars is undefined, missing, false, or "False" -> SHOW bar (Bars = false).
+      const rawBars = currentChannel.Bars !== undefined ? currentChannel.Bars : currentChannel.bars;
+      const isBarsTrue = rawBars !== undefined && (rawBars === true || String(rawBars).trim().toLowerCase() === "true");
+      
       const liveTimeline = document.getElementById('liveTimelineRow');
       if (liveTimeline) {
-        liveTimeline.style.display = hideBars ? 'none' : 'flex';
+        liveTimeline.style.display = isBarsTrue ? 'none' : 'flex';
       }
 
-      // Check for catch-up previously button
+      // Previously catch-up button
       const hasPrev = Boolean(currentChannel["Previously Url"] || currentChannel.PreviouslyUrl);
       document.getElementById('btnPreviously').style.display = hasPrev ? 'flex' : 'none';
 
@@ -1121,7 +1147,6 @@
     const curSec = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
 
     let liveSlot = null;
-    let elapsed = 0;
 
     for (let slot of digitalFeedSchedule) {
       const s = timeToSec(slot.from);
@@ -1129,7 +1154,6 @@
       const isCur = s < e ? (curSec >= s && curSec < e) : (curSec >= s || curSec < e);
       if (isCur) {
         liveSlot = slot;
-        elapsed = curSec >= s ? (curSec - s) : (86400 - s + curSec);
         break;
       }
     }
@@ -1172,7 +1196,6 @@
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
     };
 
-    // Smooth HUD Handlers
     const brightnessHud = document.getElementById('brightnessHud');
     const brightnessBarFill = document.getElementById('brightnessBarFill');
     const brightnessFilter = document.getElementById('brightnessFilter');
@@ -1185,7 +1208,6 @@
         brightnessHud.classList.add('active');
         volumeHud.classList.remove('active');
         brightnessBarFill.style.height = `${value * 100}%`;
-        // Opacity inverted: 1.0 bright -> 0 opacity overlay; 0.2 dark -> 0.7 opacity
         brightnessFilter.style.opacity = (1 - value) * 0.85;
       } else {
         volumeHud.classList.add('active');
@@ -1198,9 +1220,8 @@
       }, 1200);
     }
 
-    // Touch Gestures: Left Screen = Brightness, Right Screen = Volume
     let gestureActive = false;
-    let gestureType = null; // 'left' or 'right'
+    let gestureType = null;
     let touchStartY = 0;
     let startVal = 0;
 
@@ -1215,12 +1236,11 @@
       touchStartY = touch.clientY;
       gestureActive = true;
 
-      // Determine left or right side gesture
       if (touchX < rect.width * 0.45) {
-        gestureType = 'left'; // Brightness
+        gestureType = 'left';
         startVal = currentBrightness;
       } else if (touchX > rect.width * 0.55) {
-        gestureType = 'right'; // Volume
+        gestureType = 'right';
         startVal = currentVolume;
       } else {
         gestureType = null;
@@ -1231,7 +1251,7 @@
       if (!gestureActive || !gestureType || isScreenLocked) return;
       const touch = e.touches[0];
       const deltaY = touchStartY - touch.clientY;
-      const sensitivity = 0.005; // smooth slider step
+      const sensitivity = 0.005;
       const nextVal = Math.min(1, Math.max(0.1, startVal + (deltaY * sensitivity)));
 
       if (gestureType === 'left') {
@@ -1301,7 +1321,6 @@
       checkOrientation();
     };
 
-    // Live Scrubbing Handling
     progressBarInput.oninput = () => {
       const val = parseFloat(progressBarInput.value);
       timelineFill.style.width = `${val}%`;
@@ -1479,9 +1498,19 @@
 
   window.switchChannel = function(id) {
     destroyPlayers();
-    window.history.pushState({}, '', `live.html?watch=${id}`);
+    const newUrl = generateChannelUrl(id);
+    window.history.pushState({}, '', newUrl);
     initLiveStream(id);
   };
+
+  // Support browser Back/Forward navigation between channels
+  window.addEventListener('popstate', () => {
+    const poppedId = extractChannelId();
+    if (poppedId && (!currentChannel || currentChannel.id !== poppedId)) {
+      destroyPlayers();
+      initLiveStream(poppedId);
+    }
+  });
 </script>
 </body>
 </html>
