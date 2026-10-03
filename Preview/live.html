@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Hotstar Live TV</title>
+  <title>Live TV</title>
   
   <!-- HLS.js for .m3u8 live streams -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -100,7 +100,6 @@
       pointer-events: none;
       transition: transform 0.2s ease;
     }
-    #ytFrameHost.fill-screen iframe { transform: scale(1.35) !important; }
 
     #jwHost {
       position: absolute;
@@ -110,7 +109,6 @@
       height: 100%;
       z-index: 2;
     }
-    #jwHost.fill-screen { transform: scale(1.18); }
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
 
@@ -639,7 +637,7 @@
       </div>
 
       <!-- Toast Alert -->
-      <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
+      <div class="toast-alert" id="toastAlert"></div>
 
       <!-- Video Engines -->
       <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
@@ -689,7 +687,7 @@
 
         <!-- Bottom Controls -->
         <div class="ctrl-bottom">
-          <!-- Timeline Bar (Dynamically handled by Bars check) -->
+          <!-- Timeline Bar (Dynamically handled by Bars = True / False) -->
           <div class="timeline-container" id="liveTimelineRow">
             <div class="timeline-track-wrap" id="timelineTrack">
               <div class="timeline-fill" id="timelineFill"></div>
@@ -803,7 +801,7 @@
 
   const YT_API_KEY = "AIzaSyD7JDCs5jfuy7f5_74gpjxGoqoAbUmKHVM";
 
-  // State
+  // State Management
   let hlsInstance = null;
   let ytPlayerInstance = null;
   let jwPlayerInstance = null;
@@ -814,40 +812,35 @@
   let availableHlsLevels = [];
   let isUserSeeking = false;
   let channelDocUnsub = null;
-  let digitalFeedUnsub = null;
-  let digitalFeedInterval = null;
-  let digitalFeedSchedule = [];
-  let activeMediaKey = null;
-  let digitalFeedMoviesLibrary = [];
   let liveChannelsCache = [];
 
-  // Gesture HUD State (Smooth Brightness & Volume)
+  // Gesture Controls (Smooth Volume & Brightness)
   let currentBrightness = 1.0;
   let currentVolume = 1.0;
   let hudTimeout = null;
 
-  /* ===================== HOTSTAR ROUTE & PARAM EXTRACTOR ===================== */
+  /* ===================== HOTSTAR PATH & PARAMETER ROUTING ===================== */
   function extractChannelId() {
-    // 1. Check path format: /live.html/<id> or /live/<id>
-    const pathname = window.location.pathname;
-    const pathMatch = pathname.match(/(?:live\.html|live)\/([^/?#]+)/i);
-    if (pathMatch && pathMatch[1]) {
-      return decodeURIComponent(pathMatch[1]);
+    // 1. Hotstar path pattern: /live.html/<id> or /live/<id>
+    const path = window.location.pathname;
+    const match = path.match(/\/(?:live(?:\.html)?)\/([^\/?#]+)/i);
+    if (match && match[1]) {
+      return decodeURIComponent(match[1].replace(/\/+$/, ''));
     }
-    // 2. Query param fallback: ?watch=<id> or ?id=<id>
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('watch') || urlParams.get('id') || null;
-  }
 
-  function generateChannelUrl(id) {
-    const pathname = window.location.pathname;
-    if (/(?:live\.html|live)\/[^/?#]+/i.test(pathname)) {
-      return pathname.replace(/(?:live\.html|live)\/[^/?#]+/i, (match) => {
-        const prefix = match.split('/')[0];
-        return `${prefix}/${id}`;
-      });
+    // 2. Query parameters fallback: ?watch=<id> or ?id=<id>
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('watch')) return searchParams.get('watch').trim();
+    if (searchParams.get('id')) return searchParams.get('id').trim();
+
+    // 3. Hash fallback: #/live/<id> or #<id>
+    if (window.location.hash) {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      const hashMatch = hash.match(/(?:live\/)?([^\/?#]+)/i);
+      if (hashMatch && hashMatch[1]) return decodeURIComponent(hashMatch[1]);
     }
-    return `live.html?watch=${id}`;
+
+    return null;
   }
 
   const initialDocId = extractChannelId();
@@ -866,7 +859,7 @@
   checkOrientation();
 
   if (!initialDocId) {
-    document.getElementById('loader').innerText = "Live Channel Not Found. Use /live.html/<channel_id> or ?watch=<channel_id>";
+    document.getElementById('loader').innerText = "Live Channel Not Found. Use /live.html/<channel_id>";
   } else {
     initLiveStream(initialDocId);
   }
@@ -914,8 +907,6 @@
   /* ===================== INIT LIVE CHANNEL ===================== */
   function initLiveStream(docId) {
     if (channelDocUnsub) channelDocUnsub();
-    if (digitalFeedUnsub) { digitalFeedUnsub(); digitalFeedUnsub = null; }
-    if (digitalFeedInterval) { clearInterval(digitalFeedInterval); digitalFeedInterval = null; }
 
     channelDocUnsub = onSnapshot(doc(db, "Live TV", docId), (snap) => {
       if (!snap.exists()) {
@@ -930,30 +921,24 @@
       document.getElementById('overlayTitle').innerText = title;
       document.getElementById('chLangSub').innerText = currentChannel.Genres || currentChannel.Language || "Live Broadcast";
 
-      /* ================= BARS LOGIC ================= */
-      // If Bars === "True" (case-insensitive string or boolean true) -> HIDE bar.
-      // If Bars is undefined, missing, false, or "False" -> SHOW bar (Bars = false).
+      /* ===================== BARS FIELD LOGIC ===================== */
+      // If Bars === "True" or true, hide the timeline/progress bar.
+      // If Bars is undefined/not present, it defaults to false (timeline remains visible).
       const rawBars = currentChannel.Bars !== undefined ? currentChannel.Bars : currentChannel.bars;
-      const isBarsTrue = rawBars !== undefined && (rawBars === true || String(rawBars).trim().toLowerCase() === "true");
-      
+      const isBarsTrue = rawBars !== undefined && String(rawBars).trim().toLowerCase() === "true";
       const liveTimeline = document.getElementById('liveTimelineRow');
       if (liveTimeline) {
         liveTimeline.style.display = isBarsTrue ? 'none' : 'flex';
       }
 
-      // Previously catch-up button
+      // Check for Catch-up (Previously Url)
       const hasPrev = Boolean(currentChannel["Previously Url"] || currentChannel.PreviouslyUrl);
       document.getElementById('btnPreviously').style.display = hasPrev ? 'flex' : 'none';
 
       document.getElementById('loader').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
 
-      const rawStream = (currentChannel.Stream || '').trim();
-      if (rawStream.includes('.DIGI-FEED')) {
-        initDigitalFeedEngine(rawStream);
-      } else {
-        startStreamPlayback(currentChannel);
-      }
+      startStreamPlayback(currentChannel);
     });
 
     listenToLiveChannels(docId);
@@ -1104,76 +1089,6 @@
     return null;
   }
 
-  /* ===================== DIGITAL FEED LOGIC ===================== */
-  function format12Hour(time24) {
-    if (!time24) return "";
-    const [hStr, mStr] = time24.split(":");
-    let h = parseInt(hStr, 10);
-    const period = h >= 12 ? "PM" : "AM";
-    if (h === 0) h = 12;
-    else if (h > 12) h -= 12;
-    return `${h < 10 ? '0' + h : h}:${mStr} ${period}`;
-  }
-
-  function timeToSec(str) {
-    const [h, m] = str.split(":").map(Number);
-    return (h * 3600) + (m * 60);
-  }
-
-  async function initDigitalFeedEngine(streamTag) {
-    const cleanTag = streamTag.replace(/[{}]/g, '').trim();
-    const feedSlug = cleanTag.includes('=') ? cleanTag.split('=')[1].trim() : cleanTag.replace('.DIGI-FEED-', '').trim();
-
-    if (digitalFeedMoviesLibrary.length === 0) {
-      try {
-        const snaps = await getDocs(collection(db, "Movies"));
-        snaps.forEach(d => digitalFeedMoviesLibrary.push({ id: d.id, ...d.data() }));
-      } catch(e) {}
-    }
-
-    digitalFeedUnsub = onSnapshot(doc(db, "Digital-Feed", feedSlug), (snap) => {
-      if (!snap.exists()) return;
-      digitalFeedSchedule = snap.data().schedule || [];
-      activeMediaKey = null;
-      syncDigitalFeedLive();
-    });
-
-    digitalFeedInterval = setInterval(syncDigitalFeedLive, 1000);
-  }
-
-  function syncDigitalFeedLive() {
-    if (!digitalFeedSchedule.length) return;
-    const now = new Date();
-    const curSec = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-
-    let liveSlot = null;
-
-    for (let slot of digitalFeedSchedule) {
-      const s = timeToSec(slot.from);
-      const e = timeToSec(slot.to);
-      const isCur = s < e ? (curSec >= s && curSec < e) : (curSec >= s || curSec < e);
-      if (isCur) {
-        liveSlot = slot;
-        break;
-      }
-    }
-
-    if (!liveSlot) return;
-
-    const timeTag = `${format12Hour(liveSlot.from)} - ${format12Hour(liveSlot.to)}`;
-
-    if (liveSlot.type === "movie" && digitalFeedMoviesLibrary.length > 0) {
-      const movie = digitalFeedMoviesLibrary[0];
-      const mediaKey = `mov_${movie.id}`;
-      if (activeMediaKey !== mediaKey) {
-        activeMediaKey = mediaKey;
-        const title = movie.Name || liveSlot.title || "Live Movie";
-        document.getElementById('chLangSub').innerText = `${title} • [${timeTag}]`;
-        startStreamPlayback({ Stream: movie.Stream, mpd: movie.mpd || movie.MPD });
-      }
-    }
-  }
-
   /* ===================== TOUCH CONTROLS & GESTURES ===================== */
   function setupInteractions() {
     const video = document.getElementById('nativeVideoPlayer');
@@ -1321,6 +1236,7 @@
       checkOrientation();
     };
 
+    // Scrubbing Handling
     progressBarInput.oninput = () => {
       const val = parseFloat(progressBarInput.value);
       timelineFill.style.width = `${val}%`;
@@ -1367,8 +1283,7 @@
         e.stopPropagation();
         document.querySelectorAll('#qualityOptionsList .q-item').forEach(i => i.querySelector('.q-check').innerText = '');
         item.querySelector('.q-check').innerText = '✓';
-        const tier = item.dataset.tier;
-        applyQualityTier(tier);
+        applyQualityTier(item.dataset.tier);
         document.getElementById('settingsModal').classList.remove('active');
       };
     });
@@ -1496,19 +1411,33 @@
     });
   }
 
+  /* Hotstar style URL pushState updater */
   window.switchChannel = function(id) {
     destroyPlayers();
-    const newUrl = generateChannelUrl(id);
-    window.history.pushState({}, '', newUrl);
+    
+    // Updates URL in Hotstar format: /live.html/<id> (or ?watch=<id> fallback)
+    const currentPath = window.location.pathname;
+    let newPath;
+    if (currentPath.includes('.html')) {
+      newPath = `${currentPath.split('.html')[0]}.html/${id}`;
+    } else {
+      newPath = `/live.html/${id}`;
+    }
+
+    try {
+      window.history.pushState({}, '', newPath);
+    } catch (e) {
+      window.history.pushState({}, '', `?watch=${id}`);
+    }
+
     initLiveStream(id);
   };
 
-  // Support browser Back/Forward navigation between channels
   window.addEventListener('popstate', () => {
-    const poppedId = extractChannelId();
-    if (poppedId && (!currentChannel || currentChannel.id !== poppedId)) {
+    const id = extractChannelId();
+    if (id && (!currentChannel || currentChannel.id !== id)) {
       destroyPlayers();
-      initLiveStream(poppedId);
+      initLiveStream(id);
     }
   });
 </script>
