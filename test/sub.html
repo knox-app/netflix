@@ -113,29 +113,29 @@
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
 
-    /* Branded Sponsor / Ad Overlay */
+    /* Branded Commercial Break Overlay (Positioned to never overlap control icons) */
     .ad-banner-overlay {
       position: absolute;
-      top: 16px;
+      top: 56px;
       right: 16px;
-      z-index: 30;
-      background: rgba(15, 16, 21, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 28;
+      background: rgba(15, 16, 21, 0.88);
+      border: 1.5px solid #f59e0b;
       padding: 6px 14px;
       border-radius: 24px;
       display: flex;
       align-items: center;
       gap: 10px;
       backdrop-filter: blur(8px);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
       pointer-events: none;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.25s ease, border-color 0.3s ease;
     }
     .ad-banner-overlay.hidden { display: none !important; }
-    .ad-logo { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+    .ad-logo { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
     .ad-details { display: flex; flex-direction: column; }
-    .ad-title { font-size: 11.5px; font-weight: 700; color: #fff; line-height: 1.2; }
-    .ad-tagline { font-size: 10px; color: var(--text-muted); }
+    .ad-title { font-size: 11px; font-weight: 700; color: #fff; line-height: 1.2; }
+    .ad-tagline { font-size: 9.5px; color: #d1d5db; }
 
     /* Toast Notification */
     .toast-alert {
@@ -184,7 +184,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      max-width: 65%;
+      max-width: 60%;
     }
     .title-meta-box {
       display: flex;
@@ -213,6 +213,7 @@
       align-items: center;
       gap: 14px;
       margin-left: auto;
+      z-index: 35;
     }
 
     body:not(.landscape-mode) .ctrl-top-left { display: none !important; }
@@ -392,10 +393,7 @@
       pointer-events: none;
       transition: opacity 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    .settings-backdrop.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .settings-backdrop.active { opacity: 1; pointer-events: auto; }
 
     .settings-sheet {
       position: fixed;
@@ -415,9 +413,7 @@
       display: flex;
       flex-direction: column;
     }
-    .settings-backdrop.active .settings-sheet {
-      transform: translate3d(0, 0, 0);
-    }
+    .settings-backdrop.active .settings-sheet { transform: translate3d(0, 0, 0); }
 
     body.landscape-mode .settings-sheet {
       left: auto;
@@ -430,9 +426,7 @@
       border-radius: 0;
       transform: translate3d(105%, 0, 0);
     }
-    body.landscape-mode .settings-backdrop.active .settings-sheet {
-      transform: translate3d(0, 0, 0);
-    }
+    body.landscape-mode .settings-backdrop.active .settings-sheet { transform: translate3d(0, 0, 0); }
 
     .sheet-top-head {
       display: flex;
@@ -476,9 +470,7 @@
       position: relative;
       transition: color 0.15s ease;
     }
-    .sheet-tab-item.active {
-      color: #ffffff;
-    }
+    .sheet-tab-item.active { color: #ffffff; }
     .sheet-tab-item.active::after {
       content: '';
       position: absolute;
@@ -730,11 +722,11 @@
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- Branded Dynamic Ad Overlay -->
+      <!-- Branded Dynamic Ad Overlay (Positioned safe from buttons) -->
       <div id="adOverlay" class="ad-banner-overlay hidden">
         <img id="adLogo" class="ad-logo hidden" src="" alt="Ad Logo" />
         <div class="ad-details">
-          <div id="adName" class="ad-title">Sponsored Ad</div>
+          <div id="adName" class="ad-title">Commercial Break</div>
           <div id="adTagline" class="ad-tagline">Special Presentation</div>
         </div>
       </div>
@@ -973,15 +965,16 @@
   let availableHlsLevels = [];
   let currentActiveAudioStream = null;
 
-  // Digital-Feed Dynamic State
+  // Digital-Feed Dynamic State (Strict 30-min Alignments & Auto-Ad Chaining)
   let digitalFeedUnsub = null;
   let digitalFeedInterval = null;
   let digitalFeedSchedule = [];
   let activeMediaKey = null;
   let moviesLibrary = [];
   let adsLibrary = [];
+  let currentAdIndex = 0;
+  let isCurrentPlayingAnAd = false;
   const playlistCache = {};
-  const mediaDurationCache = {};
 
   let liveChannelsCache = [];
   let channelDocUnsub = null;
@@ -1181,11 +1174,11 @@
     input.value = clamped;
   }
 
-  /* ================== UPDATED DIGITAL FEED ENGINE WITH ROTATIONAL ADS ================== */
-  function pickRotationalAd(seedOffset) {
+  /* ================== UPDATED DIGITAL FEED ENGINE (AI STUDIO CODE 37) ================== */
+  function getAdByIndex(idx) {
     if (!adsLibrary || adsLibrary.length === 0) return null;
-    const idx = Math.abs(seedOffset) % adsLibrary.length;
-    return adsLibrary[idx];
+    const safeIdx = Math.abs(idx) % adsLibrary.length;
+    return adsLibrary[safeIdx];
   }
 
   function showAdBranding(ad) {
@@ -1204,16 +1197,23 @@
     } else {
       adLogo.classList.add('hidden');
     }
-    if (ad.Theme) {
-      overlay.style.borderColor = ad.Theme;
-    }
+    overlay.style.borderColor = ad.Theme || "#f59e0b";
   }
 
   function hideAdBranding() {
     document.getElementById('adOverlay').classList.add('hidden');
   }
 
-  function resolveShowEpisode(slot, elapsedSeconds) {
+  function advanceToNextAd() {
+    currentAdIndex = (currentAdIndex + 1) % (adsLibrary.length || 1);
+    const nextAd = getAdByIndex(currentAdIndex);
+    if (nextAd && nextAd.Stream) {
+      showAdBranding(nextAd);
+      startStreamPlayback({ Stream: nextAd.Stream, Name: nextAd.Name }, 0, null, true);
+    }
+  }
+
+  function resolveShowEpisode(slot) {
     const episodes = slot.episodes || [];
     if (episodes.length === 0) return null;
 
@@ -1225,14 +1225,10 @@
       const diffTime = today.setHours(0,0,0,0) - anchor.setHours(0,0,0,0);
       const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
       targetIndex = (targetIndex + diffDays) % episodes.length;
-    } else if (slot.progressionMode === "entire_loop") {
-      const epDuration = mediaDurationCache[episodes[targetIndex].stream] || 1800;
-      targetIndex = Math.floor(elapsedSeconds / epDuration) % episodes.length;
     }
 
-    const currentEp = episodes[targetIndex];
     return {
-      episode: currentEp,
+      episode: episodes[targetIndex],
       episodeIndex: targetIndex
     };
   }
@@ -1275,7 +1271,6 @@
       return;
     }
 
-    // Load Movies & Ads Collections
     try {
       if (moviesLibrary.length === 0) {
         const movieDocs = await getDocs(collection(channelDb, "Movies"));
@@ -1288,7 +1283,7 @@
         adsDocs.forEach(d => adsLibrary.push({ id: d.id, ...d.data() }));
       }
     } catch (e) {
-      console.warn("Could not pre-fetch libraries:", e);
+      console.warn("Could not load libraries:", e);
     }
 
     if (digitalFeedUnsub) digitalFeedUnsub();
@@ -1328,7 +1323,7 @@
       }
 
       if (isCurrent) {
-        let elapsed = currentSeconds >= start ? (currentSeconds - start) : (86400 - start + currentSeconds);
+        const elapsed = currentSeconds >= start ? (currentSeconds - start) : (86400 - start + currentSeconds);
         const slotTotalSeconds = start < end ? (end - start) : (86400 - start + end);
         return { slot, slotIndex: i, elapsedSeconds: elapsed, slotTotalSeconds };
       }
@@ -1348,14 +1343,17 @@
 
     const slot = live.slot;
     const elapsed = live.elapsedSeconds;
-    const totalSlot = live.slotTotalSeconds;
+    const totalSlotSeconds = live.slotTotalSeconds;
     const timeTag = `[${format12Hour(slot.from)} - ${format12Hour(slot.to)}]`;
 
-    // A. EXPLICIT SCHEDULED AD BREAK
+    // 1. DEDICATED AD BREAK SLOT
     if (slot.type === "ad_slot" || slot.adPolicy === "ad_break") {
-      const ad = pickRotationalAd(Math.floor(elapsed / 60));
+      const minuteIndex = Math.floor(elapsed / 60);
+      currentAdIndex = minuteIndex;
+      const ad = getAdByIndex(minuteIndex);
       if (!ad || !ad.Stream) return;
-      const mediaKey = `adbreak_${ad.id || ad.Name}_${live.slotIndex}`;
+
+      const mediaKey = `adbreak_${minuteIndex}_${live.slotIndex}`;
       if (activeMediaKey !== mediaKey) {
         activeMediaKey = mediaKey;
         const adTitle = `Commercial Break: ${ad.Name} ${timeTag}`;
@@ -1363,62 +1361,47 @@
         document.getElementById('overlaySubtitle').style.display = 'block';
         document.getElementById('overlaySubtitle').innerText = adTitle;
         showAdBranding(ad);
-        startStreamPlayback({ Stream: ad.Stream, Name: ad.Name }, elapsed % 60);
+        startStreamPlayback({ Stream: ad.Stream, Name: ad.Name }, elapsed % 60, null, true);
       }
       return;
     }
 
-    // B. PRE-ROLL AD (Starting 30s)
-    if (slot.adPolicy === "start_only" && elapsed < 30) {
-      const ad = pickRotationalAd(live.slotIndex);
-      if (ad && ad.Stream) {
-        const mediaKey = `preroll_${ad.id || ad.Name}_${live.slotIndex}`;
-        if (activeMediaKey !== mediaKey) {
-          activeMediaKey = mediaKey;
-          const adTitle = `Advertisement: ${ad.Name}`;
-          document.getElementById('chLangSub').innerText = adTitle;
-          document.getElementById('overlaySubtitle').style.display = 'block';
-          document.getElementById('overlaySubtitle').innerText = adTitle;
-          showAdBranding(ad);
-          startStreamPlayback({ Stream: ad.Stream, Name: ad.Name }, elapsed);
-        }
-        return;
-      }
-    }
-
-    // C. SMART MID-ROLL TIME FILLER
-    let episodeOffset = elapsed;
+    // 2. MID-ROLL DEFICIT FILLER (Inserts ads at 11-12 min mark to align next episode with strict :00 or :30)
+    let contentElapsed = elapsed;
     if (slot.adPolicy === "midroll_fill") {
-      const epEstimatedDuration = 1500; // 25 mins
-      const deficit = Math.max(60, totalSlot - epEstimatedDuration);
-      const midRollInsertPoint = 660; // 11th min
+      const expectedShowRuntime = 1440; // 24 mins
+      const deficitBreakDuration = Math.max(60, totalSlotSeconds - expectedShowRuntime);
+      const midRollStartTime = 660; // 11th min
 
-      if (elapsed >= midRollInsertPoint && elapsed < (midRollInsertPoint + deficit)) {
-        const adElapsed = elapsed - midRollInsertPoint;
-        const ad = pickRotationalAd(Math.floor(adElapsed / 60) + live.slotIndex);
+      if (elapsed >= midRollStartTime && elapsed < (midRollStartTime + deficitBreakDuration)) {
+        const breakElapsed = elapsed - midRollStartTime;
+        const minuteIndex = Math.floor(breakElapsed / 60);
+        currentAdIndex = minuteIndex + live.slotIndex;
+        const ad = getAdByIndex(currentAdIndex);
+
         if (ad && ad.Stream) {
-          const mediaKey = `midroll_${ad.id || ad.Name}_${Math.floor(adElapsed / 60)}`;
+          const mediaKey = `midroll_${minuteIndex}_${live.slotIndex}`;
           if (activeMediaKey !== mediaKey) {
             activeMediaKey = mediaKey;
-            const adTitle = `Mid-Show Break: ${ad.Name}`;
+            const adTitle = `Commercial Break: ${ad.Name} ${timeTag}`;
             document.getElementById('chLangSub').innerText = adTitle;
             document.getElementById('overlaySubtitle').style.display = 'block';
             document.getElementById('overlaySubtitle').innerText = adTitle;
             showAdBranding(ad);
-            startStreamPlayback({ Stream: ad.Stream, Name: ad.Name }, adElapsed % 60);
+            startStreamPlayback({ Stream: ad.Stream, Name: ad.Name }, breakElapsed % 60, null, true);
           }
           return;
         }
-      } else if (elapsed >= (midRollInsertPoint + deficit)) {
-        episodeOffset = elapsed - deficit;
+      } else if (elapsed >= (midRollStartTime + deficitBreakDuration)) {
+        contentElapsed = elapsed - deficitBreakDuration;
       }
     }
 
     hideAdBranding();
 
-    // D. REGULAR BROADCAST CONTENT
+    // 3. SHOWS / TV SHOWS (Strictly locked to current episode; will not jump early!)
     if (slot.type === "shows" || (slot.type === "tv" && slot.mediaType === "direct_season")) {
-      const res = resolveShowEpisode(slot, episodeOffset);
+      const res = resolveShowEpisode(slot);
       if (!res || !res.episode || !res.episode.stream) {
         document.getElementById('chLangSub').innerText = "Episode stream not available";
         return;
@@ -1433,23 +1416,22 @@
         document.getElementById('overlaySubtitle').style.display = 'block';
         document.getElementById('overlaySubtitle').innerText = `${epTitle} • ${timeTag}`;
 
-        startStreamPlayback({ Stream: res.episode.stream, Name: epTitle }, episodeOffset, (dur) => {
-          mediaDurationCache[res.episode.stream] = dur;
-        });
+        startStreamPlayback({ Stream: res.episode.stream, Name: epTitle }, contentElapsed, null, false);
       }
     }
-    else if (slot.type === "tv" && (slot.mediaType === "youtube" || slot.playlistId)) {
+    // 4. YOUTUBE PLAYLIST TV SHOWS
+    else if (slot.type === "tv" && slot.mediaType === "youtube") {
       const playlistId = slot.playlistId;
-      if (playlistId && (playlistId.startsWith("PL") || playlistId.startsWith("RD") || playlistId.startsWith("UU"))) {
+      if (playlistId.startsWith("PL") || playlistId.startsWith("RD") || playlistId.startsWith("UU")) {
         const videos = await fetchYouTubePlaylistVideos(playlistId);
         if (videos.length > 0) {
-          const targetIndex = slot.progressionMode === "daily_increment" 
-            ? ((slot.startIndex || 0) + Math.max(0, Math.floor((new Date() - new Date(slot.anchorDate)) / 86400000))) % videos.length
-            : Math.floor(episodeOffset / 1800) % videos.length;
+          const today = new Date();
+          const anchor = slot.anchorDate ? new Date(slot.anchorDate) : today;
+          const diffDays = Math.max(0, Math.floor((today - anchor) / 86400000));
+          const targetIndex = ((slot.startIndex || 0) + diffDays) % videos.length;
 
           const currentVideo = videos[targetIndex];
-          const videoOffset = episodeOffset % 1800;
-          const mediaKey = `yt_${currentVideo.id}`;
+          const mediaKey = `yt_${currentVideo.id}_${live.slotIndex}`;
 
           if (activeMediaKey !== mediaKey) {
             activeMediaKey = mediaKey;
@@ -1460,11 +1442,11 @@
             startStreamPlayback({
               Stream: `https://www.youtube.com/watch?v=${currentVideo.id}`,
               Name: currentVideo.title
-            }, videoOffset);
+            }, contentElapsed, null, false);
           }
         }
-      } else if (playlistId) {
-        const mediaKey = `yt_${playlistId}`;
+      } else {
+        const mediaKey = `yt_${playlistId}_${live.slotIndex}`;
         if (activeMediaKey !== mediaKey) {
           activeMediaKey = mediaKey;
           const title = slot.title || "Live TV Broadcast";
@@ -1475,10 +1457,11 @@
           startStreamPlayback({
             Stream: `https://www.youtube.com/watch?v=${playlistId}`,
             Name: title
-          }, episodeOffset);
+          }, contentElapsed, null, false);
         }
       }
     }
+    // 5. MOVIES
     else if (slot.type === "movie") {
       let pool = moviesLibrary;
       if (slot.filterType && slot.filterType !== "all" && slot.filterValue && slot.filterValue !== "ALL") {
@@ -1504,7 +1487,7 @@
           Stream: movie.Stream,
           mpd: movie.mpd || movie.MPD,
           Name: movieTitle
-        }, episodeOffset);
+        }, contentElapsed, null, false);
       }
     }
   }
@@ -1603,12 +1586,14 @@
     }
   };
 
-  function startStreamPlayback(data, overrideStartTime, onDurationDiscovered) {
+  /* ================== STREAM PLAYBACK & ENGINE ROUTER ================== */
+  function startStreamPlayback(data, overrideStartTime, onDurationDiscovered, isAd = false) {
     const video = document.getElementById('nativeVideoPlayer');
     const iframe = document.getElementById('iframePlayer');
     const ytHost = document.getElementById('ytFrameHost');
     const overlay = document.getElementById('controlsOverlay');
 
+    isCurrentPlayingAnAd = isAd;
     const streamUrl = safeUrl(data.Stream || '');
     currentActiveAudioStream = streamUrl;
     const mpdObj = data.mpd || data.MPD || null;
@@ -1650,7 +1635,6 @@
         disablekb: 1,
         modestbranding: 1,
         rel: 0,
-        fs: 0,
         playsinline: 1,
         enablejsapi: 1,
         origin: window.location.origin
@@ -1678,7 +1662,12 @@
               playIcon.style.display = 'none';
               pauseIcon.style.display = 'block';
             } else if (e.data === YT.PlayerState.ENDED) {
-              syncDigitalFeedLive();
+              if (isCurrentPlayingAnAd) {
+                advanceToNextAd();
+              } else {
+                e.target.seekTo(0, true);
+                e.target.playVideo();
+              }
             } else {
               playIcon.style.display = 'block';
               pauseIcon.style.display = 'none';
@@ -1713,7 +1702,14 @@
         video.play().catch(() => {});
       };
 
-      video.onended = () => syncDigitalFeedLive();
+      video.onended = () => {
+        if (isCurrentPlayingAnAd) {
+          advanceToNextAd();
+        } else {
+          video.currentTime = 0;
+          video.play();
+        }
+      };
 
       if (streamUrl.endsWith('.mp4') || streamUrl.includes('.mkv') || streamUrl.includes('.webm') || streamUrl.includes('cloudinary')) {
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
