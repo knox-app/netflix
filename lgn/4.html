@@ -180,6 +180,7 @@
             padding: 3px 0;
             opacity: 0;
             transition: opacity 0.2s ease;
+            z-index: 5;
         }
 
         .avatar-container:hover .avatar-badge-edit {
@@ -196,6 +197,20 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
+        }
+
+        .avatar-svg-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-svg-container svg {
+            width: 100%;
+            height: 100%;
             display: block;
         }
 
@@ -421,7 +436,7 @@
             box-shadow: 0 4px 14px rgba(255, 59, 48, 0.3);
         }
 
-        /* ================= POPUPS & SHEETS SYSTEM ================= */
+        /* Popups & Sheets */
         .modal-backdrop {
             position: fixed;
             top: 0;
@@ -503,7 +518,7 @@
             margin: -6px auto 16px;
         }
 
-        /* Photo Action List (Screenshot 2 Match) */
+        /* Photo Action List */
         .photo-action-list {
             display: flex;
             flex-direction: column;
@@ -551,7 +566,7 @@
             background: var(--danger-bg);
         }
 
-        /* Avatar Picker (Screenshot 1 Match) */
+        /* Avatar Picker */
         .avatar-preview-hero {
             display: flex;
             flex-direction: column;
@@ -574,8 +589,8 @@
         }
 
         .avatar-big-preview svg {
-            width: 75%;
-            height: 75%;
+            width: 100%;
+            height: 100%;
         }
 
         .btn-shuffle {
@@ -637,8 +652,8 @@
         }
 
         .avatar-grid-item svg {
-            width: 70%;
-            height: 70%;
+            width: 100%;
+            height: 100%;
         }
 
         /* Input Controls */
@@ -705,7 +720,7 @@
             transition: opacity 0.2s ease;
         }
 
-        /* Upload Toast Loading indicator */
+        /* Upload Toast */
         .upload-toast {
             position: fixed;
             bottom: 30px;
@@ -793,7 +808,13 @@
     <section class="profile-hero">
         <div class="avatar-container" id="avatarTrigger" title="Click to change profile picture">
             <span class="avatar-fallback" id="avatarInitial">U</span>
+            
+            <!-- Standard Image Renderer for .jpg, .png, ImgBB URLs -->
             <img id="avatarImage" class="avatar-img" alt="Profile Picture" referrerpolicy="no-referrer" style="display:none;">
+            
+            <!-- Direct Raw SVG Code Renderer -->
+            <div id="avatarSvgContainer" class="avatar-svg-container" style="display:none;"></div>
+
             <div class="avatar-badge-edit">
                 <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </div>
@@ -885,11 +906,11 @@
     </div>
 </main>
 
-<!-- Hidden File Inputs for ImgBB Upload -->
-<input type="file" id="fileInputLibrary" accept="image/*" style="display: none;">
-<input type="file" id="fileInputCamera" accept="image/*" capture="user" style="display: none;">
+<!-- Hidden File Inputs for Custom Images (.png, .jpg) via ImgBB -->
+<input type="file" id="fileInputLibrary" accept="image/png, image/jpeg, image/jpg, image/webp" style="display: none;">
+<input type="file" id="fileInputCamera" accept="image/png, image/jpeg, image/jpg, image/webp" capture="user" style="display: none;">
 
-<!-- 1. Edit Photo Modal (Screenshot 2 Match) -->
+<!-- 1. Edit Photo Modal -->
 <div class="modal-backdrop" id="editPhotoModal">
     <div class="modal-sheet">
         <div class="sheet-drag-pill"></div>
@@ -925,7 +946,7 @@
     </div>
 </div>
 
-<!-- 2. Choose an Avatar Modal (Screenshot 1 Match) -->
+<!-- 2. Choose an Avatar Modal -->
 <div class="modal-backdrop" id="chooseAvatarModal">
     <div class="modal-sheet">
         <div class="sheet-drag-pill"></div>
@@ -1090,7 +1111,7 @@
         };
     }
 
-    // 5. Render User Profile
+    // 5. Smart Profile Renderer: Supports RAW SVG CODE + .PNG/.JPG URLS
     let currentUserData = {};
     let currentDocId = null;
 
@@ -1105,7 +1126,7 @@
         const phone = user["Phone Number"] || "—";
         const dob = user["Date of Birth"] || "—";
         const gender = user["Gender"] || "—";
-        const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["photoURL"] || null;
+        const profilePic = user["Profile_Picture"] || user["profilePicture"] || user["Profile Picture"] || user["photoURL"] || null;
 
         document.getElementById('fullName').innerText = fullName;
         document.getElementById('primaryEmail').innerText = email;
@@ -1116,6 +1137,7 @@
         document.getElementById('valDob').innerText = dob;
         document.getElementById('valGender').innerText = gender;
 
+        // Dynamic Badges
         const badgeConfig = getBadgeConfig(user["Type"]);
         const heroBadge = document.getElementById('accountBadge');
         heroBadge.className = `account-badge ${badgeConfig.className}`;
@@ -1125,22 +1147,42 @@
         rowBadge.className = `account-badge ${badgeConfig.className}`;
         rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
 
-        // Avatar Image & Initial Fallback
+        // Avatar Initial / Graphic Render Logic
         const avatarInitialElem = document.getElementById('avatarInitial');
         const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
         avatarInitialElem.innerText = initial;
 
         const avatarImg = document.getElementById('avatarImage');
-        if (profilePicUrl && profilePicUrl.trim() !== "") {
-            avatarImg.src = profilePicUrl;
-            avatarImg.style.display = "block";
-            avatarInitialElem.style.display = "none";
-            avatarImg.onerror = () => {
+        const avatarSvgContainer = document.getElementById('avatarSvgContainer');
+
+        if (profilePic && profilePic.trim() !== "") {
+            const trimmedPic = profilePic.trim();
+
+            // Scenario A: It's direct raw SVG Markup Code
+            if (trimmedPic.startsWith('<svg') || trimmedPic.endsWith('</svg>')) {
                 avatarImg.style.display = "none";
-                avatarInitialElem.style.display = "block";
-            };
+                avatarInitialElem.style.display = "none";
+                avatarSvgContainer.innerHTML = trimmedPic;
+                avatarSvgContainer.style.display = "flex";
+            }
+            // Scenario B: It's an image link (.png, .jpg, .jpeg, https://i.ibb.co/...)
+            else {
+                avatarSvgContainer.style.display = "none";
+                avatarSvgContainer.innerHTML = "";
+                avatarImg.src = trimmedPic;
+                avatarImg.style.display = "block";
+                avatarInitialElem.style.display = "none";
+
+                avatarImg.onerror = () => {
+                    avatarImg.style.display = "none";
+                    avatarInitialElem.style.display = "block";
+                };
+            }
         } else {
+            // Scenario C: Empty / Removed, show fallback initial
             avatarImg.style.display = "none";
+            avatarSvgContainer.style.display = "none";
+            avatarSvgContainer.innerHTML = "";
             avatarInitialElem.style.display = "block";
         }
     }
@@ -1208,7 +1250,7 @@
         uploadToast.classList.remove('show');
     }
 
-    // ================= AVATAR GENERATOR ENGINE (Screenshot 1 Match) =================
+    // ================= RAW SVG CODE GENERATOR ENGINE =================
     const AVATAR_PATTERNS = [
         // Starburst / Snowflake
         `<path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="2" r="2" fill="currentColor"/><circle cx="12" cy="22" r="2" fill="currentColor"/><circle cx="2" cy="12" r="2" fill="currentColor"/><circle cx="22" cy="12" r="2" fill="currentColor"/><circle cx="4.93" cy="4.93" r="1.8" fill="currentColor"/><circle cx="19.07" cy="19.07" r="1.8" fill="currentColor"/><circle cx="4.93" cy="19.07" r="1.8" fill="currentColor"/><circle cx="19.07" cy="4.93" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>`,
@@ -1221,37 +1263,36 @@
     ];
 
     const COLOR_PALETTES = [
-        { bg: "#c86d85", fg: "#f3d1dc" }, // Rose / Mauve
-        { bg: "#90b59b", fg: "#557962" }, // Sage Green
-        { bg: "#8cb3d9", fg: "#527fa8" }, // Soft Sky Blue
-        { bg: "#df9aa7", fg: "#8e4a5d" }, // Dusty Pink
-        { bg: "#b5c4df", fg: "#5f7091" }, // Lavender Slate
-        { bg: "#dfc097", fg: "#8f6733" }, // Almond Warm
-        { bg: "#6f885e", fg: "#d7e5ce" }, // Olive Garden
-        { bg: "#5f95c4", fg: "#d0e4f7" }, // Ocean Blue
-        { bg: "#c25470", fg: "#f8e3ea" }, // Ruby Plum
-        { bg: "#4a7966", fg: "#a9d5c4" }, // Deep Pine
-        { bg: "#768dc5", fg: "#e5ecfa" }, // Periwinkle
-        { bg: "#d9788f", fg: "#fff0f3" }  // Blossom
+        { bg: "#c86d85", fg: "#f3d1dc" },
+        { bg: "#90b59b", fg: "#557962" },
+        { bg: "#8cb3d9", fg: "#527fa8" },
+        { bg: "#df9aa7", fg: "#8e4a5d" },
+        { bg: "#b5c4df", fg: "#5f7091" },
+        { bg: "#dfc097", fg: "#8f6733" },
+        { bg: "#6f885e", fg: "#d7e5ce" },
+        { bg: "#5f95c4", fg: "#d0e4f7" },
+        { bg: "#c25470", fg: "#f8e3ea" },
+        { bg: "#4a7966", fg: "#a9d5c4" },
+        { bg: "#768dc5", fg: "#e5ecfa" },
+        { bg: "#d9788f", fg: "#fff0f3" }
     ];
 
     let generatedAvatars = [];
     let selectedAvatarIndex = 0;
 
-    function buildSvgDataUrl(bg, fg, patternIndex) {
-        const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="background:${bg};"><g color="${fg}">${AVATAR_PATTERNS[patternIndex]}</g></svg>`;
-        return `data:image/svg+xml;utf8,${encodeURIComponent(svgContent)}`;
+    // Builds the pure raw SVG Code string
+    function buildRawSvgCode(bg, fg, patternIndex) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="background:${bg};border-radius:50%;"><g color="${fg}">${AVATAR_PATTERNS[patternIndex]}</g></svg>`;
     }
 
     function generateAvatarList() {
         generatedAvatars = [];
         let count = 0;
-        // Generate 20 distinct randomized color-pattern pairs
         while (count < 20) {
             const patIdx = Math.floor(Math.random() * AVATAR_PATTERNS.length);
             const pal = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
-            const dataUrl = buildSvgDataUrl(pal.bg, pal.fg, patIdx);
-            generatedAvatars.push({ bg: pal.bg, fg: pal.fg, pattern: patIdx, dataUrl });
+            const rawSvg = buildRawSvgCode(pal.bg, pal.fg, patIdx);
+            generatedAvatars.push({ bg: pal.bg, fg: pal.fg, pattern: patIdx, rawSvg });
             count++;
         }
         renderAvatarGrid();
@@ -1264,8 +1305,7 @@
         generatedAvatars.forEach((item, idx) => {
             const el = document.createElement('div');
             el.className = `avatar-grid-item ${idx === selectedAvatarIndex ? 'selected' : ''}`;
-            el.style.backgroundColor = item.bg;
-            el.innerHTML = `<svg viewBox="0 0 24 24"><g color="${item.fg}">${AVATAR_PATTERNS[item.pattern]}</g></svg>`;
+            el.innerHTML = item.rawSvg;
             
             el.onclick = () => {
                 selectedAvatarIndex = idx;
@@ -1284,8 +1324,7 @@
         const hero = document.getElementById('currentAvatarHero');
         const item = generatedAvatars[selectedAvatarIndex];
         if (!item) return;
-        hero.style.backgroundColor = item.bg;
-        hero.innerHTML = `<svg viewBox="0 0 24 24"><g color="${item.fg}">${AVATAR_PATTERNS[item.pattern]}</g></svg>`;
+        hero.innerHTML = item.rawSvg;
     }
 
     document.getElementById('btnShuffleAvatars').onclick = () => {
@@ -1298,7 +1337,6 @@
     const chooseAvatarModal = document.getElementById('chooseAvatarModal');
     const editNameModal = document.getElementById('editModalBackdrop');
 
-    // Avatar container click triggers "Edit Photo"
     document.getElementById('avatarTrigger').onclick = () => {
         editPhotoModal.classList.add('active');
     };
@@ -1307,7 +1345,6 @@
         editPhotoModal.classList.remove('active');
     };
 
-    // Open "Choose an Avatar"
     document.getElementById('btnActionChooseAvatar').onclick = () => {
         editPhotoModal.classList.remove('active');
         if (generatedAvatars.length === 0) generateAvatarList();
@@ -1318,15 +1355,16 @@
         chooseAvatarModal.classList.remove('active');
     };
 
-    // Save Selected Avatar
+    // Save Selected Avatar as RAW SVG CODE in Firestore
     document.getElementById('confirmAvatarBtn').onclick = async () => {
         const chosen = generatedAvatars[selectedAvatarIndex];
         if (!chosen) return;
         chooseAvatarModal.classList.remove('active');
-        await updateProfilePictureUrl(chosen.dataUrl);
+        // Passes the RAW SVG Markup string into Firestore
+        await updateProfilePictureInFirestore(chosen.rawSvg);
     };
 
-    // ================= IMGBB UPLOAD ENGINE =================
+    // ================= IMGBB UPLOAD ENGINE FOR .PNG / .JPG =================
     const fileInputLibrary = document.getElementById('fileInputLibrary');
     const fileInputCamera = document.getElementById('fileInputCamera');
 
@@ -1346,7 +1384,7 @@
     async function handleImageSelected(file) {
         if (!file) return;
 
-        showToast("Uploading to ImgBB...");
+        showToast("Uploading image...");
         try {
             const formData = new FormData();
             formData.append('image', file);
@@ -1358,17 +1396,18 @@
 
             const data = await res.json();
             if (data && data.success && data.data && data.data.url) {
+                // Stores direct image URL (e.g. https://i.ibb.co/xyz/image.png or .jpg)
                 const uploadedUrl = data.data.url;
-                await updateProfilePictureUrl(uploadedUrl);
+                await updateProfilePictureInFirestore(uploadedUrl);
                 showToast("Photo updated!");
                 setTimeout(hideToast, 2000);
             } else {
                 throw new Error(data.error?.message || "Upload failed");
             }
         } catch (err) {
-            console.error("ImgBB upload failure:", err);
+            console.error("ImgBB upload error:", err);
             hideToast();
-            alert("Failed to upload image. Please check your network and try again.");
+            alert("Failed to upload image. Please try again.");
         } finally {
             fileInputLibrary.value = "";
             fileInputCamera.value = "";
@@ -1379,21 +1418,21 @@
     document.getElementById('btnActionRemoveAvatar').onclick = async () => {
         editPhotoModal.classList.remove('active');
         if (confirm("Remove your current profile photo?")) {
-            await updateProfilePictureUrl("");
+            await updateProfilePictureInFirestore("");
         }
     };
 
-    // Save Photo URL to Firestore & Local Storage
-    async function updateProfilePictureUrl(url) {
+    // Universal Saver: Saves either raw SVG Code OR direct image URL to Firestore
+    async function updateProfilePictureInFirestore(value) {
         showToast("Saving changes...");
         try {
             if (currentDocId) {
                 await updateDoc(doc(db, COLLECTION_NAME, currentDocId), {
-                    "Profile_Picture": url
+                    "Profile_Picture": value
                 });
             }
 
-            currentUserData["Profile_Picture"] = url;
+            currentUserData["Profile_Picture"] = value;
             localStorage.setItem('active_user', JSON.stringify(currentUserData));
 
             // Sync with saved_accounts
@@ -1401,7 +1440,7 @@
                 let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
                 const accIndex = savedAccounts.findIndex(acc => acc.email === currentUserData["Email"]);
                 if (accIndex !== -1) {
-                    savedAccounts[accIndex].profilePicture = url;
+                    savedAccounts[accIndex].profilePicture = value;
                     localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
                 }
             } catch (e) {}
