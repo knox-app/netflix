@@ -27,15 +27,17 @@
             --accent-primary-text: #ffffff;
             --danger: #d93025;
             --danger-bg: rgba(217, 48, 37, 0.08);
-            --danger-hover: #b3261e;
+            --danger-hover: #b31412;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
             --shadow-md: 0 12px 36px rgba(0,0,0,0.1);
             --blur-nav: blur(20px);
-            --radius-lg: 22px;
-            --radius-md: 12px;
+            --radius-lg: 24px;
+            --radius-md: 14px;
             --radius-full: 9999px;
-            --modal-overlay: rgba(0, 0, 0, 0.4);
+            --shimmer-bg: linear-gradient(90deg, #f0f0f2 0%, #e4e4e7 50%, #f0f0f2 100%);
+            --modal-overlay: rgba(0, 0, 0, 0.45);
 
+            /* Badges */
             --badge-kids-bg: rgba(37, 99, 235, 0.1);
             --badge-kids-text: #2563eb;
             --badge-kids-border: rgba(37, 99, 235, 0.2);
@@ -66,6 +68,7 @@
             --danger-hover: #ff3b30;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
             --shadow-md: 0 16px 50px rgba(0,0,0,0.7);
+            --shimmer-bg: linear-gradient(90deg, #1c1c1e 0%, #2c2c2e 50%, #1c1c1e 100%);
             --modal-overlay: rgba(0, 0, 0, 0.7);
 
             --badge-kids-bg: rgba(96, 165, 250, 0.15);
@@ -146,11 +149,11 @@
             flex-wrap: wrap;
         }
 
-        /* Clickable Avatar Container */
+        /* Avatar Container with Camera Edit Overlay */
         .avatar-container {
             position: relative;
-            width: 96px;
-            height: 96px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             border: 2px solid var(--border-focus);
             box-shadow: var(--shadow-sm);
@@ -165,40 +168,37 @@
         }
 
         .avatar-container:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        }
-
-        .avatar-hover-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffffff;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            border-radius: 50%;
-        }
-
-        .avatar-container:hover .avatar-hover-overlay {
-            opacity: 1;
+            transform: scale(1.03);
+            box-shadow: var(--shadow-md);
         }
 
         .avatar-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
+            display: none;
         }
 
         .avatar-fallback {
-            position: absolute;
-            font-size: 2.2rem;
+            font-size: 2.3rem;
             font-weight: 700;
             color: var(--text-main);
             text-transform: uppercase;
+        }
+
+        .avatar-overlay-badge {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            transition: opacity 0.2s ease;
         }
 
         .profile-headings {
@@ -415,7 +415,26 @@
             box-shadow: 0 4px 14px rgba(255, 59, 48, 0.3);
         }
 
-        /* Modals & Bottom Sheets Common Styles */
+        /* Shimmer Loading */
+        .skeleton {
+            background-size: 200% 100%;
+            background-image: var(--shimmer-bg);
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .skeleton-text {
+            height: 18px;
+            width: 140px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ================= MODAL & ACTION SHEETS ================= */
         .modal-backdrop {
             position: fixed;
             top: 0;
@@ -456,176 +475,155 @@
             transform: scale(1);
         }
 
-        /* ================= PHOTO OPTIONS SHEET (SCREENSHOT 1) ================= */
-        .sheet-header-simple {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            margin-bottom: 24px;
-            padding-bottom: 8px;
+        .sheet-drag-pill {
+            display: none;
+            width: 36px;
+            height: 5px;
+            background-color: var(--border-focus);
+            border-radius: 99px;
+            margin: 0 auto 16px;
         }
 
-        .sheet-btn-close {
-            position: absolute;
-            left: 0;
-            background: transparent;
-            border: none;
-            color: var(--text-main);
-            font-size: 20px;
-            cursor: pointer;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .sheet-title-center {
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-        }
-
-        .sheet-actions-list {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .sheet-action-item {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px 8px;
-            border: none;
-            background: transparent;
-            width: 100%;
-            color: var(--text-main);
-            font-size: 1.02rem;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: var(--radius-md);
-            transition: background 0.2s ease;
-            font-family: inherit;
-            text-align: left;
-        }
-
-        .sheet-action-item:hover {
-            background: var(--surface-hover);
-        }
-
-        .sheet-action-item svg {
-            width: 22px;
-            height: 22px;
-            stroke-width: 1.8;
-            flex-shrink: 0;
-        }
-
-        .sheet-divider {
-            height: 1px;
-            background: var(--border-subtle);
-            margin: 8px 0;
-        }
-
-        .sheet-action-item.danger {
-            color: var(--danger);
-        }
-
-        .sheet-action-item.danger svg {
-            stroke: var(--danger);
-        }
-
-        /* ================= AVATAR PICKER MODAL (SCREENSHOT 2) ================= */
-        .avatar-modal-sheet {
-            max-width: 460px;
-            max-height: 85vh;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .avatar-picker-topbar {
+        .sheet-top-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
-        .btn-save-check {
+        .sheet-top-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .btn-icon-close {
             background: transparent;
             border: none;
-            color: var(--text-main);
+            color: var(--text-secondary);
             cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 4px;
+            transition: background 0.2s, color 0.2s;
         }
 
+        .btn-icon-close:hover {
+            background: var(--surface-hover);
+            color: var(--text-main);
+        }
+
+        /* Photo Options Menu List (Screenshot 1) */
+        .action-menu-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .action-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            width: 100%;
+            text-align: left;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: var(--text-main);
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .action-menu-item:hover {
+            background-color: var(--surface-subtle);
+        }
+
+        .action-menu-item svg {
+            width: 22px;
+            height: 22px;
+            stroke-width: 2;
+        }
+
+        .action-menu-item.danger-item {
+            color: var(--danger);
+            margin-top: 10px;
+            border-top: 1px solid var(--border-subtle);
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            padding-top: 18px;
+        }
+
+        .action-menu-item.danger-item:hover {
+            background-color: var(--danger-bg);
+        }
+
+        /* Avatar Picker Sheet (Screenshot 2) */
         .avatar-preview-area {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 28px;
+            margin: 10px 0 24px;
         }
 
-        .avatar-large-preview {
-            width: 120px;
-            height: 120px;
+        .avatar-preview-circle {
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
-            box-shadow: var(--shadow-sm);
-            margin-bottom: 14px;
+            box-shadow: var(--shadow-md);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            margin-bottom: 14px;
             overflow: hidden;
-        }
-
-        .avatar-large-preview svg {
-            width: 100%;
-            height: 100%;
+            background: #d16b86;
         }
 
         .btn-shuffle {
-            background: var(--surface-card);
+            background: var(--surface-subtle);
             border: 1px solid var(--border-subtle);
-            color: var(--text-main);
-            padding: 8px 18px;
             border-radius: var(--radius-full);
+            padding: 8px 20px;
             font-size: 0.9rem;
             font-weight: 600;
+            font-family: inherit;
+            color: var(--text-main);
+            cursor: pointer;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            cursor: pointer;
-            box-shadow: var(--shadow-sm);
-            transition: background 0.2s ease;
+            transition: all 0.2s ease;
         }
 
         .btn-shuffle:hover {
             background: var(--surface-hover);
         }
 
-        .avatars-grid {
+        .avatar-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 16px;
-            justify-items: center;
-            padding-bottom: 10px;
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 8px 4px 16px;
         }
 
         .avatar-grid-item {
-            width: 68px;
-            height: 68px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            margin: 0 auto;
             border: 3px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
         }
 
         .avatar-grid-item:hover {
@@ -634,16 +632,10 @@
 
         .avatar-grid-item.selected {
             border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25);
-            transform: scale(1.05);
+            box-shadow: 0 0 0 2px var(--surface-card);
         }
 
-        .avatar-grid-item svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Name Edit Inputs */
+        /* Name Edit Form Controls */
         .input-group {
             margin-bottom: 16px;
             display: flex;
@@ -707,7 +699,29 @@
             transition: opacity 0.2s ease;
         }
 
-        /* Mobile Bottom Sheet Adaptation */
+        /* Toast notification */
+        .status-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1d1d1f;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: var(--radius-full);
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-md);
+            z-index: 200;
+            opacity: 0;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+        }
+
+        .status-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
         @media (max-width: 640px) {
             .modal-backdrop {
                 align-items: flex-end;
@@ -717,12 +731,16 @@
                 max-width: 100%;
                 border-radius: 28px 28px 0 0;
                 border-bottom: none;
-                padding: 24px 20px 36px;
+                padding: 20px 24px 36px;
                 transform: translateY(100%);
             }
 
             .modal-backdrop.active .modal-sheet {
                 transform: translateY(0);
+            }
+
+            .sheet-drag-pill {
+                display: block;
             }
 
             .profile-hero {
@@ -743,18 +761,16 @@
 <main class="main-container">
     <!-- Hero Profile Section -->
     <section class="profile-hero">
-        <!-- Clickable Avatar to change profile photo -->
-        <div class="avatar-container" id="avatarContainer" title="Click to change profile picture">
+        <div class="avatar-container" id="avatarContainer" title="Click to edit photo">
             <span class="avatar-fallback" id="avatarInitial">U</span>
-            <img id="avatarImage" class="avatar-img" alt="Profile Picture" referrerpolicy="no-referrer" style="display:none;">
-            <div class="avatar-hover-overlay">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <img id="avatarImage" class="avatar-img" alt="Profile Picture" referrerpolicy="no-referrer">
+            <div class="avatar-overlay-badge">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </div>
         </div>
-
         <div class="profile-headings">
             <div class="name-row">
-                <h1 id="fullName">Loading...</h1>
+                <h1 id="fullName"><span class="skeleton skeleton-text" style="width: 200px; height: 32px;"></span></h1>
                 
                 <button class="btn-action-pill" id="editNameBtn" title="Edit your name">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -767,7 +783,7 @@
                 </button>
             </div>
             <div class="profile-sub-row">
-                <span class="profile-email-text" id="primaryEmail">...</span>
+                <span class="profile-email-text" id="primaryEmail"><span class="skeleton skeleton-text"></span></span>
                 <span class="account-badge badge-personal" id="accountBadge">
                     <span id="accountBadgeText">Personal Account</span>
                 </span>
@@ -839,80 +855,84 @@
     </div>
 </main>
 
-<!-- Hidden Inputs for Library & Camera -->
-<input type="file" id="fileInputLibrary" accept="image/*" style="display: none;">
-<input type="file" id="fileInputCamera" accept="image/*" capture="environment" style="display: none;">
+<!-- Hidden File Inputs for Gallery and Camera -->
+<input type="file" id="libraryFileInput" accept="image/*" style="display:none">
+<input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display:none">
 
-<!-- 1. Edit Photo Bottom Sheet (Screenshot 1) -->
-<div class="modal-backdrop" id="photoOptionsBackdrop">
-    <div class="modal-sheet" id="photoOptionsSheet">
-        <div class="sheet-header-simple">
-            <button class="sheet-btn-close" id="btnClosePhotoOptions">✕</button>
-            <span class="sheet-title-center">Edit Photo</span>
+<!-- Sheet 1: Edit Photo Menu (Matches Screenshot 1) -->
+<div class="modal-backdrop" id="photoMenuBackdrop">
+    <div class="modal-sheet">
+        <div class="sheet-drag-pill"></div>
+        <div class="sheet-top-bar">
+            <button class="btn-icon-close" id="btnClosePhotoMenu">
+                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <h3 class="sheet-top-title">Edit Photo</h3>
+            <div style="width: 24px;"></div>
         </div>
 
-        <div class="sheet-actions-list">
-            <button class="sheet-action-item" id="btnActionChooseAvatar">
+        <div class="action-menu-list">
+            <!-- 1. Choose an avatar -->
+            <button class="action-menu-item" id="optChooseAvatar">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-                Choose an avatar
+                <span>Choose an avatar</span>
             </button>
 
-            <button class="sheet-action-item" id="btnActionPhotoLibrary">
+            <!-- 2. View photo library -->
+            <button class="action-menu-item" id="optPhotoLibrary">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                View photo library
+                <span>View photo library</span>
             </button>
 
-            <button class="sheet-action-item" id="btnActionTakePhoto">
+            <!-- 3. Take a photo -->
+            <button class="action-menu-item" id="optTakePhoto">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                Take a photo
+                <span>Take a photo</span>
             </button>
 
-            <div class="sheet-divider"></div>
-
-            <button class="sheet-action-item danger" id="btnActionRemoveAvatar">
+            <!-- 4. Remove avatar -->
+            <button class="action-menu-item danger-item" id="optRemoveAvatar">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                Remove avatar
+                <span>Remove avatar</span>
             </button>
         </div>
     </div>
 </div>
 
-<!-- 2. Choose an Avatar Modal (Screenshot 2) -->
+<!-- Sheet 2: Choose an Avatar Picker (Matches Screenshot 2) -->
 <div class="modal-backdrop" id="avatarPickerBackdrop">
-    <div class="modal-sheet avatar-modal-sheet" id="avatarPickerSheet">
-        <div class="avatar-picker-topbar">
-            <button class="sheet-btn-close" id="btnCloseAvatarPicker" style="position: static;">✕</button>
-            <span class="sheet-title-center">Choose an avatar</span>
-            <button class="btn-save-check" id="btnConfirmAvatar" title="Save avatar">
-                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    <div class="modal-sheet">
+        <div class="sheet-drag-pill"></div>
+        <div class="sheet-top-bar">
+            <button class="btn-icon-close" id="btnCloseAvatarPicker">
+                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <h3 class="sheet-top-title">Choose an avatar</h3>
+            <button class="btn-icon-close" id="btnConfirmAvatar" title="Apply avatar">
+                <svg width="24" height="24" fill="none" stroke="var(--accent-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
         </div>
 
         <div class="avatar-preview-area">
-            <div class="avatar-large-preview" id="largeAvatarPreview">
-                <!-- Selected Avatar SVG injected here -->
-            </div>
+            <div class="avatar-preview-circle" id="avatarLargePreview"></div>
             <button class="btn-shuffle" id="btnShuffleAvatar">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-                Shuffle
+                <span>Shuffle</span>
             </button>
         </div>
 
-        <!-- 4-Column Avatar Grid -->
-        <div class="avatars-grid" id="avatarsGridContainer">
-            <!-- Populated via JavaScript with procedural geometric avatars -->
+        <div class="avatar-grid" id="avatarGridContainer">
+            <!-- Populated via JavaScript with SVG icons -->
         </div>
     </div>
 </div>
 
-<!-- 3. Edit Name Dialog -->
+<!-- Edit Name Dialog -->
 <div class="modal-backdrop" id="editModalBackdrop">
-    <div class="modal-sheet" id="editModalSheet">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="font-size:1.25rem; font-weight:700;">Edit Name</h3>
-            <button class="sheet-btn-close" id="btnCancelEdit" style="position:static;">✕</button>
-        </div>
-        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:20px;">Update your personal display name across all devices.</p>
+    <div class="modal-sheet">
+        <div class="sheet-drag-pill"></div>
+        <h3 class="sheet-top-title" style="margin-bottom: 6px;">Edit Name</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">Update your personal display name across all devices.</p>
 
         <form id="editNameForm">
             <div class="input-group">
@@ -926,18 +946,21 @@
             </div>
 
             <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" id="btnCancelEdit">Cancel</button>
                 <button type="submit" class="btn-modal-save" id="btnSaveName">Save</button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Upload / Action Toast -->
+<div class="status-toast" id="statusToast">Updating photo...</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, query, where, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const IMGBB_API_KEY = "80c452b9a4b80f240ada316f23078d2c";
-
+    // 1. Firebase Configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
         authDomain: "question-metabase.firebaseapp.com",
@@ -945,13 +968,17 @@
         projectId: "question-metabase",
         storageBucket: "question-metabase.firebasestorage.app",
         messagingSenderId: "770698198753",
-        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+        measurementId: "G-6ZP1FPMKSJ"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // URL Parameters & Theme Logic
+    // Free ImgBB API Key
+    const IMGBB_API_KEY = "2d207c42dfd0ba5f6fe492582845c48b";
+
+    // 2. URL Parameters & Theme Logic
     const urlParams = new URLSearchParams(window.location.search);
     const uParam = urlParams.has('u') ? urlParams.get('u') : urlParams.get('user');
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
@@ -976,37 +1003,29 @@
     applyTheme();
     mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
-    // Multi-Account URL Handling
-    if (uParam !== null) {
-        const index = parseInt(uParam, 10);
-        let savedAccounts = [];
-        try {
-            savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-        } catch (e) {
-            savedAccounts = [];
-        }
-        
-        if (!isNaN(index) && index >= 0 && index < savedAccounts.length) {
-            const targetLotus = savedAccounts[index].lotus;
-            let activeUser = {};
-            try {
-                activeUser = JSON.parse(localStorage.getItem('active_user') || '{}');
-            } catch (e) {
-                activeUser = {};
-            }
-            
-            if (activeUser["Lotus"] !== targetLotus) {
-                let redirectUrl = `1.html?Lotus=${encodeURIComponent(targetLotus)}&continue=4.html`;
-                if (theme) redirectUrl += `&theme=${encodeURIComponent(theme)}`;
-                window.location.href = redirectUrl;
-            }
-        } else {
-            const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
-            window.location.href = dest;
-        }
+    // 3. User Session Verification
+    let activeUser = null;
+    try {
+        activeUser = JSON.parse(localStorage.getItem('active_user') || 'null');
+    } catch (e) {
+        activeUser = null;
     }
 
-    // Dynamic Badge Config
+    if (!activeUser) {
+        try {
+            const saved = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            if (saved.length > 0) {
+                activeUser = { "Email": saved[0].email, "Lotus": saved[0].lotus };
+            }
+        } catch (e) {}
+    }
+
+    if (!activeUser || !activeUser["Email"]) {
+        const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
+        window.location.href = dest;
+    }
+
+    // 4. Dynamic Badge Configuration
     function getBadgeConfig(typeRaw) {
         const type = (typeRaw || "").trim().toLowerCase();
 
@@ -1031,10 +1050,18 @@
         };
     }
 
+    // 5. Toast Feedback Helper
+    const toast = document.getElementById('statusToast');
+    function showToast(msg) {
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    // 6. Live UI Render
     let currentUserData = {};
     let currentDocId = null;
 
-    // Render User Data
     function renderUserData(user) {
         if (!user) return;
         currentUserData = user;
@@ -1067,7 +1094,7 @@
         rowBadge.className = `account-badge ${badgeConfig.className}`;
         rowBadge.innerHTML = `${badgeConfig.icon}<span>${badgeConfig.label}</span>`;
 
-        // Profile Picture / Initial
+        // Avatar Image & Initial Fallback
         const avatarInitialElem = document.getElementById('avatarInitial');
         const initial = firstName ? firstName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
         avatarInitialElem.innerText = initial;
@@ -1087,275 +1114,270 @@
         }
     }
 
-    // Direct Live-Sync Engine using Firebase Modular SDK
-    async function initLiveSync() {
-        const activeUserStr = localStorage.getItem('active_user');
-        
-        if (!activeUserStr) {
-            const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
-            window.location.href = dest;
-            return;
+    // 7. Real-Time Firestore Live Listener
+    const userEmail = activeUser["Email"];
+    const q = query(collection(db, "UARM"), where("Email", "==", userEmail));
+
+    onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+            const docSnap = snapshot.docs[0];
+            currentDocId = docSnap.id;
+            const liveData = docSnap.data();
+
+            localStorage.setItem('active_user', JSON.stringify(liveData));
+            renderUserData(liveData);
         }
-
-        try {
-            const localUser = JSON.parse(activeUserStr);
-            renderUserData(localUser);
-
-            const email = localUser["Email"];
-            const lotus = localUser["Lotus"];
-
-            let q;
-            if (lotus) {
-                q = query(collection(db, "UARM"), where("Lotus", "==", lotus));
-            } else if (email) {
-                q = query(collection(db, "UARM"), where("Email", "==", email));
-            }
-
-            if (q) {
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    currentDocId = snap.docs[0].id;
-                    const freshData = snap.docs[0].data();
-
-                    localStorage.setItem('active_user', JSON.stringify(freshData));
-                    renderUserData(freshData);
-
-                    // Real-time listener for multi-device sync
-                    onSnapshot(doc(db, "UARM", currentDocId), (docSnap) => {
-                        if (docSnap.exists()) {
-                            const liveData = docSnap.data();
-                            localStorage.setItem('active_user', JSON.stringify(liveData));
-                            renderUserData(liveData);
-                        }
-                    });
-                }
-            }
-        } catch (err) {
-            console.error("Live sync initialization error:", err);
-        }
-    }
-
-    initLiveSync();
-
-    // ================= AVATAR PROCEDURAL GENERATOR (SCREENSHOT 2) =================
-    const avatarPalettes = [
-        { bg: "#c86d85", icon: "#f7e8ee" }, // Berry Rose
-        { bg: "#7ba077", icon: "#e9f2e8" }, // Sage Green
-        { bg: "#8cb4d9", icon: "#eaf3fc" }, // Sky Blue
-        { bg: "#b56c80", icon: "#fadfe6" }, // Plum
-        { bg: "#e07d95", icon: "#faeef1" }, // Coral Pink
-        { bg: "#9cb0d9", icon: "#edf2fa" }, // Periwinkle
-        { bg: "#dd95a3", icon: "#fdf1f3" }, // Dusty Pink
-        { bg: "#8fa87a", icon: "#eff6eb" }, // Olive
-        { bg: "#6d935e", icon: "#e1edd9" }, // Forest Sage
-        { bg: "#6b8b5e", icon: "#f1f0e4" }, // Moss
-        { bg: "#689ec4", icon: "#e2f2fc" }, // Lake Blue
-        { bg: "#588ac2", icon: "#dce8f8" }, // Navy Mist
-        { bg: "#a8c0a0", icon: "#f2f7f0" }, // Mint
-        { bg: "#8fb5d8", icon: "#ebf3fa" }, // Slate Blue
-        { bg: "#bf6378", icon: "#fae7ec" }, // Deep Coral
-        { bg: "#b8556d", icon: "#faeaee" }, // Wine
-        { bg: "#c48898", icon: "#faeef2" }, // Mauve
-        { bg: "#8ea4c8", icon: "#edf2f8" }, // Steel Blue
-        { bg: "#dca0ad", icon: "#faebef" }, // Blush
-        { bg: "#829871", icon: "#edf2e8" }  // Earth Green
-    ];
-
-    const iconShapes = [
-        // Starburst / Snowflake
-        `<circle cx="50" cy="50" r="10"/><line x1="50" y1="20" x2="50" y2="80" stroke-width="6" stroke-linecap="round"/><line x1="20" y1="50" x2="80" y2="50" stroke-width="6" stroke-linecap="round"/><line x1="28" y1="28" x2="72" y2="72" stroke-width="6" stroke-linecap="round"/><line x1="28" y1="72" x2="72" y2="28" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="18" r="5"/><circle cx="50" cy="82" r="5"/><circle cx="18" cy="50" r="5"/><circle cx="82" cy="50" r="5"/><circle cx="26" cy="26" r="5"/><circle cx="74" cy="74" r="5"/><circle cx="26" cy="74" r="5"/><circle cx="74" cy="26" r="5"/>`,
-        // Four Leaf Clover
-        `<rect x="34" y="22" width="32" height="56" rx="16"/><rect x="22" y="34" width="56" height="32" rx="16"/>`,
-        // Network / Gear Box Matrix
-        `<line x1="30" y1="36" x2="70" y2="36" stroke-width="6" stroke-linecap="round"/><line x1="30" y1="64" x2="70" y2="64" stroke-width="6" stroke-linecap="round"/><line x1="34" y1="24" x2="34" y2="76" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="24" x2="50" y2="76" stroke-width="6" stroke-linecap="round"/><line x1="66" y1="24" x2="66" y2="76" stroke-width="6" stroke-linecap="round"/><circle cx="34" cy="24" r="5"/><circle cx="34" cy="76" r="5"/><circle cx="50" cy="24" r="5"/><circle cx="50" cy="76" r="5"/><circle cx="66" cy="24" r="5"/><circle cx="66" cy="76" r="5"/>`,
-        // Rounded Cross
-        `<path d="M50 25 C45 35 35 45 25 50 C35 55 45 65 50 75 C55 65 65 55 75 50 C65 45 55 35 50 25 Z"/>`
-    ];
-
-    function createAvatarSvg(bg, iconColor, iconIndex) {
-        const shape = iconShapes[iconIndex % iconShapes.length];
-        return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100" height="100" fill="${bg}"/>
-            <g fill="${iconColor}" stroke="${iconColor}">
-                ${shape}
-            </g>
-        </svg>`;
-    }
-
-    // Generate Array of 20 distinct SVG data URIs
-    const generatedAvatars = [];
-    avatarPalettes.forEach((pal, idx) => {
-        const svgCode = createAvatarSvg(pal.bg, pal.icon, idx % iconShapes.length);
-        const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgCode)}`;
-        generatedAvatars.push({ dataUrl, svgCode });
+    }, (error) => {
+        console.error("Realtime listener error:", error);
     });
 
-    let selectedAvatarIndex = 0;
+    // 8. Photo Menu Modal Controls (Screenshot 1)
+    const photoMenuBackdrop = document.getElementById('photoMenuBackdrop');
+    const avatarContainer = document.getElementById('avatarContainer');
+    const btnClosePhotoMenu = document.getElementById('btnClosePhotoMenu');
 
-    // Populate Grid
-    const gridContainer = document.getElementById('avatarsGridContainer');
-    const previewContainer = document.getElementById('largeAvatarPreview');
+    function openPhotoMenu() { photoMenuBackdrop.classList.add('active'); }
+    function closePhotoMenu() { photoMenuBackdrop.classList.remove('active'); }
 
-    generatedAvatars.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = `avatar-grid-item ${index === 0 ? 'selected' : ''}`;
-        div.innerHTML = item.svgCode;
-        div.onclick = () => selectAvatar(index);
-        gridContainer.appendChild(div);
-    });
+    avatarContainer.onclick = openPhotoMenu;
+    btnClosePhotoMenu.onclick = closePhotoMenu;
+    photoMenuBackdrop.onclick = (e) => { if (e.target === photoMenuBackdrop) closePhotoMenu(); };
 
-    function selectAvatar(index) {
-        selectedAvatarIndex = index;
-        previewContainer.innerHTML = generatedAvatars[index].svgCode;
+    // 9. Photo Upload Engine (ImgBB + Compressed Fallback)
+    const libraryFileInput = document.getElementById('libraryFileInput');
+    const cameraFileInput = document.getElementById('cameraFileInput');
 
-        const allItems = gridContainer.querySelectorAll('.avatar-grid-item');
-        allItems.forEach((el, i) => {
-            el.classList.toggle('selected', i === index);
-        });
-    }
-
-    // Set initial preview
-    selectAvatar(0);
-
-    // Shuffle Button
-    document.getElementById('btnShuffleAvatar').onclick = () => {
-        const randomIndex = Math.floor(Math.random() * generatedAvatars.length);
-        selectAvatar(randomIndex);
+    document.getElementById('optPhotoLibrary').onclick = () => {
+        closePhotoMenu();
+        libraryFileInput.click();
     };
 
-    // ================= MODAL INTERACTIONS =================
-    const photoOptionsBackdrop = document.getElementById('photoOptionsBackdrop');
-    const avatarPickerBackdrop = document.getElementById('avatarPickerBackdrop');
-    const editModalBackdrop = document.getElementById('editModalBackdrop');
-
-    // Open "Edit Photo" Sheet
-    document.getElementById('avatarContainer').onclick = () => {
-        photoOptionsBackdrop.classList.add('active');
+    document.getElementById('optTakePhoto').onclick = () => {
+        closePhotoMenu();
+        cameraFileInput.click();
     };
 
-    document.getElementById('btnClosePhotoOptions').onclick = () => {
-        photoOptionsBackdrop.classList.remove('active');
-    };
-
-    // Open "Choose an avatar" Picker
-    document.getElementById('btnActionChooseAvatar').onclick = () => {
-        photoOptionsBackdrop.classList.remove('active');
-        avatarPickerBackdrop.classList.add('active');
-    };
-
-    document.getElementById('btnCloseAvatarPicker').onclick = () => {
-        avatarPickerBackdrop.classList.remove('active');
-    };
-
-    // Close on backdrop click
-    [photoOptionsBackdrop, avatarPickerBackdrop, editModalBackdrop].forEach(backdrop => {
-        backdrop.addEventListener('click', (e) => {
-            if (e.target === backdrop) backdrop.classList.remove('active');
-        });
-    });
-
-    // ================= DIRECT FIRESTORE PROFILE PICTURE UPDATER =================
-    async function updateProfilePictureInCloud(newUrl) {
-        try {
-            if (!currentDocId) {
-                alert("Database connecting... please try again in a second.");
-                return;
-            }
-
-            // Directly update Firestore UARM Document
-            await updateDoc(doc(db, "UARM", currentDocId), {
-                "Profile_Picture": newUrl
-            });
-
-            // Update local object
-            currentUserData["Profile_Picture"] = newUrl;
-            localStorage.setItem('active_user', JSON.stringify(currentUserData));
-
-            // Sync with saved_accounts
-            try {
-                let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                const accIndex = savedAccounts.findIndex(acc => acc.email === currentUserData["Email"]);
-                if (accIndex !== -1) {
-                    savedAccounts[accIndex].profilePicture = newUrl;
-                    localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
-                }
-            } catch (e) {}
-
-            renderUserData(currentUserData);
-        } catch (err) {
-            console.error("Cloud avatar update error:", err);
-            alert("Failed to save avatar. Please check your internet connection.");
-        }
-    }
-
-    // 1. Confirm Chosen Avatar
-    document.getElementById('btnConfirmAvatar').onclick = async () => {
-        const chosenAvatarUrl = generatedAvatars[selectedAvatarIndex].dataUrl;
-        avatarPickerBackdrop.classList.remove('active');
-        await updateProfilePictureInCloud(chosenAvatarUrl);
-    };
-
-    // 2. Remove Avatar
-    document.getElementById('btnActionRemoveAvatar').onclick = async () => {
-        photoOptionsBackdrop.classList.remove('active');
-        await updateProfilePictureInCloud("");
-    };
-
-    // 3. Photo Library & Take Photo Uploads to ImgBB
-    const fileInputLibrary = document.getElementById('fileInputLibrary');
-    const fileInputCamera = document.getElementById('fileInputCamera');
-
-    document.getElementById('btnActionPhotoLibrary').onclick = () => {
-        photoOptionsBackdrop.classList.remove('active');
-        fileInputLibrary.click();
-    };
-
-    document.getElementById('btnActionTakePhoto').onclick = () => {
-        photoOptionsBackdrop.classList.remove('active');
-        fileInputCamera.click();
-    };
-
-    async function handleFileUpload(file) {
+    async function handleImageFile(file) {
         if (!file) return;
 
-        const avatarInitial = document.getElementById('avatarInitial');
-        avatarInitial.innerText = "⏳";
-        avatarInitial.style.display = "block";
-        document.getElementById('avatarImage').style.display = "none";
+        showToast("Uploading photo...");
 
         try {
+            // Send to ImgBB
             const formData = new FormData();
             formData.append("image", file);
 
-            // Upload directly to ImgBB using your API Key
             const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
                 method: "POST",
                 body: formData
             });
 
-            const result = await res.json();
-            if (result.success && result.data && result.data.url) {
-                const uploadedUrl = result.data.url;
-                await updateProfilePictureInCloud(uploadedUrl);
+            const data = await res.json();
+            let finalUrl = "";
+
+            if (data && data.success && data.data && data.data.url) {
+                finalUrl = data.data.display_url || data.data.url;
             } else {
-                throw new Error(result.error?.message || "ImgBB upload error");
+                // Fallback: Read as compressed Base64 data URL
+                finalUrl = await fileToDataURL(file);
+            }
+
+            // Save to Firestore
+            if (currentDocId && finalUrl) {
+                await updateDoc(doc(db, "UARM", currentDocId), { "Profile_Picture": finalUrl });
+                showToast("Profile photo updated!");
             }
         } catch (err) {
-            console.error("Image upload failed:", err);
-            alert("Image upload failed. Please try again.");
-            renderUserData(currentUserData);
+            console.error("Photo upload failed:", err);
+            // Fallback to local DataURL
+            const localDataUrl = await fileToDataURL(file);
+            if (currentDocId && localDataUrl) {
+                await updateDoc(doc(db, "UARM", currentDocId), { "Profile_Picture": localDataUrl });
+                showToast("Profile photo updated!");
+            } else {
+                alert("Could not upload photo. Please check your network.");
+            }
         }
     }
 
-    fileInputLibrary.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) handleFileUpload(e.target.files[0]);
-    });
+    function fileToDataURL(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+    }
 
-    fileInputCamera.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) handleFileUpload(e.target.files[0]);
-    });
+    libraryFileInput.onchange = (e) => handleImageFile(e.target.files[0]);
+    cameraFileInput.onchange = (e) => handleImageFile(e.target.files[0]);
 
-    // ================= NAME EDIT CONTROLS =================
+    // 10. Remove Avatar Option
+    document.getElementById('optRemoveAvatar').onclick = async () => {
+        closePhotoMenu();
+        if (currentDocId) {
+            try {
+                showToast("Removing avatar...");
+                await updateDoc(doc(db, "UARM", currentDocId), { "Profile_Picture": "" });
+                showToast("Avatar removed");
+            } catch (err) {
+                console.error("Remove failed:", err);
+            }
+        }
+    };
+
+    // 11. Choose an Avatar Sheet (Screenshot 2)
+    const avatarPickerBackdrop = document.getElementById('avatarPickerBackdrop');
+    const btnCloseAvatarPicker = document.getElementById('btnCloseAvatarPicker');
+    const btnConfirmAvatar = document.getElementById('btnConfirmAvatar');
+    const avatarLargePreview = document.getElementById('avatarLargePreview');
+    const btnShuffleAvatar = document.getElementById('btnShuffleAvatar');
+    const avatarGridContainer = document.getElementById('avatarGridContainer');
+
+    function openAvatarPicker() {
+        closePhotoMenu();
+        avatarPickerBackdrop.classList.add('active');
+        selectAvatar(selectedAvatarIndex);
+    }
+
+    function closeAvatarPicker() {
+        avatarPickerBackdrop.classList.remove('active');
+    }
+
+    document.getElementById('optChooseAvatar').onclick = openAvatarPicker;
+    btnCloseAvatarPicker.onclick = closeAvatarPicker;
+    avatarPickerBackdrop.onclick = (e) => { if (e.target === avatarPickerBackdrop) closeAvatarPicker(); };
+
+    // Material Geometric Avatar Palette (Matching Screenshot 2)
+    const AVATAR_PALETTES = [
+        { bg: "#d16b86", symbol: "#f2ced8" }, // Mauve
+        { bg: "#7ea383", symbol: "#e1edd9" }, // Sage Green
+        { bg: "#7ea5c7", symbol: "#d7e6f4" }, // Soft Blue
+        { bg: "#baa5c2", symbol: "#ece1f0" }, // Lavender
+        { bg: "#dd94a7", symbol: "#fae7ed" }, // Rose
+        { bg: "#9db490", symbol: "#f0f5ec" }, // Olive
+        { bg: "#96afcb", symbol: "#e5effa" }, // Sky
+        { bg: "#d8a47f", symbol: "#fdf0e7" }  // Amber
+    ];
+
+    // 4 Geometric SVGs from screenshot 2
+    function getAvatarSvg(patternIdx, palette) {
+        const bg = palette.bg;
+        const fg = palette.symbol;
+
+        if (patternIdx === 0) {
+            // Star Network Node (Screenshot 2 preview)
+            return `<svg viewBox="0 0 100 100" width="100%" height="100%">
+                <rect width="100" height="100" fill="${bg}"/>
+                <circle cx="50" cy="50" r="14" fill="${fg}"/>
+                <line x1="50" y1="50" x2="16" y2="50" stroke="${fg}" stroke-width="5"/>
+                <line x1="50" y1="50" x2="84" y2="50" stroke="${fg}" stroke-width="5"/>
+                <line x1="50" y1="50" x2="26" y2="26" stroke="${fg}" stroke-width="5"/>
+                <line x1="50" y1="50" x2="74" y2="74" stroke="${fg}" stroke-width="5"/>
+                <line x1="50" y1="50" x2="26" y2="74" stroke="${fg}" stroke-width="5"/>
+                <line x1="50" y1="50" x2="74" y2="26" stroke="${fg}" stroke-width="5"/>
+                <circle cx="16" cy="50" r="6" fill="${fg}"/>
+                <circle cx="84" cy="50" r="6" fill="${fg}"/>
+                <circle cx="26" cy="26" r="6" fill="${fg}"/>
+                <circle cx="74" cy="74" r="6" fill="${fg}"/>
+                <circle cx="26" cy="74" r="6" fill="${fg}"/>
+                <circle cx="74" cy="26" r="6" fill="${fg}"/>
+            </svg>`;
+        } else if (patternIdx === 1) {
+            // 4-Petal Clover/Flower
+            return `<svg viewBox="0 0 100 100" width="100%" height="100%">
+                <rect width="100" height="100" fill="${bg}"/>
+                <circle cx="36" cy="36" r="14" fill="${fg}"/>
+                <circle cx="64" cy="36" r="14" fill="${fg}"/>
+                <circle cx="36" cy="64" r="14" fill="${fg}"/>
+                <circle cx="64" cy="64" r="14" fill="${fg}"/>
+                <rect x="36" y="36" width="28" height="28" fill="${fg}"/>
+            </svg>`;
+        } else if (patternIdx === 2) {
+            // Small Central Floral Cross
+            return `<svg viewBox="0 0 100 100" width="100%" height="100%">
+                <rect width="100" height="100" fill="${bg}"/>
+                <circle cx="50" cy="36" r="9" fill="${fg}"/>
+                <circle cx="50" cy="64" r="9" fill="${fg}"/>
+                <circle cx="36" cy="50" r="9" fill="${fg}"/>
+                <circle cx="64" cy="50" r="9" fill="${fg}"/>
+                <circle cx="50" cy="50" r="6" fill="${fg}"/>
+            </svg>`;
+        } else {
+            // Circuit Ladder Nodes
+            return `<svg viewBox="0 0 100 100" width="100%" height="100%">
+                <rect width="100" height="100" fill="${bg}"/>
+                <line x1="36" y1="20" x2="36" y2="80" stroke="${fg}" stroke-width="5"/>
+                <line x1="64" y1="20" x2="64" y2="80" stroke="${fg}" stroke-width="5"/>
+                <line x1="20" y1="36" x2="80" y2="36" stroke="${fg}" stroke-width="5"/>
+                <line x1="20" y1="64" x2="80" y2="64" stroke="${fg}" stroke-width="5"/>
+                <circle cx="20" cy="36" r="6" fill="${fg}"/>
+                <circle cx="80" cy="36" r="6" fill="${fg}"/>
+                <circle cx="20" cy="64" r="6" fill="${fg}"/>
+                <circle cx="80" cy="64" r="6" fill="${fg}"/>
+            </svg>`;
+        }
+    }
+
+    // Build 16 avatar options
+    const AVATAR_LIST = [];
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+            AVATAR_LIST.push({
+                svg: getAvatarSvg(i, AVATAR_PALETTES[j % AVATAR_PALETTES.length]),
+                bg: AVATAR_PALETTES[j % AVATAR_PALETTES.length].bg
+            });
+        }
+    }
+
+    let selectedAvatarIndex = 0;
+
+    function renderAvatarGrid() {
+        avatarGridContainer.innerHTML = "";
+        AVATAR_LIST.forEach((av, idx) => {
+            const item = document.createElement('div');
+            item.className = `avatar-grid-item ${idx === selectedAvatarIndex ? 'selected' : ''}`;
+            item.innerHTML = av.svg;
+            item.onclick = () => selectAvatar(idx);
+            avatarGridContainer.appendChild(item);
+        });
+    }
+
+    function selectAvatar(idx) {
+        selectedAvatarIndex = idx;
+        const chosen = AVATAR_LIST[idx];
+        avatarLargePreview.innerHTML = chosen.svg;
+        avatarLargePreview.style.background = chosen.bg;
+
+        document.querySelectorAll('.avatar-grid-item').forEach((el, i) => {
+            el.classList.toggle('selected', i === idx);
+        });
+    }
+
+    btnShuffleAvatar.onclick = () => {
+        const rand = Math.floor(Math.random() * AVATAR_LIST.length);
+        selectAvatar(rand);
+    };
+
+    btnConfirmAvatar.onclick = async () => {
+        const chosen = AVATAR_LIST[selectedAvatarIndex];
+        const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(chosen.svg)}`;
+        closeAvatarPicker();
+
+        if (currentDocId) {
+            try {
+                showToast("Applying avatar...");
+                await updateDoc(doc(db, "UARM", currentDocId), { "Profile_Picture": dataUrl });
+                showToast("Avatar updated!");
+            } catch (err) {
+                console.error("Avatar update failed:", err);
+            }
+        }
+    };
+
+    renderAvatarGrid();
+
+    // 12. Edit Name Modal
+    const editModalBackdrop = document.getElementById('editModalBackdrop');
     const inputFirstName = document.getElementById('inputFirstName');
     const inputLastName = document.getElementById('inputLastName');
     const btnSaveName = document.getElementById('btnSaveName');
@@ -1366,24 +1388,23 @@
         editModalBackdrop.classList.add('active');
         
         setTimeout(() => {
-            if (targetField === 'last') {
-                inputLastName.focus();
-            } else {
-                inputFirstName.focus();
-            }
+            if (targetField === 'last') inputLastName.focus();
+            else inputFirstName.focus();
         }, 150);
     }
+
+    function closeEditModal() { editModalBackdrop.classList.remove('active'); }
 
     document.getElementById('editNameBtn').onclick = () => openEditModal('first');
     document.getElementById('btnEditFirst').onclick = () => openEditModal('first');
     document.getElementById('btnEditLast').onclick = () => openEditModal('last');
-    document.getElementById('btnCancelEdit').onclick = () => editModalBackdrop.classList.remove('active');
+    document.getElementById('btnCancelEdit').onclick = closeEditModal;
+    editModalBackdrop.onclick = (e) => { if (e.target === editModalBackdrop) closeEditModal(); };
 
-    document.getElementById('editNameForm').addEventListener('submit', async (e) => {
+    document.getElementById('editNameForm').onsubmit = async (e) => {
         e.preventDefault();
         const newFirst = inputFirstName.value.trim();
         const newLast = inputLastName.value.trim();
-
         if (!newFirst) return;
 
         btnSaveName.disabled = true;
@@ -1396,32 +1417,17 @@
                     "Last Name": newLast
                 });
             }
-
-            currentUserData["First Name"] = newFirst;
-            currentUserData["Last Name"] = newLast;
-            localStorage.setItem('active_user', JSON.stringify(currentUserData));
-
-            try {
-                let savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                const accIndex = savedAccounts.findIndex(acc => acc.email === currentUserData["Email"]);
-                if (accIndex !== -1) {
-                    savedAccounts[accIndex].firstName = newFirst;
-                    localStorage.setItem('saved_accounts', JSON.stringify(savedAccounts));
-                }
-            } catch (err) {}
-
-            renderUserData(currentUserData);
-            editModalBackdrop.classList.remove('active');
+            closeEditModal();
+            showToast("Name updated!");
         } catch (err) {
-            console.error("Firestore name update failed:", err);
-            alert("Error saving name. Please check your connection.");
+            alert("Error saving name.");
         } finally {
             btnSaveName.disabled = false;
             btnSaveName.innerText = "Save";
         }
-    });
+    };
 
-    // Navigation Handlers
+    // 13. Navigation & Logout Handlers
     function goToSwitch() {
         const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
         window.location.href = dest;
