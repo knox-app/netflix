@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Search & Explore</title>
+  <title>Hotstar Search Clone</title>
   
-  <!-- Inter Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -44,7 +43,7 @@
       padding: 16px;
     }
 
-    /* --- SEARCH BAR --- */
+    /* SEARCH BAR */
     .search-box-wrapper {
       position: sticky;
       top: 12px;
@@ -99,7 +98,7 @@
       line-height: 1;
     }
 
-    /* --- RECENT SEARCHES (PERSONALIZED) --- */
+    /* RECENT SEARCHES */
     .recents-wrapper {
       margin-bottom: 18px;
       display: none;
@@ -145,7 +144,6 @@
       align-items: center;
       gap: 8px;
       cursor: pointer;
-      transition: 0.2s;
     }
 
     .recent-chip:hover {
@@ -158,7 +156,7 @@
       color: #666;
     }
 
-    /* --- CATEGORY CHIPS --- */
+    /* CATEGORY CHIPS */
     .section-title {
       font-size: 16px;
       font-weight: 700;
@@ -196,7 +194,7 @@
       border-color: #5c6479;
     }
 
-    /* --- TOP HERO MATCH (16:9) --- */
+    /* TOP RESULT HERO (16:9) */
     .top-result {
       margin-bottom: 24px;
       display: none;
@@ -240,14 +238,9 @@
       justify-content: center;
       gap: 8px;
       text-decoration: none;
-      transition: opacity 0.2s;
     }
 
-    .play-btn:active {
-      opacity: 0.85;
-    }
-
-    /* --- 16:9 GRID --- */
+    /* 16:9 GRID */
     .results-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -260,8 +253,6 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      text-decoration: none;
-      color: inherit;
       transition: transform 0.15s ease;
     }
 
@@ -276,10 +267,6 @@
       border-radius: 8px;
       background: var(--bg-surface);
       transition: opacity 0.3s ease;
-    }
-
-    .poster-img[loading] {
-      opacity: 0.7;
     }
 
     .movie-details {
@@ -304,7 +291,7 @@
       text-overflow: ellipsis;
     }
 
-    /* --- SHIMMER / SKELETON LOADING --- */
+    /* SHIMMER LOADING */
     .skeleton-card {
       width: 100%;
       aspect-ratio: 16 / 9;
@@ -381,12 +368,11 @@
       </a>
     </div>
 
-    <!-- Grid Title -->
+    <!-- Section Title -->
     <div class="section-title" id="gridTitle" style="display:none; margin-top: 18px;">More Results</div>
 
     <!-- Results Grid -->
     <div id="resultsGrid" class="results-grid"></div>
-
     <div id="noResults" class="no-results">No movies or shows found matching your search.</div>
 
   </div>
@@ -396,7 +382,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -410,13 +395,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Cache State
     let allMovies = [];
     let debounceTimer = null;
     const STORAGE_KEY = "recent_searches_hotstar";
     const FALLBACK_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=640&q=60";
 
-    // DOM Elements
     const searchInput = document.getElementById("searchInput");
     const clearBtn = document.getElementById("clearBtn");
     const resultsGrid = document.getElementById("resultsGrid");
@@ -432,7 +415,6 @@
     const recentsChips = document.getElementById("recentsChips");
     const clearRecentsBtn = document.getElementById("clearRecentsBtn");
 
-    // Show shimmer loading skeletons
     function showLoadingSkeletons(count = 6) {
       resultsGrid.innerHTML = "";
       for (let i = 0; i < count; i++) {
@@ -442,15 +424,41 @@
       }
     }
 
-    // Load from Firestore
+    // SAFE CONVERSION: Prevents crashing on undefined, numbers, or arrays
+    function safeString(val) {
+      if (!val) return "";
+      if (Array.isArray(val)) return val.join(" ").toLowerCase();
+      return String(val).toLowerCase();
+    }
+
+    // LOAD ALL MOVIES FROM FIRESTORE
     async function loadData() {
       showLoadingSkeletons(6);
       try {
         const querySnapshot = await getDocs(collection(db, "Movies"));
         allMovies = [];
+        
         querySnapshot.forEach((doc) => {
-          allMovies.push({ id: doc.id, ...doc.data() });
+          const data = doc.data() || {};
+          
+          // Pre-compute a single search index per movie for ultra-fast, crash-proof searching
+          const searchableIndex = [
+            doc.id,
+            safeString(data.Name),
+            safeString(data.Tags),
+            safeString(data.Genres),
+            safeString(data.Studio),
+            safeString(data.Language),
+            safeString(data.Discription) // Handles typo in database field
+          ].join(" ");
+
+          allMovies.push({
+            id: doc.id,
+            ...data,
+            _searchIndex: searchableIndex
+          });
         });
+
         renderResults(allMovies, false);
       } catch (error) {
         console.error("Firestore Read Error:", error);
@@ -458,7 +466,6 @@
       }
     }
 
-    // Extract horizontal poster with safety fallbacks
     function getHorizontalPoster(item) {
       if (item["Poster.h"]) return item["Poster.h"];
       if (item.Poster && item.Poster.h) return item.Poster.h;
@@ -467,13 +474,11 @@
       return FALLBACK_POSTER;
     }
 
-    // Secure Redirection to preview.html?watch=<id>
     function navigateToPreview(movieId) {
       if (!movieId) return;
       window.location.href = `preview.html?watch=${encodeURIComponent(movieId)}`;
     }
 
-    // Render Function
     function renderResults(movies, isSearchQuery = false) {
       resultsGrid.innerHTML = "";
       
@@ -487,14 +492,14 @@
       noResults.style.display = "none";
       let listToRender = movies;
 
-      // Handle Hero Top Match Card
+      // Handle Featured Top Match
       if (isSearchQuery && movies.length > 0) {
         const topItem = movies[0];
         topResult.style.display = "block";
         
         topPoster.src = getHorizontalPoster(topItem);
         topPoster.onerror = () => { topPoster.src = FALLBACK_POSTER; };
-        topTitle.textContent = topItem.Name || "Untitled";
+        topTitle.textContent = topItem.Name || topItem.id || "Untitled";
 
         const metaArr = [];
         if (topItem.Rating) metaArr.push(`★ ${topItem.Rating}`);
@@ -502,14 +507,11 @@
         if (topItem.Language) metaArr.push(topItem.Language);
         topMeta.textContent = metaArr.join(" • ") || "Movie";
 
-        // Click on top card or play button redirects with the doc ID
-        const targetUrl = `preview.html?watch=${encodeURIComponent(topItem.id)}`;
-        topPlayBtn.href = targetUrl;
-        topResult.onclick = (e) => {
-          if (e.target !== topPlayBtn && !topPlayBtn.contains(e.target)) {
-            navigateToPreview(topItem.id);
-          }
+        topPlayBtn.onclick = (e) => {
+          e.preventDefault();
+          navigateToPreview(topItem.id);
         };
+        topResult.onclick = () => navigateToPreview(topItem.id);
 
         listToRender = movies.slice(1);
         gridTitle.style.display = listToRender.length > 0 ? "block" : "none";
@@ -523,11 +525,10 @@
         const card = document.createElement("div");
         card.className = "movie-card";
 
-        const titleText = movie.Name || "Untitled";
+        const titleText = movie.Name || movie.id || "Untitled";
         const metaText = [movie.Age_Rating, movie.Studio || movie.Language].filter(Boolean).join(" • ") || "Movie";
         const posterUrl = getHorizontalPoster(movie);
 
-        // Safe DOM Injection
         card.innerHTML = `
           <img class="poster-img" src="${posterUrl}" alt="" loading="lazy" />
           <div class="movie-details">
@@ -542,14 +543,12 @@
         const imgEl = card.querySelector(".poster-img");
         imgEl.onerror = () => { imgEl.src = FALLBACK_POSTER; };
 
-        // Redirect on Click
         card.addEventListener("click", () => navigateToPreview(movie.id));
-
         resultsGrid.appendChild(card);
       });
     }
 
-    // Client-side filtering logic
+    // SEARCH FILTER (Safe substring & multi-term matching)
     function executeFilter(query) {
       const q = query.trim().toLowerCase();
 
@@ -561,27 +560,26 @@
 
       clearBtn.style.display = "block";
 
+      // Split queries into separate words for natural search (e.g. "hindi animation")
+      const terms = q.split(" ").filter(t => t.length > 0);
+
       const matches = allMovies.filter((movie) => {
-        const name = (movie.Name || "").toLowerCase();
-        const tags = (movie.Tags || "").toLowerCase();
-        const genres = (movie.Genres || "").toLowerCase();
-        const studio = (movie.Studio || "").toLowerCase();
-        return name.includes(q) || tags.includes(q) || genres.includes(q) || studio.includes(q);
+        // Matches if ALL search terms exist in the movie's precomputed search index
+        return terms.every(term => movie._searchIndex.includes(term));
       });
 
       renderResults(matches, true);
     }
 
-    // Debounced Search Input (Smooth Performance)
+    // Debounce to keep smooth typing even on thousands of items
     searchInput.addEventListener("input", (e) => {
       const val = e.target.value;
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         executeFilter(val);
-      }, 180);
+      }, 150);
     });
 
-    // Save Search into LocalStorage on Enter
     searchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && searchInput.value.trim().length > 1) {
         saveRecentSearch(searchInput.value.trim());
@@ -595,7 +593,6 @@
       searchInput.focus();
     });
 
-    // Category chips
     chips.forEach(chip => {
       chip.addEventListener("click", () => {
         chips.forEach(c => c.classList.remove("active"));
@@ -612,7 +609,7 @@
       });
     });
 
-    // --- PERSONALIZATION (RECENT SEARCHES) ---
+    // RECENT SEARCHES
     function getRecentSearches() {
       try {
         return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -666,10 +663,9 @@
       renderRecentSearches();
     });
 
-    // Initial load
     renderRecentSearches();
     loadData();
   </script>
 
 </body>
-  </html>
+</html>
