@@ -33,60 +33,113 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-primary);
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
+        .container { 
+            text-align: center; 
+            max-width: 420px; 
+            width: 90%; 
+            padding: 24px; 
+        }
         
-        h1 { font-size: 28px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary); }
+        h1 { 
+            font-size: 26px; 
+            font-weight: 600; 
+            margin-bottom: 24px; 
+            color: var(--text-primary); 
+        }
         
-        .account-list { text-align: left; margin-bottom: 20px; }
+        .account-list { 
+            text-align: left; 
+            margin-bottom: 20px; 
+        }
         
         .account-item {
             display: flex;
             align-items: center;
-            padding: 15px;
+            padding: 14px 16px;
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s;
+            transition: background-color 0.2s, border-color 0.2s, transform 0.1s ease;
         }
 
-        .account-item:hover { background: var(--hover-bg); }
+        .account-item:hover { 
+            background: var(--hover-bg); 
+            transform: translateY(-1px);
+        }
+
+        .avatar, .avatar-img {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            margin-right: 14px;
+            flex-shrink: 0;
+        }
         
         .avatar {
-            width: 40px;
-            height: 40px;
             background: var(--avatar-bg);
             color: var(--avatar-text);
-            border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 18px;
-            font-weight: bold;
-            margin-right: 15px;
+            font-weight: 600;
             transition: background-color 0.3s, color 0.3s;
         }
 
-        .acc-info { flex-grow: 1; }
+        .avatar-img {
+            object-fit: cover;
+            border: 1px solid var(--border-color);
+        }
+
+        .acc-info { 
+            flex-grow: 1; 
+            overflow: hidden;
+        }
         
-        .acc-name { font-weight: 600; font-size: 16px; margin: 0; color: var(--text-primary); }
+        .acc-name { 
+            font-weight: 600; 
+            font-size: 15px; 
+            margin: 0 0 2px 0; 
+            color: var(--text-primary); 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         
-        .acc-email { font-size: 13px; color: var(--text-secondary); margin: 0; }
+        .acc-email { 
+            font-size: 13px; 
+            color: var(--text-secondary); 
+            margin: 0; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         
         .add-account {
             color: var(--link-color);
             text-decoration: none;
             font-weight: 500;
+            font-size: 14px;
             display: inline-block;
             margin-top: 10px;
             transition: color 0.3s;
+        }
+
+        .add-account:hover {
+            text-decoration: underline;
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 14px;
         }
     </style>
 </head>
@@ -95,16 +148,33 @@
 <div class="container">
     <h1>Choose an account</h1>
     <div class="account-list" id="accountList">
-        <!-- JS will populate this -->
+        <p class="loading-text">Loading accounts...</p>
     </div>
     <a href="1.html" class="add-account">+ Add another account</a>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { 
+        getFirestore, 
+        collection, 
+        query, 
+        where, 
+        onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U", projectId: "question-metabase" };
+    // Complete Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "question-metabase",
+        storageBucket: "question-metabase.firebasestorage.app",
+        messagingSenderId: "770698198753",
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+        measurementId: "G-6ZP1FPMKSJ"
+    };
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
@@ -131,72 +201,91 @@
     }
 
     applyTheme();
-
     mediaQuery.addEventListener("change", () => {
-        if (!theme) {
-            applyTheme();
-        }
+        if (!theme) applyTheme();
     });
 
-    let accounts = [];
-    try {
-        accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-    } catch (e) {
-        accounts = [];
-    }
-
-    const listDiv = document.getElementById('accountList');
-
-    if (accounts.length === 0) {
-        const dest = theme ? `1.html?theme=${theme}` : '1.html';
-        window.location.href = dest;
-    }
-
-    // Preserve theme param on the add another account link
     const addAccountLink = document.querySelector('.add-account');
     if (addAccountLink) {
         addAccountLink.href = theme ? `1.html?theme=${theme}` : '1.html';
     }
 
-    accounts.forEach(acc => {
-        const initial = acc.firstName ? acc.firstName.charAt(0).toUpperCase() : acc.email.charAt(0).toUpperCase();
-        
-        const item = document.createElement('div');
-        item.className = 'account-item';
-        item.innerHTML = `
-            <div class="avatar">${initial}</div>
-            <div class="acc-info">
-                <p class="acc-name">${acc.firstName || 'User'}</p>
-                <p class="acc-email">${acc.email}</p>
-            </div>
-        `;
+    /* ================= ACCOUNT RETRIEVAL & REAL-TIME LISTENER ================= */
+    let localSaved = [];
+    try {
+        localSaved = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+    } catch (e) {
+        localSaved = [];
+    }
 
-        item.addEventListener('click', async () => {
-            try {
-                // Auto-login using saved capitalized Lotus ID query
-                const q = query(collection(db, "UARM"), where("Lotus", "==", acc.lotus));
-                const snap = await getDocs(q);
-                if(!snap.empty) {
-                    localStorage.setItem('active_user', JSON.stringify(snap.docs[0].data()));
-                    
-                    let targetRedirect = '4.html';
-                    if (theme) {
-                        targetRedirect += `?theme=${theme}`;
-                    }
-                    window.location.href = targetRedirect;
-                } else {
-                    alert("Session expired for this account. Please sign in again.");
-                    const dest = theme ? `1.html?theme=${theme}` : '1.html';
-                    window.location.href = dest;
+    const listDiv = document.getElementById('accountList');
+
+    if (!Array.isArray(localSaved) || localSaved.length === 0) {
+        const dest = theme ? `1.html?theme=${theme}` : '1.html';
+        window.location.href = dest;
+    } else {
+        // Collect Lotus IDs or emails saved locally
+        const lotusIds = localSaved.map(a => a.lotus || a.Lotus).filter(Boolean);
+
+        if (lotusIds.length === 0) {
+            const dest = theme ? `1.html?theme=${theme}` : '1.html';
+            window.location.href = dest;
+        } else {
+            // Firestore 'in' queries allow up to 30 items
+            const q = query(collection(db, "UARM"), where("Lotus", "in", lotusIds.slice(0, 30)));
+
+            // Real-time synchronization
+            onSnapshot(q, (snapshot) => {
+                listDiv.innerHTML = '';
+
+                if (snapshot.empty) {
+                    listDiv.innerHTML = `<p class="loading-text">No active accounts found.</p>`;
+                    return;
                 }
-            } catch (err) {
-                console.error("Auto login process failed:", err);
-                alert("Database connection failed. Please try again.");
-            }
-        });
 
-        listDiv.appendChild(item);
-    });
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    
+                    const firstName = data["First Name"] || data.firstName || "User";
+                    const lastName = data["Last Name"] || data.lastName || "";
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    const email = data.Email || data.email || "";
+                    const photo = data.Profile_Picture || data["Profile Picture"] || null;
+                    const initial = firstName.charAt(0).toUpperCase() || email.charAt(0).toUpperCase() || "?";
+
+                    const item = document.createElement('div');
+                    item.className = 'account-item';
+
+                    const avatarHtml = photo 
+                        ? `<img src="${photo}" class="avatar-img" alt="${fullName}" />` 
+                        : `<div class="avatar">${initial}</div>`;
+
+                    item.innerHTML = `
+                        ${avatarHtml}
+                        <div class="acc-info">
+                            <p class="acc-name">${fullName}</p>
+                            <p class="acc-email">${email}</p>
+                        </div>
+                    `;
+
+                    // Click to sign in
+                    item.addEventListener('click', () => {
+                        localStorage.setItem('active_user', JSON.stringify(data));
+                        let targetRedirect = '4.html';
+                        if (theme) {
+                            targetRedirect += `?theme=${theme}`;
+                        }
+                        window.location.href = targetRedirect;
+                    });
+
+                    listDiv.appendChild(item);
+                });
+            }, (error) => {
+                console.error("Real-time listener error:", error);
+                listDiv.innerHTML = `<p class="loading-text" style="color:red;">Error syncing accounts.</p>`;
+            });
+        }
+    }
 </script>
 </body>
 </html>
