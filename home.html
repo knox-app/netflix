@@ -3,368 +3,557 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Space | Watch Movies, Shows & Live TV</title>
+    <title>My Space | Watch Movies, TV Shows & Live TV</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
         :root {
             --bg-main: #0c0f14;
-            --bg-card: #161b22;
-            --accent: #0070f3;
+            --bg-card: #151922;
+            --bg-nav: rgba(12, 15, 20, 0.85);
+            --accent: #e50914;
+            --accent-glow: rgba(229, 9, 20, 0.4);
             --text-primary: #ffffff;
             --text-secondary: #9aa0a6;
-            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --badge-bg: rgba(255, 255, 255, 0.15);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: var(--font-stack);
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--bg-main);
             color: var(--text-primary);
             overflow-x: hidden;
             min-height: 100vh;
         }
 
-        /* HEADER / NAVBAR */
-        header {
+        /* ================= NAVBAR ================= */
+        .navbar {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 70px;
+            height: 72px;
+            padding: 0 4%;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 4%;
-            z-index: 100;
-            background: linear-gradient(180deg, rgba(12,15,20,0.95) 0%, rgba(12,15,20,0) 100%);
-            transition: background 0.3s ease;
+            z-index: 1000;
+            background: linear-gradient(180deg, rgba(12, 15, 20, 0.95) 0%, rgba(12, 15, 20, 0.4) 70%, transparent 100%);
+            backdrop-filter: blur(12px);
+            transition: var(--transition-smooth);
         }
 
-        header.scrolled {
-            background: rgba(12, 15, 20, 0.96);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        .navbar.scrolled {
+            background: var(--bg-nav);
+            border-bottom: 1px solid var(--border-subtle);
         }
 
         .nav-left {
             display: flex;
             align-items: center;
-            gap: 30px;
+            gap: 36px;
         }
 
-        .logo {
+        .brand-logo {
             font-size: 22px;
             font-weight: 800;
-            letter-spacing: 0.5px;
-            color: #ffffff;
-            text-transform: uppercase;
+            color: #fff;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
         }
-        .logo span { color: var(--accent); }
+
+        .brand-logo span { color: var(--accent); }
 
         .nav-links {
             display: flex;
-            list-style: none;
             gap: 20px;
+            list-style: none;
         }
 
-        .nav-links a {
+        .nav-link {
             color: var(--text-secondary);
             text-decoration: none;
             font-size: 14px;
             font-weight: 500;
-            transition: color 0.2s;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+            position: relative;
         }
 
-        .nav-links a:hover, .nav-links a.active {
-            color: #ffffff;
+        .nav-link:hover, .nav-link.active { color: #fff; }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--accent);
+            border-radius: 4px;
         }
 
         .nav-right {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 18px;
         }
 
         .user-profile {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: rgba(255,255,255,0.08);
-            padding: 4px 12px 4px 6px;
-            border-radius: 20px;
+            background: var(--badge-bg);
+            padding: 5px 12px 5px 6px;
+            border-radius: 24px;
             cursor: pointer;
-            font-size: 13px;
+            border: 1px solid var(--border-subtle);
+            text-decoration: none;
+            color: #fff;
+            transition: var(--transition-smooth);
         }
 
-        .user-profile img {
-            width: 28px;
-            height: 28px;
+        .user-profile:hover { background: rgba(255, 255, 255, 0.25); }
+
+        .user-avatar {
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             object-fit: cover;
-        }
-
-        .auth-btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-        /* HERO / TOP BANNER CAROUSEL */
-        .hero {
-            position: relative;
-            height: 75vh;
-            min-height: 520px;
+            background: #2b303c;
             display: flex;
             align-items: center;
-            padding: 0 4%;
-            background-size: cover;
-            background-position: center top;
-            transition: background-image 0.8s ease-in-out;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
         }
 
-        .hero::after {
-            content: "";
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            max-width: 110px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .btn-auth {
+            background: var(--accent);
+            color: #fff;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 20px;
+            text-decoration: none;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-auth:hover {
+            box-shadow: 0 0 15px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        /* ================= HERO CAROUSEL ================= */
+        .hero-banner-container {
+            position: relative;
+            width: 100%;
+            height: 82vh;
+            min-height: 520px;
+            max-height: 750px;
+            overflow: hidden;
+        }
+
+        .hero-slide {
             position: absolute;
             inset: 0;
-            background: linear-gradient(0deg, var(--bg-main) 5%, rgba(12,15,20,0.4) 60%, rgba(12,15,20,0.8) 100%),
-                        linear-gradient(90deg, var(--bg-main) 0%, rgba(12,15,20,0) 60%);
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+            display: flex;
+            align-items: flex-end;
+            padding: 0 4% 100px 4%;
+            background-size: cover;
+            background-position: center top;
+        }
+
+        .hero-slide.active { opacity: 1; z-index: 1; }
+
+        .hero-slide::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(12,15,20,0.1) 0%, rgba(12,15,20,0.6) 50%, var(--bg-main) 100%),
+                        linear-gradient(90deg, rgba(12,15,20,0.95) 0%, rgba(12,15,20,0.5) 45%, transparent 100%);
+            z-index: 1;
         }
 
         .hero-content {
             position: relative;
             z-index: 2;
-            max-width: 550px;
+            max-width: 650px;
         }
 
-        .hero-title-img {
+        .hero-logo {
+            max-width: 280px;
             max-height: 90px;
-            max-width: 100%;
             object-fit: contain;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             display: block;
         }
 
-        .hero-title-fallback {
-            font-size: 42px;
+        .hero-title {
+            font-size: clamp(28px, 4vw, 48px);
             font-weight: 800;
-            margin-bottom: 10px;
             line-height: 1.15;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.7);
         }
 
-        .hero-metadata {
+        .hero-meta {
             display: flex;
             align-items: center;
             gap: 12px;
             font-size: 13px;
-            color: #ddd;
-            margin-bottom: 12px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            color: #d1d5db;
         }
 
-        .badge {
-            background: rgba(255,255,255,0.2);
+        .badge-rating {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.4);
             padding: 2px 7px;
-            border-radius: 4px;
-            font-weight: 600;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-age {
+            background: var(--badge-bg);
+            border: 1px solid var(--border-subtle);
+            padding: 2px 7px;
+            border-radius: 6px;
         }
 
         .hero-desc {
-            font-size: 14px;
+            font-size: 15px;
+            color: #b3b9c4;
             line-height: 1.5;
-            color: var(--text-secondary);
-            margin-bottom: 22px;
+            margin-bottom: 24px;
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        .hero-actions {
-            display: flex;
-            gap: 12px;
-        }
+        .hero-actions { display: flex; gap: 14px; }
 
         .btn-play {
             background: #ffffff;
             color: #000;
             padding: 12px 28px;
-            border-radius: 25px;
-            font-size: 15px;
+            border-radius: 30px;
             font-weight: 700;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 8px;
-            transition: transform 0.2s ease;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition-smooth);
+            text-decoration: none;
         }
 
-        .btn-play:hover { transform: scale(1.05); }
+        .btn-play:hover { transform: scale(1.05); background: #e6e6e6; }
 
-        /* CAROUSEL SECTIONS */
-        .main-content {
+        .btn-trailer {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            transition: var(--transition-smooth);
+            text-decoration: none;
+        }
+
+        .btn-trailer:hover { background: rgba(255, 255, 255, 0.35); }
+
+        .hero-indicators {
+            position: absolute;
+            right: 4%;
+            bottom: 40px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            transition: var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        .indicator-dot.active { width: 24px; background: var(--accent); }
+
+        /* ================= CAROUSEL SECTIONS ================= */
+        .content-area {
             position: relative;
-            z-index: 2;
-            margin-top: -60px;
-            padding-bottom: 60px;
+            z-index: 3;
+            margin-top: -40px;
+            padding: 0 0 80px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
         }
 
-        .section-wrapper {
-            margin-bottom: 35px;
+        .section-container {
+            padding: 0 4%;
+            position: relative;
         }
 
         .section-header {
-            padding: 0 4%;
-            margin-bottom: 12px;
             display: flex;
+            align-items: baseline;
             justify-content: space-between;
-            align-items: center;
+            margin-bottom: 14px;
         }
 
         .section-title {
-            font-size: 19px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .carousel {
+        .section-badge {
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(229, 9, 20, 0.15);
+            color: #ff5252;
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .carousel-wrapper { position: relative; }
+
+        .carousel-track {
             display: flex;
-            gap: 14px;
+            gap: 16px;
             overflow-x: auto;
             scroll-behavior: smooth;
-            padding: 10px 4%;
+            padding: 10px 4px 20px 4px;
             scrollbar-width: none;
         }
 
-        .carousel::-webkit-scrollbar { display: none; }
+        .carousel-track::-webkit-scrollbar { display: none; }
 
-        /* POSTER CARDS */
         .card {
-            flex: 0 0 170px;
-            height: 255px;
-            border-radius: 8px;
-            background-color: var(--bg-card);
+            flex: 0 0 auto;
+            width: 180px;
+            background: var(--bg-card);
+            border-radius: 12px;
             overflow: hidden;
-            position: relative;
+            transition: var(--transition-smooth);
             cursor: pointer;
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            position: relative;
+            border: 1px solid var(--border-subtle);
         }
 
         .card:hover {
-            transform: scale(1.06);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
-            z-index: 5;
+            transform: translateY(-6px) scale(1.03);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
         }
 
-        .card img {
+        .card-img-wrap {
+            width: 100%;
+            height: 250px;
+            position: relative;
+            background: #1b2029;
+            overflow: hidden;
+        }
+
+        .card-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
+            transition: transform 0.4s ease;
         }
 
-        .card-fallback {
-            width: 100%;
-            height: 100%;
+        .card:hover .card-img { transform: scale(1.06); }
+
+        .card-meta-overlay {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            padding: 12px;
-            text-align: center;
-            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .card-rating {
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffc107;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+        }
+
+        .card-age {
+            background: rgba(0, 0, 0, 0.7);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fff;
+        }
+
+        .card-info { padding: 12px; }
+
+        .card-title {
             font-size: 14px;
-            background: linear-gradient(135deg, #1f2937, #111827);
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
         }
 
-        /* HORIZONTAL / LANDSCAPE CARD FOR LIVE TV OR BANNERS */
-        .card.horizontal {
-            flex: 0 0 280px;
-            height: 160px;
+        .card-subtext {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* LOADER */
-        .spinner-container {
+        .carousel-btn {
+            position: absolute;
+            top: 45%;
+            transform: translateY(-50%);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(12, 15, 20, 0.85);
+            color: #fff;
+            border: 1px solid var(--border-subtle);
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 200px;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0;
+            transition: var(--transition-smooth);
+            backdrop-filter: blur(6px);
         }
+
+        .carousel-wrapper:hover .carousel-btn { opacity: 1; }
+        .carousel-btn.left { left: -14px; }
+        .carousel-btn.right { right: -14px; }
+        .carousel-btn:hover { background: var(--accent); border-color: var(--accent); }
 
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top: 3px solid var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 100px 0;
+            color: var(--accent);
+            font-size: 24px;
+            gap: 12px;
         }
 
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-
         @media (max-width: 768px) {
-            .hero { height: 60vh; }
-            .hero-title-fallback { font-size: 28px; }
-            .card { flex: 0 0 120px; height: 180px; }
-            .card.horizontal { flex: 0 0 210px; height: 120px; }
+            .hero-banner-container { height: 65vh; }
+            .card { width: 140px; }
+            .card-img-wrap { height: 195px; }
+            .nav-links { display: none; }
+            .carousel-btn { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Header Navigation -->
-    <header id="header">
+    <!-- NAVBAR -->
+    <header class="navbar" id="navbar">
         <div class="nav-left">
-            <div class="logo">My<span>Space</span></div>
+            <a href="home.html#movies" class="brand-logo">
+                <i class="fa-solid fa-play-circle" style="color:var(--accent);"></i>
+                My<span>Space</span>
+            </a>
             <ul class="nav-links">
-                <li><a href="#movies" id="nav-movies">Movies</a></li>
-                <li><a href="#shows" id="nav-shows">Shows</a></li>
-                <li><a href="#livetv" id="nav-livetv">Live TV</a></li>
+                <li><a class="nav-link" data-hash="movies" href="#movies">Movies</a></li>
+                <li><a class="nav-link" data-hash="shows" href="#shows">Shows</a></li>
+                <li><a class="nav-link" data-hash="tvshows" href="#tvshows">TV Shows</a></li>
+                <li><a class="nav-link" data-hash="livetv" href="#livetv">Live TV</a></li>
+                <li><a class="nav-link" data-hash="sports" href="#sports">Sports</a></li>
             </ul>
         </div>
-        <div class="nav-right" id="userControls">
-            <!-- Injected dynamically: User pill or Login Button -->
+        <div class="nav-right" id="navAuthSlot">
+            <a href="1.html" class="btn-auth">Sign In</a>
         </div>
     </header>
 
-    <!-- Top Featured Carousel Banner -->
-    <section class="hero" id="heroBanner">
-        <div class="hero-content">
-            <img id="heroLogo" class="hero-title-img" style="display:none;" alt="Title Logo" />
-            <h1 id="heroTitle" class="hero-title-fallback">Loading Featured...</h1>
-            <div class="hero-metadata">
-                <span class="badge" id="heroAge">U/A</span>
-                <span id="heroRating">⭐ 8.5</span>
-                <span id="heroGenre">Drama • Adventure</span>
-            </div>
-            <p class="hero-desc" id="heroDesc">Explore unlimited top hits, personalized sections, and live broadcasts.</p>
-            <div class="hero-actions">
-                <button class="btn-play" id="heroPlayBtn">▶ Watch Now</button>
-            </div>
-        </div>
+    <!-- HERO CAROUSEL -->
+    <section class="hero-banner-container" id="heroContainer">
+        <div class="hero-indicators" id="heroIndicators"></div>
     </section>
 
-    <!-- Content Sections / Carousels Container -->
-    <main class="main-content" id="sectionsContainer">
-        <div class="spinner-container">
-            <div class="spinner"></div>
+    <!-- CONTENT SECTIONS -->
+    <main class="content-area" id="sectionsContainer">
+        <div class="spinner">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>Loading My Space...</span>
         </div>
     </main>
 
-    <!-- Firebase SDK Modular Import -->
+    <!-- FIREBASE MODULE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            getDoc, 
+            getDocs, 
+            query, 
+            where 
+        } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // Your provided Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
             authDomain: "internal-systems-46728.firebaseapp.com",
@@ -378,325 +567,444 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Header scroll effect
+        // 1. Get logged-in user from localStorage
+        let activeUser = null;
+        try {
+            const rawUser = localStorage.getItem('active_user');
+            if (rawUser) {
+                activeUser = JSON.parse(rawUser);
+            }
+        } catch (e) {
+            console.error("Local user parsing failed", e);
+        }
+
+        renderAuthWidget();
+
+        function renderAuthWidget() {
+            const slot = document.getElementById('navAuthSlot');
+            if (activeUser) {
+                const name = activeUser["First Name"] || "User";
+                const pfp = activeUser["Profile_Picture"] || activeUser["Profile Picture"];
+                slot.innerHTML = `
+                    <div class="user-profile" title="${activeUser["Email"] || ''}">
+                        ${pfp ? `<img src="${pfp}" class="user-avatar" alt="Avatar"/>` : `<div class="user-avatar">${name.charAt(0).toUpperCase()}</div>`}
+                        <span class="user-name">${name}</span>
+                    </div>
+                `;
+            } else {
+                slot.innerHTML = `<a href="1.html?continue=${encodeURIComponent(window.location.href)}" class="btn-auth">Sign In</a>`;
+            }
+        }
+
         window.addEventListener('scroll', () => {
-            const header = document.getElementById('header');
-            if (window.scrollY > 50) header.classList.add('scrolled');
-            else header.classList.remove('scrolled');
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
         });
 
-        /* ================= AUTHENTICATION CHECK ================= */
-        const activeUser = JSON.parse(localStorage.getItem('active_user') || 'null');
-        const userControls = document.getElementById('userControls');
+        // 2. Mixup / Random Shuffle function (Fisher-Yates)
+        function mixupArray(arr) {
+            const shuffled = [...arr];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
 
-        if (activeUser) {
-            const avatarUrl = activeUser["Profile_Picture"] || activeUser["Profile Picture"] || 'https://via.placeholder.com/30';
-            const name = activeUser["First Name"] || activeUser["Email"]?.split('@')[0] || "User";
-            userControls.innerHTML = `
-                <div class="user-profile" title="${activeUser['Email']}">
-                    <img src="${avatarUrl}" alt="Avatar">
-                    <span>${name}</span>
+        // 3. Extract Recently Watched Movies IDs from User's Memory.ent
+        function getRecentlyWatchedMovieIds() {
+            if (!activeUser || !Array.isArray(activeUser["Memory.ent"])) return [];
+
+            let watchedIds = [];
+            for (const item of activeUser["Memory.ent"]) {
+                if (typeof item === 'object' && item !== null) {
+                    for (const key of Object.keys(item)) {
+                        // Look for "Recently Watched" or "Recently Watched Movies"
+                        if (key.toLowerCase().includes("recently watched") && key.toLowerCase().includes("movie")) {
+                            const val = item[key];
+                            if (typeof val === 'string') {
+                                watchedIds = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                            } else if (Array.isArray(val)) {
+                                watchedIds = val.map(s => String(s).trim().toLowerCase());
+                            }
+                        }
+                    }
+                }
+            }
+            return watchedIds;
+        }
+
+        // 4. Main Page Loader based on hash
+        async function loadPageFromHash() {
+            const rawHash = window.location.hash.replace('#', '').trim().toLowerCase();
+            const currentPage = rawHash || 'movies';
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.hash === currentPage);
+            });
+
+            const sectionsContainer = document.getElementById('sectionsContainer');
+            sectionsContainer.innerHTML = `
+                <div class="spinner">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <span>Loading ${currentPage.toUpperCase()}...</span>
                 </div>
             `;
-        } else {
-            userControls.innerHTML = `<a href="1.html" class="auth-btn">Sign In</a>`;
-        }
-
-        /* ================= UTILITY FUNCTIONS ================= */
-        // Fisher-Yates array shuffler
-        function shuffle(array) {
-            const arr = [...array];
-            for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [arr[i], arr[j]] = [arr[j], arr[i]];
-            }
-            return arr;
-        }
-
-        // Safe helper to extract user preferred genres/tags from Memory.ent
-        function getUserPreferences(user) {
-            const prefs = new Set();
-            if (!user || !Array.isArray(user["Memory.ent"])) return prefs;
-
-            user["Memory.ent"].forEach(mem => {
-                if (typeof mem === 'object' && mem !== null) {
-                    Object.values(mem).forEach(val => {
-                        if (typeof val === 'string') prefs.add(val.toLowerCase());
-                    });
-                }
-            });
-            return prefs;
-        }
-
-        /* ================= CONTENT ROUTING & RENDER ================= */
-        let featuredPool = [];
-        let heroInterval = null;
-
-        async function loadPage() {
-            // Read target page from hash e.g. #movies -> 'movies'
-            let hash = window.location.hash.replace('#', '').toLowerCase();
-            if (!hash || !['movies', 'shows', 'livetv'].includes(hash)) {
-                hash = 'movies';
-            }
-
-            // Update active navbar indicator
-            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-            const activeNav = document.getElementById(`nav-${hash}`);
-            if (activeNav) activeNav.classList.add('active');
-
-            const container = document.getElementById('sectionsContainer');
-            container.innerHTML = `<div class="spinner-container"><div class="spinner"></div></div>`;
 
             try {
-                // Map hash to Firestore Systems document ID
-                const systemDocId = hash === 'livetv' ? 'Live TV' : hash; 
-                
-                // 1. Fetch Systems Document
-                const sysDocRef = doc(db, "Systems", systemDocId);
-                const sysDocSnap = await getDoc(sysDocRef);
+                // Fetch page doc from Systems collection (e.g. Systems/movies)
+                const pageDocRef = doc(db, "Systems", currentPage);
+                const pageDocSnap = await getDoc(pageDocRef);
 
-                let sectionList = [];
-                if (sysDocSnap.exists()) {
-                    sectionList = sysDocSnap.data()["Sections"] || [];
+                let sectionIds = [];
+                if (pageDocSnap.exists() && pageDocSnap.data().Sections) {
+                    sectionIds = pageDocSnap.data().Sections;
+                } else {
+                    const q = query(collection(db, "Systems"), where("Type", "==", "Page"), where("Name", "==", currentPage));
+                    const snap = await getDocs(q);
+                    if (!snap.empty) {
+                        sectionIds = snap.docs[0].data().Sections || [];
+                    }
                 }
 
-                // 2. Fetch full metadata catalog for this collection
-                const targetCollection = hash === 'movies' ? 'Movies' : (hash === 'shows' ? 'Shows' : 'Live TV');
-                const contentColRef = collection(db, targetCollection);
-                const contentSnap = await getDocs(contentColRef);
+                await buildPageContent(currentPage, sectionIds);
+            } catch (err) {
+                console.error("Error loading page:", err);
+                sectionsContainer.innerHTML = `<div style="text-align:center; padding:100px; color:#999;">Error loading content. Check Firebase rules & connectivity.</div>`;
+            }
+        }
 
-                const catalog = {};
-                contentSnap.forEach(d => {
-                    catalog[d.id] = { id: d.id, ...d.data() };
-                });
+        // 5. Build Content & Sections
+        async function buildPageContent(pageName, sectionIds) {
+            const sectionsContainer = document.getElementById('sectionsContainer');
+            sectionsContainer.innerHTML = '';
 
-                // Setup hero backdrop candidates
-                featuredPool = Object.values(catalog).filter(item => item.Banner || item["Poster.h"]);
-                if (featuredPool.length > 0) {
-                    setupHeroCarousel(shuffle(featuredPool));
-                }
+            let mainCollectionName = "Movies";
+            if (pageName === "shows") mainCollectionName = "Shows";
+            if (pageName === "tvshows") mainCollectionName = "TV Shows";
+            if (pageName === "livetv") mainCollectionName = "Live TV";
+            if (pageName === "sports") mainCollectionName = "Sports";
 
-                // 3. Separate Fixed vs Shuffleable Sections
-                const fixedSections = [];
-                const shuffleableSections = [];
+            // Cache all items from the primary collection
+            const allContentSnap = await getDocs(collection(db, mainCollectionName));
+            let contentMap = new Map();
+            let contentPool = [];
 
-                for (const secKey of sectionList) {
-                    const secDocRef = doc(db, "Systems", secKey);
-                    const secSnap = await getDoc(secDocRef);
+            allContentSnap.forEach(docSnap => {
+                const item = { id: docSnap.id, ...docSnap.data() };
+                contentPool.push(item);
+                contentMap.set(docSnap.id.toLowerCase(), item);
+            });
 
-                    if (secSnap.exists()) {
-                        const secData = secSnap.data();
-                        const isFixed = secData.Fixed === true || secData.Type === "Fixed" || secKey === "HSTR_SEC01";
-                        if (isFixed) {
-                            fixedSections.push({ id: secKey, ...secData });
-                        } else {
-                            shuffleableSections.push({ id: secKey, ...secData });
+            // Hero banner setup
+            setupHeroCarousel(contentPool.slice(0, 5));
+
+            // ==========================================
+            // FEATURE 1: "FOR YOU" SECTION FROM MEMORY.ENT
+            // ==========================================
+            const recentlyWatchedIds = getRecentlyWatchedMovieIds();
+            if (recentlyWatchedIds.length > 0) {
+                const watchedGenres = new Set();
+                const recentlyWatchedMovies = [];
+
+                for (const id of recentlyWatchedIds) {
+                    let movie = contentMap.get(id);
+                    if (!movie) {
+                        // Attempt fallback direct fetch if not in the cached pool
+                        try {
+                            const singleSnap = await getDoc(doc(db, "Movies", id));
+                            if (singleSnap.exists()) {
+                                movie = { id: singleSnap.id, ...singleSnap.data() };
+                                contentMap.set(id, movie);
+                                contentPool.push(movie);
+                            }
+                        } catch(e) {}
+                    }
+
+                    if (movie) {
+                        recentlyWatchedMovies.push(movie);
+                        const rawGenres = movie.Genres || "";
+                        if (typeof rawGenres === 'string') {
+                            rawGenres.split(',').forEach(g => watchedGenres.add(g.trim().toLowerCase()));
+                        } else if (Array.isArray(rawGenres)) {
+                            rawGenres.forEach(g => watchedGenres.add(String(g).trim().toLowerCase()));
                         }
                     }
                 }
 
-                // 4. Construct Dynamic Genre/Personalized Sections if user is logged in
-                const userPrefs = getUserPreferences(activeUser);
-                const dynamicSections = buildPersonalizedSections(catalog, userPrefs);
-
-                // Combine and shuffle: keep fixed sections, shuffle the rest
-                const finalSections = [
-                    ...fixedSections,
-                    ...shuffle([...shuffleableSections, ...dynamicSections])
-                ];
-
-                // Render all sections
-                renderSections(finalSections, catalog, targetCollection);
-
-            } catch (err) {
-                console.error("Error loading My Space page:", err);
-                container.innerHTML = `<p style="text-align:center; padding: 40px; color:#ff6b6b;">Failed to load catalog. Please check Firestore rules or configuration.</p>`;
-            }
-        }
-
-        // Build personalized recommendations from tags/genres
-        function buildPersonalizedSections(catalog, userPrefs) {
-            const sections = [];
-            const items = Object.values(catalog);
-
-            // Group by genres/tags
-            const genreMap = {};
-            items.forEach(item => {
-                const genres = (item.Genres || item.Genre || "").split(',').map(g => g.trim());
-                genres.forEach(g => {
-                    if (g) {
-                        if (!genreMap[g]) genreMap[g] = [];
-                        genreMap[g].push(item.id);
+                // Find movies that share these similar genres
+                let forYouCandidates = contentPool.filter(movie => {
+                    if (recentlyWatchedIds.includes(movie.id.toLowerCase())) return false; // don't repeat same watched ones
+                    const mGenres = (movie.Genres || "").toLowerCase();
+                    for (const g of watchedGenres) {
+                        if (mGenres.includes(g)) return true;
                     }
+                    return false;
                 });
-            });
 
-            // Recommend by user memory tags
-            if (userPrefs.size > 0) {
-                const recommendedTitles = items.filter(it => {
-                    const matchGenre = (it.Genres || "").toLowerCase();
-                    const tags = Array.isArray(it.Tags) ? it.Tags.join(" ").toLowerCase() : "";
-                    return [...userPrefs].some(p => matchGenre.includes(p) || tags.includes(p));
-                }).map(i => i.id);
+                // If not enough recommendations, fallback to mixed content
+                if (forYouCandidates.length < 5) {
+                    forYouCandidates = contentPool.filter(m => !recentlyWatchedIds.includes(m.id.toLowerCase()));
+                }
 
-                if (recommendedTitles.length > 0) {
-                    sections.push({
-                        Name: "Recommended For You",
-                        Titles: recommendedTitles,
-                        shuffleInside: true
+                // Random Mixup for "For You"
+                const forYouList = mixupArray(forYouCandidates).slice(0, 20);
+
+                if (forYouList.length > 0) {
+                    renderSectionCarousel({
+                        Name: `For You`,
+                        BadgeText: "Recommended",
+                        Fixed: false,
+                        resolvedMovies: forYouList
+                    });
+                }
+
+                // Also optionally show Continue Watching if needed
+                if (recentlyWatchedMovies.length > 0) {
+                    renderSectionCarousel({
+                        Name: "Recently Watched",
+                        BadgeText: "History",
+                        Fixed: true,
+                        resolvedMovies: recentlyWatchedMovies
                     });
                 }
             }
 
-            // Add standard genre rows
-            Object.keys(genreMap).forEach(genreName => {
-                if (genreMap[genreName].length >= 3) {
-                    sections.push({
-                        Name: genreName,
-                        Titles: genreMap[genreName],
-                        shuffleInside: true
-                    });
+            // ==========================================
+            // FEATURE 2: PROCESS SECTIONS FROM SYSTEMS
+            // ==========================================
+            let sectionsList = [];
+            for (const sId of sectionIds) {
+                try {
+                    const secSnap = await getDoc(doc(db, "Systems", sId));
+                    if (secSnap.exists()) {
+                        sectionsList.push({ id: secSnap.id, ...secSnap.data() });
+                    }
+                } catch (e) {
+                    console.warn(`Section ${sId} not found`);
                 }
-            });
+            }
 
-            return sections;
+            // Check if section Fixed is "False" (string or boolean)
+            function isSectionFixed(sec) {
+                const f = sec.Fixed ?? sec.isFixed;
+                if (typeof f === 'string') return f.toLowerCase() === 'true';
+                return Boolean(f);
+            }
+
+            // Separate & Mixup non-fixed sections
+            let fixedSections = sectionsList.filter(s => isSectionFixed(s));
+            let shuffleableSections = sectionsList.filter(s => !isSectionFixed(s));
+            shuffleableSections = mixupArray(shuffleableSections);
+
+            const finalSections = [...fixedSections, ...shuffleableSections];
+
+            for (const section of finalSections) {
+                await processAndRenderSection(section, contentMap, contentPool);
+            }
         }
 
-        // Render sections into HTML Carousels
-        function renderSections(sections, catalog, collectionName) {
-            const container = document.getElementById('sectionsContainer');
-            container.innerHTML = "";
+        // 6. Process Section Titles & Genres
+        async function processAndRenderSection(sectionData, contentMap, contentPool) {
+            const isFixed = (sectionData.Fixed === "True" || sectionData.Fixed === true || sectionData.isFixed === true);
+            let sectionMovies = [];
+            const maxLimit = parseInt(sectionData.Max_Limit || "50", 10);
 
-            if (sections.length === 0) {
-                // Fallback: render raw catalog if no Systems documents are created
-                renderRawCatalogRow("All Titles", Object.keys(catalog), catalog, collectionName);
-                return;
-            }
-
-            sections.forEach(sec => {
-                let titles = sec.Titles || [];
-                // Shuffle titles inside dynamic carousels
-                if (sec.shuffleInside || !sec.Fixed) {
-                    titles = shuffle(titles);
+            // A. MANDATORY: Resolve titles present in the 'Titles' array
+            const explicitTitles = Array.isArray(sectionData.Titles) ? sectionData.Titles : [];
+            for (const titleId of explicitTitles) {
+                const cleanId = String(titleId).trim().toLowerCase();
+                let movie = contentMap.get(cleanId);
+                
+                // If not found in cache, fetch directly from Firestore
+                if (!movie) {
+                    try {
+                        const mSnap = await getDoc(doc(db, "Movies", titleId));
+                        if (mSnap.exists()) {
+                            movie = { id: mSnap.id, ...mSnap.data() };
+                            contentMap.set(cleanId, movie);
+                        }
+                    } catch(err) {
+                        console.warn("Could not fetch title:", titleId);
+                    }
                 }
 
-                if (titles.length === 0) return;
+                if (movie && !sectionMovies.some(m => m.id === movie.id)) {
+                    sectionMovies.push(movie);
+                }
+            }
 
-                const wrapper = document.createElement('div');
-                wrapper.className = 'section-wrapper';
+            // B. If Fixed is False: pull similar genres & mixup
+            if (!isFixed) {
+                const targetGenres = Array.isArray(sectionData.Genres) ? sectionData.Genres.map(g => g.toLowerCase()) : [];
+                const targetAge = sectionData.Age_Rating;
+                const targetFranchise = sectionData.Franchise;
 
-                const header = document.createElement('div');
-                header.className = 'section-header';
-                header.innerHTML = `<h2 class="section-title">${sec.Name || 'Collection'}</h2>`;
-                wrapper.appendChild(header);
+                const genreMatches = contentPool.filter(movie => {
+                    // Do not duplicate already included explicit titles
+                    if (sectionMovies.some(m => m.id === movie.id)) return false;
 
-                const carousel = document.createElement('div');
-                carousel.className = 'carousel';
-
-                titles.forEach(titleId => {
-                    const item = catalog[titleId];
-                    if (!item) return;
-
-                    const card = document.createElement('div');
-                    const isHorizontal = collectionName === 'Live TV' || (!item["Poster.v"] && item["Poster.h"]);
-                    card.className = `card ${isHorizontal ? 'horizontal' : ''}`;
-
-                    const posterImg = item["Poster.v"] || item["Poster.h"] || item.Banner || item.Logo;
-
-                    if (posterImg) {
-                        card.innerHTML = `<img src="${posterImg}" alt="${item.Name || titleId}" loading="lazy" />`;
+                    let matchesGenre = false;
+                    const mGenres = (movie.Genres || "").toLowerCase();
+                    if (targetGenres.length > 0) {
+                        matchesGenre = targetGenres.some(g => mGenres.includes(g));
                     } else {
-                        card.innerHTML = `<div class="card-fallback">${item.Name || titleId}</div>`;
+                        matchesGenre = true;
                     }
 
-                    card.addEventListener('click', () => {
-                        const stream = item.Stream || (item["Season 1"] && item["Season 1"][0]?.Stream) || item["Previously Url"];
-                        if (stream) window.open(stream, '_blank');
-                        else alert(`Playing: ${item.Name || titleId}`);
-                    });
+                    if (targetFranchise && movie.Franchise !== targetFranchise) return false;
+                    if (targetAge && movie.Age_Rating !== targetAge) return false;
 
-                    carousel.appendChild(card);
+                    return matchesGenre;
                 });
 
-                wrapper.appendChild(carousel);
-                container.appendChild(wrapper);
-            });
-        }
-
-        function renderRawCatalogRow(title, titleIds, catalog, collectionName) {
-            const container = document.getElementById('sectionsContainer');
-            const wrapper = document.createElement('div');
-            wrapper.className = 'section-wrapper';
-            wrapper.innerHTML = `<div class="section-header"><h2 class="section-title">${title}</h2></div>`;
-            const carousel = document.createElement('div');
-            carousel.className = 'carousel';
-
-            titleIds.forEach(id => {
-                const item = catalog[id];
-                const card = document.createElement('div');
-                card.className = `card ${collectionName === 'Live TV' ? 'horizontal' : ''}`;
-                const poster = item["Poster.v"] || item.Banner || item.Logo;
-                if (poster) card.innerHTML = `<img src="${poster}" alt="${item.Name}">`;
-                else card.innerHTML = `<div class="card-fallback">${item.Name || id}</div>`;
-                carousel.appendChild(card);
-            });
-
-            wrapper.appendChild(carousel);
-            container.appendChild(wrapper);
-        }
-
-        /* ================= HERO ROTATION ================= */
-        function setupHeroCarousel(items) {
-            if (items.length === 0) return;
-            let index = 0;
-
-            function updateHero(item) {
-                const bannerEl = document.getElementById('heroBanner');
-                const titleEl = document.getElementById('heroTitle');
-                const logoEl = document.getElementById('heroLogo');
-                const ageEl = document.getElementById('heroAge');
-                const ratingEl = document.getElementById('heroRating');
-                const genreEl = document.getElementById('heroGenre');
-                const descEl = document.getElementById('heroDesc');
-                const playBtn = document.getElementById('heroPlayBtn');
-
-                const bg = item.Banner || item["Poster.h"] || "";
-                bannerEl.style.backgroundImage = `url('${bg}')`;
-
-                if (item.Logo) {
-                    logoEl.src = item.Logo;
-                    logoEl.style.display = 'block';
-                    titleEl.style.display = 'none';
-                } else {
-                    titleEl.innerText = item.Name || "Untitled";
-                    titleEl.style.display = 'block';
-                    logoEl.style.display = 'none';
-                }
-
-                ageEl.innerText = item.Age_Rating || item["Age Rating"] || "U/A 13+";
-                ratingEl.innerText = item.Rating ? `⭐ ${item.Rating}` : "";
-                genreEl.innerText = item.Genres || item.Genre || "Featured";
-                descEl.innerText = item.Description || item.Discription || "Watch now exclusively on My Space.";
-
-                playBtn.onclick = () => {
-                    const streamUrl = item.Stream || (item["Season 1"] && item["Season 1"][0]?.Stream) || "#";
-                    if (streamUrl !== "#") window.open(streamUrl, "_blank");
-                    else alert("Playing featured title.");
-                };
+                // Merge and perform complete Mixup
+                sectionMovies = [...sectionMovies, ...genreMatches];
+                sectionMovies = mixupArray(sectionMovies).slice(0, maxLimit);
+            } else {
+                // Fixed is True: keep original specified order
+                sectionMovies = sectionMovies.slice(0, maxLimit);
             }
 
-            updateHero(items[index]);
+            if (sectionMovies.length > 0) {
+                renderSectionCarousel({
+                    Name: sectionData.Name || "Featured Collection",
+                    BadgeText: isFixed ? null : "Mix",
+                    Fixed: isFixed,
+                    resolvedMovies: sectionMovies
+                });
+            }
+        }
 
+        // 7. Render Section Row
+        function renderSectionCarousel(config) {
+            const sectionsContainer = document.getElementById('sectionsContainer');
+            const sectionEl = document.createElement('section');
+            sectionEl.className = 'section-container';
+
+            sectionEl.innerHTML = `
+                <div class="section-header">
+                    <h2 class="section-title">
+                        ${config.Name}
+                        ${config.BadgeText ? `<span class="section-badge">${config.BadgeText}</span>` : ''}
+                    </h2>
+                </div>
+                <div class="carousel-wrapper">
+                    <button class="carousel-btn left"><i class="fa-solid fa-chevron-left"></i></button>
+                    <div class="carousel-track"></div>
+                    <button class="carousel-btn right"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            `;
+
+            const track = sectionEl.querySelector('.carousel-track');
+            const leftBtn = sectionEl.querySelector('.carousel-btn.left');
+            const rightBtn = sectionEl.querySelector('.carousel-btn.right');
+
+            config.resolvedMovies.forEach(movie => {
+                const poster = movie["Poster.v"] || movie.Poster_v || movie.Banner || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400";
+                const rating = movie.Rating || "8.5";
+                const age = movie.Age_Rating || "U/A";
+                const title = movie.Name || movie.Title || movie.id;
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => {
+                    if (movie.Stream) window.open(movie.Stream, '_blank');
+                };
+
+                card.innerHTML = `
+                    <div class="card-img-wrap">
+                        <img src="${poster}" class="card-img" alt="${title}" loading="lazy"/>
+                        <div class="card-meta-overlay">
+                            <span class="card-rating"><i class="fa-solid fa-star"></i> ${rating}</span>
+                            <span class="card-age">${age}</span>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-title">${title}</div>
+                        <div class="card-subtext">${movie.Genres || movie.Language || 'Movie'}</div>
+                    </div>
+                `;
+                track.appendChild(card);
+            });
+
+            leftBtn.onclick = () => track.scrollBy({ left: -400, behavior: 'smooth' });
+            rightBtn.onclick = () => track.scrollBy({ left: 400, behavior: 'smooth' });
+
+            sectionsContainer.appendChild(sectionEl);
+        }
+
+        // 8. Render Hero Slider
+        let heroInterval = null;
+        function setupHeroCarousel(items) {
+            const heroContainer = document.getElementById('heroContainer');
+            heroContainer.innerHTML = '<div class="hero-indicators" id="heroIndicators"></div>';
+
+            if (items.length === 0) return;
+
+            items.forEach((item, index) => {
+                const slide = document.createElement('div');
+                slide.className = `hero-slide ${index === 0 ? 'active' : ''}`;
+                
+                const bannerBg = item.Banner || item["Poster.h"] || item.Poster_h || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1600";
+                slide.style.backgroundImage = `url('${bannerBg}')`;
+
+                const rating = item.Rating || "8.5";
+                const age = item.Age_Rating || "U/A 7+";
+                const desc = item.Discription || item.Description || "Stream now on My Space.";
+                const title = item.Name || item.Title || "Featured Movie";
+                const logo = item.Logo;
+
+                slide.innerHTML = `
+                    <div class="hero-content">
+                        ${logo ? `<img src="${logo}" class="hero-logo" alt="${title}"/>` : `<h1 class="hero-title">${title}</h1>`}
+                        <div class="hero-meta">
+                            <span class="badge-rating"><i class="fa-solid fa-star"></i> ${rating}</span>
+                            <span class="badge-age">${age}</span>
+                            <span>${item.Release_Date || '2024'}</span>
+                            <span>•</span>
+                            <span>${item.Genres || 'Action, Adventure'}</span>
+                        </div>
+                        <p class="hero-desc">${desc}</p>
+                        <div class="hero-actions">
+                            <a href="${item.Stream || '#'}" target="_blank" class="btn-play">
+                                <i class="fa-solid fa-play"></i> Watch Now
+                            </a>
+                            ${item.Trailer ? `
+                                <a href="${item.Trailer}" target="_blank" class="btn-trailer">
+                                    <i class="fa-solid fa-film"></i> Trailer
+                                </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+
+                heroContainer.appendChild(slide);
+
+                const dot = document.createElement('div');
+                dot.className = `indicator-dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => showHeroSlide(index);
+                document.getElementById('heroIndicators').appendChild(dot);
+            });
+
+            let currentSlide = 0;
             if (heroInterval) clearInterval(heroInterval);
             heroInterval = setInterval(() => {
-                index = (index + 1) % items.length;
-                updateHero(items[index]);
-            }, 8000); // Rotates every 8 seconds
+                currentSlide = (currentSlide + 1) % items.length;
+                showHeroSlide(currentSlide);
+            }, 6000);
         }
 
-        // Listen for URL hash changes (e.g. user clicks on #movies -> #shows)
-        window.addEventListener('hashchange', loadPage);
-        window.addEventListener('DOMContentLoaded', loadPage);
+        function showHeroSlide(index) {
+            const slides = document.querySelectorAll('.hero-slide');
+            const dots = document.querySelectorAll('.indicator-dot');
+            slides.forEach((s, i) => s.classList.toggle('active', i === index));
+            dots.forEach((d, i) => d.classList.toggle('active', i === index));
+        }
+
+        window.addEventListener('hashchange', loadPageFromHash);
+        loadPageFromHash();
     </script>
 </body>
 </html>
