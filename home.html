@@ -1,338 +1,702 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Stream - Home</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    :root {
-      --bg: #090a0e;
-      --card-bg: #14161f;
-      --text: #ffffff;
-      --text-muted: #8e909a;
-      --accent: #0072d2;
-      --rail-height: 260px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); overflow-x: hidden; padding-bottom: 60px; }
-    
-    /* Top Bar */
-    .navbar {
-      display: flex; justify-content: space-between; align-items: center; padding: 18px 40px;
-      background: linear-gradient(180deg, rgba(9,10,14,0.95) 0%, rgba(9,10,14,0) 100%);
-      position: sticky; top: 0; z-index: 100;
-    }
-    .brand { font-size: 22px; font-weight: 800; letter-spacing: 1px; color: #fff; text-transform: uppercase; }
-    .brand span { color: var(--accent); }
-    .page-title { font-size: 16px; color: var(--text-muted); }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Space | Watch Movies, Shows & Live TV</title>
+    <style>
+        :root {
+            --bg-main: #0c0f14;
+            --bg-card: #161b22;
+            --accent: #0070f3;
+            --text-primary: #ffffff;
+            --text-secondary: #9aa0a6;
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    /* Main Container */
-    .main-content { padding: 10px 40px; }
-    .page-header { margin-bottom: 25px; }
-    .page-header h1 { font-size: 32px; font-weight: 700; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-stack);
+        }
 
-    /* Section & Rails */
-    .section-container { margin-bottom: 35px; }
-    .section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
-    .section-title { font-size: 20px; font-weight: 600; color: #f1f1f1; letter-spacing: 0.3px; }
-    
-    .rail {
-      display: flex; gap: 14px; overflow-x: auto; scroll-behavior: smooth;
-      padding: 10px 0; -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    }
-    .rail::-webkit-scrollbar { display: none; }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
 
-    /* Media Cards */
-    .card {
-      flex: 0 0 160px; width: 160px; height: var(--rail-height);
-      background: var(--card-bg); border-radius: 8px; overflow: hidden;
-      position: relative; cursor: pointer; transition: transform 0.25s ease, box-shadow 0.25s ease;
-      display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,0.05);
-    }
-    .card:hover { transform: scale(1.05); z-index: 10; box-shadow: 0 10px 20px rgba(0,0,0,0.8); }
-    
-    .poster-img {
-      width: 100%; height: 210px; object-fit: cover; background-color: #1a1c26; display: block;
-    }
-    .card-info {
-      padding: 8px; flex: 1; display: flex; flex-direction: column; justify-content: center;
-      background: #12141c;
-    }
-    .card-title {
-      font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff;
-    }
-    .card-meta {
-      font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; margin-top: 3px;
-    }
-    .badge {
-      font-size: 9px; padding: 2px 5px; background: rgba(255,255,255,0.15); border-radius: 3px; font-weight: 600;
-    }
+        /* HEADER / NAVBAR */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4%;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(12,15,20,0.95) 0%, rgba(12,15,20,0) 100%);
+            transition: background 0.3s ease;
+        }
 
-    /* Modal Viewer */
-    .modal {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999;
-      justify-content: center; align-items: center; padding: 20px;
-    }
-    .modal-content {
-      background: #171821; border-radius: 10px; max-width: 600px; width: 100%; overflow: hidden;
-      border: 1px solid #282a36; position: relative;
-    }
-    .modal-banner { width: 100%; height: 260px; object-fit: cover; background: #000; }
-    .modal-body { padding: 20px; }
-    .close-btn {
-      position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); border: none;
-      color: #fff; font-size: 18px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
-    }
+        header.scrolled {
+            background: rgba(12, 15, 20, 0.96);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
 
-    .placeholder-rail { padding: 20px; color: var(--text-muted); font-size: 13px; }
-  </style>
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
 
-  <!-- Firebase Compat Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+        .logo {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+        .logo span { color: var(--accent); }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: #ffffff;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.08);
+            padding: 4px 12px 4px 6px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .user-profile img {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .auth-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        /* HERO / TOP BANNER CAROUSEL */
+        .hero {
+            position: relative;
+            height: 75vh;
+            min-height: 520px;
+            display: flex;
+            align-items: center;
+            padding: 0 4%;
+            background-size: cover;
+            background-position: center top;
+            transition: background-image 0.8s ease-in-out;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(0deg, var(--bg-main) 5%, rgba(12,15,20,0.4) 60%, rgba(12,15,20,0.8) 100%),
+                        linear-gradient(90deg, var(--bg-main) 0%, rgba(12,15,20,0) 60%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 550px;
+        }
+
+        .hero-title-img {
+            max-height: 90px;
+            max-width: 100%;
+            object-fit: contain;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .hero-title-fallback {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            line-height: 1.15;
+        }
+
+        .hero-metadata {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: #ddd;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .hero-desc {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin-bottom: 22px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-play {
+            background: #ffffff;
+            color: #000;
+            padding: 12px 28px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-play:hover { transform: scale(1.05); }
+
+        /* CAROUSEL SECTIONS */
+        .main-content {
+            position: relative;
+            z-index: 2;
+            margin-top: -60px;
+            padding-bottom: 60px;
+        }
+
+        .section-wrapper {
+            margin-bottom: 35px;
+        }
+
+        .section-header {
+            padding: 0 4%;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 19px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .carousel {
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 10px 4%;
+            scrollbar-width: none;
+        }
+
+        .carousel::-webkit-scrollbar { display: none; }
+
+        /* POSTER CARDS */
+        .card {
+            flex: 0 0 170px;
+            height: 255px;
+            border-radius: 8px;
+            background-color: var(--bg-card);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .card:hover {
+            transform: scale(1.06);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            z-index: 5;
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            background: linear-gradient(135deg, #1f2937, #111827);
+        }
+
+        /* HORIZONTAL / LANDSCAPE CARD FOR LIVE TV OR BANNERS */
+        .card.horizontal {
+            flex: 0 0 280px;
+            height: 160px;
+        }
+
+        /* LOADER */
+        .spinner-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .hero { height: 60vh; }
+            .hero-title-fallback { font-size: 28px; }
+            .card { flex: 0 0 120px; height: 180px; }
+            .card.horizontal { flex: 0 0 210px; height: 120px; }
+        }
+    </style>
 </head>
 <body>
 
-  <div class="navbar">
-    <div class="brand">HOTSTAR <span>HUB</span></div>
-    <div class="page-title" id="pageSlugDisplay">Loading...</div>
-  </div>
-
-  <div class="main-content">
-    <div class="page-header">
-      <h1 id="pageTitle">Home</h1>
-    </div>
-
-    <div id="railsContainer">
-      <div class="placeholder-rail">Loading sections...</div>
-    </div>
-  </div>
-
-  <!-- Detail Dialog / Modal -->
-  <div class="modal" id="detailsModal">
-    <div class="modal-content">
-      <button class="close-btn" id="closeModal">&times;</button>
-      <img id="mBanner" class="modal-banner" src="" alt="Banner">
-      <div class="modal-body">
-        <h2 id="mTitle" style="margin-bottom: 6px;">Title</h2>
-        <div style="margin-bottom: 12px; display: flex; gap: 8px; font-size: 12px; color: var(--text-muted);">
-          <span id="mAge" class="badge">U/A</span>
-          <span id="mStudio">Studio</span>
-          <span id="mLang">Language</span>
+    <!-- Header Navigation -->
+    <header id="header">
+        <div class="nav-left">
+            <div class="logo">My<span>Space</span></div>
+            <ul class="nav-links">
+                <li><a href="#movies" id="nav-movies">Movies</a></li>
+                <li><a href="#shows" id="nav-shows">Shows</a></li>
+                <li><a href="#livetv" id="nav-livetv">Live TV</a></li>
+            </ul>
         </div>
-        <p id="mDesc" style="font-size: 13px; color: #b7b9c7; line-height: 1.5; margin-bottom: 15px;">Description</p>
-        <div id="mStreamContainer"></div>
-      </div>
-    </div>
-  </div>
+        <div class="nav-right" id="userControls">
+            <!-- Injected dynamically: User pill or Login Button -->
+        </div>
+    </header>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
-      authDomain: "internal-systems-46728.firebaseapp.com",
-      projectId: "internal-systems-46728",
-      storageBucket: "internal-systems-46728.firebasestorage.app",
-      messagingSenderId: "172177452674",
-      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
-      measurementId: "G-Y87B8VRQ1N"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    const railsContainer = document.getElementById('railsContainer');
-    const pageTitle = document.getElementById('pageTitle');
-    const pageSlugDisplay = document.getElementById('pageSlugDisplay');
-
-    // Get Page Slug from URL Hash (#slug) or Query (?page=slug)
-    function getCurrentSlug() {
-      if (window.location.hash) {
-        return window.location.hash.replace('#', '').trim();
-      }
-      const params = new URLSearchParams(window.location.search);
-      return params.get('page') || 'sis'; // Fallback default 'sis' as per screenshots
-    }
-
-    async function loadPage() {
-      const slug = getCurrentSlug();
-      pageSlugDisplay.textContent = `Page: #${slug}`;
-
-      try {
-        const pageDocSnap = await db.collection("Systems").doc(slug).get();
-        if (!pageDocSnap.exists) {
-          pageTitle.textContent = "Page Not Found";
-          railsContainer.innerHTML = `<div class="placeholder-rail">No configuration found for document "${slug}" in Systems collection.</div>`;
-          return;
-        }
-
-        const pageData = pageDocSnap.data();
-        pageTitle.textContent = pageData.Name || slug;
-
-        const sectionIds = pageData.Sections || [];
-        if (sectionIds.length === 0) {
-          railsContainer.innerHTML = `<div class="placeholder-rail">This page has no sections configured.</div>`;
-          return;
-        }
-
-        railsContainer.innerHTML = "";
-
-        // Fetch each Section definition
-        for (const secId of sectionIds) {
-          const secSnap = await db.collection("Systems").doc(secId).get();
-          if (secSnap.exists) {
-            const secData = secSnap.data();
-            await renderSection(secId, secData);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-        railsContainer.innerHTML = `<div class="placeholder-rail" style="color:#e50914;">Failed to load data: ${err.message}</div>`;
-      }
-    }
-
-    async function renderSection(sectionId, section) {
-      const secDiv = document.createElement('div');
-      secDiv.className = "section-container";
-
-      const header = document.createElement('div');
-      header.className = "section-header";
-      header.innerHTML = `
-        <div class="section-title">${section.Name || sectionId}</div>
-      `;
-      secDiv.appendChild(header);
-
-      const rail = document.createElement('div');
-      rail.className = "rail";
-      rail.innerHTML = `<span style="font-size:12px; color:var(--text-muted); padding:10px;">Loading titles...</span>`;
-      secDiv.appendChild(rail);
-      railsContainer.appendChild(secDiv);
-
-      // Fetch Items
-      const contentTypes = section.Content_Type || ["Movies", "Shows"];
-      const limitCount = parseInt(section.Max_Limit || "20", 10);
-      let matchedItems = [];
-
-      // 1. Check if explicit manual titles exist
-      if (section.Titles && Array.isArray(section.Titles) && section.Titles.length > 0) {
-        for (const titleId of section.Titles) {
-          for (const col of contentTypes) {
-            const doc = await db.collection(col).doc(titleId).get();
-            if (doc.exists) {
-              matchedItems.push({ id: doc.id, collection: col, ...doc.data() });
-              break;
-            }
-          }
-        }
-      }
-
-      // 2. Fetch criteria-based matches across specified collections
-      for (const col of contentTypes) {
-        try {
-          const colSnap = await db.collection(col).limit(limitCount).get();
-          colSnap.forEach(d => {
-            const item = { id: d.id, collection: col, ...d.data() };
-            if (matchedItems.some(existing => existing.id === item.id)) return;
-
-            // Match against criteria (Genres, Age_Rating, Studio, Franchise)
-            let isMatch = false;
-
-            const itemGenres = item.Genres ? (Array.isArray(item.Genres) ? item.Genres : item.Genres.split(',').map(g => g.trim())) : [];
-            if (section.Genres && section.Genres.length > 0) {
-              if (section.Genres.some(g => itemGenres.some(ig => ig.toLowerCase() === g.toLowerCase()))) {
-                isMatch = true;
-              }
-            }
-
-            if (section.Franchise && item.Franchise && section.Franchise.toLowerCase() === item.Franchise.toLowerCase()) {
-              isMatch = true;
-            }
-
-            if (section.Studio && item.Studio && section.Studio.toLowerCase() === item.Studio.toLowerCase()) {
-              isMatch = true;
-            }
-
-            // If no strict filters are specified on section, default list items
-            if ((!section.Genres || section.Genres.length === 0) && !section.Franchise && !section.Studio) {
-              isMatch = true;
-            }
-
-            if (isMatch) matchedItems.push(item);
-          });
-        } catch (e) {
-          console.warn(`Could not read ${col}:`, e);
-        }
-      }
-
-      // Render Media Cards in Rail
-      rail.innerHTML = '';
-      if (matchedItems.length === 0) {
-        rail.innerHTML = `<span style="font-size:12px; color:var(--text-muted); padding:10px;">No titles found for this section.</span>`;
-        return;
-      }
-
-      matchedItems.slice(0, limitCount).forEach(item => {
-        const card = document.createElement('div');
-        card.className = "card";
-
-        // Extract vertical poster or horizontal fallback
-        const posterUrl = (item["Poster.v"] || item.Poster_v || item["Poster.h"] || item.Banner || "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=400");
-        const titleText = item.Name || item.id;
-        const age = item.Age_Rating || item["Age Rating"] || "U/A";
-
-        card.innerHTML = `
-          <img class="poster-img" src="${posterUrl}" alt="${titleText}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300/181a20/ffffff?text=No+Poster'">
-          <div class="card-info">
-            <div class="card-title">${titleText}</div>
-            <div class="card-meta">
-              <span class="badge">${age}</span>
-              <span>${item.Language || item.collection}</span>
+    <!-- Top Featured Carousel Banner -->
+    <section class="hero" id="heroBanner">
+        <div class="hero-content">
+            <img id="heroLogo" class="hero-title-img" style="display:none;" alt="Title Logo" />
+            <h1 id="heroTitle" class="hero-title-fallback">Loading Featured...</h1>
+            <div class="hero-metadata">
+                <span class="badge" id="heroAge">U/A</span>
+                <span id="heroRating">⭐ 8.5</span>
+                <span id="heroGenre">Drama • Adventure</span>
             </div>
-          </div>
-        `;
+            <p class="hero-desc" id="heroDesc">Explore unlimited top hits, personalized sections, and live broadcasts.</p>
+            <div class="hero-actions">
+                <button class="btn-play" id="heroPlayBtn">▶ Watch Now</button>
+            </div>
+        </div>
+    </section>
 
-        card.addEventListener('click', () => openModal(item));
-        rail.appendChild(card);
-      });
-    }
+    <!-- Content Sections / Carousels Container -->
+    <main class="main-content" id="sectionsContainer">
+        <div class="spinner-container">
+            <div class="spinner"></div>
+        </div>
+    </main>
 
-    // Modal Details Popup
-    const modal = document.getElementById('detailsModal');
-    const mBanner = document.getElementById('mBanner');
-    const mTitle = document.getElementById('mTitle');
-    const mAge = document.getElementById('mAge');
-    const mStudio = document.getElementById('mStudio');
-    const mLang = document.getElementById('mLang');
-    const mDesc = document.getElementById('mDesc');
-    const mStreamContainer = document.getElementById('mStreamContainer');
+    <!-- Firebase SDK Modular Import -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    function openModal(item) {
-      mBanner.src = item.Banner || item["Poster.h"] || item["Poster.v"] || '';
-      mTitle.textContent = item.Name || item.id;
-      mAge.textContent = item.Age_Rating || item["Age Rating"] || 'U/A';
-      mStudio.textContent = item.Studio || item.Channel || item.collection || '';
-      mLang.textContent = item.Language || 'Hindi';
-      mDesc.textContent = item.Discription || item.Description || 'No description available for this title.';
-      
-      const streamUrl = item.Stream || item["Multi-Language"]?.Stream || '';
-      if (streamUrl) {
-        mStreamContainer.innerHTML = `
-          <a href="${streamUrl}" target="_blank" style="display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:8px 16px; border-radius:4px; font-size:13px; font-weight:600;">Watch Stream &rarr;</a>
-        `;
-      } else {
-        mStreamContainer.innerHTML = '';
-      }
+        // Your provided Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+            authDomain: "internal-systems-46728.firebaseapp.com",
+            projectId: "internal-systems-46728",
+            storageBucket: "internal-systems-46728.firebasestorage.app",
+            messagingSenderId: "172177452674",
+            appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+            measurementId: "G-Y87B8VRQ1N"
+        };
 
-      modal.style.display = "flex";
-    }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-    document.getElementById('closeModal').addEventListener('click', () => modal.style.display = "none");
-    window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = "none"; });
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) header.classList.add('scrolled');
+            else header.classList.remove('scrolled');
+        });
 
-    // Respond to URL hash change
-    window.addEventListener('hashchange', loadPage);
+        /* ================= AUTHENTICATION CHECK ================= */
+        const activeUser = JSON.parse(localStorage.getItem('active_user') || 'null');
+        const userControls = document.getElementById('userControls');
 
-    // Initial Load
-    loadPage();
-  </script>
+        if (activeUser) {
+            const avatarUrl = activeUser["Profile_Picture"] || activeUser["Profile Picture"] || 'https://via.placeholder.com/30';
+            const name = activeUser["First Name"] || activeUser["Email"]?.split('@')[0] || "User";
+            userControls.innerHTML = `
+                <div class="user-profile" title="${activeUser['Email']}">
+                    <img src="${avatarUrl}" alt="Avatar">
+                    <span>${name}</span>
+                </div>
+            `;
+        } else {
+            userControls.innerHTML = `<a href="1.html" class="auth-btn">Sign In</a>`;
+        }
+
+        /* ================= UTILITY FUNCTIONS ================= */
+        // Fisher-Yates array shuffler
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Safe helper to extract user preferred genres/tags from Memory.ent
+        function getUserPreferences(user) {
+            const prefs = new Set();
+            if (!user || !Array.isArray(user["Memory.ent"])) return prefs;
+
+            user["Memory.ent"].forEach(mem => {
+                if (typeof mem === 'object' && mem !== null) {
+                    Object.values(mem).forEach(val => {
+                        if (typeof val === 'string') prefs.add(val.toLowerCase());
+                    });
+                }
+            });
+            return prefs;
+        }
+
+        /* ================= CONTENT ROUTING & RENDER ================= */
+        let featuredPool = [];
+        let heroInterval = null;
+
+        async function loadPage() {
+            // Read target page from hash e.g. #movies -> 'movies'
+            let hash = window.location.hash.replace('#', '').toLowerCase();
+            if (!hash || !['movies', 'shows', 'livetv'].includes(hash)) {
+                hash = 'movies';
+            }
+
+            // Update active navbar indicator
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            const activeNav = document.getElementById(`nav-${hash}`);
+            if (activeNav) activeNav.classList.add('active');
+
+            const container = document.getElementById('sectionsContainer');
+            container.innerHTML = `<div class="spinner-container"><div class="spinner"></div></div>`;
+
+            try {
+                // Map hash to Firestore Systems document ID
+                const systemDocId = hash === 'livetv' ? 'Live TV' : hash; 
+                
+                // 1. Fetch Systems Document
+                const sysDocRef = doc(db, "Systems", systemDocId);
+                const sysDocSnap = await getDoc(sysDocRef);
+
+                let sectionList = [];
+                if (sysDocSnap.exists()) {
+                    sectionList = sysDocSnap.data()["Sections"] || [];
+                }
+
+                // 2. Fetch full metadata catalog for this collection
+                const targetCollection = hash === 'movies' ? 'Movies' : (hash === 'shows' ? 'Shows' : 'Live TV');
+                const contentColRef = collection(db, targetCollection);
+                const contentSnap = await getDocs(contentColRef);
+
+                const catalog = {};
+                contentSnap.forEach(d => {
+                    catalog[d.id] = { id: d.id, ...d.data() };
+                });
+
+                // Setup hero backdrop candidates
+                featuredPool = Object.values(catalog).filter(item => item.Banner || item["Poster.h"]);
+                if (featuredPool.length > 0) {
+                    setupHeroCarousel(shuffle(featuredPool));
+                }
+
+                // 3. Separate Fixed vs Shuffleable Sections
+                const fixedSections = [];
+                const shuffleableSections = [];
+
+                for (const secKey of sectionList) {
+                    const secDocRef = doc(db, "Systems", secKey);
+                    const secSnap = await getDoc(secDocRef);
+
+                    if (secSnap.exists()) {
+                        const secData = secSnap.data();
+                        const isFixed = secData.Fixed === true || secData.Type === "Fixed" || secKey === "HSTR_SEC01";
+                        if (isFixed) {
+                            fixedSections.push({ id: secKey, ...secData });
+                        } else {
+                            shuffleableSections.push({ id: secKey, ...secData });
+                        }
+                    }
+                }
+
+                // 4. Construct Dynamic Genre/Personalized Sections if user is logged in
+                const userPrefs = getUserPreferences(activeUser);
+                const dynamicSections = buildPersonalizedSections(catalog, userPrefs);
+
+                // Combine and shuffle: keep fixed sections, shuffle the rest
+                const finalSections = [
+                    ...fixedSections,
+                    ...shuffle([...shuffleableSections, ...dynamicSections])
+                ];
+
+                // Render all sections
+                renderSections(finalSections, catalog, targetCollection);
+
+            } catch (err) {
+                console.error("Error loading My Space page:", err);
+                container.innerHTML = `<p style="text-align:center; padding: 40px; color:#ff6b6b;">Failed to load catalog. Please check Firestore rules or configuration.</p>`;
+            }
+        }
+
+        // Build personalized recommendations from tags/genres
+        function buildPersonalizedSections(catalog, userPrefs) {
+            const sections = [];
+            const items = Object.values(catalog);
+
+            // Group by genres/tags
+            const genreMap = {};
+            items.forEach(item => {
+                const genres = (item.Genres || item.Genre || "").split(',').map(g => g.trim());
+                genres.forEach(g => {
+                    if (g) {
+                        if (!genreMap[g]) genreMap[g] = [];
+                        genreMap[g].push(item.id);
+                    }
+                });
+            });
+
+            // Recommend by user memory tags
+            if (userPrefs.size > 0) {
+                const recommendedTitles = items.filter(it => {
+                    const matchGenre = (it.Genres || "").toLowerCase();
+                    const tags = Array.isArray(it.Tags) ? it.Tags.join(" ").toLowerCase() : "";
+                    return [...userPrefs].some(p => matchGenre.includes(p) || tags.includes(p));
+                }).map(i => i.id);
+
+                if (recommendedTitles.length > 0) {
+                    sections.push({
+                        Name: "Recommended For You",
+                        Titles: recommendedTitles,
+                        shuffleInside: true
+                    });
+                }
+            }
+
+            // Add standard genre rows
+            Object.keys(genreMap).forEach(genreName => {
+                if (genreMap[genreName].length >= 3) {
+                    sections.push({
+                        Name: genreName,
+                        Titles: genreMap[genreName],
+                        shuffleInside: true
+                    });
+                }
+            });
+
+            return sections;
+        }
+
+        // Render sections into HTML Carousels
+        function renderSections(sections, catalog, collectionName) {
+            const container = document.getElementById('sectionsContainer');
+            container.innerHTML = "";
+
+            if (sections.length === 0) {
+                // Fallback: render raw catalog if no Systems documents are created
+                renderRawCatalogRow("All Titles", Object.keys(catalog), catalog, collectionName);
+                return;
+            }
+
+            sections.forEach(sec => {
+                let titles = sec.Titles || [];
+                // Shuffle titles inside dynamic carousels
+                if (sec.shuffleInside || !sec.Fixed) {
+                    titles = shuffle(titles);
+                }
+
+                if (titles.length === 0) return;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'section-wrapper';
+
+                const header = document.createElement('div');
+                header.className = 'section-header';
+                header.innerHTML = `<h2 class="section-title">${sec.Name || 'Collection'}</h2>`;
+                wrapper.appendChild(header);
+
+                const carousel = document.createElement('div');
+                carousel.className = 'carousel';
+
+                titles.forEach(titleId => {
+                    const item = catalog[titleId];
+                    if (!item) return;
+
+                    const card = document.createElement('div');
+                    const isHorizontal = collectionName === 'Live TV' || (!item["Poster.v"] && item["Poster.h"]);
+                    card.className = `card ${isHorizontal ? 'horizontal' : ''}`;
+
+                    const posterImg = item["Poster.v"] || item["Poster.h"] || item.Banner || item.Logo;
+
+                    if (posterImg) {
+                        card.innerHTML = `<img src="${posterImg}" alt="${item.Name || titleId}" loading="lazy" />`;
+                    } else {
+                        card.innerHTML = `<div class="card-fallback">${item.Name || titleId}</div>`;
+                    }
+
+                    card.addEventListener('click', () => {
+                        const stream = item.Stream || (item["Season 1"] && item["Season 1"][0]?.Stream) || item["Previously Url"];
+                        if (stream) window.open(stream, '_blank');
+                        else alert(`Playing: ${item.Name || titleId}`);
+                    });
+
+                    carousel.appendChild(card);
+                });
+
+                wrapper.appendChild(carousel);
+                container.appendChild(wrapper);
+            });
+        }
+
+        function renderRawCatalogRow(title, titleIds, catalog, collectionName) {
+            const container = document.getElementById('sectionsContainer');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'section-wrapper';
+            wrapper.innerHTML = `<div class="section-header"><h2 class="section-title">${title}</h2></div>`;
+            const carousel = document.createElement('div');
+            carousel.className = 'carousel';
+
+            titleIds.forEach(id => {
+                const item = catalog[id];
+                const card = document.createElement('div');
+                card.className = `card ${collectionName === 'Live TV' ? 'horizontal' : ''}`;
+                const poster = item["Poster.v"] || item.Banner || item.Logo;
+                if (poster) card.innerHTML = `<img src="${poster}" alt="${item.Name}">`;
+                else card.innerHTML = `<div class="card-fallback">${item.Name || id}</div>`;
+                carousel.appendChild(card);
+            });
+
+            wrapper.appendChild(carousel);
+            container.appendChild(wrapper);
+        }
+
+        /* ================= HERO ROTATION ================= */
+        function setupHeroCarousel(items) {
+            if (items.length === 0) return;
+            let index = 0;
+
+            function updateHero(item) {
+                const bannerEl = document.getElementById('heroBanner');
+                const titleEl = document.getElementById('heroTitle');
+                const logoEl = document.getElementById('heroLogo');
+                const ageEl = document.getElementById('heroAge');
+                const ratingEl = document.getElementById('heroRating');
+                const genreEl = document.getElementById('heroGenre');
+                const descEl = document.getElementById('heroDesc');
+                const playBtn = document.getElementById('heroPlayBtn');
+
+                const bg = item.Banner || item["Poster.h"] || "";
+                bannerEl.style.backgroundImage = `url('${bg}')`;
+
+                if (item.Logo) {
+                    logoEl.src = item.Logo;
+                    logoEl.style.display = 'block';
+                    titleEl.style.display = 'none';
+                } else {
+                    titleEl.innerText = item.Name || "Untitled";
+                    titleEl.style.display = 'block';
+                    logoEl.style.display = 'none';
+                }
+
+                ageEl.innerText = item.Age_Rating || item["Age Rating"] || "U/A 13+";
+                ratingEl.innerText = item.Rating ? `⭐ ${item.Rating}` : "";
+                genreEl.innerText = item.Genres || item.Genre || "Featured";
+                descEl.innerText = item.Description || item.Discription || "Watch now exclusively on My Space.";
+
+                playBtn.onclick = () => {
+                    const streamUrl = item.Stream || (item["Season 1"] && item["Season 1"][0]?.Stream) || "#";
+                    if (streamUrl !== "#") window.open(streamUrl, "_blank");
+                    else alert("Playing featured title.");
+                };
+            }
+
+            updateHero(items[index]);
+
+            if (heroInterval) clearInterval(heroInterval);
+            heroInterval = setInterval(() => {
+                index = (index + 1) % items.length;
+                updateHero(items[index]);
+            }, 8000); // Rotates every 8 seconds
+        }
+
+        // Listen for URL hash changes (e.g. user clicks on #movies -> #shows)
+        window.addEventListener('hashchange', loadPage);
+        window.addEventListener('DOMContentLoaded', loadPage);
+    </script>
 </body>
 </html>
