@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My Space | OTT Platform</title>
 
-  <!-- Fonts & Icons -->
+  <!-- Google Fonts & FontAwesome -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,17 +13,19 @@
 
   <style>
     :root {
-      --bg-dark: #0f1015;
-      --card-bg: #161822;
+      --bg-dark: #0a0c10;
+      --card-bg: #131722;
       --accent: #e50914;
       --accent-blue: #0072ef;
+      --badge-magenta: #9d0208;
+      --badge-top10: #d00000;
       --text-main: #ffffff;
-      --text-muted: #8f98b2;
+      --text-muted: #8b92a5;
+      --pill-bg: #1a1f2c;
+      --pill-border: rgba(255, 255, 255, 0.12);
+      --pill-active-bg: #2b3244;
       --border-color: rgba(255, 255, 255, 0.08);
-      --border-pill: rgba(255, 255, 255, 0.15);
-      --pill-bg: #1c202c;
-      --pill-active-bg: #ffffff;
-      --pill-active-text: #000000;
+      --transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     * {
@@ -40,7 +42,7 @@
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
-      padding-bottom: 76px;
+      padding-bottom: 85px;
     }
 
     /* ================= TOP NAVBAR ================= */
@@ -55,12 +57,17 @@
       align-items: center;
       justify-content: space-between;
       z-index: 1000;
-      background: rgba(15, 16, 21, 0.94);
-      backdrop-filter: blur(14px);
+      background: rgba(10, 12, 16, 0.95);
+      backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border-color);
     }
 
-    .nav-left { display: flex; align-items: center; gap: 32px; }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
     .brand-logo {
       font-size: 21px;
       font-weight: 800;
@@ -69,27 +76,21 @@
       align-items: center;
       gap: 8px;
       text-decoration: none;
-      letter-spacing: -0.5px;
     }
     .brand-logo span { color: var(--accent); }
-    .kids-badge-nav {
-      font-size: 11px;
-      font-weight: 800;
-      background: #ffaa00;
-      color: #000;
-      padding: 2px 7px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
     }
 
-    .nav-links { display: flex; gap: 22px; list-style: none; }
     .nav-link {
       color: var(--text-muted);
       text-decoration: none;
       font-size: 14px;
       font-weight: 600;
-      transition: color 0.2s ease;
+      cursor: pointer;
       position: relative;
     }
     .nav-link:hover, .nav-link.active { color: #fff; }
@@ -104,20 +105,27 @@
       border-radius: 2px;
     }
 
-    .nav-right { display: flex; align-items: center; gap: 14px; }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+    }
+
+    /* Profile Capsule Button */
     .user-pill {
       display: flex;
       align-items: center;
       gap: 10px;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--border-color);
-      padding: 4px 12px 4px 6px;
+      padding: 5px 14px 5px 6px;
       border-radius: 24px;
       color: #fff;
-      text-decoration: none;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
+      user-select: none;
     }
     .user-avatar {
       width: 28px;
@@ -128,9 +136,48 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
     }
+
+    .kids-indicator {
+      font-size: 10px;
+      background: #ffaa00;
+      color: #000;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+
+    /* Profile Switcher Popover */
+    .profile-switcher-dropdown {
+      position: absolute;
+      top: 55px;
+      right: 0;
+      width: 240px;
+      background: #141722;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      z-index: 1050;
+    }
+    .profile-switcher-dropdown.show { display: flex; }
+    .profile-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .profile-item:hover, .profile-item.active { background: rgba(255, 255, 255, 0.08); }
+    .profile-item .p-name { font-size: 13px; font-weight: 600; flex: 1; }
 
     /* ================= MAIN CONTAINER ================= */
     .main-container {
@@ -139,7 +186,7 @@
       padding: 24px 4% 40px;
       display: flex;
       flex-direction: column;
-      gap: 38px;
+      gap: 40px;
     }
 
     .section-block {
@@ -156,40 +203,26 @@
       user-select: none;
       width: fit-content;
       gap: 10px;
-      transition: opacity 0.2s;
     }
-    .section-header-row:hover { opacity: 0.85; }
+    .section-header-row:hover .section-heading { color: #ffffff; }
 
     .section-heading {
-      font-size: 19px;
+      font-size: 20px;
       font-weight: 800;
-      color: #fff;
+      color: #f1f3f7;
       display: flex;
       align-items: center;
       gap: 8px;
+      letter-spacing: -0.3px;
     }
-    .section-heading i.fa-chevron-right {
+    .section-heading i {
       font-size: 13px;
       color: var(--text-muted);
       transition: transform 0.2s ease;
     }
-    .section-header-row:hover i.fa-chevron-right {
-      transform: translateX(4px);
-      color: #fff;
-    }
+    .section-header-row:hover i { transform: translateX(4px); color: #fff; }
 
-    .section-badge {
-      font-size: 11px;
-      font-weight: 700;
-      background: rgba(0, 114, 239, 0.15);
-      color: var(--accent-blue);
-      border: 1px solid rgba(0, 114, 239, 0.3);
-      padding: 2px 7px;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
-
-    /* ================= 16:9 CAROUSEL & CARDS ================= */
+    /* ================= 16:9 HORIZONTAL CAROUSEL ================= */
     .carousel-wrapper { position: relative; }
     .carousel-track {
       display: flex;
@@ -209,7 +242,7 @@
       display: flex;
       flex-direction: column;
       cursor: pointer;
-      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: var(--transition);
     }
     .card-16-9:hover { transform: scale(1.03); }
 
@@ -226,29 +259,6 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-    }
-
-    .card-play-hover {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-    .card-16-9:hover .card-play-hover { opacity: 1; }
-    .card-play-btn-circle {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.9);
-      color: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
     }
 
     .card-details { padding: 8px 2px 0; }
@@ -276,7 +286,7 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: rgba(15, 16, 21, 0.85);
+      background: rgba(10, 12, 16, 0.85);
       border: 1px solid var(--border-color);
       color: #fff;
       display: flex;
@@ -292,41 +302,116 @@
     .carousel-arrow.right { right: -14px; }
     .carousel-arrow:hover { background: var(--accent); }
 
-    /* ================= GENRE PILLS BAR (IMAGE 2 DESIGN) ================= */
-    .genre-filter-row {
+    /* ================= GENRE FILTER PILLS SETUP (IMAGE 2 STYLE) ================= */
+    .genre-filter-setup {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 10px 0;
+    }
+
+    .pill-tabs-row {
       display: flex;
       gap: 10px;
       overflow-x: auto;
       scrollbar-width: none;
       padding-bottom: 6px;
-      margin-top: 4px;
     }
-    .genre-filter-row::-webkit-scrollbar { display: none; }
+    .pill-tabs-row::-webkit-scrollbar { display: none; }
 
     .genre-pill-btn {
-      flex: 0 0 auto;
       background: var(--pill-bg);
-      border: 1px solid var(--border-pill);
-      color: #cfd4dc;
-      padding: 7px 18px;
+      border: 1px solid var(--pill-border);
+      color: #ffffff;
+      padding: 8px 18px;
       border-radius: 20px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
+      white-space: nowrap;
+      transition: var(--transition);
+      user-select: none;
     }
-    .genre-pill-btn:hover {
-      background: #262b3a;
-      color: #fff;
-    }
+    .genre-pill-btn:hover { background: #242b3d; }
     .genre-pill-btn.active {
       background: var(--pill-active-bg);
-      color: var(--pill-active-text);
-      border-color: #fff;
-      font-weight: 700;
+      border-color: #55607a;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+      color: #fff;
     }
 
-    /* ================= SECTION DETAILS FULL-PAGE MODAL (IMAGE 2) ================= */
+    /* Portrait Poster Cards for Image 2 style setup */
+    .portrait-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+    }
+
+    .portrait-card {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #141721;
+      aspect-ratio: 2 / 3;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 1px solid var(--border-color);
+    }
+    .portrait-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .portrait-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Badges as shown in Image 2 */
+    .badge-top10 {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: linear-gradient(135deg, #e50914 0%, #b5179e 100%);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1.1;
+      text-align: center;
+      padding: 3px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+    }
+    .badge-top10 span { display: block; font-size: 11px; }
+
+    .bottom-tag-pill {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .bottom-tag-pill.hindi {
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid #ffaa00;
+      color: #ffaa00;
+    }
+    .bottom-tag-pill.newly-added {
+      background: #7209b7;
+      color: #ffffff;
+    }
+
+    /* ================= SECTION FULL-PAGE MODAL (IMAGE 2 DESIGN) ================= */
     .section-modal-page {
       position: fixed;
       inset: 0;
@@ -343,33 +428,19 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      margin-bottom: 18px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px;
     }
-    .btn-close-modal {
+    .btn-back-modal {
       background: none;
       border: none;
       color: #fff;
       font-size: 20px;
       cursor: pointer;
       padding: 6px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
     .modal-page-title {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 800;
-      color: #fff;
-    }
-
-    .modal-grid-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-      margin-top: 20px;
     }
 
     /* ================= MOBILE BOTTOM NAVIGATION ================= */
@@ -380,7 +451,7 @@
       left: 0;
       right: 0;
       height: 60px;
-      background: rgba(15, 16, 21, 0.95);
+      background: rgba(10, 12, 16, 0.96);
       backdrop-filter: blur(16px);
       border-top: 1px solid var(--border-color);
       z-index: 2000;
@@ -401,20 +472,26 @@
       font-weight: 600;
       width: 25%;
       cursor: pointer;
+      transition: color 0.15s ease;
     }
-    .nav-item-btn svg { width: 20px; height: 20px; fill: currentColor; }
+    .nav-item-btn svg, .nav-item-btn i {
+      font-size: 18px;
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
     .nav-item-btn.active, .nav-item-btn:hover { color: #fff; }
-    .nav-item-btn.active svg { color: var(--accent); fill: var(--accent); }
+    .nav-item-btn.active svg, .nav-item-btn.active i {
+      color: var(--accent);
+      fill: var(--accent);
+    }
 
     @media (max-width: 768px) {
       .nav-links { display: none; }
       .mobile-bottom-nav { display: flex; }
       .card-16-9 { flex: 0 0 190px; width: 190px; }
       .carousel-arrow { display: none; }
-      .modal-grid-container {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 14px;
-      }
+      .portrait-grid { grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 10px; }
     }
   </style>
 </head>
@@ -427,43 +504,43 @@
         <i class="fa-solid fa-play-circle" style="color:var(--accent);"></i>
         My<span>Space</span>
       </a>
-      <span id="kidsBadge" class="kids-badge-nav" style="display:none;">Kids</span>
       <ul class="nav-links">
-        <li><a class="nav-link" data-hash="movies" href="javascript:void(0)" onclick="navigateToPage('movies')">Movies</a></li>
-        <li><a class="nav-link" data-hash="shows" href="javascript:void(0)" onclick="navigateToPage('shows')">Shows</a></li>
-        <li><a class="nav-link" data-hash="tvshows" href="javascript:void(0)" onclick="navigateToPage('tvshows')">TV Shows</a></li>
-        <li><a class="nav-link" data-hash="livetv" href="javascript:void(0)" onclick="navigateToPage('livetv')">Live TV</a></li>
+        <li><a class="nav-link" data-hash="movies" onclick="navigateToPage('movies')">Movies</a></li>
+        <li><a class="nav-link" data-hash="shows" onclick="navigateToPage('shows')">Shows</a></li>
+        <li><a class="nav-link" data-hash="tvshows" onclick="navigateToPage('tvshows')">TV Shows</a></li>
+        <li><a class="nav-link" data-hash="livetv" onclick="navigateToPage('livetv')">Live TV</a></li>
       </ul>
     </div>
-    <div class="nav-right" id="navAuthSlot">
-      <a href="1.html" class="user-pill">
-        <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
-        <span>Sign In</span>
-      </a>
+    <div class="nav-right">
+      <div id="navAuthSlot"></div>
+      <!-- Profile Switcher Dropdown -->
+      <div class="profile-switcher-dropdown" id="profileDropdown"></div>
     </div>
   </header>
 
   <!-- Main Feed Container -->
   <main class="main-container" id="sectionsContainer">
-    <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+    <div style="text-align: center; padding: 80px 0; color: var(--text-muted);">
       <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-      <p style="margin-top:12px;">Curating your feed...</p>
+      <p style="margin-top:12px;">Loading personalized catalog...</p>
     </div>
   </main>
 
-  <!-- Section Full-Page Modal (Image 2 style) -->
+  <!-- Section Full View Modal (Image 2 Style) -->
   <div class="section-modal-page" id="sectionViewModal">
     <div class="modal-nav-header">
-      <button class="btn-close-modal" id="closeSectionModalBtn">
+      <button class="btn-back-modal" id="closeSectionModalBtn">
         <i class="fa-solid fa-arrow-left"></i>
       </button>
-      <h2 class="modal-page-title" id="modalSectionTitle">Section Name</h2>
+      <h2 class="modal-page-title" id="modalSectionTitle">Popular Movies</h2>
     </div>
-    <div class="genre-filter-row" id="modalGenreFilterRow"></div>
-    <div class="modal-grid-container" id="modalGridMovies"></div>
+    <!-- Filter Pills Row -->
+    <div class="pill-tabs-row" id="modalPillTabs"></div>
+    <!-- Portrait Cards Grid -->
+    <div class="portrait-grid" id="modalPortraitGrid" style="margin-top: 18px;"></div>
   </div>
 
-  <!-- Mobile Bottom Navigation (Home, Search, Download, My Space) -->
+  <!-- Mobile Bottom Navigation -->
   <nav class="mobile-bottom-nav">
     <a href="javascript:void(0)" onclick="navigateToPage('movies')" class="nav-item-btn active">
       <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -477,13 +554,13 @@
       <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
       <span>Download</span>
     </a>
-    <a href="myspace.html" class="nav-item-btn">
+    <a href="javascript:void(0)" onclick="toggleProfileDropdown()" class="nav-item-btn">
       <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
       <span>My Space</span>
     </a>
   </nav>
 
-  <!-- FIREBASE ENGINE -->
+  <!-- FIREBASE MODULE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -494,7 +571,7 @@
       getDocs 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const firebaseConfig = {
+    const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
       projectId: "internal-systems-46728",
@@ -503,96 +580,142 @@
       appId: "1:172177452674:web:155a2417da5531dd7ece9b",
       measurementId: "G-Y87B8VRQ1N"
     };
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp(channelConfig);
     const db = getFirestore(app);
 
-    // Genre lists requested
-    const ALL_GENRES_STANDARD = [
-      "Romance", "Drama", "Family", "Comedy", "Mythology", "Crime", "Action", 
-      "Teen", "Biopic", "Sci-Fi", "Horror", "Kids", "Anime", "Thriller", 
-      "Adventure", "Nature", "Animals", "Animation", "Fantasy", "Historic", 
-      "Superhero", "Musical", "Mystery"
+    // Genres Specified
+    const ADULT_GENRES = [
+      "Romance", "Drama", "Family", "Comedy", "Mythology", "Crime", "Action", "Teen", 
+      "Biopic", "Sci-Fi", "Horror", "Kids", "Anime", "Thriller", "Adventure", "Nature", 
+      "Animals", "Animation", "Fantasy", "Historic", "Superhero", "Musical", "Mystery"
     ];
 
-    const ALL_GENRES_KIDS = [
-      "Superhero", "Princess", "Fairy Tale", "Family", "Comedy", "Mythology", 
-      "Action", "Biopic", "Kids", "Anime", "Adventure", "Nature", "Animals", 
-      "Animation", "Historic", "Musical"
+    const KIDS_GENRES = [
+      "Superhero", "Princess", "Fairy Tale", "Family", "Comedy", "Mythology", "Action", 
+      "Biopic", "Kids", "Anime", "Adventure", "Nature", "Animals", "Animation", "Historic", "Musical"
     ];
 
-    // Cache
-    let allMoviesCached = [];
-    let isKidsMode = false;
-    let activeProfile = null;
-    let currentRawUser = null;
+    // Profile state & URL parsing: home.html#movies&user#0
+    let currentUserDoc = null;
+    let activeProfileIndex = 0;
+    let isKidsProfile = false;
 
-    // 1. Multi-User URL Hash Parser (e.g. #home&user#0 or #movies&user#1)
-    function parseRouteParams() {
-      const hash = window.location.hash.replace('#', '').trim();
-      let page = "movies";
+    function parseHashParams() {
+      const hash = window.location.hash.replace(/^#/, '');
+      let page = 'movies';
       let userIdx = 0;
 
       if (hash) {
         const parts = hash.split('&');
-        page = parts[0] ? parts[0].toLowerCase() : "movies";
-        if (page === "home") page = "movies";
-
-        for (let i = 1; i < parts.length; i++) {
-          const p = parts[i];
-          if (p.startsWith('user#') || p.startsWith('user=')) {
-            const rawIdx = p.replace('user#', '').replace('user=', '');
-            userIdx = parseInt(rawIdx, 10) || 0;
+        parts.forEach(part => {
+          if (part.startsWith('user#')) {
+            userIdx = parseInt(part.replace('user#', '')) || 0;
+          } else if (part.startsWith('user=')) {
+            userIdx = parseInt(part.replace('user=', '')) || 0;
+          } else if (!part.includes('#') && !part.includes('=')) {
+            page = part.toLowerCase();
           }
-        }
+        });
       }
       return { page, userIdx };
     }
 
-    window.navigateToPage = function(targetPage) {
-      const { userIdx } = parseRouteParams();
-      window.location.hash = `#${targetPage}&user#${userIdx}`;
+    window.navigateToPage = function(pageName) {
+      window.location.hash = `${pageName}&user#${activeProfileIndex}`;
     };
 
-    // 2. Resolve Active Profile from UARM
-    function resolveUserProfile(userIdx) {
+    function loadUserProfile() {
       try {
-        const stored = localStorage.getItem('active_user') || localStorage.getItem('UARM');
-        if (stored) currentRawUser = JSON.parse(stored);
+        const raw = localStorage.getItem('active_user') || localStorage.getItem('UARM');
+        if (raw) currentUserDoc = JSON.parse(raw);
       } catch(e) {}
 
-      isKidsMode = false;
+      const { userIdx } = parseHashParams();
+      activeProfileIndex = userIdx;
 
-      if (currentRawUser) {
-        if (Array.isArray(currentRawUser.Profiles) && currentRawUser.Profiles[userIdx]) {
-          activeProfile = currentRawUser.Profiles[userIdx];
-        } else {
-          activeProfile = {
-            Name: currentRawUser["First Name"] || "User",
-            Avatar: currentRawUser["Profile_Picture"] || currentRawUser["Profile Picture"] || "",
-            Kids: currentRawUser["Type"] === "Kids" ? "True" : "False"
-          };
-        }
-
-        const isKidsProfile = String(activeProfile.Kids).toLowerCase() === "true" || activeProfile.Type === "Kids" || currentRawUser["Type"] === "Kids";
-        if (isKidsProfile) {
-          isKidsMode = true;
-        }
+      // Extract Profiles Array from user document
+      if (currentUserDoc && Array.isArray(currentUserDoc.Profiles) && currentUserDoc.Profiles[activeProfileIndex]) {
+        const p = currentUserDoc.Profiles[activeProfileIndex];
+        // Check Kids flag
+        isKidsProfile = String(p.Kids).toLowerCase() === "true";
+      } else {
+        isKidsProfile = currentUserDoc?.Type === "Kids";
       }
 
-      // Navbar state update
-      document.getElementById('kidsBadge').style.display = isKidsMode ? 'inline-block' : 'none';
-      const slot = document.getElementById('navAuthSlot');
-      if (activeProfile) {
-        slot.innerHTML = `
-          <div class="user-pill" title="${activeProfile.Name}">
-            ${activeProfile.Avatar ? `<img src="${activeProfile.Avatar}" class="user-avatar" />` : `<div class="user-avatar">${(activeProfile.Name || 'U').charAt(0)}</div>`}
-            <span>${activeProfile.Name}</span>
-          </div>
-        `;
-      }
+      renderAuthNav();
     }
 
-    // Helpers
+    function renderAuthNav() {
+      const slot = document.getElementById('navAuthSlot');
+      const dropdown = document.getElementById('profileDropdown');
+
+      if (!currentUserDoc) {
+        slot.innerHTML = `<a href="1.html" class="user-pill"><i class="fa-solid fa-user"></i><span>Sign In</span></a>`;
+        return;
+      }
+
+      const profiles = currentUserDoc.Profiles || [{
+        Name: currentUserDoc["First Name"] || "User",
+        Avatar: currentUserDoc["Profile_Picture"],
+        Kids: isKidsProfile ? "True" : "False"
+      }];
+
+      const currentP = profiles[activeProfileIndex] || profiles[0];
+      const pName = currentP.Name || "User";
+      const pAvatar = currentP.Avatar;
+
+      slot.innerHTML = `
+        <div class="user-pill" onclick="window.toggleProfileDropdown()">
+          ${pAvatar ? `<img src="${pAvatar}" class="user-avatar" />` : `<div class="user-avatar">${pName.charAt(0)}</div>`}
+          <span>${pName}</span>
+          ${isKidsProfile ? `<span class="kids-indicator">Kids</span>` : ''}
+          <i class="fa-solid fa-chevron-down" style="font-size:10px; color:var(--text-muted);"></i>
+        </div>
+      `;
+
+      dropdown.innerHTML = profiles.map((p, idx) => `
+        <div class="profile-item ${idx === activeProfileIndex ? 'active' : ''}" onclick="window.switchProfile(${idx})">
+          ${p.Avatar ? `<img src="${p.Avatar}" class="user-avatar" />` : `<div class="user-avatar">${(p.Name || 'U').charAt(0)}</div>`}
+          <span class="p-name">${p.Name}</span>
+          ${String(p.Kids).toLowerCase() === 'true' ? `<span class="kids-indicator">Kids</span>` : ''}
+        </div>
+      `).join('');
+    }
+
+    window.toggleProfileDropdown = function() {
+      const dd = document.getElementById('profileDropdown');
+      dd.classList.toggle('show');
+    };
+
+    window.switchProfile = function(idx) {
+      document.getElementById('profileDropdown').classList.remove('show');
+      const { page } = parseHashParams();
+      window.location.hash = `${page}&user#${idx}`;
+    };
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav-right')) {
+        document.getElementById('profileDropdown')?.classList.remove('show');
+      }
+    });
+
+    // Content Filtering by Profile Type
+    function passesProfileFilter(movie) {
+      if (!isKidsProfile) {
+        // If Kids=False: there is no Age_Rating restriction!
+        return true;
+      }
+      // If Kids=True: strictly check for kid-safe movies
+      const age = String(movie.Age_Rating || '').toLowerCase();
+      const genres = parseGenres(movie.Genres);
+      const isAdultRated = age.includes('16') || age.includes('18') || age.includes('a ') || age === 'a';
+      if (isAdultRated) return false;
+
+      const hasKidFriendlyAge = age.includes('u') || age.includes('7+') || age.includes('all') || age === '';
+      const hasKidGenre = genres.some(g => ['kids', 'animation', 'family', 'adventure', 'superhero', 'disney'].includes(g));
+      return hasKidFriendlyAge || hasKidGenre;
+    }
+
     function safeUrl(url) {
       if (!url) return '';
       return url.trim().replace(/^http:\/\//i, 'https://');
@@ -600,13 +723,15 @@
 
     function getPosterH(c) {
       return safeUrl(
-        c["Poster.h"] || 
-        c.Poster_h || 
-        c.Banner || 
-        c.banner || 
-        c["Poster.v"] || 
-        c.Poster || 
-        'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800'
+        c["Poster.h"] || c.Poster_h || c.Banner || c.banner || 
+        c["Poster.v"] || c.Poster || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800'
+      );
+    }
+
+    function getPosterV(c) {
+      return safeUrl(
+        c["Poster.v"] || c.Poster || c["Poster.h"] || c.Banner || 
+        'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400'
       );
     }
 
@@ -626,20 +751,31 @@
       return shuffled;
     }
 
-    function isAppropriateForKids(movie) {
-      if (!isKidsMode) return true;
-      const age = (movie.Age_Rating || movie.Age || "").toUpperCase();
-      if (age.includes('18+') || age.includes('16+') || age.includes('A') || age.includes('U/A 16+')) {
-        return false;
-      }
-      return true;
+    function computeRelevanceScore(target, candidate) {
+      if (!target || !candidate) return 1;
+      let score = 1;
+
+      const targetGenres = parseGenres(target.Genres);
+      const candGenres = parseGenres(candidate.Genres);
+      targetGenres.forEach(g => {
+        if (candGenres.some(cg => cg === g || cg.includes(g))) score += 40;
+      });
+
+      const targetStudio = (target.Partner || target.Studio || '').toLowerCase().trim();
+      const candStudio = (candidate.Partner || candidate.Studio || '').toLowerCase().trim();
+      if (targetStudio && candStudio && targetStudio === candStudio) score += 20;
+
+      const targetLang = (target.Language || '').toLowerCase().trim();
+      const candLang = (candidate.Language || '').toLowerCase().trim();
+      if (targetLang && candLang && targetLang === candLang) score += 15;
+
+      return score;
     }
 
-    /* ================= 1. ENHANCED 'FOR YOU' ENGINE ================= */
     function getRecentlyWatchedMovieIds() {
-      if (!currentRawUser || !Array.isArray(currentRawUser["Memory.ent"])) return [];
+      if (!currentUserDoc || !Array.isArray(currentUserDoc["Memory.ent"])) return [];
       let watchedIds = [];
-      for (const item of currentRawUser["Memory.ent"]) {
+      for (const item of currentUserDoc["Memory.ent"]) {
         if (typeof item === 'object' && item !== null) {
           for (const key of Object.keys(item)) {
             if (key.toLowerCase().includes("recently watched") && key.toLowerCase().includes("movie")) {
@@ -656,62 +792,11 @@
       return watchedIds;
     }
 
-    function computeAdvancedRelevance(target, candidate) {
-      if (!target || !candidate) return 1;
-      let score = 1;
-
-      const targetGenres = parseGenres(target.Genres);
-      const candGenres = parseGenres(candidate.Genres);
-      targetGenres.forEach(g => {
-        if (candGenres.some(cg => cg === g || cg.includes(g) || g.includes(cg))) score += 40;
-      });
-
-      const targetStudio = (target.Partner || target.Studio || '').toLowerCase().trim();
-      const candStudio = (candidate.Partner || candidate.Studio || '').toLowerCase().trim();
-      if (targetStudio && candStudio && targetStudio === candStudio) score += 25;
-
-      const targetLang = (target.Language || '').toLowerCase().trim();
-      const candLang = (candidate.Language || '').toLowerCase().trim();
-      if (targetLang && candLang && targetLang === candLang) score += 15;
-
-      return score;
-    }
-
-    /* ================= 3. CLEAN 16:9 CARD (NO LOGO & NO RATING) ================= */
-    function create16x9CardElement(movie) {
-      const card = document.createElement('div');
-      card.className = 'card-16-9';
-
-      const title = movie.Name || movie.Title || movie.id;
-      const poster = getPosterH(movie);
-      const genres = parseGenres(movie.Genres).map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(', ') || movie.Language || 'Movie';
-
-      // Redirection to preview.html?watch=<id>
-      card.onclick = () => {
-        window.location.href = `preview.html?watch=${encodeURIComponent(movie.id)}`;
-      };
-
-      card.innerHTML = `
-        <div class="card-thumb-wrap">
-          <img class="main-thumb" src="${poster}" alt="${title}" loading="lazy"/>
-          <div class="card-play-hover">
-            <div class="card-play-btn-circle"><i class="fa-solid fa-play"></i></div>
-          </div>
-        </div>
-        <div class="card-details">
-          <div class="card-title">${title}</div>
-          <div class="card-subtext">${genres}</div>
-        </div>
-      `;
-
-      return card;
-    }
-
-    /* ================= MAIN FEED CONTROLLER ================= */
+    /* ================= MAIN LOAD PAGE ================= */
     async function loadPage() {
-      const { page, userIdx } = parseRouteParams();
-      resolveUserProfile(userIdx);
+      loadUserProfile();
 
+      const { page } = parseHashParams();
       document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.toggle('active', link.dataset.hash === page);
       });
@@ -720,73 +805,78 @@
       container.innerHTML = `
         <div style="text-align: center; padding: 60px; color: var(--text-muted);">
           <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-          <p style="margin-top:12px;">Curating your feed...</p>
+          <p style="margin-top:12px;">Curating content...</p>
         </div>
       `;
 
       try {
-        // Fetch All Movies
         const moviesSnap = await getDocs(collection(db, "Movies"));
         const moviesMap = new Map();
-        allMoviesCached = [];
+        let allMovies = [];
 
         moviesSnap.forEach(d => {
           const item = { id: d.id, ...d.data() };
-          if (isAppropriateForKids(item)) {
+          // Apply Profile restriction
+          if (passesProfileFilter(item)) {
             moviesMap.set(d.id.toLowerCase(), item);
-            allMoviesCached.push(item);
+            allMovies.push(item);
           }
         });
 
         container.innerHTML = "";
-        let renderedSectionsCount = 0;
+        let renderedSectionCount = 0;
 
         // 1. "Because You Watched <Name>"
         const watchedIds = getRecentlyWatchedMovieIds();
         if (watchedIds.length > 0) {
-          const anchorMovie = moviesMap.get(watchedIds[0]);
+          const lastWatchedId = watchedIds[0];
+          const anchorMovie = moviesMap.get(lastWatchedId);
+
           if (anchorMovie) {
-            const similar = allMoviesCached
+            const rankedSimilar = allMovies
               .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
-              .map(m => ({ movie: m, score: computeAdvancedRelevance(anchorMovie, m) }))
-              .filter(s => s.score > 25)
+              .map(m => ({ movie: m, score: computeRelevanceScore(anchorMovie, m) }))
+              .filter(s => s.score > 20)
               .sort((a, b) => b.score - a.score)
               .map(s => s.movie);
 
-            if (similar.length > 0) {
+            if (rankedSimilar.length > 0) {
               renderCarouselSection(
-                `Because You Watched ${anchorMovie.Name || 'this'}`,
-                similar.slice(0, 16),
-                "Recommendation"
+                `Because You Watched ${anchorMovie.Name || anchorMovie.Title || 'this'}`,
+                rankedSimilar.slice(0, 15)
               );
-              renderedSectionsCount++;
+              renderedSectionCount++;
             }
           }
         }
 
-        // 2. High-Quality "For You" Section
-        const genreFrequency = {};
-        watchedIds.forEach(id => {
-          const m = moviesMap.get(id);
-          if (m) {
-            parseGenres(m.Genres).forEach(g => {
-              genreFrequency[g] = (genreFrequency[g] || 0) + 1;
-            });
-          }
-        });
+        // 2. High-Accuracy "For You" Section
+        let forYouMovies = [];
+        if (watchedIds.length > 0) {
+          const watchedGenres = new Set();
+          watchedIds.forEach(id => {
+            const m = moviesMap.get(id);
+            if (m) parseGenres(m.Genres).forEach(g => watchedGenres.add(g));
+          });
 
-        let forYouPool = allMoviesCached.filter(m => !watchedIds.includes(m.id.toLowerCase()));
-        forYouPool.sort((a, b) => {
-          let scoreA = parseGenres(a.Genres).reduce((sum, g) => sum + (genreFrequency[g] || 0), 0);
-          let scoreB = parseGenres(b.Genres).reduce((sum, g) => sum + (genreFrequency[g] || 0), 0);
-          return scoreB - scoreA;
-        });
+          forYouMovies = allMovies
+            .filter(m => !watchedIds.includes(m.id.toLowerCase()))
+            .map(m => {
+              const mG = parseGenres(m.Genres);
+              let score = 0;
+              watchedGenres.forEach(g => { if (mG.includes(g)) score += 25; });
+              return { movie: m, score };
+            })
+            .sort((a, b) => b.score - a.score)
+            .map(s => s.movie);
+        }
+        if (forYouMovies.length < 6) {
+          forYouMovies = mixupArray(allMovies);
+        }
+        renderCarouselSection("For You", forYouMovies.slice(0, 20));
+        renderedSectionCount++;
 
-        if (forYouPool.length < 6) forYouPool = mixupArray(allMoviesCached);
-        renderCarouselSection("For You", forYouPool.slice(0, 18), "Curated");
-        renderedSectionsCount++;
-
-        // 3. Sections from Systems (e.g. Systems/movies)
+        // 3. Page Sections from Systems Collection
         const pageDoc = await getDoc(doc(db, "Systems", page));
         if (pageDoc.exists()) {
           const sectionIds = pageDoc.data().Sections || [];
@@ -802,7 +892,7 @@
 
             let sectionMovies = [];
 
-            // Add Explicit Mandatory Titles
+            // Titles
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
               const movie = moviesMap.get(String(tId).trim().toLowerCase());
@@ -811,53 +901,49 @@
               }
             }
 
-            // Fixed == False: blend similar genres
+            // Fixed == False: blend similar
             if (!isFixed) {
-              const similar = allMoviesCached.filter(m => {
+              const similarMovies = allMovies.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
                 const mG = parseGenres(m.Genres);
                 return sectionGenres.some(sg => mG.some(mg => mg.includes(sg) || sg.includes(mg)));
               });
-              sectionMovies = mixupArray([...sectionMovies, ...similar]).slice(0, maxLimit);
+              sectionMovies = mixupArray([...sectionMovies, ...similarMovies]).slice(0, maxLimit);
             }
 
             if (sectionMovies.length > 0) {
               renderCarouselSection(secData.Name || sId, sectionMovies);
-              renderedSectionsCount++;
+              renderedSectionCount++;
 
-              // 4. REQUIREMENT 4: After 4-5 sections, show Genre Filter section (Image 2)
-              if (renderedSectionsCount === 4) {
-                renderEmbeddedGenreSection();
+              // Update 4: Insert Image 2 style Genre Filter Setup after 4-5 sections
+              if (renderedSectionCount === 4) {
+                renderInFeedGenreSetup(allMovies);
               }
             }
           }
         }
 
-        // If fewer than 4 sections, ensure the Genre Section is still rendered
-        if (renderedSectionsCount < 4) {
-          renderEmbeddedGenreSection();
+        // If fewer than 4 sections were in DB, ensure the Genre Explorer still displays
+        if (renderedSectionCount < 4) {
+          renderInFeedGenreSetup(allMovies);
         }
 
-      } catch (err) {
-        console.error("Feed render error:", err);
+      } catch(err) {
+        console.error("Page load error:", err);
         container.innerHTML = `<div style="text-align:center; padding:40px; color:#ff5252;">Failed to load feed. Check connection.</div>`;
       }
     }
 
-    /* ================= RENDER CAROUSEL SECTION ================= */
-    function renderCarouselSection(sectionTitle, movies, badgeLabel = null) {
+    /* ================= 16:9 CAROUSEL RENDERER ================= */
+    function renderCarouselSection(sectionTitle, movies) {
       const container = document.getElementById('sectionsContainer');
       const sectionEl = document.createElement('section');
       sectionEl.className = 'section-block';
 
-      const encodedKey = encodeURIComponent(sectionTitle);
-      window[`sec_cache_${encodedKey}`] = movies;
-
       sectionEl.innerHTML = `
-        <div class="section-header-row" onclick="window.openSectionModal('${encodedKey}')">
+        <div class="section-header-row" onclick="window.openSectionModal('${encodeURIComponent(sectionTitle)}')">
           <h2 class="section-heading">
             ${sectionTitle}
-            ${badgeLabel ? `<span class="section-badge">${badgeLabel}</span>` : ''}
             <i class="fa-solid fa-chevron-right"></i>
           </h2>
         </div>
@@ -868,11 +954,16 @@
         </div>
       `;
 
+      // Cache for full modal view
+      window[`cache_${encodeURIComponent(sectionTitle)}`] = movies;
+
       const track = sectionEl.querySelector('.carousel-track');
       const leftBtn = sectionEl.querySelector('.carousel-arrow.left');
       const rightBtn = sectionEl.querySelector('.carousel-arrow.right');
 
-      movies.forEach(m => track.appendChild(create16x9CardElement(m)));
+      movies.forEach(movie => {
+        track.appendChild(create16x9Card(movie));
+      });
 
       leftBtn.onclick = () => track.scrollBy({ left: -480, behavior: 'smooth' });
       rightBtn.onclick = () => track.scrollBy({ left: 480, behavior: 'smooth' });
@@ -880,104 +971,142 @@
       container.appendChild(sectionEl);
     }
 
-    /* ================= 4. EMBEDDED GENRE SECTION (IMAGE 2 SETUP) ================= */
-    function renderEmbeddedGenreSection() {
-      const container = document.getElementById('sectionsContainer');
-      const genreBlock = document.createElement('section');
-      genreBlock.className = 'section-block';
-      genreBlock.id = 'embeddedGenreBlock';
+    // 16:9 Card: Clean design with No Logo and No Rating
+    function create16x9Card(movie) {
+      const card = document.createElement('div');
+      card.className = 'card-16-9';
 
-      const genreList = isKidsMode ? ALL_GENRES_KIDS : ALL_GENRES_STANDARD;
+      const title = movie.Name || movie.Title || movie.id;
+      const poster = getPosterH(movie);
+      const genres = parseGenres(movie.Genres).join(', ') || movie.Language || 'Movie';
 
-      genreBlock.innerHTML = `
-        <div class="section-header-row">
-          <h2 class="section-heading">Popular Movies</h2>
+      card.onclick = () => {
+        window.location.href = `preview.html?watch=${encodeURIComponent(movie.id)}`;
+      };
+
+      card.innerHTML = `
+        <div class="card-thumb-wrap">
+          <img class="main-thumb" src="${poster}" alt="${title}" loading="lazy"/>
         </div>
-        <div class="genre-filter-row" id="embeddedGenrePills">
-          <button class="genre-pill-btn active" data-genre="ALL">All</button>
-          ${genreList.map(g => `<button class="genre-pill-btn" data-genre="${g}">${g}</button>`).join('')}
-        </div>
-        <div class="carousel-wrapper">
-          <button class="carousel-arrow left"><i class="fa-solid fa-chevron-left"></i></button>
-          <div class="carousel-track" id="embeddedGenreTrack"></div>
-          <button class="carousel-arrow right"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="card-details">
+          <div class="card-title">${title}</div>
+          <div class="card-subtext">${genres}</div>
         </div>
       `;
-
-      const track = genreBlock.querySelector('#embeddedGenreTrack');
-      const pillsContainer = genreBlock.querySelector('#embeddedGenrePills');
-      const leftBtn = genreBlock.querySelector('.carousel-arrow.left');
-      const rightBtn = genreBlock.querySelector('.carousel-arrow.right');
-
-      function filterAndShow(genre) {
-        track.innerHTML = '';
-        let list = allMoviesCached;
-        if (genre !== 'ALL') {
-          list = allMoviesCached.filter(m => parseGenres(m.Genres).includes(genre.toLowerCase()));
-        }
-        if (list.length === 0) list = allMoviesCached.slice(0, 10);
-        list.forEach(m => track.appendChild(create16x9CardElement(m)));
-      }
-
-      filterAndShow('ALL');
-
-      pillsContainer.querySelectorAll('.genre-pill-btn').forEach(btn => {
-        btn.onclick = () => {
-          pillsContainer.querySelectorAll('.genre-pill-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          filterAndShow(btn.dataset.genre);
-        };
-      });
-
-      leftBtn.onclick = () => track.scrollBy({ left: -480, behavior: 'smooth' });
-      rightBtn.onclick = () => track.scrollBy({ left: 480, behavior: 'smooth' });
-
-      container.appendChild(genreBlock);
+      return card;
     }
 
-    /* ================= 2. SECTION MODAL MATCHING IMAGE 2 ================= */
-    window.openSectionModal = function(encodedKey) {
-      const movies = window[`sec_cache_${encodedKey}`] || allMoviesCached;
-      const title = decodeURIComponent(encodedKey);
+    /* ================= GENRE EXPLORER (IMAGE 2 STYLE) ================= */
+    function renderInFeedGenreSetup(allMovies) {
+      const container = document.getElementById('sectionsContainer');
+      const setupEl = document.createElement('section');
+      setupEl.className = 'genre-filter-setup';
 
-      document.getElementById('modalSectionTitle').innerText = title;
-      const pillsRow = document.getElementById('modalGenreFilterRow');
-      const grid = document.getElementById('modalGridMovies');
+      const genresList = isKidsProfile ? KIDS_GENRES : ADULT_GENRES;
 
-      const genreList = isKidsMode ? ALL_GENRES_KIDS : ALL_GENRES_STANDARD;
-
-      pillsRow.innerHTML = `
-        <button class="genre-pill-btn active" data-genre="ALL">All</button>
-        ${genreList.map(g => `<button class="genre-pill-btn" data-genre="${g}">${g}</button>`).join('')}
+      setupEl.innerHTML = `
+        <h2 class="section-heading" style="font-size: 22px;">Popular Movies</h2>
+        <div class="pill-tabs-row" id="feedGenrePills">
+          ${genresList.map((g, idx) => `
+            <button class="genre-pill-btn ${idx === 0 ? 'active' : ''}" onclick="window.filterFeedGenre('${g}', this)">${g}</button>
+          `).join('')}
+        </div>
+        <div class="portrait-grid" id="feedGenreGrid"></div>
       `;
 
-      function renderGrid(genre) {
-        grid.innerHTML = '';
-        let filtered = movies;
-        if (genre !== 'ALL') {
-          filtered = movies.filter(m => parseGenres(m.Genres).includes(genre.toLowerCase()));
-        }
-        filtered.forEach(m => grid.appendChild(create16x9CardElement(m)));
+      container.appendChild(setupEl);
+      window.feedAllMovies = allMovies;
+      window.filterFeedGenre(genresList[0]);
+    }
+
+    window.filterFeedGenre = function(genreName, btnEl) {
+      if (btnEl) {
+        document.querySelectorAll('#feedGenrePills .genre-pill-btn').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
       }
 
-      renderGrid('ALL');
-
-      pillsRow.querySelectorAll('.genre-pill-btn').forEach(btn => {
-        btn.onclick = () => {
-          pillsRow.querySelectorAll('.genre-pill-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          renderGrid(btn.dataset.genre);
-        };
+      const grid = document.getElementById('feedGenreGrid');
+      const target = genreName.toLowerCase();
+      
+      const filtered = window.feedAllMovies.filter(m => {
+        return parseGenres(m.Genres).some(g => g.includes(target) || target.includes(g));
       });
+
+      renderPortraitGrid(grid, filtered.slice(0, 12));
+    };
+
+    /* ================= SECTION MODAL VIEW (IMAGE 2 DESIGN) ================= */
+    window.openSectionModal = function(encodedTitle) {
+      const title = decodeURIComponent(encodedTitle);
+      const movies = window[`cache_${encodedTitle}`] || [];
+      const genresList = isKidsProfile ? KIDS_GENRES : ADULT_GENRES;
+
+      document.getElementById('modalSectionTitle').innerText = title;
+      const pillsHost = document.getElementById('modalPillTabs');
+      const grid = document.getElementById('modalPortraitGrid');
+
+      // Populate Genre Pills
+      pillsHost.innerHTML = `
+        <button class="genre-pill-btn active" onclick="window.filterModalMovies('all', this)">All</button>
+        ${genresList.map(g => `<button class="genre-pill-btn" onclick="window.filterModalMovies('${g}', this)">${g}</button>`).join('')}
+      `;
+
+      window.modalActiveMovies = movies;
+      renderPortraitGrid(grid, movies);
 
       document.getElementById('sectionViewModal').classList.add('active');
       document.body.style.overflow = 'hidden';
+    };
+
+    window.filterModalMovies = function(genre, btn) {
+      document.querySelectorAll('#modalPillTabs .genre-pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const grid = document.getElementById('modalPortraitGrid');
+      if (genre === 'all') {
+        renderPortraitGrid(grid, window.modalActiveMovies);
+        return;
+      }
+
+      const target = genre.toLowerCase();
+      const filtered = window.modalActiveMovies.filter(m => {
+        return parseGenres(m.Genres).some(g => g.includes(target) || target.includes(g));
+      });
+      renderPortraitGrid(grid, filtered);
     };
 
     document.getElementById('closeSectionModalBtn').onclick = () => {
       document.getElementById('sectionViewModal').classList.remove('active');
       document.body.style.overflow = 'auto';
     };
+
+    // Portrait Cards Builder (Matches Image 2 badges and removes ratings/logos)
+    function renderPortraitGrid(container, movies) {
+      container.innerHTML = '';
+      if (movies.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--text-muted);">No titles available in this category.</div>`;
+        return;
+      }
+
+      movies.forEach((movie, index) => {
+        const card = document.createElement('div');
+        card.className = 'portrait-card';
+
+        card.onclick = () => {
+          window.location.href = `preview.html?watch=${encodeURIComponent(movie.id)}`;
+        };
+
+        const isTop10 = index < 3;
+        const isHindi = (movie.Language || '').toLowerCase().includes('hindi');
+
+        card.innerHTML = `
+          <img src="${getPosterV(movie)}" alt="${movie.Name || 'Movie'}" loading="lazy"/>
+          ${isTop10 ? `<div class="badge-top10">TOP<span>10</span></div>` : ''}
+          ${isHindi ? `<div class="bottom-tag-pill hindi">NOW IN HINDI</div>` : `<div class="bottom-tag-pill newly-added">NEWLY ADDED</div>`}
+        `;
+        container.appendChild(card);
+      });
+    }
 
     window.addEventListener('hashchange', loadPage);
     loadPage();
