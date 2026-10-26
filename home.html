@@ -109,6 +109,15 @@
       object-fit: cover;
       background: #232733;
     }
+    .tier-badge {
+      font-size: 10px;
+      background: #0072ef;
+      color: #fff;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
     .kids-badge {
       font-size: 10px;
       background: #ffb703;
@@ -166,7 +175,7 @@
       text-transform: uppercase;
     }
 
-    /* 16:9 CAROUSEL & CARDS (NO RATINGS / NO LOGOS) */
+    /* 16:9 CAROUSEL & CARDS */
     .carousel-wrapper { position: relative; }
     .carousel-track {
       display: flex;
@@ -400,7 +409,7 @@
   <main class="main-container" id="sectionsContainer">
     <div style="text-align: center; padding: 60px; color: var(--text-muted);">
       <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-      <p style="margin-top:12px;">Connecting to Real-Time Cloud Databases...</p>
+      <p style="margin-top:12px;">Validating Age_Rating Tiers...</p>
     </div>
   </main>
 
@@ -438,7 +447,6 @@
     </a>
   </nav>
 
-  <!-- REAL-TIME FIREBASE ENGINES -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { 
@@ -447,14 +455,13 @@
       onSnapshot, 
       collection, 
       getDoc, 
-      getDocs, 
-      query, 
-      where 
+      getDocs 
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     /* ==============================================================
-       1. REAL-TIME CONNECTION 1: UARM & AUTH DATABASE (question-metabase)
+       REAL-TIME FIREBASE DATABASES
        ============================================================== */
+    // 1. User & UARM DB
     const uarmConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
@@ -468,9 +475,7 @@
     const uarmApp = initializeApp(uarmConfig, "uarmApp");
     const uarmDb = getFirestore(uarmApp);
 
-    /* ==============================================================
-       2. REAL-TIME CONNECTION 2: CONTENT & SYSTEMS (internal-systems-46728)
-       ============================================================== */
+    // 2. Content & Systems DB
     const contentConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -479,7 +484,7 @@
     const contentApp = initializeApp(contentConfig, "contentApp");
     const contentDb = getFirestore(contentApp);
 
-    // Live State Variables
+    // Live State
     let liveUserData = null;
     let liveMoviesCatalog = [];
     let liveMoviesMap = new Map();
@@ -488,7 +493,7 @@
 
     let activeProfile = null;
     let isKidsProfile = false;
-    let userMaxAgeRating = "U/A 7+";
+    let userAllowedMaxTier = 2; // Default to U/A 7+ (Tier 2)
 
     function safeUrl(url) {
       if (!url) return '';
@@ -520,96 +525,70 @@
     }
 
     /* ==============================================================
-       TRUST & SAFETY: ZERO-TOLERANCE AGE RATING ENGINE
+       THE 5 AGE_RATINGS SCALE & TIER CONVERTER
+       1: U
+       2: U/A 7+
+       3: U/A 13+
+       4: U/A 16+
+       5: U/A 18+
        ============================================================== */
-    function isKidSafe(movie) {
-      if (!isKidsProfile) return true; // Adult mode has no age limits
-      if (!movie) return false;
+    function getRatingTier(ratingStr) {
+      if (!ratingStr) return 1; // Default unrated content to Tier 1
+      const clean = String(ratingStr).trim().toUpperCase();
 
-      const rawAge = String(movie.Age_Rating || '').trim().toUpperCase();
-      const genres = parseGenres(movie.Genres);
+      if (clean.includes("18") || clean === "A" || clean === "U/A 18+") return 5;
+      if (clean.includes("16") || clean === "U/A 16+") return 4;
+      if (clean.includes("13") || clean === "U/A 13+") return 3;
+      if (clean.includes("7") || clean === "U/A 7+") return 2;
+      if (clean === "U" || clean === "G" || clean === "TV-Y" || clean === "ALL") return 1;
 
-      // 1. Definite Adult & Teen Flags -> Block immediately
-      const adultFlags = ["A", "18", "18+", "16", "16+", "U/A 16+", "U/A 16", "U/A 13+", "U/A 13", "13+", "R", "TV-MA", "TV-14", "NC-17", "ADULT"];
-      for (const badge of adultFlags) {
-        if (
-          rawAge === badge || 
-          rawAge.startsWith(badge + " ") || 
-          rawAge.endsWith(" " + badge) || 
-          rawAge.includes("16") || 
-          rawAge.includes("18") || 
-          rawAge.includes("13") || 
-          rawAge.includes("MA") || 
-          rawAge.includes("TV-14")
-        ) {
-          return false;
-        }
-      }
-
-      // 2. Mature genres block in Kids Mode (War, Crime, Thriller, Erotic, Biopic)
-      const matureGenres = ["war", "crime", "horror", "erotic", "biopic", "political", "thriller"];
-      const isKidTagged = genres.some(g => ["animation", "kids", "children", "cartoon", "disney", "family"].includes(g));
-
-      if (genres.some(g => matureGenres.includes(g)) && !isKidTagged) {
-        return false;
-      }
-
-      // 3. Approved safe ratings
-      const allowedKidsRatings = ["U", "G", "TV-Y", "TV-Y7", "TV-G", "ALL", "U/A 7+", "PG", "TV-PG", "7+"];
-      if (allowedKidsRatings.some(r => rawAge === r || rawAge.startsWith(r))) {
-        return true;
-      }
-
-      // 4. Missing Rating: Only permit if explicitly tagged for children/animation
-      if (!rawAge || rawAge === "N/A") {
-        return isKidTagged;
-      }
-
-      return false;
+      return 1;
     }
 
-    function isSectionAgeCompliant(sectionAge) {
-      if (!isKidsProfile) return true;
-      if (!sectionAge) return true;
-      const raw = String(sectionAge).trim().toUpperCase();
-      return !(raw.includes("18") || raw.includes("16") || raw.includes("13") || raw.includes("A") || raw.includes("MA"));
+    function getTierLabel(tierNum) {
+      switch(tierNum) {
+        case 1: return "U";
+        case 2: return "U/A 7+";
+        case 3: return "U/A 13+";
+        case 4: return "U/A 16+";
+        case 5: return "U/A 18+";
+        default: return "U";
+      }
+    }
+
+    // STRICT CHECK: Returns true ONLY if content tier <= user tier
+    function isAllowedByAge(contentRatingStr) {
+      const contentTier = getRatingTier(contentRatingStr);
+      return contentTier <= userAllowedMaxTier;
     }
 
     /* ==============================================================
-       REAL-TIME USER SYNC (LISTENING TO UARM COLLECTION)
+       REAL-TIME USER SYNC (question-metabase -> UARM)
        ============================================================== */
     function syncRealtimeUARM() {
       if (uarmUnsub) uarmUnsub();
 
       const urlParams = new URLSearchParams(window.location.search);
-      const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus');
       const uarmIdParam = urlParams.get('uarm') || urlParams.get('uarms');
 
       const cachedRaw = localStorage.getItem('active_user') || localStorage.getItem('UARM');
       const cached = cachedRaw ? JSON.parse(cachedRaw) : null;
-
       const targetDocId = uarmIdParam || cached?.["UARMS ID"] || cached?.id || "7I4d9vmlm9WiUAUneQGByq6jT";
 
-      // Connect with live snapshot listener
       uarmUnsub = onSnapshot(doc(uarmDb, "UARM", targetDocId), (snap) => {
-        if (!snap.exists()) {
-          console.warn(`User document '${targetDocId}' not found in question-metabase database.`);
-          return;
-        }
+        if (!snap.exists()) return;
 
         liveUserData = { id: snap.id, ...snap.data() };
         localStorage.setItem('active_user', JSON.stringify(liveUserData));
 
-        updateActiveProfileState();
+        updateActiveProfile();
         renderUserNavPill();
         buildLiveFeed();
-      }, (err) => {
-        console.error("Real-time UARM connection error:", err);
       });
     }
 
     /* ==============================================================
-       REAL-TIME MOVIES CATALOG SYNC (LISTENING TO MOVIES)
+       REAL-TIME MOVIES CATALOG SYNC (internal-systems-46728)
        ============================================================== */
     function syncRealtimeMovies() {
       if (moviesUnsub) moviesUnsub();
@@ -625,12 +604,10 @@
         });
 
         buildLiveFeed();
-      }, (err) => {
-        console.error("Real-time Movies connection error:", err);
       });
     }
 
-    function updateActiveProfileState() {
+    function updateActiveProfile() {
       if (!liveUserData) return;
 
       const hash = window.location.hash;
@@ -651,13 +628,21 @@
         activeProfile = {
           Name: liveUserData["First Name"] || "User",
           Avatar: liveUserData["Profile_Picture"] || "",
-          Kids: String(liveUserData["Type"]).toLowerCase() === "kids" ? "True" : "False",
-          Age_Rating: "U/A 7+"
+          Kids: "False",
+          Age_Rating: "U/A 18+"
         };
       }
 
       isKidsProfile = String(activeProfile?.Kids).toLowerCase() === "true";
-      userMaxAgeRating = activeProfile?.Age_Rating || (isKidsProfile ? "U/A 7+" : "A");
+
+      // Resolve Allowed Age Tier
+      if (isKidsProfile) {
+        // If Kids profile has Age_Rating specified (e.g., "U/A 7+"), use it; otherwise Tier 2
+        userAllowedMaxTier = getRatingTier(activeProfile?.Age_Rating || "U/A 7+");
+      } else {
+        // Adult mode (Kids=False): If profile specifies rating, respect it; otherwise Tier 5 (U/A 18+)
+        userAllowedMaxTier = activeProfile?.Age_Rating ? getRatingTier(activeProfile.Age_Rating) : 5;
+      }
     }
 
     function renderUserNavPill() {
@@ -668,7 +653,7 @@
         <a href="onboarding.html" class="user-pill">
           <img src="${activeProfile.Avatar || 'https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png'}" class="user-avatar" />
           <span>${activeProfile.Name || 'Profile'}</span>
-          ${isKidsProfile ? `<span class="kids-badge">Kids</span>` : ''}
+          <span class="${isKidsProfile ? 'kids-badge' : 'tier-badge'}">${getTierLabel(userAllowedMaxTier)}</span>
         </a>
       `;
     }
@@ -682,7 +667,6 @@
       for (const item of liveUserData["Memory.ent"]) {
         if (typeof item === 'object' && item !== null) {
           for (const key of Object.keys(item)) {
-            // Live match of field "Recently Watched Movies"
             if (key.toLowerCase().includes("recently watched") && key.toLowerCase().includes("movie")) {
               const val = item[key];
               if (typeof val === 'string') {
@@ -698,14 +682,16 @@
     }
 
     /* ==============================================================
-       REFINED "FOR YOU" ALGORITHM (POWERED BY LIVE CATALOG)
+       REFINED "FOR YOU" ALGORITHM (AGE-TIER FILTERED FIRST)
        ============================================================== */
-    function buildLiveForYou(safeMoviesPool, watchedIds) {
-      const effectiveWatched = isKidsProfile
-        ? watchedIds.filter(id => isKidSafe(liveMoviesMap.get(id)))
-        : watchedIds;
+    function buildLiveForYou(allowedMoviesCatalog, watchedIds) {
+      // Step 1: Filter watched list so only age-appropriate movies influence recommendations
+      const effectiveWatched = watchedIds.filter(id => {
+        const m = liveMoviesMap.get(id);
+        return m && isAllowedByAge(m.Age_Rating);
+      });
 
-      const unwatched = safeMoviesPool.filter(m => !effectiveWatched.includes(m.id.toLowerCase()));
+      const unwatched = allowedMoviesCatalog.filter(m => !effectiveWatched.includes(m.id.toLowerCase()));
       if (effectiveWatched.length === 0) return mixupArray(unwatched).slice(0, 20);
 
       const genreFreq = {};
@@ -733,7 +719,7 @@
         const std = (movie.Studio || movie.Partner || '').toLowerCase().trim();
         if (std && studioFreq[std]) score += studioFreq[std];
 
-        score += Math.random() * 8; // Refresh jitter
+        score += Math.random() * 8;
         return { movie, score };
       });
 
@@ -742,7 +728,7 @@
     }
 
     /* ==============================================================
-       BUILD MAIN LIVE FEED
+       MAIN FEED BUILDER (STRICT AGE_RATING ENFORCEMENT)
        ============================================================== */
     async function buildLiveFeed() {
       if (liveMoviesCatalog.length === 0 || !liveUserData) return;
@@ -756,37 +742,33 @@
       const container = document.getElementById('sectionsContainer');
       container.innerHTML = "";
 
-      // 1. Filter movies pool in real-time according to profile safety
-      const safeMoviesPool = liveMoviesCatalog.filter(m => isKidSafe(m));
+      // 1. FILTER ENTIRE MOVIE CATALOG BY USER'S ALLOWED AGE TIER FIRST
+      const allowedMoviesCatalog = liveMoviesCatalog.filter(m => isAllowedByAge(m.Age_Rating));
       const rawWatchedIds = getLiveRecentlyWatchedIds();
 
       // ==============================================================
-      // 2. "BECAUSE YOU WATCHED <NAME>" WITH LIVE SAFETY SCANNER
+      // 2. "BECAUSE YOU WATCHED <NAME>" (AGE-VERIFIED FIRST)
       // ==============================================================
       let anchorMovie = null;
 
-      if (isKidsProfile) {
-        // Sequentially scan user's live history until a verified safe movie is found
-        for (const wid of rawWatchedIds) {
-          const candidate = liveMoviesMap.get(wid);
-          if (candidate && isKidSafe(candidate)) {
-            anchorMovie = candidate;
-            break; // Found the safe movie from live DB
-          }
-        }
-      } else {
-        if (rawWatchedIds.length > 0) {
-          anchorMovie = liveMoviesMap.get(rawWatchedIds[0]);
+      // Scan user's watched list for the first movie allowed within the current Age_Rating tier
+      for (const wid of rawWatchedIds) {
+        const candidate = liveMoviesMap.get(wid);
+        if (candidate && isAllowedByAge(candidate.Age_Rating)) {
+          anchorMovie = candidate;
+          break; // Found the appropriate anchor film
         }
       }
 
-      // If no kid-safe film exists in history, OMIT this section completely
+      // If an age-appropriate anchor exists, match genres ONLY within allowed age ratings
       if (anchorMovie) {
         const anchorGenres = parseGenres(anchorMovie.Genres);
-        const similarSafeMovies = safeMoviesPool
+
+        const similarSafeMovies = allowedMoviesCatalog
           .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
           .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
 
+        // If no compliant movies exist, skip rendering this section entirely
         if (similarSafeMovies.length >= 2) {
           renderCarouselSection(
             `Because You Watched ${anchorMovie.Name || anchorMovie.Title || 'this'}`,
@@ -797,15 +779,15 @@
       }
 
       // ==============================================================
-      // 3. LIVE "FOR YOU" RECOMMENDATION
+      // 3. "FOR YOU" RECOMMENDATION (AGE-FILTERED FIRST)
       // ==============================================================
-      const forYouList = buildLiveForYou(safeMoviesPool, rawWatchedIds);
+      const forYouList = buildLiveForYou(allowedMoviesCatalog, rawWatchedIds);
       if (forYouList.length > 0) {
         renderCarouselSection("For You", forYouList, "Personalized");
       }
 
       // ==============================================================
-      // 4. SECTIONS FROM SYSTEMS COLLECTION (Real-time check)
+      // 4. SECTIONS FROM SYSTEMS COLLECTION (AGE-FILTERED)
       // ==============================================================
       try {
         const pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
@@ -818,9 +800,9 @@
 
             const secData = secSnap.data();
 
-            // Real-time compliance filter on section itself
-            if (!isSectionAgeCompliant(secData.Age_Rating)) {
-              continue;
+            // Check Section Age_Rating against user's max tier
+            if (!isAllowedByAge(secData.Age_Rating)) {
+              continue; // Skip section if section's rating exceeds user's tier
             }
 
             const isFixed = String(secData.Fixed).toLowerCase() === "true";
@@ -829,18 +811,18 @@
 
             let sectionMovies = [];
 
-            // Add verified titles from section.Titles
+            // Add mandatory titles (strictly age-verified)
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
               const movie = liveMoviesMap.get(String(tId).trim().toLowerCase());
-              if (movie && isKidSafe(movie) && !sectionMovies.some(m => m.id === movie.id)) {
+              if (movie && isAllowedByAge(movie.Age_Rating) && !sectionMovies.some(m => m.id === movie.id)) {
                 sectionMovies.push(movie);
               }
             }
 
-            // Fixed == False: blend similar live genres
+            // Fixed == False: blend similar genres within allowed ratings
             if (!isFixed) {
-              const similarMovies = safeMoviesPool.filter(m => {
+              const similarMovies = allowedMoviesCatalog.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
                 const mG = parseGenres(m.Genres);
                 return sectionGenres.some(sg => mG.includes(sg));
@@ -933,7 +915,7 @@
       const pillsRow = document.getElementById('modalGenrePillsRow');
       const grid = document.getElementById('modalGridMovies');
 
-      // Extract unique genres dynamically from the movies in this section
+      // Dynamically extract genres from allowed movies in this section
       const uniqueSectionGenres = Array.from(new Set(
         movies.flatMap(m => parseGenres(m.Genres).map(g => g.charAt(0).toUpperCase() + g.slice(1)))
       )).filter(Boolean);
@@ -981,9 +963,9 @@
       document.body.style.overflow = 'auto';
     };
 
-    // Initialize Real-Time Listeners
+    // Route changes update active profile and re-filter feed in real-time
     window.addEventListener('hashchange', () => {
-      updateActiveProfileState();
+      updateActiveProfile();
       renderUserNavPill();
       buildLiveFeed();
     });
