@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>My Space | Watch Movies, Shows & Live TV</title>
+  <title>My Space | OTT Platform</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,7 +40,7 @@
       padding-bottom: 85px;
     }
 
-    /* ================= TOP NAVBAR ================= */
+    /* TOP NAVBAR */
     .navbar {
       position: sticky;
       top: 0;
@@ -119,7 +119,7 @@
       text-transform: uppercase;
     }
 
-    /* ================= MAIN CONTAINER ================= */
+    /* MAIN CONTAINER */
     .main-container {
       max-width: 1400px;
       margin: 0 auto;
@@ -166,7 +166,7 @@
       text-transform: uppercase;
     }
 
-    /* ================= 16:9 CARDS ================= */
+    /* 16:9 CAROUSEL & CARDS (NO RATINGS / NO LOGOS) */
     .carousel-wrapper { position: relative; }
     .carousel-track {
       display: flex;
@@ -268,7 +268,7 @@
     .carousel-arrow.right { right: -14px; }
     .carousel-arrow:hover { background: var(--accent); }
 
-    /* ================= GENRE FILTER PILLS ================= */
+    /* GENRE FILTER PILLS */
     .genre-filter-scroller {
       display: flex;
       gap: 10px;
@@ -297,7 +297,7 @@
       border-color: rgba(255, 255, 255, 0.4);
     }
 
-    /* ================= SECTION MODAL PAGE ================= */
+    /* SECTION FULL-PAGE MODAL */
     .section-modal-page {
       position: fixed;
       inset: 0;
@@ -334,7 +334,7 @@
       margin-top: 14px;
     }
 
-    /* ================= MOBILE BOTTOM NAV ================= */
+    /* MOBILE BOTTOM NAV */
     .mobile-bottom-nav {
       display: none;
       position: fixed;
@@ -400,11 +400,11 @@
   <main class="main-container" id="sectionsContainer">
     <div style="text-align: center; padding: 60px; color: var(--text-muted);">
       <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-      <p style="margin-top:12px;">Verifying age compliance and curating feed...</p>
+      <p style="margin-top:12px;">Connecting to Real-Time Cloud Databases...</p>
     </div>
   </main>
 
-  <!-- Modal View with Filter Chips -->
+  <!-- Section Movies Grid Modal -->
   <div class="section-modal-page" id="sectionViewModal">
     <div class="modal-nav-header">
       <div class="modal-title-box">
@@ -425,7 +425,7 @@
       <span>Home</span>
     </a>
     <a href="search.html" class="nav-item-btn">
-      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
       <span>Search</span>
     </a>
     <a href="downloads.html" class="nav-item-btn">
@@ -438,39 +438,57 @@
     </a>
   </nav>
 
+  <!-- REAL-TIME FIREBASE ENGINES -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { 
       getFirestore, 
-      collection, 
       doc, 
+      onSnapshot, 
+      collection, 
       getDoc, 
-      getDocs 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      getDocs, 
+      query, 
+      where 
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const channelConfig = {
+    /* ==============================================================
+       1. REAL-TIME CONNECTION 1: UARM & AUTH DATABASE (question-metabase)
+       ============================================================== */
+    const uarmConfig = {
+      apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+      authDomain: "question-metabase.firebaseapp.com",
+      databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "question-metabase",
+      storageBucket: "question-metabase.firebasestorage.app",
+      messagingSenderId: "770698198753",
+      appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+      measurementId: "G-6ZP1FPMKSJ"
+    };
+    const uarmApp = initializeApp(uarmConfig, "uarmApp");
+    const uarmDb = getFirestore(uarmApp);
+
+    /* ==============================================================
+       2. REAL-TIME CONNECTION 2: CONTENT & SYSTEMS (internal-systems-46728)
+       ============================================================== */
+    const contentConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
       projectId: "internal-systems-46728"
     };
-    const app = initializeApp(channelConfig);
-    const db = getFirestore(app);
+    const contentApp = initializeApp(contentConfig, "contentApp");
+    const contentDb = getFirestore(contentApp);
 
-    // Profile state
+    // Live State Variables
+    let liveUserData = null;
+    let liveMoviesCatalog = [];
+    let liveMoviesMap = new Map();
+    let uarmUnsub = null;
+    let moviesUnsub = null;
+
     let activeProfile = null;
     let isKidsProfile = false;
     let userMaxAgeRating = "U/A 7+";
-
-    const ADULT_GENRES = [
-      "Action", "Crime", "Family", "Biopic", "Kids", "Romance", "Drama", "Comedy", 
-      "Mythology", "Teen", "Sci-Fi", "Horror", "Anime", "Thriller", "Adventure", 
-      "Animation", "Fantasy", "Historic", "Superhero", "Musical", "Mystery"
-    ];
-
-    const KIDS_GENRES = [
-      "Kids", "Animation", "Family", "Superhero", "Action", "Adventure", 
-      "Princess", "Fairy Tale", "Comedy", "Mythology", "Anime", "Musical"
-    ];
 
     function safeUrl(url) {
       if (!url) return '';
@@ -479,7 +497,10 @@
 
     function getPosterH(c) {
       if (!c) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800';
-      return safeUrl(c["Poster.h"] || c.Poster_h || c.Banner || c.banner || c["Poster.v"] || c.Poster || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800');
+      return safeUrl(
+        c["Poster.h"] || c.Poster_h || c.Banner || c.banner || c["Poster.v"] || c.Poster || 
+        'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800'
+      );
     }
 
     function parseGenres(field) {
@@ -499,47 +520,49 @@
     }
 
     /* ==============================================================
-       TRUST & GUARDIAN ENGINE: ZERO-TOLERANCE KIDS AGE RATING CHECK
+       TRUST & SAFETY: ZERO-TOLERANCE AGE RATING ENGINE
        ============================================================== */
     function isKidSafe(movie) {
-      // If profile is NOT Kids, adult content is accessible
-      if (!isKidsProfile) return true;
+      if (!isKidsProfile) return true; // Adult mode has no age limits
       if (!movie) return false;
 
       const rawAge = String(movie.Age_Rating || '').trim().toUpperCase();
       const genres = parseGenres(movie.Genres);
-      const tags = String(movie.Tags || '').toLowerCase();
 
-      // 1. Explicit Mature Indicators (Instant Block)
-      const explicitAdultMatches = [
-        "A", "18", "18+", "16", "16+", "U/A 16+", "U/A 16", "U/A 13+", "U/A 13", "13+", "R", "TV-MA", "TV-14", "NC-17", "ADULT"
-      ];
-
-      // Exact check or boundary check for ratings like 'A' or 'R'
-      for (const badge of explicitAdultMatches) {
-        if (rawAge === badge || rawAge.startsWith(badge + " ") || rawAge.endsWith(" " + badge) || rawAge.includes("16") || rawAge.includes("18") || rawAge.includes("13") || rawAge.includes("MA") || rawAge.includes("TV-14")) {
+      // 1. Definite Adult & Teen Flags -> Block immediately
+      const adultFlags = ["A", "18", "18+", "16", "16+", "U/A 16+", "U/A 16", "U/A 13+", "U/A 13", "13+", "R", "TV-MA", "TV-14", "NC-17", "ADULT"];
+      for (const badge of adultFlags) {
+        if (
+          rawAge === badge || 
+          rawAge.startsWith(badge + " ") || 
+          rawAge.endsWith(" " + badge) || 
+          rawAge.includes("16") || 
+          rawAge.includes("18") || 
+          rawAge.includes("13") || 
+          rawAge.includes("MA") || 
+          rawAge.includes("TV-14")
+        ) {
           return false;
         }
       }
 
-      // 2. Strict Genre Veto in Kids Mode (Stops war/violent dramas like Napoleon)
+      // 2. Mature genres block in Kids Mode (War, Crime, Thriller, Erotic, Biopic)
       const matureGenres = ["war", "crime", "horror", "erotic", "biopic", "political", "thriller"];
-      const isKidFriendlyTagged = genres.some(g => ["animation", "kids", "children", "cartoon", "disney", "family"].includes(g));
+      const isKidTagged = genres.some(g => ["animation", "kids", "children", "cartoon", "disney", "family"].includes(g));
 
-      if (genres.some(g => matureGenres.includes(g)) && !isKidFriendlyTagged) {
+      if (genres.some(g => matureGenres.includes(g)) && !isKidTagged) {
         return false;
       }
 
-      // 3. Allowed Kid-Safe Ratings
+      // 3. Approved safe ratings
       const allowedKidsRatings = ["U", "G", "TV-Y", "TV-Y7", "TV-G", "ALL", "U/A 7+", "PG", "TV-PG", "7+"];
-
       if (allowedKidsRatings.some(r => rawAge === r || rawAge.startsWith(r))) {
         return true;
       }
 
-      // 4. Fallback if Age_Rating is missing in Firestore: Only allow if explicitly Animation/Kids/Disney
-      if (!rawAge || rawAge === "N/A" || rawAge === "") {
-        return isKidFriendlyTagged;
+      // 4. Missing Rating: Only permit if explicitly tagged for children/animation
+      if (!rawAge || rawAge === "N/A") {
+        return isKidTagged;
       }
 
       return false;
@@ -548,46 +571,99 @@
     function isSectionAgeCompliant(sectionAge) {
       if (!isKidsProfile) return true;
       if (!sectionAge) return true;
-
       const raw = String(sectionAge).trim().toUpperCase();
-      if (raw.includes("18") || raw.includes("16") || raw.includes("13") || raw.includes("A") || raw.includes("MA")) {
-        return false;
-      }
-      return true;
+      return !(raw.includes("18") || raw.includes("16") || raw.includes("13") || raw.includes("A") || raw.includes("MA"));
     }
 
-    /* ================= PROFILE & ONBOARDING RESOLUTION ================= */
-    function resolveActiveProfile() {
+    /* ==============================================================
+       REAL-TIME USER SYNC (LISTENING TO UARM COLLECTION)
+       ============================================================== */
+    function syncRealtimeUARM() {
+      if (uarmUnsub) uarmUnsub();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus');
+      const uarmIdParam = urlParams.get('uarm') || urlParams.get('uarms');
+
+      const cachedRaw = localStorage.getItem('active_user') || localStorage.getItem('UARM');
+      const cached = cachedRaw ? JSON.parse(cachedRaw) : null;
+
+      const targetDocId = uarmIdParam || cached?.["UARMS ID"] || cached?.id || "7I4d9vmlm9WiUAUneQGByq6jT";
+
+      // Connect with live snapshot listener
+      uarmUnsub = onSnapshot(doc(uarmDb, "UARM", targetDocId), (snap) => {
+        if (!snap.exists()) {
+          console.warn(`User document '${targetDocId}' not found in question-metabase database.`);
+          return;
+        }
+
+        liveUserData = { id: snap.id, ...snap.data() };
+        localStorage.setItem('active_user', JSON.stringify(liveUserData));
+
+        updateActiveProfileState();
+        renderUserNavPill();
+        buildLiveFeed();
+      }, (err) => {
+        console.error("Real-time UARM connection error:", err);
+      });
+    }
+
+    /* ==============================================================
+       REAL-TIME MOVIES CATALOG SYNC (LISTENING TO MOVIES)
+       ============================================================== */
+    function syncRealtimeMovies() {
+      if (moviesUnsub) moviesUnsub();
+
+      moviesUnsub = onSnapshot(collection(contentDb, "Movies"), (snapshot) => {
+        liveMoviesCatalog = [];
+        liveMoviesMap.clear();
+
+        snapshot.forEach(docSnap => {
+          const m = { id: docSnap.id, ...docSnap.data() };
+          liveMoviesCatalog.push(m);
+          liveMoviesMap.set(docSnap.id.toLowerCase(), m);
+        });
+
+        buildLiveFeed();
+      }, (err) => {
+        console.error("Real-time Movies connection error:", err);
+      });
+    }
+
+    function updateActiveProfileState() {
+      if (!liveUserData) return;
+
       const hash = window.location.hash;
-      let targetUserIdx = null;
+      let targetUserIdx = 0;
 
       if (hash.includes('user#')) {
-        targetUserIdx = parseInt(hash.split('user#')[1], 10);
+        targetUserIdx = parseInt(hash.split('user#')[1], 10) || 0;
+      } else {
+        const cachedIdx = localStorage.getItem('active_profile_index');
+        if (cachedIdx !== null) targetUserIdx = parseInt(cachedIdx, 10);
       }
 
-      const cachedProfile = localStorage.getItem('active_profile');
-      const cachedUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
-      const userData = cachedUser ? JSON.parse(cachedUser) : null;
-
-      if (targetUserIdx !== null && userData?.Profiles && userData.Profiles[targetUserIdx]) {
-        activeProfile = userData.Profiles[targetUserIdx];
-        localStorage.setItem('active_profile', JSON.stringify(activeProfile));
-      } else if (cachedProfile) {
-        activeProfile = JSON.parse(cachedProfile);
-      } else if (userData?.Profiles && userData.Profiles.length > 0) {
-        activeProfile = userData.Profiles[0];
-        localStorage.setItem('active_profile', JSON.stringify(activeProfile));
+      if (Array.isArray(liveUserData.Profiles) && liveUserData.Profiles.length > targetUserIdx) {
+        activeProfile = liveUserData.Profiles[targetUserIdx];
+      } else if (Array.isArray(liveUserData.Profiles) && liveUserData.Profiles.length > 0) {
+        activeProfile = liveUserData.Profiles[0];
+      } else {
+        activeProfile = {
+          Name: liveUserData["First Name"] || "User",
+          Avatar: liveUserData["Profile_Picture"] || "",
+          Kids: String(liveUserData["Type"]).toLowerCase() === "kids" ? "True" : "False",
+          Age_Rating: "U/A 7+"
+        };
       }
 
-      if (!activeProfile) {
-        window.location.href = 'onboarding.html';
-        return false;
-      }
+      isKidsProfile = String(activeProfile?.Kids).toLowerCase() === "true";
+      userMaxAgeRating = activeProfile?.Age_Rating || (isKidsProfile ? "U/A 7+" : "A");
+    }
 
-      isKidsProfile = String(activeProfile.Kids).toLowerCase() === "true";
-      userMaxAgeRating = activeProfile.Age_Rating || (isKidsProfile ? "U/A 7+" : "A");
-
+    function renderUserNavPill() {
       const slot = document.getElementById('navAuthSlot');
+      if (!activeProfile) return;
+
       slot.innerHTML = `
         <a href="onboarding.html" class="user-pill">
           <img src="${activeProfile.Avatar || 'https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png'}" class="user-avatar" />
@@ -595,48 +671,48 @@
           ${isKidsProfile ? `<span class="kids-badge">Kids</span>` : ''}
         </a>
       `;
-
-      return true;
     }
 
-    /* ================= EXTRACT WATCHED MOVIE IDS ================= */
-    function getRecentlyWatchedMovieIds() {
-      try {
-        const cachedUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
-        const user = cachedUser ? JSON.parse(cachedUser) : null;
-        if (!user || !Array.isArray(user["Memory.ent"])) return [];
+    /* ==============================================================
+       PARSE LIVE WATCHED LIST FROM FIRESTORE Memory.ent
+       ============================================================== */
+    function getLiveRecentlyWatchedIds() {
+      if (!liveUserData || !Array.isArray(liveUserData["Memory.ent"])) return [];
 
-        for (const item of user["Memory.ent"]) {
-          if (typeof item === 'object' && item !== null) {
-            for (const key of Object.keys(item)) {
-              if (key.toLowerCase().includes("recently watched") && key.toLowerCase().includes("movie")) {
-                const val = item[key];
-                if (typeof val === 'string') {
-                  return val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-                }
+      for (const item of liveUserData["Memory.ent"]) {
+        if (typeof item === 'object' && item !== null) {
+          for (const key of Object.keys(item)) {
+            // Live match of field "Recently Watched Movies"
+            if (key.toLowerCase().includes("recently watched") && key.toLowerCase().includes("movie")) {
+              const val = item[key];
+              if (typeof val === 'string') {
+                return val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+              } else if (Array.isArray(val)) {
+                return val.map(s => String(s).trim().toLowerCase());
               }
             }
           }
         }
-      } catch(e) {}
+      }
       return [];
     }
 
-    /* ================= REFINED "FOR YOU" ALGORITHM ================= */
-    function buildBetterForYou(safeMoviesPool, watchedIds, moviesMap) {
-      // In Kids mode, only learn from kid-safe watched films
-      const effectiveWatchedIds = isKidsProfile
-        ? watchedIds.filter(id => isKidSafe(moviesMap.get(id)))
+    /* ==============================================================
+       REFINED "FOR YOU" ALGORITHM (POWERED BY LIVE CATALOG)
+       ============================================================== */
+    function buildLiveForYou(safeMoviesPool, watchedIds) {
+      const effectiveWatched = isKidsProfile
+        ? watchedIds.filter(id => isKidSafe(liveMoviesMap.get(id)))
         : watchedIds;
 
-      const unwatched = safeMoviesPool.filter(m => !effectiveWatchedIds.includes(m.id.toLowerCase()));
-      if (effectiveWatchedIds.length === 0) return mixupArray(unwatched).slice(0, 20);
+      const unwatched = safeMoviesPool.filter(m => !effectiveWatched.includes(m.id.toLowerCase()));
+      if (effectiveWatched.length === 0) return mixupArray(unwatched).slice(0, 20);
 
       const genreFreq = {};
       const studioFreq = {};
 
-      effectiveWatchedIds.forEach((id, idx) => {
-        const movie = moviesMap.get(id);
+      effectiveWatched.forEach((id, idx) => {
+        const movie = liveMoviesMap.get(id);
         if (!movie) return;
         const decay = Math.max(1, 5 - idx);
 
@@ -657,7 +733,7 @@
         const std = (movie.Studio || movie.Partner || '').toLowerCase().trim();
         if (std && studioFreq[std]) score += studioFreq[std];
 
-        score += Math.random() * 8; // Freshness jitter
+        score += Math.random() * 8; // Refresh jitter
         return { movie, score };
       });
 
@@ -665,9 +741,11 @@
       return scored.slice(0, 20).map(s => s.movie);
     }
 
-    /* ================= MAIN LOAD PAGE ================= */
-    async function loadPage() {
-      if (!resolveActiveProfile()) return;
+    /* ==============================================================
+       BUILD MAIN LIVE FEED
+       ============================================================== */
+    async function buildLiveFeed() {
+      if (liveMoviesCatalog.length === 0 || !liveUserData) return;
 
       const pageId = window.location.hash.split('&')[0].replace('#', '').trim().toLowerCase() || 'movies';
 
@@ -676,93 +754,73 @@
       });
 
       const container = document.getElementById('sectionsContainer');
-      container.innerHTML = `
-        <div style="text-align: center; padding: 60px; color: var(--text-muted);">
-          <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-          <p style="margin-top:12px;">Filtering catalog for ${activeProfile.Name}...</p>
-        </div>
-      `;
+      container.innerHTML = "";
 
+      // 1. Filter movies pool in real-time according to profile safety
+      const safeMoviesPool = liveMoviesCatalog.filter(m => isKidSafe(m));
+      const rawWatchedIds = getLiveRecentlyWatchedIds();
+
+      // ==============================================================
+      // 2. "BECAUSE YOU WATCHED <NAME>" WITH LIVE SAFETY SCANNER
+      // ==============================================================
+      let anchorMovie = null;
+
+      if (isKidsProfile) {
+        // Sequentially scan user's live history until a verified safe movie is found
+        for (const wid of rawWatchedIds) {
+          const candidate = liveMoviesMap.get(wid);
+          if (candidate && isKidSafe(candidate)) {
+            anchorMovie = candidate;
+            break; // Found the safe movie from live DB
+          }
+        }
+      } else {
+        if (rawWatchedIds.length > 0) {
+          anchorMovie = liveMoviesMap.get(rawWatchedIds[0]);
+        }
+      }
+
+      // If no kid-safe film exists in history, OMIT this section completely
+      if (anchorMovie) {
+        const anchorGenres = parseGenres(anchorMovie.Genres);
+        const similarSafeMovies = safeMoviesPool
+          .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
+          .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
+
+        if (similarSafeMovies.length >= 2) {
+          renderCarouselSection(
+            `Because You Watched ${anchorMovie.Name || anchorMovie.Title || 'this'}`,
+            mixupArray(similarSafeMovies).slice(0, 15),
+            "Recommendation"
+          );
+        }
+      }
+
+      // ==============================================================
+      // 3. LIVE "FOR YOU" RECOMMENDATION
+      // ==============================================================
+      const forYouList = buildLiveForYou(safeMoviesPool, rawWatchedIds);
+      if (forYouList.length > 0) {
+        renderCarouselSection("For You", forYouList, "Personalized");
+      }
+
+      // ==============================================================
+      // 4. SECTIONS FROM SYSTEMS COLLECTION (Real-time check)
+      // ==============================================================
       try {
-        const moviesSnap = await getDocs(collection(db, "Movies"));
-        const moviesMap = new Map();
-        let allMovies = [];
-
-        moviesSnap.forEach(d => {
-          const item = { id: d.id, ...d.data() };
-          moviesMap.set(d.id.toLowerCase(), item);
-          allMovies.push(item);
-        });
-
-        // 1. FILTER ENTIRE MOVIE CATALOG WITH STRICT AGE GUARDIAN
-        allMovies = allMovies.filter(m => isKidSafe(m));
-
-        container.innerHTML = "";
-
-        const rawWatchedIds = getRecentlyWatchedMovieIds();
-
-        // ==============================================================
-        // 2. "BECAUSE YOU WATCHED <NAME>" WITH STRICT SAFETY FALLBACK
-        // ==============================================================
-        let anchorMovie = null;
-
-        if (isKidsProfile) {
-          // In Kids mode: iterate through history until a VERIFIED SAFE movie is found
-          for (const wid of rawWatchedIds) {
-            const candidate = moviesMap.get(wid);
-            if (candidate && isKidSafe(candidate)) {
-              anchorMovie = candidate;
-              break; // Found the safest recent kid movie (e.g. Zootopia or Coco)
-            }
-          }
-        } else {
-          // In Adult mode: use the most recent movie
-          if (rawWatchedIds.length > 0) {
-            anchorMovie = moviesMap.get(rawWatchedIds[0]);
-          }
-        }
-
-        // Only render the row if a compliant movie exists AND has similar safe titles
-        if (anchorMovie) {
-          const anchorGenres = parseGenres(anchorMovie.Genres);
-          const similarSafeMovies = allMovies
-            .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
-            .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
-
-          // User Requirement: "agar movie na mile toh Section ko rehne do dont show"
-          if (similarSafeMovies.length >= 2) {
-            renderCarouselSection(
-              `Because You Watched ${anchorMovie.Name || anchorMovie.Title || 'this'}`,
-              mixupArray(similarSafeMovies).slice(0, 15),
-              "Recommendation"
-            );
-          }
-        }
-
-        // ==============================================================
-        // 3. "FOR YOU" CAROUSEL
-        // ==============================================================
-        const forYouList = buildBetterForYou(allMovies, rawWatchedIds, moviesMap);
-        if (forYouList.length > 0) {
-          renderCarouselSection("For You", forYouList, "Personalized");
-        }
-
-        // ==============================================================
-        // 4. DYNAMIC SECTIONS FROM SYSTEMS COLLECTION
-        // ==============================================================
-        const pageDoc = await getDoc(doc(db, "Systems", pageId));
+        const pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
         if (pageDoc.exists()) {
           const sectionIds = pageDoc.data().Sections || [];
 
           for (const sId of sectionIds) {
-            const secSnap = await getDoc(doc(db, "Systems", sId));
+            const secSnap = await getDoc(doc(contentDb, "Systems", sId));
             if (!secSnap.exists()) continue;
 
             const secData = secSnap.data();
 
-            // Compliance filter for section itself
+            // Real-time compliance filter on section itself
             if (!isSectionAgeCompliant(secData.Age_Rating)) {
-              continue; // Skip mature section entirely in Kids mode
+              continue;
             }
 
             const isFixed = String(secData.Fixed).toLowerCase() === "true";
@@ -771,18 +829,18 @@
 
             let sectionMovies = [];
 
-            // Add mandatory titles (validated by isKidSafe)
+            // Add verified titles from section.Titles
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
-              const movie = moviesMap.get(String(tId).trim().toLowerCase());
+              const movie = liveMoviesMap.get(String(tId).trim().toLowerCase());
               if (movie && isKidSafe(movie) && !sectionMovies.some(m => m.id === movie.id)) {
                 sectionMovies.push(movie);
               }
             }
 
-            // If Fixed == False: blend similar safe genres
+            // Fixed == False: blend similar live genres
             if (!isFixed) {
-              const similarMovies = allMovies.filter(m => {
+              const similarMovies = safeMoviesPool.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
                 const mG = parseGenres(m.Genres);
                 return sectionGenres.some(sg => mG.includes(sg));
@@ -790,16 +848,13 @@
               sectionMovies = mixupArray([...sectionMovies, ...similarMovies]).slice(0, maxLimit);
             }
 
-            // Only show the section if it contains safe titles
             if (sectionMovies.length > 0) {
               renderCarouselSection(secData.Name || sId, sectionMovies);
             }
           }
         }
-
-      } catch(err) {
-        console.error("Feed error:", err);
-        container.innerHTML = `<div style="text-align:center; padding:40px; color:#ff5252;">Failed to load feed. Check connectivity and permissions.</div>`;
+      } catch (err) {
+        console.error("Systems collection fetch error:", err);
       }
     }
 
@@ -840,7 +895,7 @@
       container.appendChild(sectionEl);
     }
 
-    /* ================= 16:9 CARD (NO LOGO, NO RATING) ================= */
+    /* ================= 16:9 CARD (CLEAN: NO LOGOS, NO RATINGS) ================= */
     function create16x9Card(movie) {
       const card = document.createElement('div');
       card.className = 'card-16-9';
@@ -878,11 +933,14 @@
       const pillsRow = document.getElementById('modalGenrePillsRow');
       const grid = document.getElementById('modalGridMovies');
 
-      const activeGenres = isKidsProfile ? KIDS_GENRES : ADULT_GENRES;
+      // Extract unique genres dynamically from the movies in this section
+      const uniqueSectionGenres = Array.from(new Set(
+        movies.flatMap(m => parseGenres(m.Genres).map(g => g.charAt(0).toUpperCase() + g.slice(1)))
+      )).filter(Boolean);
 
       pillsRow.innerHTML = `
         <div class="genre-chip active" onclick="window.filterModalMovies(this, 'all', '${encodedKey}')">All</div>
-        ${activeGenres.map(g => `
+        ${uniqueSectionGenres.map(g => `
           <div class="genre-chip" onclick="window.filterModalMovies(this, '${g}', '${encodedKey}')">${g}</div>
         `).join('')}
       `;
@@ -923,8 +981,15 @@
       document.body.style.overflow = 'auto';
     };
 
-    window.addEventListener('hashchange', loadPage);
-    loadPage();
+    // Initialize Real-Time Listeners
+    window.addEventListener('hashchange', () => {
+      updateActiveProfileState();
+      renderUserNavPill();
+      buildLiveFeed();
+    });
+
+    syncRealtimeUARM();
+    syncRealtimeMovies();
   </script>
 </body>
 </html>
