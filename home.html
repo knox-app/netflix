@@ -166,7 +166,7 @@
       text-transform: uppercase;
     }
 
-    /* ================= 16:9 CARDS (NO LOGOS, NO RATINGS) ================= */
+    /* ================= 16:9 CARDS ================= */
     .carousel-wrapper { position: relative; }
     .carousel-track {
       display: flex;
@@ -389,22 +389,22 @@
       </ul>
     </div>
     <div class="nav-right" id="navAuthSlot">
-      <a href="onboarding.html" class="user-pill" id="userPillBtn">
+      <a href="onboarding.html" class="user-pill">
         <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
         <span>Profiles</span>
       </a>
     </div>
   </header>
 
-  <!-- Feed Container -->
+  <!-- Content Container -->
   <main class="main-container" id="sectionsContainer">
     <div style="text-align: center; padding: 60px; color: var(--text-muted);">
       <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-      <p style="margin-top:12px;">Loading feeds...</p>
+      <p style="margin-top:12px;">Verifying age compliance and curating feed...</p>
     </div>
   </main>
 
-  <!-- Section Movies Grid Modal with Filter Chips (Screenshot 2 Design) -->
+  <!-- Modal View with Filter Chips -->
   <div class="section-modal-page" id="sectionViewModal">
     <div class="modal-nav-header">
       <div class="modal-title-box">
@@ -418,14 +418,14 @@
     <div class="modal-grid-container" id="modalGridMovies"></div>
   </div>
 
-  <!-- Mobile Bottom Nav -->
+  <!-- Mobile Bottom Navigation -->
   <nav class="mobile-bottom-nav">
     <a href="home.html#movies" class="nav-item-btn active">
       <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       <span>Home</span>
     </a>
     <a href="search.html" class="nav-item-btn">
-      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/></svg>
       <span>Search</span>
     </a>
     <a href="downloads.html" class="nav-item-btn">
@@ -448,7 +448,6 @@
       getDocs 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Channel & Systems Database
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -460,9 +459,8 @@
     // Profile state
     let activeProfile = null;
     let isKidsProfile = false;
-    let userMaxAgeRating = null;
+    let userMaxAgeRating = "U/A 7+";
 
-    // Standard genre buckets
     const ADULT_GENRES = [
       "Action", "Crime", "Family", "Biopic", "Kids", "Romance", "Drama", "Comedy", 
       "Mythology", "Teen", "Sci-Fi", "Horror", "Anime", "Thriller", "Adventure", 
@@ -473,22 +471,6 @@
       "Kids", "Animation", "Family", "Superhero", "Action", "Adventure", 
       "Princess", "Fairy Tale", "Comedy", "Mythology", "Anime", "Musical"
     ];
-
-    // Age Rating hierarchy scale (lower number = younger audience)
-    const AGE_RANKS = {
-      "U": 1,
-      "G": 1,
-      "TV-Y": 1,
-      "ALL": 1,
-      "U/A 7+": 2,
-      "TV-Y7": 2,
-      "U/A 13+": 3,
-      "PG-13": 3,
-      "U/A 16+": 4,
-      "A": 5,
-      "18+": 5,
-      "R": 5
-    };
 
     function safeUrl(url) {
       if (!url) return '';
@@ -516,9 +498,66 @@
       return shuffled;
     }
 
-    /* ================= 4. PROFILE ONBOARDING COMPLIANCE ================= */
+    /* ==============================================================
+       TRUST & GUARDIAN ENGINE: ZERO-TOLERANCE KIDS AGE RATING CHECK
+       ============================================================== */
+    function isKidSafe(movie) {
+      // If profile is NOT Kids, adult content is accessible
+      if (!isKidsProfile) return true;
+      if (!movie) return false;
+
+      const rawAge = String(movie.Age_Rating || '').trim().toUpperCase();
+      const genres = parseGenres(movie.Genres);
+      const tags = String(movie.Tags || '').toLowerCase();
+
+      // 1. Explicit Mature Indicators (Instant Block)
+      const explicitAdultMatches = [
+        "A", "18", "18+", "16", "16+", "U/A 16+", "U/A 16", "U/A 13+", "U/A 13", "13+", "R", "TV-MA", "TV-14", "NC-17", "ADULT"
+      ];
+
+      // Exact check or boundary check for ratings like 'A' or 'R'
+      for (const badge of explicitAdultMatches) {
+        if (rawAge === badge || rawAge.startsWith(badge + " ") || rawAge.endsWith(" " + badge) || rawAge.includes("16") || rawAge.includes("18") || rawAge.includes("13") || rawAge.includes("MA") || rawAge.includes("TV-14")) {
+          return false;
+        }
+      }
+
+      // 2. Strict Genre Veto in Kids Mode (Stops war/violent dramas like Napoleon)
+      const matureGenres = ["war", "crime", "horror", "erotic", "biopic", "political", "thriller"];
+      const isKidFriendlyTagged = genres.some(g => ["animation", "kids", "children", "cartoon", "disney", "family"].includes(g));
+
+      if (genres.some(g => matureGenres.includes(g)) && !isKidFriendlyTagged) {
+        return false;
+      }
+
+      // 3. Allowed Kid-Safe Ratings
+      const allowedKidsRatings = ["U", "G", "TV-Y", "TV-Y7", "TV-G", "ALL", "U/A 7+", "PG", "TV-PG", "7+"];
+
+      if (allowedKidsRatings.some(r => rawAge === r || rawAge.startsWith(r))) {
+        return true;
+      }
+
+      // 4. Fallback if Age_Rating is missing in Firestore: Only allow if explicitly Animation/Kids/Disney
+      if (!rawAge || rawAge === "N/A" || rawAge === "") {
+        return isKidFriendlyTagged;
+      }
+
+      return false;
+    }
+
+    function isSectionAgeCompliant(sectionAge) {
+      if (!isKidsProfile) return true;
+      if (!sectionAge) return true;
+
+      const raw = String(sectionAge).trim().toUpperCase();
+      if (raw.includes("18") || raw.includes("16") || raw.includes("13") || raw.includes("A") || raw.includes("MA")) {
+        return false;
+      }
+      return true;
+    }
+
+    /* ================= PROFILE & ONBOARDING RESOLUTION ================= */
     function resolveActiveProfile() {
-      // Check query or hash parameter (e.g. #movies&user#1)
       const hash = window.location.hash;
       let targetUserIdx = null;
 
@@ -526,7 +565,6 @@
         targetUserIdx = parseInt(hash.split('user#')[1], 10);
       }
 
-      // Check localStorage
       const cachedProfile = localStorage.getItem('active_profile');
       const cachedUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
       const userData = cachedUser ? JSON.parse(cachedUser) : null;
@@ -541,16 +579,14 @@
         localStorage.setItem('active_profile', JSON.stringify(activeProfile));
       }
 
-      // If still no profile, send to onboarding
       if (!activeProfile) {
         window.location.href = 'onboarding.html';
         return false;
       }
 
       isKidsProfile = String(activeProfile.Kids).toLowerCase() === "true";
-      userMaxAgeRating = activeProfile.Age_Rating || (isKidsProfile ? "U/A 7+" : null);
+      userMaxAgeRating = activeProfile.Age_Rating || (isKidsProfile ? "U/A 7+" : "A");
 
-      // Render top right profile button
       const slot = document.getElementById('navAuthSlot');
       slot.innerHTML = `
         <a href="onboarding.html" class="user-pill">
@@ -563,18 +599,7 @@
       return true;
     }
 
-    // Age Rating Compliance Checker
-    function isAgeCompliant(ageRatingStr) {
-      if (!isKidsProfile) return true; // Kids=False shows ALL age-rated sections
-      if (!ageRatingStr) return true;
-
-      const profileRank = AGE_RANKS[userMaxAgeRating] || 2; // Default to U/A 7+ (Rank 2)
-      const itemRank = AGE_RANKS[ageRatingStr] || 1;
-
-      return itemRank <= profileRank;
-    }
-
-    /* ================= 1. REFINED "FOR YOU" ALGORITHM ================= */
+    /* ================= EXTRACT WATCHED MOVIE IDS ================= */
     function getRecentlyWatchedMovieIds() {
       try {
         const cachedUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
@@ -597,14 +622,20 @@
       return [];
     }
 
-    function buildBetterForYou(allMovies, watchedIds, moviesMap) {
-      const unwatched = allMovies.filter(m => !watchedIds.includes(m.id.toLowerCase()));
-      if (watchedIds.length === 0) return mixupArray(unwatched).slice(0, 20);
+    /* ================= REFINED "FOR YOU" ALGORITHM ================= */
+    function buildBetterForYou(safeMoviesPool, watchedIds, moviesMap) {
+      // In Kids mode, only learn from kid-safe watched films
+      const effectiveWatchedIds = isKidsProfile
+        ? watchedIds.filter(id => isKidSafe(moviesMap.get(id)))
+        : watchedIds;
+
+      const unwatched = safeMoviesPool.filter(m => !effectiveWatchedIds.includes(m.id.toLowerCase()));
+      if (effectiveWatchedIds.length === 0) return mixupArray(unwatched).slice(0, 20);
 
       const genreFreq = {};
       const studioFreq = {};
 
-      watchedIds.forEach((id, idx) => {
+      effectiveWatchedIds.forEach((id, idx) => {
         const movie = moviesMap.get(id);
         if (!movie) return;
         const decay = Math.max(1, 5 - idx);
@@ -626,8 +657,7 @@
         const std = (movie.Studio || movie.Partner || '').toLowerCase().trim();
         if (std && studioFreq[std]) score += studioFreq[std];
 
-        // Add slight random jitter (1-8) so reloads feel dynamic
-        score += Math.random() * 8;
+        score += Math.random() * 8; // Freshness jitter
         return { movie, score };
       });
 
@@ -649,12 +679,11 @@
       container.innerHTML = `
         <div style="text-align: center; padding: 60px; color: var(--text-muted);">
           <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-          <p style="margin-top:12px;">Loading feeds for ${activeProfile.Name}...</p>
+          <p style="margin-top:12px;">Filtering catalog for ${activeProfile.Name}...</p>
         </div>
       `;
 
       try {
-        // Pre-fetch all movies
         const moviesSnap = await getDocs(collection(db, "Movies"));
         const moviesMap = new Map();
         let allMovies = [];
@@ -665,37 +694,62 @@
           allMovies.push(item);
         });
 
-        // Filter individual movies if Kids profile is active
-        if (isKidsProfile) {
-          allMovies = allMovies.filter(m => isAgeCompliant(m.Age_Rating));
-        }
+        // 1. FILTER ENTIRE MOVIE CATALOG WITH STRICT AGE GUARDIAN
+        allMovies = allMovies.filter(m => isKidSafe(m));
 
         container.innerHTML = "";
 
-        const watchedIds = getRecentlyWatchedMovieIds();
+        const rawWatchedIds = getRecentlyWatchedMovieIds();
 
-        // 1. "Because You Watched <Name>"
-        if (watchedIds.length > 0) {
-          const lastMovie = moviesMap.get(watchedIds[0]);
-          if (lastMovie) {
-            const anchorGenres = parseGenres(lastMovie.Genres);
-            const similar = allMovies
-              .filter(m => m.id.toLowerCase() !== lastMovie.id.toLowerCase())
-              .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
+        // ==============================================================
+        // 2. "BECAUSE YOU WATCHED <NAME>" WITH STRICT SAFETY FALLBACK
+        // ==============================================================
+        let anchorMovie = null;
 
-            if (similar.length > 0) {
-              renderCarouselSection(`Because You Watched ${lastMovie.Name || 'this'}`, mixupArray(similar).slice(0, 15), "Recommendation");
+        if (isKidsProfile) {
+          // In Kids mode: iterate through history until a VERIFIED SAFE movie is found
+          for (const wid of rawWatchedIds) {
+            const candidate = moviesMap.get(wid);
+            if (candidate && isKidSafe(candidate)) {
+              anchorMovie = candidate;
+              break; // Found the safest recent kid movie (e.g. Zootopia or Coco)
             }
+          }
+        } else {
+          // In Adult mode: use the most recent movie
+          if (rawWatchedIds.length > 0) {
+            anchorMovie = moviesMap.get(rawWatchedIds[0]);
           }
         }
 
-        // 2. High-precision "For You" Carousel
-        const forYouList = buildBetterForYou(allMovies, watchedIds, moviesMap);
+        // Only render the row if a compliant movie exists AND has similar safe titles
+        if (anchorMovie) {
+          const anchorGenres = parseGenres(anchorMovie.Genres);
+          const similarSafeMovies = allMovies
+            .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
+            .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
+
+          // User Requirement: "agar movie na mile toh Section ko rehne do dont show"
+          if (similarSafeMovies.length >= 2) {
+            renderCarouselSection(
+              `Because You Watched ${anchorMovie.Name || anchorMovie.Title || 'this'}`,
+              mixupArray(similarSafeMovies).slice(0, 15),
+              "Recommendation"
+            );
+          }
+        }
+
+        // ==============================================================
+        // 3. "FOR YOU" CAROUSEL
+        // ==============================================================
+        const forYouList = buildBetterForYou(allMovies, rawWatchedIds, moviesMap);
         if (forYouList.length > 0) {
           renderCarouselSection("For You", forYouList, "Personalized");
         }
 
-        // 3. Fetch Page & Sections from Systems (Compliance Checked)
+        // ==============================================================
+        // 4. DYNAMIC SECTIONS FROM SYSTEMS COLLECTION
+        // ==============================================================
         const pageDoc = await getDoc(doc(db, "Systems", pageId));
         if (pageDoc.exists()) {
           const sectionIds = pageDoc.data().Sections || [];
@@ -706,9 +760,9 @@
 
             const secData = secSnap.data();
 
-            // Compliance filter: If Kids=True, verify section age rating
-            if (isKidsProfile && !isAgeCompliant(secData.Age_Rating)) {
-              continue; // Skip adult-rated section
+            // Compliance filter for section itself
+            if (!isSectionAgeCompliant(secData.Age_Rating)) {
+              continue; // Skip mature section entirely in Kids mode
             }
 
             const isFixed = String(secData.Fixed).toLowerCase() === "true";
@@ -717,16 +771,16 @@
 
             let sectionMovies = [];
 
-            // Add mandatory titles
+            // Add mandatory titles (validated by isKidSafe)
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
               const movie = moviesMap.get(String(tId).trim().toLowerCase());
-              if (movie && isAgeCompliant(movie.Age_Rating) && !sectionMovies.some(m => m.id === movie.id)) {
+              if (movie && isKidSafe(movie) && !sectionMovies.some(m => m.id === movie.id)) {
                 sectionMovies.push(movie);
               }
             }
 
-            // Fixed == False: blend similar genres
+            // If Fixed == False: blend similar safe genres
             if (!isFixed) {
               const similarMovies = allMovies.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
@@ -736,6 +790,7 @@
               sectionMovies = mixupArray([...sectionMovies, ...similarMovies]).slice(0, maxLimit);
             }
 
+            // Only show the section if it contains safe titles
             if (sectionMovies.length > 0) {
               renderCarouselSection(secData.Name || sId, sectionMovies);
             }
@@ -785,7 +840,7 @@
       container.appendChild(sectionEl);
     }
 
-    /* ================= 3. 16:9 CARD (NO LOGO, NO RATINGS) ================= */
+    /* ================= 16:9 CARD (NO LOGO, NO RATING) ================= */
     function create16x9Card(movie) {
       const card = document.createElement('div');
       card.className = 'card-16-9';
@@ -794,7 +849,6 @@
       const poster = getPosterH(movie);
       const genres = parseGenres(movie.Genres).map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(' • ') || movie.Language || 'Movie';
 
-      // Redirection to preview.html?watch=<id>
       card.onclick = () => {
         window.location.href = `preview.html?watch=${encodeURIComponent(movie.id)}`;
       };
@@ -815,7 +869,7 @@
       return card;
     }
 
-    /* ================= 2. MODAL VIEW WITH GENRE CHIPS (SCREENSHOT 2) ================= */
+    /* ================= SECTION MODAL VIEW WITH GENRE CHIPS ================= */
     window.openSectionModal = function(encodedKey) {
       const movies = window[`sec_cache_${encodedKey}`] || [];
       const title = decodeURIComponent(encodedKey);
