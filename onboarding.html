@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Who's Watching? | My Space</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body {
+      background: radial-gradient(circle at center, #181c28 0%, #0c0e14 100%);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .header-title {
+      font-size: clamp(24px, 4vw, 36px);
+      font-weight: 800;
+      margin-bottom: 40px;
+      letter-spacing: -0.5px;
+      text-align: center;
+    }
+    .profiles-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 32px;
+      max-width: 800px;
+    }
+    .profile-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      color: #fff;
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .profile-card:hover { transform: scale(1.08); }
+    .avatar-wrapper {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid transparent;
+      background: #1e2230;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transition: border-color 0.2s ease;
+    }
+    .profile-card:hover .avatar-wrapper {
+      border-color: #ffffff;
+    }
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .kids-badge {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffb703;
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .profile-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #cbd5e1;
+      transition: color 0.2s;
+    }
+    .profile-card:hover .profile-name { color: #ffffff; }
+    .spinner {
+      color: #0072ef;
+      font-size: 18px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 class="header-title">Who's Watching?</h1>
+  <div class="profiles-grid" id="profilesContainer">
+    <div class="spinner">Loading profiles...</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, doc, getDoc, getDocs, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // Project holding UARM collection
+    const authConfig = {
+      apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+      authDomain: "question-metabase.firebaseapp.com",
+      projectId: "question-metabase"
+    };
+    const app = initializeApp(authConfig);
+    const db = getFirestore(app);
+
+    async function loadProfiles() {
+      const container = document.getElementById('profilesContainer');
+
+      // 1. Resolve user ID or Lotus token from localStorage or query params
+      const urlParams = new URLSearchParams(window.location.search);
+      const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus');
+      
+      let rawUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
+      let localUser = rawUser ? JSON.parse(rawUser) : null;
+      let userData = null;
+
+      try {
+        if (lotusParam) {
+          const q = query(collection(db, "UARM"), where("Lotus", "==", lotusParam));
+          const snap = await getDocs(q);
+          if (!snap.empty) userData = snap.docs[0].data();
+        } else if (localUser?.Lotus) {
+          const q = query(collection(db, "UARM"), where("Lotus", "==", localUser.Lotus));
+          const snap = await getDocs(q);
+          if (!snap.empty) userData = snap.docs[0].data();
+        } else if (localUser?.id) {
+          const snap = await getDoc(doc(db, "UARM", localUser.id));
+          if (snap.exists()) userData = snap.data();
+        }
+
+        // Fallback to local cache if offline
+        if (!userData && localUser) userData = localUser;
+
+        if (!userData || !Array.isArray(userData.Profiles)) {
+          container.innerHTML = `<div style="color:#ef4444;">Please sign in to select a profile. <a href="1.html" style="color:#0072ef; margin-left:8px;">Sign In</a></div>`;
+          return;
+        }
+
+        // Save fresh user data
+        localStorage.setItem('active_user', JSON.stringify(userData));
+
+        // 2. Render Profiles
+        container.innerHTML = userData.Profiles.map((profile, idx) => {
+          const isKids = String(profile.Kids).toLowerCase() === "true";
+          const avatar = profile.Avatar || "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png";
+
+          return `
+            <div class="profile-card" onclick="window.selectProfile(${idx})">
+              <div class="avatar-wrapper">
+                <img src="${avatar}" class="avatar-img" alt="${profile.Name}" />
+                ${isKids ? `<span class="kids-badge">Kids</span>` : ''}
+              </div>
+              <span class="profile-name">${profile.Name}</span>
+            </div>
+          `;
+        }).join('');
+
+        window.userProfilesCache = userData.Profiles;
+
+      } catch (err) {
+        console.error("Error loading profiles:", err);
+        container.innerHTML = `<div style="color:#ef4444;">Failed to load profiles. Check connection.</div>`;
+      }
+    }
+
+    window.selectProfile = function(idx) {
+      const selected = window.userProfilesCache[idx];
+      localStorage.setItem('active_profile', JSON.stringify(selected));
+      localStorage.setItem('active_profile_index', idx.toString());
+
+      // Redirect to home.html with the selected profile in hash
+      window.location.href = `home.html#movies&user#${idx}`;
+    };
+
+    loadProfiles();
+  </script>
+</body>
+</html>
