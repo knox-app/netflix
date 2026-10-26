@@ -166,7 +166,7 @@
       text-transform: uppercase;
     }
 
-    /* ================= 16:9 CARDS (NO LOGOS, NO RATINGS) ================= */
+    /* ================= 16:9 CARDS ================= */
     .carousel-wrapper { position: relative; }
     .carousel-track {
       display: flex;
@@ -389,7 +389,7 @@
       </ul>
     </div>
     <div class="nav-right" id="navAuthSlot">
-      <a href="onboarding.html" class="user-pill" id="userPillBtn">
+      <a href="onboarding.html" class="user-pill">
         <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
         <span>Profiles</span>
       </a>
@@ -400,11 +400,11 @@
   <main class="main-container" id="sectionsContainer">
     <div style="text-align: center; padding: 60px; color: var(--text-muted);">
       <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-      <p style="margin-top:12px;">Loading feeds...</p>
+      <p style="margin-top:12px;">Loading personalized feeds...</p>
     </div>
   </main>
 
-  <!-- Section Movies Grid Modal with Filter Chips (Screenshot 2 Design) -->
+  <!-- Section Movies Grid Modal with Filter Chips -->
   <div class="section-modal-page" id="sectionViewModal">
     <div class="modal-nav-header">
       <div class="modal-title-box">
@@ -448,7 +448,6 @@
       getDocs 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Channel & Systems Database
     const channelConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -460,9 +459,8 @@
     // Profile state
     let activeProfile = null;
     let isKidsProfile = false;
-    let userMaxAgeRating = null;
+    let profileMaxRank = 5;
 
-    // Standard genre buckets
     const ADULT_GENRES = [
       "Action", "Crime", "Family", "Biopic", "Kids", "Romance", "Drama", "Comedy", 
       "Mythology", "Teen", "Sci-Fi", "Horror", "Anime", "Thriller", "Adventure", 
@@ -474,20 +472,13 @@
       "Princess", "Fairy Tale", "Comedy", "Mythology", "Anime", "Musical"
     ];
 
-    // Age Rating hierarchy scale (lower number = younger audience)
+    // Age Rating hierarchy scale (lower number = younger/stricter audience)
     const AGE_RANKS = {
-      "U": 1,
-      "G": 1,
-      "TV-Y": 1,
-      "ALL": 1,
-      "U/A 7+": 2,
-      "TV-Y7": 2,
-      "U/A 13+": 3,
-      "PG-13": 3,
-      "U/A 16+": 4,
-      "A": 5,
-      "18+": 5,
-      "R": 5
+      "U": 1, "G": 1, "TV-Y": 1, "ALL": 1,
+      "U/A 7+": 2, "7+": 2, "TV-Y7": 2, "PG": 2,
+      "U/A 13+": 3, "13+": 3, "PG-13": 3, "TV-14": 3,
+      "U/A 16+": 4, "16+": 4,
+      "A": 5, "18+": 5, "R": 5
     };
 
     function safeUrl(url) {
@@ -500,7 +491,8 @@
       return safeUrl(c["Poster.h"] || c.Poster_h || c.Banner || c.banner || c["Poster.v"] || c.Poster || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800');
     }
 
-    function parseGenres(field) {
+    // Tokenizer supporting comma, slash, and pipeline delimiters
+    function tokenize(field) {
       if (!field) return [];
       if (Array.isArray(field)) return field.map(g => String(g).trim().toLowerCase()).filter(Boolean);
       if (typeof field === 'string') return field.split(/[,/|•]+/).map(g => g.trim().toLowerCase()).filter(Boolean);
@@ -516,9 +508,8 @@
       return shuffled;
     }
 
-    /* ================= 4. PROFILE ONBOARDING COMPLIANCE ================= */
+    /* ================= PROFILE ONBOARDING & AGE COMPLIANCE ================= */
     function resolveActiveProfile() {
-      // Check query or hash parameter (e.g. #movies&user#1)
       const hash = window.location.hash;
       let targetUserIdx = null;
 
@@ -526,7 +517,6 @@
         targetUserIdx = parseInt(hash.split('user#')[1], 10);
       }
 
-      // Check localStorage
       const cachedProfile = localStorage.getItem('active_profile');
       const cachedUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
       const userData = cachedUser ? JSON.parse(cachedUser) : null;
@@ -541,14 +531,21 @@
         localStorage.setItem('active_profile', JSON.stringify(activeProfile));
       }
 
-      // If still no profile, send to onboarding
       if (!activeProfile) {
         window.location.href = 'onboarding.html';
         return false;
       }
 
       isKidsProfile = String(activeProfile.Kids).toLowerCase() === "true";
-      userMaxAgeRating = activeProfile.Age_Rating || (isKidsProfile ? "U/A 7+" : null);
+      const profileRating = activeProfile.Age_Rating ? String(activeProfile.Age_Rating).trim() : null;
+
+      if (isKidsProfile) {
+        profileMaxRank = profileRating && AGE_RANKS[profileRating] ? AGE_RANKS[profileRating] : 2; // Default U/A 7+
+      } else if (profileRating && AGE_RANKS[profileRating]) {
+        profileMaxRank = AGE_RANKS[profileRating];
+      } else {
+        profileMaxRank = 5; // Adult/unrestricted
+      }
 
       // Render top right profile button
       const slot = document.getElementById('navAuthSlot');
@@ -563,18 +560,17 @@
       return true;
     }
 
-    // Age Rating Compliance Checker
+    // Strict compliance checker: rejects movies exceeding user's age rating
     function isAgeCompliant(ageRatingStr) {
-      if (!isKidsProfile) return true; // Kids=False shows ALL age-rated sections
+      if (!isKidsProfile && profileMaxRank >= 5) return true;
       if (!ageRatingStr) return true;
 
-      const profileRank = AGE_RANKS[userMaxAgeRating] || 2; // Default to U/A 7+ (Rank 2)
-      const itemRank = AGE_RANKS[ageRatingStr] || 1;
-
-      return itemRank <= profileRank;
+      const clean = String(ageRatingStr).trim();
+      const movieRank = AGE_RANKS[clean] || (isKidsProfile ? 3 : 1);
+      return movieRank <= profileMaxRank;
     }
 
-    /* ================= 1. REFINED "FOR YOU" ALGORITHM ================= */
+    /* ================= EXTRACT WATCHED MOVIE IDS ================= */
     function getRecentlyWatchedMovieIds() {
       try {
         const cachedUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
@@ -597,37 +593,133 @@
       return [];
     }
 
-    function buildBetterForYou(allMovies, watchedIds, moviesMap) {
-      const unwatched = allMovies.filter(m => !watchedIds.includes(m.id.toLowerCase()));
+    /* ================= ADVANCED MULTI-FACTOR RECOMMENDATION ENGINES ================= */
+    // Helper to score similarity between an anchor movie and a candidate
+    function scoreSimilarity(anchor, candidate) {
+      let score = 0;
+
+      // 1. Franchise matching (High weight: e.g. both DISCN or Marvel)
+      const aFranchise = (anchor.Franchise || '').toLowerCase().trim();
+      const cFranchise = (candidate.Franchise || '').toLowerCase().trim();
+      if (aFranchise && cFranchise && aFranchise === cFranchise) {
+        score += 50;
+      }
+
+      // 2. Studio matching (e.g. Disney India)
+      const aStudio = (anchor.Studio || anchor.Partner || '').toLowerCase().trim();
+      const cStudio = (candidate.Studio || candidate.Partner || '').toLowerCase().trim();
+      if (aStudio && cStudio && (aStudio === cStudio || aStudio.includes(cStudio) || cStudio.includes(aStudio))) {
+        score += 35;
+      }
+
+      // 3. Tags overlap (e.g. alien, anthropomorphic, fantasy)
+      const aTags = tokenize(anchor.Tags);
+      const cTags = tokenize(candidate.Tags);
+      let tagMatches = 0;
+      aTags.forEach(t => {
+        if (cTags.includes(t)) tagMatches++;
+      });
+      score += Math.min(40, tagMatches * 10);
+
+      // 4. Genres overlap (e.g. Animation, Comedy, Adventure)
+      const aGenres = tokenize(anchor.Genres);
+      const cGenres = tokenize(candidate.Genres);
+      let genreMatches = 0;
+      aGenres.forEach(g => {
+        if (cGenres.includes(g)) genreMatches++;
+      });
+      score += Math.min(45, genreMatches * 15);
+
+      // 5. Language matching
+      const aLang = (anchor.Language || '').toLowerCase().trim();
+      const cLang = (candidate.Language || '').toLowerCase().trim();
+      if (aLang && cLang && aLang === cLang) {
+        score += 15;
+      }
+
+      // 6. Rating boost (Quality scoring multiplier)
+      const candRating = parseFloat(candidate.Rating || candidate.rating || 0);
+      if (!isNaN(candRating) && candRating > 0) {
+        score += candRating * 2.5; // e.g., 7.3 * 2.5 = 18.25 pts
+      }
+
+      return score;
+    }
+
+    // Engine A: "Because You Watched <Name>"
+    function buildBecauseYouWatchedList(anchorMovie, allCompliantMovies) {
+      return allCompliantMovies
+        .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
+        .map(movie => ({
+          movie,
+          score: scoreSimilarity(anchorMovie, movie)
+        }))
+        .filter(entry => entry.score > 25) // Only keep relevant titles
+        .sort((a, b) => b.score - a.score)
+        .map(entry => entry.movie);
+    }
+
+    // Engine B: "For You" Feed utilizing User Memory
+    function buildComprehensiveForYou(allCompliantMovies, watchedIds, moviesMap) {
+      const unwatched = allCompliantMovies.filter(m => !watchedIds.includes(m.id.toLowerCase()));
       if (watchedIds.length === 0) return mixupArray(unwatched).slice(0, 20);
 
-      const genreFreq = {};
+      const franchiseFreq = {};
       const studioFreq = {};
+      const tagFreq = {};
+      const genreFreq = {};
+      const languageFreq = {};
 
       watchedIds.forEach((id, idx) => {
-        const movie = moviesMap.get(id);
-        if (!movie) return;
-        const decay = Math.max(1, 5 - idx);
+        const m = moviesMap.get(id);
+        if (!m) return;
+        const decay = Math.max(1, 6 - idx); // Recent movies exert higher gravity
 
-        parseGenres(movie.Genres).forEach(g => {
-          genreFreq[g] = (genreFreq[g] || 0) + (10 * decay);
+        const f = (m.Franchise || '').toLowerCase().trim();
+        if (f) franchiseFreq[f] = (franchiseFreq[f] || 0) + (15 * decay);
+
+        const s = (m.Studio || m.Partner || '').toLowerCase().trim();
+        if (s) studioFreq[s] = (studioFreq[s] || 0) + (10 * decay);
+
+        tokenize(m.Tags).forEach(t => {
+          tagFreq[t] = (tagFreq[t] || 0) + (4 * decay);
         });
 
-        const std = (movie.Studio || movie.Partner || '').toLowerCase().trim();
-        if (std) studioFreq[std] = (studioFreq[std] || 0) + (6 * decay);
+        tokenize(m.Genres).forEach(g => {
+          genreFreq[g] = (genreFreq[g] || 0) + (6 * decay);
+        });
+
+        const l = (m.Language || '').toLowerCase().trim();
+        if (l) languageFreq[l] = (languageFreq[l] || 0) + (3 * decay);
       });
 
       const scored = unwatched.map(movie => {
         let score = 0;
-        parseGenres(movie.Genres).forEach(g => {
+
+        const f = (movie.Franchise || '').toLowerCase().trim();
+        if (f && franchiseFreq[f]) score += franchiseFreq[f];
+
+        const s = (movie.Studio || movie.Partner || '').toLowerCase().trim();
+        if (s && studioFreq[s]) score += studioFreq[s];
+
+        tokenize(movie.Tags).forEach(t => {
+          if (tagFreq[t]) score += tagFreq[t];
+        });
+
+        tokenize(movie.Genres).forEach(g => {
           if (genreFreq[g]) score += genreFreq[g];
         });
 
-        const std = (movie.Studio || movie.Partner || '').toLowerCase().trim();
-        if (std && studioFreq[std]) score += studioFreq[std];
+        const l = (movie.Language || '').toLowerCase().trim();
+        if (l && languageFreq[l]) score += languageFreq[l];
 
-        // Add slight random jitter (1-8) so reloads feel dynamic
+        // Rating boost
+        const r = parseFloat(movie.Rating || 0);
+        if (!isNaN(r) && r > 0) score += r * 2.5;
+
+        // Micro-jitter keeps reload fresh
         score += Math.random() * 8;
+
         return { movie, score };
       });
 
@@ -635,7 +727,7 @@
       return scored.slice(0, 20).map(s => s.movie);
     }
 
-    /* ================= MAIN LOAD PAGE ================= */
+    /* ================= MAIN CONTROLLER ================= */
     async function loadPage() {
       if (!resolveActiveProfile()) return;
 
@@ -649,12 +741,11 @@
       container.innerHTML = `
         <div style="text-align: center; padding: 60px; color: var(--text-muted);">
           <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-          <p style="margin-top:12px;">Loading feeds for ${activeProfile.Name}...</p>
+          <p style="margin-top:12px;">Curating safe feeds for ${activeProfile.Name}...</p>
         </div>
       `;
 
       try {
-        // Pre-fetch all movies
         const moviesSnap = await getDocs(collection(db, "Movies"));
         const moviesMap = new Map();
         let allMovies = [];
@@ -665,37 +756,35 @@
           allMovies.push(item);
         });
 
-        // Filter individual movies if Kids profile is active
-        if (isKidsProfile) {
-          allMovies = allMovies.filter(m => isAgeCompliant(m.Age_Rating));
-        }
+        // 1. CRITICAL: Strictly filter out higher age-rated content
+        const compliantMovies = allMovies.filter(m => isAgeCompliant(m.Age_Rating));
 
         container.innerHTML = "";
 
         const watchedIds = getRecentlyWatchedMovieIds();
 
-        // 1. "Because You Watched <Name>"
+        // 2. "Because You Watched <Name>" (Evaluates Studio, Franchise, Tags, Genres, Rating)
         if (watchedIds.length > 0) {
           const lastMovie = moviesMap.get(watchedIds[0]);
           if (lastMovie) {
-            const anchorGenres = parseGenres(lastMovie.Genres);
-            const similar = allMovies
-              .filter(m => m.id.toLowerCase() !== lastMovie.id.toLowerCase())
-              .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
-
-            if (similar.length > 0) {
-              renderCarouselSection(`Because You Watched ${lastMovie.Name || 'this'}`, mixupArray(similar).slice(0, 15), "Recommendation");
+            const recommended = buildBecauseYouWatchedList(lastMovie, compliantMovies);
+            if (recommended.length > 0) {
+              renderCarouselSection(
+                `Because You Watched ${lastMovie.Name || 'this'}`,
+                recommended.slice(0, 15),
+                "Recommendation"
+              );
             }
           }
         }
 
-        // 2. High-precision "For You" Carousel
-        const forYouList = buildBetterForYou(allMovies, watchedIds, moviesMap);
+        // 3. "For You" Feed (Evaluates Studio, Franchise, Tags, Genres, Language, Rating)
+        const forYouList = buildComprehensiveForYou(compliantMovies, watchedIds, moviesMap);
         if (forYouList.length > 0) {
           renderCarouselSection("For You", forYouList, "Personalized");
         }
 
-        // 3. Fetch Page & Sections from Systems (Compliance Checked)
+        // 4. Fetch Page & Sections from Systems (Compliance Checked)
         const pageDoc = await getDoc(doc(db, "Systems", pageId));
         if (pageDoc.exists()) {
           const sectionIds = pageDoc.data().Sections || [];
@@ -706,18 +795,18 @@
 
             const secData = secSnap.data();
 
-            // Compliance filter: If Kids=True, verify section age rating
-            if (isKidsProfile && !isAgeCompliant(secData.Age_Rating)) {
-              continue; // Skip adult-rated section
+            // Section Age Compliance
+            if (!isAgeCompliant(secData.Age_Rating)) {
+              continue; // Drop section entirely if rated higher than user profile
             }
 
             const isFixed = String(secData.Fixed).toLowerCase() === "true";
             const maxLimit = parseInt(secData.Max_Limit || "50", 10);
-            const sectionGenres = parseGenres(secData.Genres);
+            const sectionGenres = tokenize(secData.Genres);
 
             let sectionMovies = [];
 
-            // Add mandatory titles
+            // Add mandatory titles (strictly age-compliant)
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
               const movie = moviesMap.get(String(tId).trim().toLowerCase());
@@ -726,11 +815,11 @@
               }
             }
 
-            // Fixed == False: blend similar genres
+            // Fixed == False: blend similar compliant movies
             if (!isFixed) {
-              const similarMovies = allMovies.filter(m => {
+              const similarMovies = compliantMovies.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
-                const mG = parseGenres(m.Genres);
+                const mG = tokenize(m.Genres);
                 return sectionGenres.some(sg => mG.includes(sg));
               });
               sectionMovies = mixupArray([...sectionMovies, ...similarMovies]).slice(0, maxLimit);
@@ -748,7 +837,7 @@
       }
     }
 
-    /* ================= RENDER CAROUSEL ================= */
+    /* ================= RENDER HORIZONTAL CAROUSEL ================= */
     function renderCarouselSection(sectionTitle, movies, badgeLabel = null) {
       const container = document.getElementById('sectionsContainer');
       const sectionEl = document.createElement('section');
@@ -785,14 +874,14 @@
       container.appendChild(sectionEl);
     }
 
-    /* ================= 3. 16:9 CARD (NO LOGO, NO RATINGS) ================= */
+    /* ================= 16:9 CARD COMPONENT (CLEAN: NO LOGOS, NO RATINGS) ================= */
     function create16x9Card(movie) {
       const card = document.createElement('div');
       card.className = 'card-16-9';
 
       const title = movie.Name || movie.Title || movie.id;
       const poster = getPosterH(movie);
-      const genres = parseGenres(movie.Genres).map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(' • ') || movie.Language || 'Movie';
+      const genres = tokenize(movie.Genres).map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(' • ') || movie.Language || 'Movie';
 
       // Redirection to preview.html?watch=<id>
       card.onclick = () => {
@@ -815,7 +904,7 @@
       return card;
     }
 
-    /* ================= 2. MODAL VIEW WITH GENRE CHIPS (SCREENSHOT 2) ================= */
+    /* ================= MODAL WITH GENRE CHIPS ================= */
     window.openSectionModal = function(encodedKey) {
       const movies = window[`sec_cache_${encodedKey}`] || [];
       const title = decodeURIComponent(encodedKey);
@@ -852,7 +941,7 @@
 
       const filtered = genreName === 'all'
         ? movies
-        : movies.filter(m => parseGenres(m.Genres).includes(genreName.toLowerCase()));
+        : movies.filter(m => tokenize(m.Genres).includes(genreName.toLowerCase()));
 
       if (filtered.length === 0) {
         grid.innerHTML = `<div style="grid-column: 1/-1; padding: 40px; color: var(--text-muted); text-align:center;">No titles available in ${genreName}.</div>`;
