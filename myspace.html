@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>My Space | Disney+ Hotstar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    :root {
+      --bg-dark: #090a0e;
+      --card-bg: #141720;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #ffffff;
+      --text-secondary: #8f98b2;
+      --accent-blue: #0072ef;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(ellipse 65% 45% at 90% 0%, rgba(35, 45, 85, 0.45) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 30% at 10% 15%, rgba(20, 25, 45, 0.5) 0%, transparent 60%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 95px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 520px;
+      padding: 16px 18px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* TOP BAR */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 6px;
+    }
+
+    .brand-icon svg {
+      width: 32px;
+      height: 32px;
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 1.5;
+    }
+
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: none;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .settings-btn i {
+      font-size: 17px;
+      color: #cbd5e1;
+    }
+
+    /* SUBSCRIPTION BAR */
+    .plan-card {
+      background: linear-gradient(135deg, rgba(28, 33, 46, 0.95), rgba(18, 21, 30, 0.95));
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .plan-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .plan-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .plan-header i {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .ticker-container {
+      height: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ticker-item {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    .ticker-item.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .upgrade-btn {
+      background: linear-gradient(90deg, #0070ea, #9932cc, #e11d48);
+      border: none;
+      color: #ffffff;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: none;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .upgrade-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* SECTION HEADER */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+    }
+
+    .edit-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* PROFILES ROW */
+    .profiles-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 4px 0 10px;
+    }
+
+    .profiles-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .profile-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      min-width: 66px;
+      max-width: 78px;
+    }
+
+    .avatar-box {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1b202e;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+      overflow: hidden;
+    }
+
+    .profile-item.active .avatar-box {
+      border-color: #3b82f6;
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.45);
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .kids-badge {
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffb703;
+      color: #000;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+
+    .add-box {
+      border: 1px dashed rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+      font-size: 22px;
+    }
+
+    .profile-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 100%;
+    }
+
+    .profile-item.active .profile-name {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* WATCHLIST (16:9) */
+    .watchlist-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .watchlist-row {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 8px;
+    }
+
+    .watchlist-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .movie-card {
+      flex: 0 0 210px;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #191c26;
+      border: 1px solid var(--card-border);
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .movie-card:hover {
+      transform: scale(1.03);
+    }
+
+    .movie-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .movie-card .movie-badge {
+      position: absolute;
+      bottom: 6px;
+      left: 6px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .status-msg {
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      padding: 12px 0;
+    }
+
+    .auth-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .auth-error a {
+      color: #60a5fa;
+      font-weight: 600;
+      margin-left: 6px;
+      text-decoration: underline;
+    }
+
+    /* BOTTOM NAV BAR */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: rgba(9, 10, 14, 0.95);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      gap: 4px;
+      text-decoration: none;
+      width: 33.33%;
+      cursor: pointer;
+    }
+
+    .nav-item i {
+      font-size: 20px;
+    }
+
+    .nav-item.active {
+      color: #ffffff;
+      position: relative;
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      width: 44px;
+      height: 3px;
+      background: #3b82f6;
+      border-radius: 3px;
+      box-shadow: 0 0 8px #3b82f6;
+    }
+
+    .nav-avatar-sm {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .nav-label {
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container" id="mainContainer">
+    
+    <!-- TOP BAR -->
+    <header class="top-bar">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8L12 2Z" fill="currentColor"/>
+        </svg>
+      </div>
+      <button class="settings-btn" onclick="alert('Help & Settings')">
+        <i class="fa-solid fa-gear"></i>
+        <span>Help & Settings</span>
+      </button>
+    </header>
+
+    <!-- SUBSCRIPTION PLAN BAR -->
+    <div class="plan-card" id="planCard">
+      <div class="plan-info">
+        <div class="plan-header">
+          <span id="planNameLabel">Plan</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </div>
+        <div class="ticker-container">
+          <span class="ticker-item active" id="tickerEmail">Loading email...</span>
+          <span class="ticker-item" id="tickerMessage">Upgrade For More Benefits</span>
+        </div>
+      </div>
+      <button class="upgrade-btn" id="upgradeBtn">Upgrade</button>
+    </div>
+
+    <!-- PROFILES SECTION -->
+    <section>
+      <div class="section-header">
+        <h3 class="section-title">Profiles</h3>
+        <button class="edit-btn" onclick="alert('Edit Profiles')">
+          <i class="fa-solid fa-pencil"></i>
+          <span>Edit</span>
+        </button>
+      </div>
+      <div class="profiles-row" id="profilesRow">
+        <div class="status-msg">Loading profiles...</div>
+      </div>
+    </section>
+
+    <!-- WATCHLIST SECTION (16:9) -->
+    <section class="watchlist-section">
+      <div class="section-header">
+        <h3 class="section-title">Watchlist</h3>
+      </div>
+      <div class="watchlist-row" id="watchlistRow">
+        <div class="status-msg">Loading watchlist...</div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="window.location.href='home.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8L12 2Z"/>
+      </svg>
+    </div>
+    <div class="nav-item" onclick="window.location.href='home.html#search'">
+      <i class="fa-solid fa-magnifying-glass"></i>
+    </div>
+    <div class="nav-item active">
+      <img id="navActiveAvatar" class="nav-avatar-sm" src="https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png" alt="Profile" />
+      <span class="nav-label">My Space</span>
+    </div>
+  </nav>
+
+  <!-- FIREBASE LOGIC -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, doc, getDoc, getDocs, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 1. Users Database (UARM) - from onboarding.html
+    const usersConfig = {
+      apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+      authDomain: "question-metabase.firebaseapp.com",
+      databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "question-metabase",
+      storageBucket: "question-metabase.firebasestorage.app",
+      messagingSenderId: "770698198753",
+      appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+      measurementId: "G-6ZP1FPMKSJ"
+    };
+
+    // 2. Movies Database (Movies collection with Poster.h)
+    const moviesConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+      measurementId: "G-Y87B8VRQ1N"
+    };
+
+    const userApp = initializeApp(usersConfig, "userApp");
+    const userDb = getFirestore(userApp);
+
+    const moviesApp = initializeApp(moviesConfig, "moviesApp");
+    const moviesDb = getFirestore(moviesApp);
+
+    let activeUserData = null;
+    let activeProfileIndex = 0;
+
+    // Load user state adhering directly to onboarding.html
+    async function loadUserData() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus');
+
+      const rawUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
+      let localUser = rawUser ? JSON.parse(rawUser) : null;
+      let userData = null;
+
+      try {
+        if (lotusParam) {
+          const q = query(collection(userDb, "UARM"), where("Lotus", "==", lotusParam));
+          const snap = await getDocs(q);
+          if (!snap.empty) userData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        } else if (localUser?.Lotus) {
+          const q = query(collection(userDb, "UARM"), where("Lotus", "==", localUser.Lotus));
+          const snap = await getDocs(q);
+          if (!snap.empty) userData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        } else if (localUser?.id) {
+          const snap = await getDoc(doc(userDb, "UARM", localUser.id));
+          if (snap.exists()) userData = { id: snap.id, ...snap.data() };
+        }
+
+        // Cache fallback if offline
+        if (!userData && localUser) userData = localUser;
+
+        // If no user found in session or Firestore, show auth prompt (No hardcoded data)
+        if (!userData || !Array.isArray(userData.Profiles)) {
+          document.getElementById('mainContainer').innerHTML = `
+            <div class="auth-error">
+              No authenticated user found. Please 
+              <a href="onboarding.html">Sign In / Select Profile</a>
+            </div>
+          `;
+          return;
+        }
+
+        activeUserData = userData;
+        localStorage.setItem('active_user', JSON.stringify(userData));
+
+        // Read active profile index saved by onboarding.html or URL hash
+        // onboarding.html redirects to: home.html#movies&user#<index>
+        const hashMatch = window.location.hash.match(/user#(\d+)/);
+        const storedIndex = localStorage.getItem('active_profile_index');
+        
+        if (hashMatch && hashMatch[1] !== undefined) {
+          activeProfileIndex = parseInt(hashMatch[1], 10);
+        } else if (storedIndex !== null && activeUserData.Profiles[parseInt(storedIndex, 10)]) {
+          activeProfileIndex = parseInt(storedIndex, 10);
+        } else {
+          activeProfileIndex = 0;
+        }
+
+        // Ensure active_profile is synced
+        localStorage.setItem('active_profile', JSON.stringify(activeUserData.Profiles[activeProfileIndex]));
+        localStorage.setItem('active_profile_index', activeProfileIndex.toString());
+
+        // Initialize UI
+        setupSubscriptionBar(activeUserData);
+        renderProfiles(activeUserData.Profiles);
+        renderWatchlist(activeUserData.Profiles[activeProfileIndex]);
+
+      } catch (err) {
+        console.error("Error loading My Space data:", err);
+        document.getElementById('profilesRow').innerHTML = `<div class="status-msg" style="color:#ef4444;">Failed to fetch profile details.</div>`;
+      }
+    }
+
+    // 1. Subscription bar: Max check & 3-4s alternating text loop
+    function setupSubscriptionBar(user) {
+      const planNameLabel = document.getElementById('planNameLabel');
+      const tickerEmail = document.getElementById('tickerEmail');
+      const tickerMessage = document.getElementById('tickerMessage');
+      const upgradeBtn = document.getElementById('upgradeBtn');
+
+      // Set Plan Name
+      planNameLabel.textContent = (user.Plans && user.Plans[0]) || user.Plan || "Super 1 Month";
+
+      // Set Email
+      tickerEmail.textContent = user.Email || "No Email ID Linked";
+
+      // Check Max: If Max=True hide button; if Max=False show Upgrade button
+      const isMax = user.Max === true || String(user.Max).toLowerCase() === "true";
+      if (!isMax) {
+        upgradeBtn.style.display = "block";
+      } else {
+        upgradeBtn.style.display = "none";
+      }
+
+      // Loop: alternate between Email ID and "Upgrade For More Benefits" every 3.5 seconds
+      let showEmail = true;
+      setInterval(() => {
+        if (showEmail) {
+          tickerEmail.classList.remove('active');
+          tickerMessage.classList.add('active');
+        } else {
+          tickerMessage.classList.remove('active');
+          tickerEmail.classList.add('active');
+        }
+        showEmail = !showEmail;
+      }, 3500);
+    }
+
+    // 2. Profiles row
+    function renderProfiles(profiles) {
+      const container = document.getElementById('profilesRow');
+      
+      let html = profiles.map((p, idx) => {
+        const isActive = idx === activeProfileIndex;
+        const isKids = String(p.Kids).toLowerCase() === "true" || String(p.Type).toLowerCase() === "kids";
+        const avatar = p.Avatar || "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png";
+
+        return `
+          <div class="profile-item ${isActive ? 'active' : ''}" onclick="window.selectMySpaceProfile(${idx})">
+            <div class="avatar-box">
+              <img src="${avatar}" class="avatar-img" alt="${p.Name}" />
+              ${isKids ? `<span class="kids-badge">Kids</span>` : ''}
+            </div>
+            <span class="profile-name">${p.Name}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Add profile button
+      html += `
+        <div class="profile-item" onclick="alert('Add Profile')">
+          <div class="avatar-box add-box">
+            <i class="fa-solid fa-plus"></i>
+          </div>
+          <span class="profile-name">Add</span>
+        </div>
+      `;
+
+      container.innerHTML = html;
+
+      // Update bottom nav active avatar
+      const currentProfile = profiles[activeProfileIndex];
+      if (currentProfile && currentProfile.Avatar) {
+        document.getElementById('navActiveAvatar').src = currentProfile.Avatar;
+      }
+    }
+
+    // Switch Profile action
+    window.selectMySpaceProfile = function(idx) {
+      activeProfileIndex = idx;
+      localStorage.setItem('active_profile_index', idx.toString());
+      localStorage.setItem('active_profile', JSON.stringify(activeUserData.Profiles[idx]));
+
+      renderProfiles(activeUserData.Profiles);
+      renderWatchlist(activeUserData.Profiles[idx]);
+    };
+
+    // 3. Watchlist Rendering (16:9 with Poster.h from Movies collection)
+    async function renderWatchlist(profile) {
+      const container = document.getElementById('watchlistRow');
+      container.innerHTML = `<div class="status-msg">Loading watchlist...</div>`;
+
+      const list = profile?.Watchlist;
+
+      if (!Array.isArray(list) || list.length === 0) {
+        container.innerHTML = `<div class="status-msg">No titles in watchlist for ${profile.Name || 'this profile'}.</div>`;
+        return;
+      }
+
+      try {
+        // Query Movies collection in internal-systems-46728
+        const moviePromises = list.map(async (movieId) => {
+          try {
+            // First check direct document match (e.g. "coco", "Alice-in-wonderland")
+            const snap = await getDoc(doc(moviesDb, "Movies", movieId));
+            if (snap.exists()) {
+              return { id: snap.id, ...snap.data() };
+            }
+
+            // Case-insensitive / slug fallback
+            const q = query(collection(moviesDb, "Movies"), where("__name__", "==", movieId.toLowerCase()));
+            const qSnap = await getDocs(q);
+            if (!qSnap.empty) {
+              return { id: qSnap.docs[0].id, ...qSnap.docs[0].data() };
+            }
+          } catch (e) {
+            console.error("Could not fetch movie:", movieId, e);
+          }
+          return null;
+        });
+
+        const fetchedMovies = await Promise.all(moviePromises);
+        const validMovies = fetchedMovies.filter(m => m !== null);
+
+        if (validMovies.length === 0) {
+          container.innerHTML = `<div class="status-msg">No watchlist movies found in database.</div>`;
+          return;
+        }
+
+        // Render 16:9 card using Poster.h
+        container.innerHTML = validMovies.map(movie => {
+          // Poster.h handling (handles Firestore dot notation or nested property)
+          const posterH = movie['Poster.h'] || movie?.Poster?.h || movie.Banner || "https://img10.hotstar.com/image/upload/f_auto,q_90,w_1920/sources/r1/cms/prod/7519/1097519-h-7ee61a6b0942";
+          const title = movie.Name || movie.id;
+          const badge = movie.Language || movie.Genres || "";
+
+          return `
+            <div class="movie-card" onclick="window.location.href='watch.html?id=${encodeURIComponent(movie.id)}'">
+              <img src="${posterH}" alt="${title}" loading="lazy" />
+              ${badge ? `<span class="movie-badge">${badge}</span>` : ''}
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error("Watchlist fetch error:", err);
+        container.innerHTML = `<div class="status-msg" style="color:#ef4444;">Failed to load watchlist items.</div>`;
+      }
+    }
+
+    loadUserData();
+  </script>
+</body>
+</html>
