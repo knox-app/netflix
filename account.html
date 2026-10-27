@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Profile Manager | Disney+ Hotstar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    :root {
+      --bg-black: #000000;
+      --card-bg: #10141f;
+      --border-color: rgba(255, 255, 255, 0.12);
+      --text-white: #ffffff;
+      --text-muted: #8e95a5;
+      --primary-blue: #0072ef;
+      --btn-gradient: linear-gradient(90deg, #0070ea, #9932cc, #e11d48);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg-black);
+      color: var(--text-white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    .app-viewport {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-bottom: 30px;
+    }
+
+    /* TOP HEADER */
+    .top-header {
+      display: flex;
+      align-items: center;
+      padding: 18px 20px;
+      position: relative;
+    }
+
+    .back-btn {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+    }
+
+    .header-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    /* ================= STEP 1: AVATAR & NAME SELECTOR ================= */
+    #step1View {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      padding: 24px 20px;
+    }
+
+    /* AVATAR CAROUSEL */
+    .carousel-container {
+      width: 100%;
+      margin: 20px 0 45px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .avatar-track {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      padding: 20px calc(50% - 60px);
+    }
+
+    .avatar-track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .carousel-item {
+      scroll-snap-align: center;
+      flex: 0 0 72px;
+      height: 72px;
+      border-radius: 50%;
+      cursor: pointer;
+      opacity: 0.45;
+      transform: scale(0.85);
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      border: 2px solid transparent;
+      overflow: hidden;
+      background: #141720;
+    }
+
+    .carousel-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .carousel-item.active {
+      flex: 0 0 116px;
+      height: 116px;
+      opacity: 1;
+      transform: scale(1.05);
+      border: 3.5px solid #ffffff;
+      box-shadow: 0 0 25px rgba(0, 114, 239, 0.45);
+    }
+
+    /* FLOATING NOTCH INPUT */
+    .input-box-wrapper {
+      width: 100%;
+      position: relative;
+      margin-top: 10px;
+    }
+
+    .notch-label {
+      position: absolute;
+      top: -10px;
+      left: 18px;
+      background: var(--bg-black);
+      padding: 0 8px;
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 600;
+      z-index: 2;
+    }
+
+    .notch-input {
+      width: 100%;
+      background: transparent;
+      border: 1.5px solid rgba(255, 255, 255, 0.28);
+      border-radius: 12px;
+      padding: 18px 18px;
+      font-size: 16px;
+      color: #ffffff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .notch-input:focus {
+      border-color: #3b82f6;
+    }
+
+    /* FLOATING NEXT BUTTON */
+    .floating-fab {
+      position: fixed;
+      bottom: 40px;
+      right: 28px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0070ea, #9932cc, #e11d48);
+      border: none;
+      color: #ffffff;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 112, 234, 0.45);
+      transition: transform 0.2s;
+      z-index: 50;
+    }
+
+    .floating-fab:active {
+      transform: scale(0.92);
+    }
+
+    /* ================= STEP 2: PROFILE DETAILS & SETTINGS ================= */
+    #step2View {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      padding: 10px 20px 24px;
+    }
+
+    .profile-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .hero-avatar-wrapper {
+      position: relative;
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .hero-avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #141720;
+    }
+
+    .edit-avatar-badge {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0070ea, #e11d48);
+      border: 2px solid var(--bg-black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #fff;
+    }
+
+    .hero-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    /* SETTINGS LIST */
+    .settings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-bottom: auto;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .setting-info h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .setting-info p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* RATING PILL BUTTON */
+    .rating-pill-btn {
+      background: #1b202e;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    /* TOGGLE SWITCH */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #2b3040;
+      transition: 0.3s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background: linear-gradient(90deg, #0070ea, #d946ef);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    .main-submit-btn {
+      background: var(--btn-gradient);
+      border: none;
+      color: #ffffff;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 15.5px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 36px;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .main-submit-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* ================= BOTTOM SHEETS / MODALS ================= */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .bottom-sheet {
+      width: 100%;
+      max-width: 480px;
+      background: #11141c;
+      border-radius: 24px 24px 0 0;
+      border-top: 1px solid var(--border-color);
+      padding: 24px 22px 36px;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    /* CONTENT RATING MODAL (SCREENSHOT 3 & 5) */
+    .sheet-profile-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .sheet-avatar-sm {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .sheet-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+
+    .sheet-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 4px 0 24px;
+    }
+
+    /* STEPPER RATINGS LIST */
+    .rating-stepper {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .stepper-item {
+      display: flex;
+      gap: 18px;
+      position: relative;
+      padding-bottom: 24px;
+      cursor: pointer;
+    }
+
+    .stepper-item:last-child {
+      padding-bottom: 8px;
+    }
+
+    /* Vertical line linking steps */
+    .stepper-item::after {
+      content: '';
+      position: absolute;
+      left: 12px;
+      top: 26px;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .stepper-item:last-child::after {
+      display: none;
+    }
+
+    .stepper-item.line-active::after {
+      background: var(--primary-blue);
+    }
+
+    .stepper-indicator {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: #11141c;
+      z-index: 2;
+      transition: all 0.2s;
+    }
+
+    .stepper-item.active-level .stepper-indicator {
+      background: var(--primary-blue);
+      border-color: var(--primary-blue);
+      color: #ffffff;
+      font-size: 13px;
+    }
+
+    .stepper-content h5 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .stepper-content p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* PARENTAL PIN MODAL (SCREENSHOT 2) */
+    .pin-modal-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .shield-badge {
+      width: 66px;
+      height: 74px;
+      background: #181d29;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      clip-path: polygon(50% 0%, 100% 20%, 100% 80%, 50% 100%, 0% 80%, 0% 20%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0 16px;
+    }
+
+    .lock-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0070ea, #e11d48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .pin-boxes {
+      display: flex;
+      gap: 14px;
+      margin: 28px 0 10px;
+    }
+
+    .pin-input {
+      width: 54px;
+      height: 56px;
+      border-radius: 12px;
+      background: transparent;
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      font-size: 24px;
+      text-align: center;
+      outline: none;
+    }
+
+    .pin-input:focus {
+      border-color: #3b82f6;
+    }
+
+    .pin-submit-btn {
+      background: var(--btn-gradient);
+      border: none;
+      color: #ffffff;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-viewport">
+
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <button class="back-btn" id="headerBackBtn" onclick="window.handleBackNavigation()">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <h2 class="header-title" id="pageTitle">Create Profile</h2>
+    </header>
+
+    <!-- STEP 1: AVATAR & NAME (SCREENSHOT 1) -->
+    <section id="step1View">
+      <div class="carousel-container">
+        <div class="avatar-track" id="avatarTrack">
+          <!-- 30 Avatars dynamically injected -->
+        </div>
+      </div>
+
+      <div class="input-box-wrapper">
+        <label class="notch-label">Your Name</label>
+        <input type="text" class="notch-input" id="profileNameInput" placeholder="Enter profile name" maxlength="24" />
+      </div>
+
+      <button class="floating-fab" id="proceedFabBtn" onclick="window.proceedToStep2()">
+        <i class="fa-solid fa-check"></i>
+      </button>
+    </section>
+
+    <!-- STEP 2: PROFILE DETAILS & SETTINGS (SCREENSHOT 4) -->
+    <section id="step2View">
+      <div class="profile-hero">
+        <div class="hero-avatar-wrapper" onclick="window.backToAvatarSelection()">
+          <img id="heroAvatarImg" class="hero-avatar" src="" alt="Avatar" />
+          <div class="edit-avatar-badge">
+            <i class="fa-solid fa-pencil"></i>
+          </div>
+        </div>
+        <h3 class="hero-name" id="heroProfileName">Profile</h3>
+      </div>
+
+      <div class="settings-list">
+        <!-- IS THIS FOR KIDS? -->
+        <div class="setting-item">
+          <div class="setting-info">
+            <h4>Is this for Kids?</h4>
+            <p id="kidsSubtext">Content rated U/A 7+ & below</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="kidsToggle" onchange="window.handleKidsToggle(this.checked)" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- SELECT CONTENT RATING -->
+        <div class="setting-item" id="ratingSettingItem">
+          <div class="setting-info">
+            <h4>Select Content Rating</h4>
+            <p>You will see content rated up to</p>
+          </div>
+          <button class="rating-pill-btn" onclick="window.openRatingSheet()">
+            <span id="selectedRatingLabel">U/A 7+</span>
+            <i class="fa-solid fa-chevron-down" style="font-size: 11px;"></i>
+          </button>
+        </div>
+
+        <!-- SET A PARENTAL LOCK? -->
+        <div class="setting-item">
+          <div class="setting-info">
+            <h4>Set a Parental Lock ?</h4>
+            <p>Restrict access to adult profiles with a PIN</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="pinToggle" onchange="window.handlePinToggle(this.checked)" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <button class="main-submit-btn" id="saveProfileBtn" onclick="window.saveProfileToFirebase()">
+        Create Kids Profile
+      </button>
+    </section>
+
+  </div>
+
+  <!-- CONTENT RATING BOTTOM SHEET (SCREENSHOT 3 & 5) -->
+  <div class="modal-overlay" id="ratingModalOverlay">
+    <div class="bottom-sheet">
+      <button class="sheet-close-btn" onclick="window.closeRatingSheet()">&times;</button>
+      
+      <div class="sheet-profile-header">
+        <img id="sheetAvatarPreview" class="sheet-avatar-sm" src="" alt="Avatar" />
+        <h3 class="sheet-title" id="sheetRatingHeading">You will see content rated up to U/A 7+</h3>
+      </div>
+      <p class="sheet-sub">Only content of ratings selected will be discoverable</p>
+
+      <div class="rating-stepper" id="ratingStepper">
+        <!-- Generated through JS: U, U/A 7+, U/A 13+, U/A 16+, A -->
+      </div>
+    </div>
+  </div>
+
+  <!-- PARENTAL PIN BOTTOM SHEET (SCREENSHOT 2) -->
+  <div class="modal-overlay" id="pinModalOverlay">
+    <div class="bottom-sheet pin-modal-content">
+      <button class="sheet-close-btn" onclick="window.cancelPinModal()">&times;</button>
+
+      <div class="shield-badge">
+        <div class="lock-circle">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+      </div>
+
+      <h3 class="sheet-title">Create PIN</h3>
+      <p class="sheet-sub" style="margin-bottom: 0;">Use this 4 digit PIN to access all adult profiles</p>
+
+      <div class="pin-boxes">
+        <input type="password" maxlength="1" class="pin-input" inputmode="numeric" />
+        <input type="password" maxlength="1" class="pin-input" inputmode="numeric" />
+        <input type="password" maxlength="1" class="pin-input" inputmode="numeric" />
+        <input type="password" maxlength="1" class="pin-input" inputmode="numeric" />
+      </div>
+
+      <button class="pin-submit-btn" onclick="window.confirmPin()">Confirm PIN</button>
+    </div>
+  </div>
+
+  <!-- FIREBASE SCRIPTS -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // Firestore Configuration for User DB (UARM)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+      authDomain: "question-metabase.firebaseapp.com",
+      databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "question-metabase",
+      storageBucket: "question-metabase.firebasestorage.app",
+      messagingSenderId: "770698198753",
+      appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+      measurementId: "G-6ZP1FPMKSJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Rating levels
+    const RATINGS = [
+      { id: "U", title: "U", desc: "Features titles rated U & below" },
+      { id: "U/A 7+", title: "U/A 7+", desc: "Features titles rated U/A 7+ & below" },
+      { id: "U/A 13+", title: "U/A 13+", desc: "Features titles rated U/A 13+ & below" },
+      { id: "U/A 16+", title: "U/A 16+", desc: "Features titles rated U/A 16+ & below" },
+      { id: "A", title: "A", desc: "Features titles rated A & below" }
+    ];
+
+    // State Variables
+    let currentTask = "new"; // "new" or "edit"
+    let currentMode = "";    // "new" (fresh new user onboarding)
+    let editProfileIndex = -1;
+    let loggedInUserData = null;
+    let selectedAvatarUrl = "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/29.png";
+    let profileName = "";
+    let isKids = true;
+    let selectedRating = "U/A 7+";
+    let enteredPin = "";
+
+    // 1. Initialize Profile Manager
+    async function init() {
+      const urlParams = new URLSearchParams(window.location.search);
+      currentTask = urlParams.get('task') || "new";
+      currentMode = urlParams.get('mode') || "";
+      const indexParam = urlParams.get('index');
+
+      // Resolve user from localStorage (or previous onboarding session)
+      const rawUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
+      loggedInUserData = rawUser ? JSON.parse(rawUser) : null;
+
+      if (!loggedInUserData || !loggedInUserData.id) {
+        alert("No logged in user found. Redirecting...");
+        window.location.href = "onboarding.html";
+        return;
+      }
+
+      // Fetch latest user document from Firestore
+      try {
+        const userDocSnap = await getDoc(doc(db, "UARM", loggedInUserData.id));
+        if (userDocSnap.exists()) {
+          loggedInUserData = { id: userDocSnap.id, ...userDocSnap.data() };
+          localStorage.setItem('active_user', JSON.stringify(loggedInUserData));
+        }
+      } catch (e) {
+        console.warn("Could not sync Firestore document:", e);
+      }
+
+      // Determine editing index if task=edit
+      if (currentTask === "edit") {
+        if (indexParam !== null) {
+          editProfileIndex = parseInt(indexParam, 10);
+        } else {
+          editProfileIndex = parseInt(localStorage.getItem('active_profile_index') || "0", 10);
+        }
+      }
+
+      // Populate 30 Avatars (1.png to 30.png)
+      buildAvatarCarousel();
+
+      // Setup PIN input handlers
+      setupPinInputs();
+
+      // Configure Flow
+      if (currentTask === "edit" && loggedInUserData.Profiles?.[editProfileIndex]) {
+        loadExistingProfileForEdit(loggedInUserData.Profiles[editProfileIndex]);
+      } else {
+        // Task = new or new & mode=new
+        document.getElementById('pageTitle').textContent = "Create Profile";
+        showStep(1);
+      }
+    }
+
+    // Build Avatar Carousel with 30 items
+    function buildAvatarCarousel() {
+      const track = document.getElementById('avatarTrack');
+      track.innerHTML = "";
+
+      for (let i = 1; i <= 30; i++) {
+        const url = `https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/${i}.png`;
+        const item = document.createElement('div');
+        item.className = 'carousel-item';
+        item.dataset.url = url;
+        item.innerHTML = `<img src="${url}" alt="Profile ${i}" loading="lazy" />`;
+
+        item.addEventListener('click', () => {
+          document.querySelectorAll('.carousel-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          selectedAvatarUrl = url;
+          item.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        });
+
+        track.appendChild(item);
+      }
+
+      // Set default avatar (e.g. 29.png from prompt)
+      setTimeout(() => {
+        const defaultItem = track.querySelector(`[data-url="${selectedAvatarUrl}"]`) || track.children[28] || track.children[0];
+        if (defaultItem) {
+          defaultItem.classList.add('active');
+          defaultItem.scrollIntoView({ inline: 'center' });
+        }
+      }, 150);
+    }
+
+    // Populate Existing Profile on Edit
+    function loadExistingProfileForEdit(p) {
+      document.getElementById('pageTitle').textContent = "Edit Profile";
+      selectedAvatarUrl = p.Avatar || selectedAvatarUrl;
+      profileName = p.Name || "";
+      isKids = String(p.Kids).toLowerCase() === "true" || String(p.Type).toLowerCase() === "kids";
+      selectedRating = p.Age_Rating || (isKids ? "U/A 7+" : "A");
+      enteredPin = p.Pin || "";
+
+      document.getElementById('profileNameInput').value = profileName;
+      updateStep2UI();
+      showStep(2);
+    }
+
+    // Navigation Between Steps
+    function showStep(stepNumber) {
+      const step1 = document.getElementById('step1View');
+      const step2 = document.getElementById('step2View');
+
+      if (stepNumber === 1) {
+        step1.style.display = "flex";
+        step2.style.display = "none";
+      } else {
+        step1.style.display = "none";
+        step2.style.display = "flex";
+      }
+    }
+
+    window.proceedToStep2 = function() {
+      const nameVal = document.getElementById('profileNameInput').value.trim();
+      if (!nameVal) {
+        alert("Please enter a profile name.");
+        return;
+      }
+      profileName = nameVal;
+      updateStep2UI();
+      showStep(2);
+    };
+
+    window.backToAvatarSelection = function() {
+      showStep(1);
+    };
+
+    window.handleBackNavigation = function() {
+      const step2 = document.getElementById('step2View');
+      if (step2.style.display === "flex" && currentTask !== "edit") {
+        showStep(1);
+      } else {
+        window.location.href = "myspace.html";
+      }
+    };
+
+    // Update Step 2 UI based on state
+    function updateStep2UI() {
+      document.getElementById('heroAvatarImg').src = selectedAvatarUrl;
+      document.getElementById('heroProfileName').textContent = profileName;
+
+      const kidsToggle = document.getElementById('kidsToggle');
+      kidsToggle.checked = isKids;
+
+      const pinToggle = document.getElementById('pinToggle');
+      pinToggle.checked = !!enteredPin;
+
+      document.getElementById('selectedRatingLabel').textContent = selectedRating;
+      updateKidsLabels(isKids);
+    }
+
+    // Kids Switch Action
+    window.handleKidsToggle = function(checked) {
+      isKids = checked;
+      if (isKids) {
+        selectedRating = "U/A 7+";
+      } else {
+        selectedRating = "A";
+      }
+      document.getElementById('selectedRatingLabel').textContent = selectedRating;
+      updateKidsLabels(isKids);
+    };
+
+    function updateKidsLabels(kidsActive) {
+      const subtext = document.getElementById('kidsSubtext');
+      const submitBtn = document.getElementById('saveProfileBtn');
+
+      if (kidsActive) {
+        subtext.textContent = `Content rated ${selectedRating} & below`;
+        submitBtn.textContent = currentTask === "edit" ? "Save Kids Profile" : "Create Kids Profile";
+      } else {
+        subtext.textContent = "Allow access to mature content";
+        submitBtn.textContent = currentTask === "edit" ? "Save Profile" : "Create Profile";
+      }
+    }
+
+    // CONTENT RATING MODAL (SCREENSHOTS 3 & 5)
+    window.openRatingSheet = function() {
+      document.getElementById('sheetAvatarPreview').src = selectedAvatarUrl;
+      renderRatingStepper();
+      document.getElementById('ratingModalOverlay').classList.add('active');
+    };
+
+    window.closeRatingSheet = function() {
+      document.getElementById('ratingModalOverlay').classList.remove('active');
+    };
+
+    function renderRatingStepper() {
+      const container = document.getElementById('ratingStepper');
+      container.innerHTML = "";
+
+      const selectedIdx = RATINGS.findIndex(r => r.id === selectedRating);
+
+      // Heading based on Screenshot 3 vs 5
+      const heading = document.getElementById('sheetRatingHeading');
+      if (selectedRating === "A") {
+        heading.textContent = "You will see all available content";
+      } else {
+        heading.textContent = `You will see content rated up to ${selectedRating}`;
+      }
+
+      RATINGS.forEach((r, idx) => {
+        const isSelectedOrBelow = idx <= selectedIdx;
+        const hasActiveLine = idx < selectedIdx;
+
+        const row = document.createElement('div');
+        row.className = `stepper-item ${isSelectedOrBelow ? 'active-level' : ''} ${hasActiveLine ? 'line-active' : ''}`;
+        row.innerHTML = `
+          <div class="stepper-indicator">
+            ${isSelectedOrBelow ? '<i class="fa-solid fa-check"></i>' : ''}
+          </div>
+          <div class="stepper-content">
+            <h5>${r.title}</h5>
+            <p>${r.desc}</p>
+          </div>
+        `;
+
+        row.addEventListener('click', () => {
+          selectedRating = r.id;
+          document.getElementById('selectedRatingLabel').textContent = selectedRating;
+          updateKidsLabels(isKids);
+          renderRatingStepper();
+          setTimeout(() => window.closeRatingSheet(), 180);
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    // PARENTAL LOCK / PIN MODAL (SCREENSHOT 2)
+    window.handlePinToggle = function(checked) {
+      if (checked) {
+        openPinModal();
+      } else {
+        enteredPin = "";
+      }
+    };
+
+    function openPinModal() {
+      clearPinInputs();
+      document.getElementById('pinModalOverlay').classList.add('active');
+      const firstInput = document.querySelector('.pin-input');
+      if (firstInput) firstInput.focus();
+    }
+
+    window.cancelPinModal = function() {
+      document.getElementById('pinModalOverlay').classList.remove('active');
+      if (!enteredPin) {
+        document.getElementById('pinToggle').checked = false;
+      }
+    };
+
+    function setupPinInputs() {
+      const inputs = document.querySelectorAll('.pin-input');
+      inputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+          if (e.target.value.length === 1 && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+          }
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === "Backspace" && !input.value && index > 0) {
+            inputs[index - 1].focus();
+          }
+        });
+      });
+    }
+
+    function clearPinInputs() {
+      document.querySelectorAll('.pin-input').forEach(i => i.value = "");
+    }
+
+    window.confirmPin = function() {
+      const inputs = document.querySelectorAll('.pin-input');
+      let pin = "";
+      inputs.forEach(i => pin += i.value);
+
+      if (pin.length < 4) {
+        alert("Please enter a complete 4-digit PIN.");
+        return;
+      }
+
+      enteredPin = pin;
+      document.getElementById('pinToggle').checked = true;
+      document.getElementById('pinModalOverlay').classList.remove('active');
+    };
+
+    // SAVE PROFILE TO FIRESTORE DATABASE
+    window.saveProfileToFirebase = async function() {
+      const saveBtn = document.getElementById('saveProfileBtn');
+      saveBtn.disabled = true;
+      saveBtn.style.opacity = "0.7";
+      saveBtn.textContent = "Saving...";
+
+      try {
+        if (!Array.isArray(loggedInUserData.Profiles)) {
+          loggedInUserData.Profiles = [];
+        }
+
+        const newProfileObject = {
+          Age_Rating: selectedRating,
+          Avatar: selectedAvatarUrl,
+          Kids: isKids ? "True" : "False",
+          Name: profileName,
+          Pin: enteredPin || "",
+          Type: isKids ? "Kids" : "Adult",
+          Watchlist: (currentTask === "edit" && loggedInUserData.Profiles[editProfileIndex]?.Watchlist) 
+                      ? loggedInUserData.Profiles[editProfileIndex].Watchlist 
+                      : []
+        };
+
+        let updatedProfiles = [...loggedInUserData.Profiles];
+
+        if (currentTask === "edit" && editProfileIndex >= 0) {
+          updatedProfiles[editProfileIndex] = newProfileObject;
+        } else {
+          updatedProfiles.push(newProfileObject);
+          editProfileIndex = updatedProfiles.length - 1;
+        }
+
+        // Update Firestore document in "UARM"
+        const userRef = doc(db, "UARM", loggedInUserData.id);
+        await updateDoc(userRef, {
+          Profiles: updatedProfiles
+        });
+
+        // Update Local Storage
+        loggedInUserData.Profiles = updatedProfiles;
+        localStorage.setItem('active_user', JSON.stringify(loggedInUserData));
+        localStorage.setItem('active_profile', JSON.stringify(newProfileObject));
+        localStorage.setItem('active_profile_index', editProfileIndex.toString());
+
+        // Redirect appropriately
+        window.location.href = `myspace.html`;
+
+      } catch (err) {
+        console.error("Error saving profile to Firestore:", err);
+        alert("Failed to save profile. Please check connection.");
+        saveBtn.disabled = false;
+        saveBtn.style.opacity = "1";
+        saveBtn.textContent = isKids ? "Create Kids Profile" : "Create Profile";
+      }
+    };
+
+    init();
+  </script>
+</body>
+</html>
