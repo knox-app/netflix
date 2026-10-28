@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Profiles</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/knox-app/cloud/d235b91b67a58037117f8f0c2d1391ffd209a463/logo/ca81fecf-2d54-4aea-8de0-f189a43e1002.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-page: #fbfbfd;
+            --surface-card: #ffffff;
+            --surface-subtle: #f5f5f7;
+            --surface-hover: #ebebee;
+            --border-subtle: rgba(0, 0, 0, 0.08);
+            --border-focus: rgba(0, 0, 0, 0.2);
+            --text-main: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --text-muted: #86868b;
+            --accent-primary: #0071e3;
+            --accent-primary-text: #ffffff;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 12px 36px rgba(0,0,0,0.08);
+            --blur-nav: blur(20px);
+            --radius-lg: 24px;
+            --radius-md: 14px;
+            --radius-full: 9999px;
+            --shimmer-bg: linear-gradient(90deg, #f0f0f2 0%, #e4e4e7 50%, #f0f0f2 100%);
+
+            /* Badges */
+            --badge-kids-bg: rgba(37, 99, 235, 0.1);
+            --badge-kids-text: #2563eb;
+            --badge-kids-border: rgba(37, 99, 235, 0.2);
+
+            --badge-rating-bg: rgba(0, 0, 0, 0.05);
+            --badge-rating-text: #555558;
+            --badge-rating-border: rgba(0, 0, 0, 0.12);
+        }
+
+        body.dark {
+            --bg-page: #000000;
+            --surface-card: #121214;
+            --surface-subtle: #1c1c1e;
+            --surface-hover: #2c2c2e;
+            --border-subtle: rgba(255, 255, 255, 0.1);
+            --border-focus: rgba(255, 255, 255, 0.3);
+            --text-main: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-muted: #6e6e73;
+            --accent-primary: #2997ff;
+            --accent-primary-text: #ffffff;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+            --shadow-md: 0 16px 50px rgba(0,0,0,0.7);
+            --shimmer-bg: linear-gradient(90deg, #1c1c1e 0%, #2c2c2e 50%, #1c1c1e 100%);
+
+            --badge-kids-bg: rgba(96, 165, 250, 0.15);
+            --badge-kids-text: #93c5fd;
+            --badge-kids-border: rgba(96, 165, 250, 0.3);
+
+            --badge-rating-bg: rgba(255, 255, 255, 0.08);
+            --badge-rating-text: #d1d1d6;
+            --badge-rating-border: rgba(255, 255, 255, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Top Navigation */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(var(--bg-page), 0.8);
+            backdrop-filter: var(--blur-nav);
+            -webkit-backdrop-filter: var(--blur-nav);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0.9rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .nav-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-btn {
+            background-color: var(--surface-subtle);
+            color: var(--text-main);
+            border: 1px solid var(--border-subtle);
+            padding: 7px 16px;
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background-color: var(--surface-hover);
+            border-color: var(--border-focus);
+        }
+
+        /* Main Content Container */
+        .main-container {
+            max-width: 960px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+            flex: 1;
+        }
+
+        /* Hero Header */
+        .page-header {
+            margin-bottom: 36px;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 6px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Grid of Profiles */
+        .profiles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 24px;
+        }
+
+        /* Individual Profile Card */
+        .profile-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--border-focus);
+        }
+
+        /* App Banner Tag (Top of card) */
+        .app-badge {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-full);
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .app-badge-logo {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            object-fit: contain;
+        }
+
+        /* Avatar Container */
+        .profile-avatar-wrapper {
+            position: relative;
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            border: 3px solid var(--surface-subtle);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            background: var(--surface-subtle);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .profile-avatar-fallback {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-transform: uppercase;
+        }
+
+        /* Profile Details */
+        .profile-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 10px;
+            color: var(--text-main);
+            word-break: break-word;
+        }
+
+        /* Badges list under profile name */
+        .profile-tags {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: var(--radius-full);
+            border: 1px solid transparent;
+        }
+
+        .tag-rating {
+            background-color: var(--badge-rating-bg);
+            color: var(--badge-rating-text);
+            border-color: var(--badge-rating-border);
+        }
+
+        .tag-kids {
+            background-color: var(--badge-kids-bg);
+            color: var(--badge-kids-text);
+            border-color: var(--badge-kids-border);
+        }
+
+        .tag-pin {
+            background-color: var(--surface-subtle);
+            color: var(--text-secondary);
+            border-color: var(--border-subtle);
+        }
+
+        /* Skeletons */
+        .skeleton {
+            background-size: 200% 100%;
+            background-image: var(--shimmer-bg);
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-card {
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+        }
+
+        .skeleton-circle {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+        }
+
+        .skeleton-line {
+            height: 18px;
+            width: 120px;
+            border-radius: 4px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--surface-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="nav-left">
+        <img class="brand-logo" src="https://raw.githubusercontent.com/knox-app/cloud/d235b91b67a58037117f8f0c2d1391ffd209a463/logo/ca81fecf-2d54-4aea-8de0-f189a43e1002.png" alt="Logo">
+        <span class="nav-title">Profiles</span>
+    </div>
+    <a href="javascript:history.back()" class="nav-btn">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        <span>Back</span>
+    </a>
+</header>
+
+<main class="main-container">
+    <div class="page-header">
+        <h1 class="page-title" id="accountOwnerTitle">Account Profiles</h1>
+        <p class="page-subtitle" id="accountOwnerSubtitle">Manage and view all connected profiles across your streaming apps</p>
+    </div>
+
+    <!-- Profiles Grid -->
+    <div class="profiles-grid" id="profilesContainer">
+        <!-- Loading Skeletons rendered by default -->
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-circle"></div>
+            <div class="skeleton skeleton-line" style="width: 140px;"></div>
+            <div class="skeleton skeleton-line" style="width: 80px; height: 14px;"></div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-circle"></div>
+            <div class="skeleton skeleton-line" style="width: 130px;"></div>
+            <div class="skeleton skeleton-line" style="width: 70px; height: 14px;"></div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-circle"></div>
+            <div class="skeleton skeleton-line" style="width: 150px;"></div>
+            <div class="skeleton skeleton-line" style="width: 90px; height: 14px;"></div>
+        </div>
+    </div>
+</main>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 1. Firebase Configuration (Matches existing database project)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "question-metabase",
+        storageBucket: "question-metabase.firebasestorage.app",
+        messagingSenderId: "770698198753",
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
+        measurementId: "G-6ZP1FPMKSJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 2. Theme Handling
+    const urlParams = new URLSearchParams(window.location.search);
+    const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    function applyTheme() {
+        if (theme === "dark" || theme === "d") {
+            document.body.classList.add("dark");
+            return;
+        }
+        if (theme === "light" || theme === "l") {
+            document.body.classList.remove("dark");
+            return;
+        }
+        if (mediaQuery.matches) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    }
+    applyTheme();
+    mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
+
+    // 3. User Session Identification
+    let activeUser = null;
+    try {
+        activeUser = JSON.parse(localStorage.getItem('active_user') || 'null');
+    } catch (e) {
+        activeUser = null;
+    }
+
+    if (!activeUser) {
+        try {
+            const saved = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            if (saved.length > 0) {
+                activeUser = { "Email": saved[0].email };
+            }
+        } catch (e) {}
+    }
+
+    const userEmail = activeUser?.Email || urlParams.get('email') || urlParams.get('u');
+
+    if (!userEmail) {
+        document.getElementById('profilesContainer').innerHTML = `
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <h3>No Active Session</h3>
+                <p>Please log in or select an account to view profiles.</p>
+            </div>
+        `;
+    }
+
+    // 4. Dynamic App Logo & Icon Resolver
+    function getAppBadge(appName) {
+        const name = (appName || "App").trim();
+        const lower = name.toLowerCase();
+
+        let logoUrl = "";
+        if (lower.includes("hotstar")) {
+            logoUrl = "https://img10.hotstar.com/image/upload/f_auto,q_90,w_256/v1656431456/web-assets/prod/images/Disney+Hotstar.jpg";
+        } else if (lower.includes("netflix")) {
+            logoUrl = "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.ico";
+        } else if (lower.includes("prime") || lower.includes("amazon")) {
+            logoUrl = "https://m.media-amazon.com/images/G/01/digital/video/DVUI/favicons/favicon-512x512.png";
+        }
+
+        if (logoUrl) {
+            return `
+                <div class="app-badge">
+                    <img class="app-badge-logo" src="${logoUrl}" alt="${name}" onerror="this.style.display='none'">
+                    <span>${name}</span>
+                </div>
+            `;
+        }
+
+        // Generic app badge fallback
+        return `
+            <div class="app-badge">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                <span>${name}</span>
+            </div>
+        `;
+    }
+
+    // 5. Render Profiles Dynamically from Firestore
+    const profilesContainer = document.getElementById('profilesContainer');
+
+    function renderProfiles(docData) {
+        const firstName = docData["First Name"] || "";
+        const lastName = docData["Last Name"] || "";
+        const email = docData["Email"] || "";
+
+        if (firstName) {
+            document.getElementById('accountOwnerTitle').innerText = `${firstName}'s Profiles`;
+            document.getElementById('accountOwnerSubtitle').innerText = `Profiles associated with ${email}`;
+        }
+
+        const profiles = docData["Profiles"];
+
+        if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
+            profilesContainer.innerHTML = `
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    <h3>No Profiles Found</h3>
+                    <p>There are no profiles linked with this account in Firestore.</p>
+                </div>
+            `;
+            return;
+        }
+
+        profilesContainer.innerHTML = "";
+
+        profiles.forEach((p, idx) => {
+            const profileName = p.Name || `Profile ${idx + 1}`;
+            const appName = p.App || "Streaming";
+            const avatarUrl = p.Avatar || "";
+            const ageRating = p.Age_Rating || "";
+            const isKids = String(p.Kids).toLowerCase() === "true" || (p.Type && p.Type.toLowerCase() === "kids");
+            const hasPin = Boolean(p.Pin && p.Pin.trim() !== "");
+            const initial = profileName.trim().charAt(0).toUpperCase() || "P";
+
+            const card = document.createElement('div');
+            card.className = "profile-card";
+
+            card.innerHTML = `
+                ${getAppBadge(appName)}
+
+                <div class="profile-avatar-wrapper">
+                    ${avatarUrl ? `
+                        <img 
+                            class="profile-avatar-img" 
+                            src="${avatarUrl}" 
+                            alt="${profileName}" 
+                            referrerpolicy="no-referrer"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                        >
+                        <span class="profile-avatar-fallback" style="display:none;">${initial}</span>
+                    ` : `
+                        <span class="profile-avatar-fallback">${initial}</span>
+                    `}
+                </div>
+
+                <div class="profile-name">${profileName}</div>
+
+                <div class="profile-tags">
+                    ${isKids ? `
+                        <span class="tag-pill tag-kids">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                            Kids
+                        </span>
+                    ` : ''}
+
+                    ${ageRating ? `
+                        <span class="tag-pill tag-rating">${ageRating}</span>
+                    ` : ''}
+
+                    ${hasPin ? `
+                        <span class="tag-pill tag-pin" title="PIN Protected">
+                            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            Locked
+                        </span>
+                    ` : ''}
+                </div>
+            `;
+
+            profilesContainer.appendChild(card);
+        });
+    }
+
+    // 6. Realtime Firestore Query
+    if (userEmail) {
+        const q = query(collection(db, "UARM"), where("Email", "==", userEmail));
+        
+        onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const docData = snapshot.docs[0].data();
+                renderProfiles(docData);
+            } else {
+                profilesContainer.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <h3>User Record Not Found</h3>
+                        <p>No document exists in UARM for: ${userEmail}</p>
+                    </div>
+                `;
+            }
+        }, (error) => {
+            console.error("Firestore error:", error);
+            profilesContainer.innerHTML = `
+                <div class="empty-state">
+                    <h3>Connection Error</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        });
+    }
+</script>
+</body>
+</html>
