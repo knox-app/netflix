@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Choose Account</title>
     <style>
-        /* CSS Variables for Dynamic Light/Dark Mode */
         :root {
             --bg-color: #ffffff;
             --text-primary: #000000;
@@ -150,7 +149,7 @@
     <div class="account-list" id="accountList">
         <p class="loading-text">Loading accounts...</p>
     </div>
-    <a href="1.html" class="add-account">+ Add another account</a>
+    <a href="1.html" class="add-account" id="addAccountLink">+ Add another account</a>
 </div>
 
 <script type="module">
@@ -163,7 +162,6 @@
         onSnapshot 
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // Complete Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
         authDomain: "question-metabase.firebaseapp.com",
@@ -178,22 +176,20 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Read full query parameters from current URL
     const urlParams = new URLSearchParams(window.location.search);
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
+    const redirectParam = urlParams.get("redirect") || urlParams.get("returnUrl") || urlParams.get("next") || "4.html";
 
-    /* ================= LIVE THEME ================= */
+    /* ================= THEME HANDLING ================= */
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     function applyTheme() {
         if (theme === "dark" || theme === "d") {
             document.body.classList.add("dark");
-            return;
-        }
-        if (theme === "light" || theme === "l") {
+        } else if (theme === "light" || theme === "l") {
             document.body.classList.remove("dark");
-            return;
-        }
-        if (mediaQuery.matches) {
+        } else if (mediaQuery.matches) {
             document.body.classList.add("dark");
         } else {
             document.body.classList.remove("dark");
@@ -205,12 +201,67 @@
         if (!theme) applyTheme();
     });
 
-    const addAccountLink = document.querySelector('.add-account');
+    // Pass all query parameters to the "+ Add another account" link
+    const addAccountLink = document.getElementById('addAccountLink');
     if (addAccountLink) {
-        addAccountLink.href = theme ? `1.html?theme=${theme}` : '1.html';
+        addAccountLink.href = window.location.search ? `1.html${window.location.search}` : '1.html';
     }
 
-    /* ================= ACCOUNT RETRIEVAL & REAL-TIME LISTENER ================= */
+    /* ================= REDIRECT LOGIC ================= */
+    function completeAccountSelection(userData) {
+        // Save the chosen user as active user
+        localStorage.setItem('active_user', JSON.stringify(userData));
+
+        // Build target URL while preserving all original query parameters
+        const target = new URL(redirectParam, window.location.origin);
+        urlParams.forEach((value, key) => {
+            if (key !== "redirect" && key !== "returnUrl" && key !== "next") {
+                target.searchParams.set(key, value);
+            }
+        });
+
+        window.location.href = target.toString();
+    }
+
+    /* ================= RENDER FUNCTION ================= */
+    const listDiv = document.getElementById('accountList');
+
+    function renderAccounts(accounts) {
+        if (!accounts || accounts.length === 0) {
+            listDiv.innerHTML = `<p class="loading-text">No saved accounts found.</p>`;
+            return;
+        }
+
+        listDiv.innerHTML = '';
+        accounts.forEach((data) => {
+            const firstName = data["First Name"] || data.firstName || data.name || "User";
+            const lastName = data["Last Name"] || data.lastName || "";
+            const fullName = `${firstName} ${lastName}`.trim();
+            const email = data.Email || data.email || "";
+            const photo = data.Profile_Picture || data["Profile Picture"] || data.photoURL || null;
+            const initial = firstName.charAt(0).toUpperCase() || email.charAt(0).toUpperCase() || "?";
+
+            const item = document.createElement('div');
+            item.className = 'account-item';
+
+            const avatarHtml = photo 
+                ? `<img src="${photo}" class="avatar-img" alt="${fullName}" onerror="this.outerHTML='<div class=\\'avatar\\'>${initial}</div>'" />` 
+                : `<div class="avatar">${initial}</div>`;
+
+            item.innerHTML = `
+                ${avatarHtml}
+                <div class="acc-info">
+                    <p class="acc-name">${fullName}</p>
+                    <p class="acc-email">${email}</p>
+                </div>
+            `;
+
+            item.addEventListener('click', () => completeAccountSelection(data));
+            listDiv.appendChild(item);
+        });
+    }
+
+    /* ================= ACCOUNT RETRIEVAL BY EMAIL ================= */
     let localSaved = [];
     try {
         localSaved = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
@@ -218,73 +269,39 @@
         localSaved = [];
     }
 
-    const listDiv = document.getElementById('accountList');
+    // Extract emails from saved accounts (handles both strings or objects)
+    const emails = localSaved
+        .map(a => (typeof a === 'string' ? a : (a.Email || a.email)))
+        .filter(Boolean);
 
-    if (!Array.isArray(localSaved) || localSaved.length === 0) {
-        const dest = theme ? `1.html?theme=${theme}` : '1.html';
-        window.location.href = dest;
+    if (emails.length === 0) {
+        // No saved accounts, redirect to login page (1.html) with existing params
+        window.location.href = window.location.search ? `1.html${window.location.search}` : '1.html';
     } else {
-        // Collect Lotus IDs or emails saved locally
-        const lotusIds = localSaved.map(a => a.lotus || a.Lotus).filter(Boolean);
+        // Step 1: Render local accounts immediately so screen never flashes empty
+        renderAccounts(localSaved);
 
-        if (lotusIds.length === 0) {
-            const dest = theme ? `1.html?theme=${theme}` : '1.html';
-            window.location.href = dest;
-        } else {
-            // Firestore 'in' queries allow up to 30 items
-            const q = query(collection(db, "UARM"), where("Lotus", "in", lotusIds.slice(0, 30)));
+        // Step 2: Query Firestore using permanent Email (up to 30)
+        const uniqueEmails = [...new Set(emails)].slice(0, 30);
+        const q = query(collection(db, "UARM"), where("Email", "in", uniqueEmails));
 
-            // Real-time synchronization
-            onSnapshot(q, (snapshot) => {
-                listDiv.innerHTML = '';
-
-                if (snapshot.empty) {
-                    listDiv.innerHTML = `<p class="loading-text">No active accounts found.</p>`;
-                    return;
-                }
-
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    
-                    const firstName = data["First Name"] || data.firstName || "User";
-                    const lastName = data["Last Name"] || data.lastName || "";
-                    const fullName = `${firstName} ${lastName}`.trim();
-                    const email = data.Email || data.email || "";
-                    const photo = data.Profile_Picture || data["Profile Picture"] || null;
-                    const initial = firstName.charAt(0).toUpperCase() || email.charAt(0).toUpperCase() || "?";
-
-                    const item = document.createElement('div');
-                    item.className = 'account-item';
-
-                    const avatarHtml = photo 
-                        ? `<img src="${photo}" class="avatar-img" alt="${fullName}" />` 
-                        : `<div class="avatar">${initial}</div>`;
-
-                    item.innerHTML = `
-                        ${avatarHtml}
-                        <div class="acc-info">
-                            <p class="acc-name">${fullName}</p>
-                            <p class="acc-email">${email}</p>
-                        </div>
-                    `;
-
-                    // Click to sign in
-                    item.addEventListener('click', () => {
-                        localStorage.setItem('active_user', JSON.stringify(data));
-                        let targetRedirect = '4.html';
-                        if (theme) {
-                            targetRedirect += `?theme=${theme}`;
-                        }
-                        window.location.href = targetRedirect;
-                    });
-
-                    listDiv.appendChild(item);
+        onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const freshAccounts = [];
+                snapshot.forEach(doc => {
+                    freshAccounts.push({ id: doc.id, ...doc.data() });
                 });
-            }, (error) => {
-                console.error("Real-time listener error:", error);
-                listDiv.innerHTML = `<p class="loading-text" style="color:red;">Error syncing accounts.</p>`;
-            });
-        }
+
+                // Update localStorage so latest profile pictures/names stay current
+                localStorage.setItem('saved_accounts', JSON.stringify(freshAccounts));
+
+                // Re-render with live Firestore data
+                renderAccounts(freshAccounts);
+            }
+        }, (error) => {
+            console.error("Firestore sync error:", error);
+            // Even if offline or query errors, locally saved accounts remain visible
+        });
     }
 </script>
 </body>
