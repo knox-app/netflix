@@ -149,7 +149,6 @@
             flex-wrap: wrap;
         }
 
-        /* Avatar Container with Camera Edit Overlay */
         .avatar-container {
             position: relative;
             width: 100px;
@@ -198,7 +197,6 @@
             align-items: center;
             justify-content: center;
             color: #ffffff;
-            transition: opacity 0.2s ease;
         }
 
         .profile-headings {
@@ -434,7 +432,7 @@
             100% { background-position: -200% 0; }
         }
 
-        /* ================= MODAL & ACTION SHEETS ================= */
+        /* Modals & Action Sheets */
         .modal-backdrop {
             position: fixed;
             top: 0;
@@ -515,7 +513,7 @@
             color: var(--text-main);
         }
 
-        /* Photo Options Menu List (Screenshot 1) */
+        /* Photo Options Menu List */
         .action-menu-list {
             display: flex;
             flex-direction: column;
@@ -562,7 +560,7 @@
             background-color: var(--danger-bg);
         }
 
-        /* Avatar Picker Sheet (Screenshot 2) */
+        /* Avatar Picker Sheet */
         .avatar-preview-area {
             display: flex;
             flex-direction: column;
@@ -635,7 +633,7 @@
             box-shadow: 0 0 0 2px var(--surface-card);
         }
 
-        /* Name Edit Form Controls */
+        /* Name Edit Controls */
         .input-group {
             margin-bottom: 16px;
             display: flex;
@@ -699,7 +697,6 @@
             transition: opacity 0.2s ease;
         }
 
-        /* Toast notification */
         .status-toast {
             position: fixed;
             bottom: 24px;
@@ -859,7 +856,7 @@
 <input type="file" id="libraryFileInput" accept="image/*" style="display:none">
 <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display:none">
 
-<!-- Sheet 1: Edit Photo Menu (Matches Screenshot 1) -->
+<!-- Sheet 1: Edit Photo Menu -->
 <div class="modal-backdrop" id="photoMenuBackdrop">
     <div class="modal-sheet">
         <div class="sheet-drag-pill"></div>
@@ -899,7 +896,7 @@
     </div>
 </div>
 
-<!-- Sheet 2: Choose an Avatar Picker (Matches Screenshot 2) -->
+<!-- Sheet 2: Choose an Avatar Picker -->
 <div class="modal-backdrop" id="avatarPickerBackdrop">
     <div class="modal-sheet">
         <div class="sheet-drag-pill"></div>
@@ -922,7 +919,7 @@
         </div>
 
         <div class="avatar-grid" id="avatarGridContainer">
-            <!-- Populated via JavaScript with SVG icons -->
+            <!-- Rendered via JS -->
         </div>
     </div>
 </div>
@@ -953,7 +950,7 @@
     </div>
 </div>
 
-<!-- Upload / Action Toast -->
+<!-- Status Toast -->
 <div class="status-toast" id="statusToast">Updating photo...</div>
 
 <script type="module">
@@ -975,10 +972,9 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Free ImgBB API Key
     const IMGBB_API_KEY = "2d207c42dfd0ba5f6fe492582845c48b";
 
-    // 2. URL Parameters & Theme Logic
+    // 2. Theme & URL Parameter Handling
     const urlParams = new URLSearchParams(window.location.search);
     const uParam = urlParams.has('u') ? urlParams.get('u') : urlParams.get('user');
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
@@ -1003,26 +999,45 @@
     applyTheme();
     mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
-    // 3. User Session Verification
-    let activeUser = null;
+    // 3. Multi-Account Index Resolver (?u=0, ?u=1, etc.)
+    let savedAccounts = [];
     try {
-        activeUser = JSON.parse(localStorage.getItem('active_user') || 'null');
+        savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
     } catch (e) {
-        activeUser = null;
+        savedAccounts = [];
     }
 
-    if (!activeUser) {
+    let targetLotus = null;
+    let targetEmail = null;
+
+    if (uParam !== null) {
+        const uIndex = parseInt(uParam, 10);
+        if (!isNaN(uIndex) && uIndex >= 0 && uIndex < savedAccounts.length) {
+            targetLotus = savedAccounts[uIndex].lotus || savedAccounts[uIndex].Lotus;
+            targetEmail = savedAccounts[uIndex].email || savedAccounts[uIndex].Email;
+        } else {
+            // Invalid index (e.g. ?u=9), redirect to account chooser
+            const dest = theme ? `3.html?theme=${encodeURIComponent(theme)}` : '3.html';
+            window.location.href = dest;
+        }
+    } else {
+        // Fallback to active_user or 1st saved account
+        let activeUser = null;
         try {
-            const saved = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-            if (saved.length > 0) {
-                activeUser = { "Email": saved[0].email, "Lotus": saved[0].lotus };
-            }
+            activeUser = JSON.parse(localStorage.getItem('active_user') || 'null');
         } catch (e) {}
-    }
 
-    if (!activeUser || !activeUser["Email"]) {
-        const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
-        window.location.href = dest;
+        if (activeUser) {
+            targetLotus = activeUser["Lotus"] || activeUser.lotus;
+            targetEmail = activeUser["Email"] || activeUser.email;
+        } else if (savedAccounts.length > 0) {
+            targetLotus = savedAccounts[0].lotus || savedAccounts[0].Lotus;
+            targetEmail = savedAccounts[0].email || savedAccounts[0].Email;
+        } else {
+            // No saved account at all, go to login
+            const dest = theme ? `1.html?theme=${encodeURIComponent(theme)}` : '1.html';
+            window.location.href = dest;
+        }
     }
 
     // 4. Dynamic Badge Configuration
@@ -1058,7 +1073,7 @@
         setTimeout(() => toast.classList.remove('show'), 2600);
     }
 
-    // 6. Live UI Render
+    // 6. UI Render Function
     let currentUserData = {};
     let currentDocId = null;
 
@@ -1069,11 +1084,11 @@
         const firstName = user["First Name"] || "";
         const lastName = user["Last Name"] || "";
         const fullName = `${firstName} ${lastName}`.trim() || "User";
-        const email = user["Email"] || "—";
+        const email = user["Email"] || user.email || "—";
         const phone = user["Phone Number"] || "—";
         const dob = user["Date of Birth"] || "—";
         const gender = user["Gender"] || "—";
-        const profilePicUrl = user["Profile_Picture"] || user["profilePicture"] || null;
+        const profilePicUrl = user["Profile_Picture"] || user["Profile Picture"] || null;
 
         document.getElementById('fullName').innerText = fullName;
         document.getElementById('primaryEmail').innerText = email;
@@ -1114,24 +1129,32 @@
         }
     }
 
-    // 7. Real-Time Firestore Live Listener
-    const userEmail = activeUser["Email"];
-    const q = query(collection(db, "UARM"), where("Email", "==", userEmail));
+    // 7. Real-Time Firestore Query for Current User
+    // Queries by Lotus (or Email) matching the target account
+    let userQuery;
+    if (targetLotus) {
+        userQuery = query(collection(db, "UARM"), where("Lotus", "==", targetLotus));
+    } else {
+        userQuery = query(collection(db, "UARM"), where("Email", "==", targetEmail));
+    }
 
-    onSnapshot(q, (snapshot) => {
+    onSnapshot(userQuery, (snapshot) => {
         if (!snapshot.empty) {
             const docSnap = snapshot.docs[0];
             currentDocId = docSnap.id;
             const liveData = docSnap.data();
 
+            // Keep active session updated
             localStorage.setItem('active_user', JSON.stringify(liveData));
             renderUserData(liveData);
+        } else {
+            console.warn("User document not found in UARM");
         }
     }, (error) => {
-        console.error("Realtime listener error:", error);
+        console.error("Firestore sync error:", error);
     });
 
-    // 8. Photo Menu Modal Controls (Screenshot 1)
+    // 8. Photo Menu Modal Controls
     const photoMenuBackdrop = document.getElementById('photoMenuBackdrop');
     const avatarContainer = document.getElementById('avatarContainer');
     const btnClosePhotoMenu = document.getElementById('btnClosePhotoMenu');
@@ -1143,7 +1166,7 @@
     btnClosePhotoMenu.onclick = closePhotoMenu;
     photoMenuBackdrop.onclick = (e) => { if (e.target === photoMenuBackdrop) closePhotoMenu(); };
 
-    // 9. Photo Upload Engine (ImgBB + Compressed Fallback)
+    // 9. Photo Upload Engine (ImgBB + Fallback)
     const libraryFileInput = document.getElementById('libraryFileInput');
     const cameraFileInput = document.getElementById('cameraFileInput');
 
@@ -1163,7 +1186,6 @@
         showToast("Uploading photo...");
 
         try {
-            // Send to ImgBB
             const formData = new FormData();
             formData.append("image", file);
 
@@ -1178,18 +1200,15 @@
             if (data && data.success && data.data && data.data.url) {
                 finalUrl = data.data.display_url || data.data.url;
             } else {
-                // Fallback: Read as compressed Base64 data URL
                 finalUrl = await fileToDataURL(file);
             }
 
-            // Save to Firestore
             if (currentDocId && finalUrl) {
                 await updateDoc(doc(db, "UARM", currentDocId), { "Profile_Picture": finalUrl });
                 showToast("Profile photo updated!");
             }
         } catch (err) {
             console.error("Photo upload failed:", err);
-            // Fallback to local DataURL
             const localDataUrl = await fileToDataURL(file);
             if (currentDocId && localDataUrl) {
                 await updateDoc(doc(db, "UARM", currentDocId), { "Profile_Picture": localDataUrl });
@@ -1225,7 +1244,7 @@
         }
     };
 
-    // 11. Choose an Avatar Sheet (Screenshot 2)
+    // 11. Choose an Avatar Sheet
     const avatarPickerBackdrop = document.getElementById('avatarPickerBackdrop');
     const btnCloseAvatarPicker = document.getElementById('btnCloseAvatarPicker');
     const btnConfirmAvatar = document.getElementById('btnConfirmAvatar');
@@ -1247,25 +1266,22 @@
     btnCloseAvatarPicker.onclick = closeAvatarPicker;
     avatarPickerBackdrop.onclick = (e) => { if (e.target === avatarPickerBackdrop) closeAvatarPicker(); };
 
-    // Material Geometric Avatar Palette (Matching Screenshot 2)
     const AVATAR_PALETTES = [
-        { bg: "#d16b86", symbol: "#f2ced8" }, // Mauve
-        { bg: "#7ea383", symbol: "#e1edd9" }, // Sage Green
-        { bg: "#7ea5c7", symbol: "#d7e6f4" }, // Soft Blue
-        { bg: "#baa5c2", symbol: "#ece1f0" }, // Lavender
-        { bg: "#dd94a7", symbol: "#fae7ed" }, // Rose
-        { bg: "#9db490", symbol: "#f0f5ec" }, // Olive
-        { bg: "#96afcb", symbol: "#e5effa" }, // Sky
-        { bg: "#d8a47f", symbol: "#fdf0e7" }  // Amber
+        { bg: "#d16b86", symbol: "#f2ced8" },
+        { bg: "#7ea383", symbol: "#e1edd9" },
+        { bg: "#7ea5c7", symbol: "#d7e6f4" },
+        { bg: "#baa5c2", symbol: "#ece1f0" },
+        { bg: "#dd94a7", symbol: "#fae7ed" },
+        { bg: "#9db490", symbol: "#f0f5ec" },
+        { bg: "#96afcb", symbol: "#e5effa" },
+        { bg: "#d8a47f", symbol: "#fdf0e7" }
     ];
 
-    // 4 Geometric SVGs from screenshot 2
     function getAvatarSvg(patternIdx, palette) {
         const bg = palette.bg;
         const fg = palette.symbol;
 
         if (patternIdx === 0) {
-            // Star Network Node (Screenshot 2 preview)
             return `<svg viewBox="0 0 100 100" width="100%" height="100%">
                 <rect width="100" height="100" fill="${bg}"/>
                 <circle cx="50" cy="50" r="14" fill="${fg}"/>
@@ -1283,7 +1299,6 @@
                 <circle cx="74" cy="26" r="6" fill="${fg}"/>
             </svg>`;
         } else if (patternIdx === 1) {
-            // 4-Petal Clover/Flower
             return `<svg viewBox="0 0 100 100" width="100%" height="100%">
                 <rect width="100" height="100" fill="${bg}"/>
                 <circle cx="36" cy="36" r="14" fill="${fg}"/>
@@ -1293,7 +1308,6 @@
                 <rect x="36" y="36" width="28" height="28" fill="${fg}"/>
             </svg>`;
         } else if (patternIdx === 2) {
-            // Small Central Floral Cross
             return `<svg viewBox="0 0 100 100" width="100%" height="100%">
                 <rect width="100" height="100" fill="${bg}"/>
                 <circle cx="50" cy="36" r="9" fill="${fg}"/>
@@ -1303,7 +1317,6 @@
                 <circle cx="50" cy="50" r="6" fill="${fg}"/>
             </svg>`;
         } else {
-            // Circuit Ladder Nodes
             return `<svg viewBox="0 0 100 100" width="100%" height="100%">
                 <rect width="100" height="100" fill="${bg}"/>
                 <line x1="36" y1="20" x2="36" y2="80" stroke="${fg}" stroke-width="5"/>
@@ -1318,7 +1331,6 @@
         }
     }
 
-    // Build 16 avatar options
     const AVATAR_LIST = [];
     for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 4; j++) {
