@@ -75,7 +75,7 @@
       z-index: 99999;
     }
 
-    /* Video Engines & Precast Overlay */
+    /* Video Engines & Precast Layers */
     video {
       position: absolute;
       inset: 0;
@@ -89,8 +89,33 @@
     video.fill-screen { object-fit: cover !important; }
 
     #precastVideoPlayer {
-      z-index: 3;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      z-index: 4;
       display: none;
+      background: #000;
+    }
+
+    #precastYtHost {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 4;
+      display: none;
+      background: #000;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #precastYtHost iframe {
+      width: calc(100% + 140px) !important;
+      height: calc(100% + 200px) !important;
+      position: absolute !important;
+      top: -100px !important;
+      left: -70px !important;
       pointer-events: none;
     }
 
@@ -132,44 +157,25 @@
       top: 15%;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(18, 20, 26, 0.9);
-      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(18, 20, 26, 0.92);
+      border: 1px solid rgba(255,255,255,0.18);
       color: #fff;
-      padding: 7px 16px;
+      padding: 7px 18px;
       border-radius: 20px;
       font-size: 12px;
-      font-weight: 600;
-      z-index: 45;
+      font-weight: 700;
+      z-index: 55;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.2s;
     }
     .toast-alert.show { opacity: 1; }
 
-    /* Chapter Tooltip */
-    .chapter-preview-tooltip {
-      position: absolute;
-      bottom: 30px;
-      transform: translateX(-50%);
-      background: rgba(15, 16, 21, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #ffffff;
-      padding: 5px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      pointer-events: none;
-      white-space: nowrap;
-      display: none;
-      z-index: 30;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
-
     /* Controls Overlay */
     .controls-overlay {
       position: absolute;
       inset: 0;
-      z-index: 25;
+      z-index: 30;
       background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 28%, transparent 68%, rgba(0,0,0,0.92) 100%);
       display: flex;
       flex-direction: column;
@@ -386,8 +392,8 @@
       position: absolute;
       top: 16px;
       left: 16px;
-      z-index: 35;
-      background: rgba(0,0,0,0.8);
+      z-index: 45;
+      background: rgba(0,0,0,0.85);
       border: 1px solid rgba(255,255,255,0.25);
       padding: 8px 14px;
       border-radius: 20px;
@@ -713,7 +719,7 @@
     .view-more-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.2s ease; }
     .view-more-btn.expanded svg { transform: rotate(180deg); }
 
-    /* Horizontal Recommendation Banners */
+    /* Recommendations */
     .horizontal-banners-scroll {
       display: flex;
       gap: 14px;
@@ -781,19 +787,18 @@
 <div id="appContent" style="display: none;">
   <div class="main-wrapper">
     
-    <!-- Video Player Container -->
+    <!-- Video Player Root Container -->
     <div class="player-container" id="playerContainer">
 
       <!-- Toast Alert -->
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
-      <!-- Scrubber Chapter Preview -->
-      <div class="chapter-preview-tooltip" id="chapterTooltip">Episode 1</div>
-
-      <!-- Dual Layer Video Engines for Gapless Pre_Cast & Content -->
-      <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
+      <!-- Precast Layers (Direct Video & YouTube) -->
       <video id="precastVideoPlayer" playsinline crossorigin="anonymous"></video>
+      <div id="precastYtHost"></div>
 
+      <!-- Main Video Engines (Managed by runner.js) -->
+      <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
@@ -954,25 +959,6 @@
         </div>
       </div>
 
-      <!-- Landscape Drawer Overlay -->
-      <div class="drawer-overlay" id="drawerOverlay">
-        <div>
-          <div class="drawer-drag-area">
-            <div class="drawer-drag-handle"></div>
-          </div>
-          <div class="drawer-header">
-            <div class="drawer-title-tabs">
-              <button class="drawer-tab-btn" id="drawerTabWatchNext">Watch Next</button>
-              <button class="drawer-tab-btn" id="drawerTabEpisodes" style="display:none;">Episodes</button>
-              <button class="drawer-tab-btn" id="drawerTabPreviously" style="display:none;">Previously</button>
-            </div>
-            <button class="icon-btn" id="closeDrawerBtn">✕</button>
-          </div>
-          <div class="seasons-scroll-bar" id="seasonsScrollBar" style="display:none;"></div>
-        </div>
-        <div class="cards-scroll-row" id="drawerCardsRow"></div>
-      </div>
-
     </div>
 
     <!-- Details Section -->
@@ -996,10 +982,6 @@
         <div class="section-head" id="epSectionHead">Episodes</div>
         <div class="ep-seasons-row" id="verticalSeasonsRow"></div>
         <div class="episodes-list" id="verticalEpisodesList"></div>
-        <button class="view-more-btn" id="viewMoreEpBtn" style="display:none;">
-          <span>View More</span>
-          <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
-        </button>
       </div>
 
       <!-- Recommendations Section -->
@@ -1014,7 +996,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, onSnapshot, collection, getDoc, getDocs, updateDoc, arrayUnion, arrayRemove, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
   
-  // Unified modular runner import
+  // External runner.js Player Engine Import
   import { PlayerManager } from "https://knox-app.github.io/netflix/watch/runner.js";
 
   const channelConfig = {
@@ -1032,126 +1014,63 @@
   const authConfig = {
     apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
     authDomain: "question-metabase.firebaseapp.com",
-    databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "question-metabase",
     storageBucket: "question-metabase.firebasestorage.app",
     messagingSenderId: "770698198753",
-    appId: "1:770698198753:web:59ae49d78b6013bab5c1a0",
-    measurementId: "G-6ZP1FPMKSJ"
+    appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
   };
   const authApp = initializeApp(authConfig, "authApp");
   const authDb = getFirestore(authApp);
 
-  const YT_API_KEY = "AIzaSyD7JDCs5jfuy7f5_74gpjxGoqoAbUmKHVM";
-
-  // Caches
-  const partnerIntroCache = {};
-  const playlistCache = {};
-  const mediaDurationCache = {};
-  const DEFAULT_DURATION = 1500;
-
   // Runtime State
   let player = null;
-  let precastVideo = document.getElementById('precastVideoPlayer');
+  const precastVideo = document.getElementById('precastVideoPlayer');
+  const precastYtHost = document.getElementById('precastYtHost');
+  let precastYtPlayer = null;
+  let precastYtInterval = null;
+
   let activePrecastUrl = null;
+  let isPrecastYouTube = false;
   let precastDuration = 0;
   let mainMediaDuration = 0;
   let isPrecastActive = false;
   let precastHandoffInitiated = false;
+  let movieOffsetStart = 0;
 
-  let contentType = 'live';
+  let contentType = 'movie';
   let hideControlsTimer = null;
   let isScreenLocked = false;
   let isFillScreen = false;
   let currentChannel = null;
-  let isUserSeeking = false;
   let currentSpeed = 1;
   let currentUser = null;
   let userDocRef = null;
   let userWatchlist = [];
   let lastProgressSave = 0;
 
-  // Digital Feed state
-  let digitalFeedUnsub = null;
-  let digitalFeedInterval = null;
-  let digitalFeedSchedule = [];
-  let activeMediaKey = null;
-  let digitalFeedMoviesLibrary = [];
-
-  // Collection Mode
-  let isCollectionMode = false;
-  let activeCollectionKey = null;
-  let collectionPlaylist = [];
-  let currentCollectionItemIdx = 0;
-  let collectionTotalDuration = 0;
-
-  // Shows Data
-  let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [], "TV Shows": [] };
-  let showDocData = null;
-  let currentSeasonKey = null;
-  let currentEpisodeIdx = 0;
-  let showAllEpisodesVertical = false;
-
-  let channelDocUnsub = null;
-  let collectionUnsub = null;
-
+  const partnerIntroCache = {};
   const urlParams = new URLSearchParams(window.location.search);
   const currentDocId = urlParams.get('watch');
-  const actionParam = urlParams.get('action');
-  const paramSeason = urlParams.get('season');
-  const paramEp = urlParams.get('ep');
-
-  function parseCollectionParam() {
-    let col = urlParams.get('collection');
-    if (!col && window.location.hash) {
-      col = window.location.hash.replace('#', '').trim();
-    }
-    return col || null;
-  }
-  activeCollectionKey = parseCollectionParam();
-
-  function checkOrientation() {
-    const isLandscape = window.innerWidth > window.innerHeight;
-    if (isLandscape || document.fullscreenElement) {
-      document.body.classList.add('landscape-mode');
-    } else {
-      document.body.classList.remove('landscape-mode');
-    }
-  }
-  window.addEventListener('resize', checkOrientation, { passive: true });
-  window.addEventListener('orientationchange', checkOrientation, { passive: true });
-  document.addEventListener('fullscreenchange', checkOrientation);
-  checkOrientation();
 
   function safeUrl(url) {
     if (!url) return '';
-    return url.trim().replace(/^http:\/\//i, 'https://');
+    return String(url).trim().replace(/^http:\/\//i, 'https://');
   }
 
-  function getPosterH(c) {
-    if (!c) return '';
-    return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster || c["Logo.png"] || c.Logo || '');
-  }
-
-  function formatDynamicDuration(raw) {
-    if (!raw) return '';
-    if (typeof raw === 'string' && (raw.includes('h') || raw.includes('m') || raw.includes(':'))) return raw;
-    const num = parseInt(raw);
-    if (isNaN(num) || num <= 0) return '';
-    if (num < 60) return `${num}m`;
-    const h = (num / 60) | 0;
-    const m = num % 60;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  }
-
-  function getDynamicLanguageString(item) {
-    if (!item) return '1 Language';
-    const multi = item["Multi-Language"] || item.multiLanguage || item.MultiLanguage;
-    if (multi && typeof multi === 'object') {
-      const count = Object.keys(multi).length + 1;
-      return `${count} Languages`;
+  function extractYouTubeId(url) {
+    if (!url) return null;
+    try {
+      const u = new URL(String(url).trim());
+      if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('/')[0];
+      if (u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com')) {
+        if (u.pathname === '/watch') return u.searchParams.get('v');
+        if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
+        if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
+      }
+    } catch(e) {
+      if (/^[a-zA-Z0-9_-]{11}$/.test(String(url).trim())) return String(url).trim();
     }
-    return item.Language ? `${item.Language}` : '1 Language';
+    return null;
   }
 
   function formatTime(seconds) {
@@ -1165,21 +1084,6 @@
     return `${hh}${mm}:${ss}`;
   }
 
-  function format12Hour(time24) {
-    if (!time24) return "";
-    const [hStr, mStr] = time24.split(":");
-    let h = parseInt(hStr, 10);
-    const period = h >= 12 ? "PM" : "AM";
-    if (h === 0) h = 12;
-    else if (h > 12) h -= 12;
-    return `${h < 10 ? '0' + h : h}:${mStr} ${period}`;
-  }
-
-  function timeToSeconds(timeStr) {
-    const [h, m] = timeStr.split(":").map(Number);
-    return (h * 3600) + (m * 60);
-  }
-
   function showToast(msg) {
     const toast = document.getElementById('toastAlert');
     toast.innerText = msg;
@@ -1187,24 +1091,8 @@
     setTimeout(() => toast.classList.remove('show'), 2000);
   }
 
-  function getSavedProgress(key) {
-    if (actionParam === 'starting') return 0;
-    try {
-      const saved = localStorage.getItem(`progress_${key}`);
-      return saved ? parseFloat(saved) : 0;
-    } catch(e) { return 0; }
-  }
-
-  function saveProgressThrottled(key, time) {
-    const now = Date.now();
-    if (now - lastProgressSave > 1500) {
-      lastProgressSave = now;
-      try { localStorage.setItem(`progress_${key}`, time.toString()); } catch(e){}
-    }
-  }
-
   /* ========================================================================= */
-  /* INITIALIZE RUNNER.JS MASTER PLAYER                                        */
+  /* INITIALIZE RUNNER.JS PLAYER                                               */
   /* ========================================================================= */
   player = new PlayerManager({
     video: document.getElementById('nativeVideoPlayer'),
@@ -1214,473 +1102,368 @@
   }, {
     onDuration: (dur) => {
       mainMediaDuration = dur;
-      if (currentChannel && onDurationDiscoveredCallback) {
-        onDurationDiscoveredCallback(dur);
-      }
+      updateUnifiedTimeline();
     },
     onTimeUpdate: (cur, dur) => {
-      if (isPrecastActive) return; // Managed by Pre_Cast timeline synchronization
+      if (isPrecastActive) return;
       mainMediaDuration = dur || mainMediaDuration;
-      handleMainPlayerTimeUpdate(cur, dur);
+      handleMainMovieTimeUpdate(cur, dur);
     },
     onPlayStateChange: (isPlaying) => {
       if (isPrecastActive) return;
       document.getElementById('playIcon').style.display = isPlaying ? 'none' : 'block';
       document.getElementById('pauseIcon').style.display = isPlaying ? 'block' : 'none';
     },
-    onHlsAudioTracks: (tracks) => renderHlsAudioMenu(tracks),
-    onNativeAudioListReady: (options) => renderNativeAudioMenu(options),
-    onSubtitles: (subs) => setupSubtitleOptions(subs),
     onEnded: () => {
-      if (isCollectionMode) {
-        if (currentCollectionItemIdx + 1 < collectionPlaylist.length) {
-          playCollectionItem(currentCollectionItemIdx + 1, 0);
-        }
-      } else if (contentType === 'show') {
-        const epList = showDocData[currentSeasonKey] || [];
-        if (currentEpisodeIdx + 1 < epList.length) {
-          currentEpisodeIdx++;
-          playShowEpisode();
-        }
-      } else {
-        syncDigitalFeedLive();
-      }
+      showToast("End of stream");
     }
   });
 
-  let onDurationDiscoveredCallback = null;
-
   /* ========================================================================= */
-  /* PRECAST & STUDIO PARTNER ENGINE                                           */
+  /* PRE_CAST RESOLUTION (MATCHING STUDIO WITH PARTNERS OR DIRECT PRE_CAST)     */
   /* ========================================================================= */
-  async function resolvePrecastIntroUrl(channel) {
+  async function resolvePrecastIntro(channel) {
     if (!channel) return null;
 
-    // 1. Check direct Pre_Cast array / string on the movie/item document
-    let pc = channel.Pre_Cast || channel.pre_cast || channel.PreCast || channel.precast;
+    // 1. Direct Pre_Cast field on movie document (Image 1: Pre_Cast array / string)
+    const pc = channel.Pre_Cast || channel.pre_cast || channel.PreCast || channel.precast || channel.Intro || channel.intro;
     if (Array.isArray(pc) && pc.length > 0 && pc[0]) {
       return safeUrl(pc[0]);
     }
-    if (typeof pc === 'string' && pc.trim().length > 5) {
+    if (typeof pc === 'string' && pc.trim().length > 3) {
       return safeUrl(pc);
     }
 
-    // 2. Match Studio / Partner with Firestore 'Partners' Collection
+    // 2. Matching Studio/Partner with 'Partners' collection (Image 2: Partners/disney -> Intro)
     const studioKey = (channel.Studio || channel.Partner || channel.studio || channel.partner || '').trim().toLowerCase();
     if (studioKey) {
-      if (partnerIntroCache[studioKey] !== undefined) {
-        return partnerIntroCache[studioKey];
-      }
+      if (partnerIntroCache[studioKey] !== undefined) return partnerIntroCache[studioKey];
+
       try {
         const pSnap = await getDoc(doc(channelDb, "Partners", studioKey));
         if (pSnap.exists()) {
           const pData = pSnap.data();
-          const pIntro = safeUrl(pData.Intro || pData.intro || pData.Pre_Cast || '');
-          partnerIntroCache[studioKey] = pIntro || null;
-          return partnerIntroCache[studioKey];
+          const pIntro = safeUrl(pData.Intro || pData.intro || pData.Pre_Cast || pData.pre_cast || '');
+          if (pIntro) {
+            partnerIntroCache[studioKey] = pIntro;
+            return pIntro;
+          }
         }
       } catch (err) {
-        console.warn("Could not load partner intro for", studioKey, err);
+        console.warn("Could not load partner intro for studio:", studioKey, err);
       }
       partnerIntroCache[studioKey] = null;
     }
     return null;
   }
 
-  function handleMainPlayerTimeUpdate(cur, dur) {
-    const totalDuration = precastDuration + (dur || mainMediaDuration || 0);
-    const globalCur = precastDuration + cur;
-
-    if (contentType === 'movie' || contentType === 'show') {
-      if (totalDuration > 0) {
-        const percent = (globalCur / totalDuration) * 100;
-        document.getElementById('timelineFill').style.width = `${percent}%`;
-        document.getElementById('thumbIndicator').style.left = `${percent}%`;
-        document.getElementById('progressBarInput').value = percent;
-
-        const rem = Math.max(0, totalDuration - globalCur);
-        document.getElementById('timeDisplay').innerText = formatTime(rem);
-        saveProgressThrottled(currentDocId, globalCur);
-      }
-    } else if (contentType === 'collection' && collectionTotalDuration > 0) {
-      const globalCol = getContinuousCollectionTime(cur);
-      const percent = (globalCol / collectionTotalDuration) * 100;
+  /* ========================================================================= */
+  /* UNIFIED TIMELINE, GAPLESS PLAYBACK & HANDOFF ENGINE                       */
+  /* ========================================================================= */
+  function updateUnifiedTimeline() {
+    const totalDuration = precastDuration + (mainMediaDuration || 0);
+    if (totalDuration > 0) {
+      const curGlobal = isPrecastActive ? getPrecastCurrentTime() : (precastDuration + (player.videoEl?.currentTime || 0));
+      const percent = (curGlobal / totalDuration) * 100;
       document.getElementById('timelineFill').style.width = `${percent}%`;
       document.getElementById('thumbIndicator').style.left = `${percent}%`;
       document.getElementById('progressBarInput').value = percent;
-      document.getElementById('timeDisplay').innerText = formatTime(Math.max(0, collectionTotalDuration - globalCol));
+      document.getElementById('timeDisplay').innerText = formatTime(Math.max(0, totalDuration - curGlobal));
     }
   }
 
-  // Pre_Cast Video Listeners for Gapless Transition
-  precastVideo.ontimeupdate = () => {
-    if (!isPrecastActive) return;
+  function getPrecastCurrentTime() {
+    if (!isPrecastActive) return 0;
+    if (isPrecastYouTube && precastYtPlayer && precastYtPlayer.getCurrentTime) {
+      return precastYtPlayer.getCurrentTime() || 0;
+    }
+    return precastVideo.currentTime || 0;
+  }
 
-    precastDuration = precastVideo.duration || precastDuration || 0;
-    const totalDuration = precastDuration + (mainMediaDuration || 0);
-    const currentGlobal = precastVideo.currentTime;
+  function handleMainMovieTimeUpdate(cur, dur) {
+    const totalDuration = precastDuration + (dur || mainMediaDuration || 0);
+    const globalCur = precastDuration + cur;
 
     if (totalDuration > 0) {
-      const percent = (currentGlobal / totalDuration) * 100;
+      const percent = (globalCur / totalDuration) * 100;
       document.getElementById('timelineFill').style.width = `${percent}%`;
       document.getElementById('thumbIndicator').style.left = `${percent}%`;
       document.getElementById('progressBarInput').value = percent;
 
-      const rem = Math.max(0, totalDuration - currentGlobal);
+      const rem = Math.max(0, totalDuration - globalCur);
       document.getElementById('timeDisplay').innerText = formatTime(rem);
+
+      const now = Date.now();
+      if (now - lastProgressSave > 1500) {
+        lastProgressSave = now;
+        localStorage.setItem(`progress_${currentDocId}`, globalCur.toString());
+      }
+    }
+  }
+
+  function triggerGaplessHandoffToMovie() {
+    if (precastHandoffInitiated) return;
+    precastHandoffInitiated = true;
+
+    // Start movie playback gaplessly
+    if (player.videoEl) {
+      player.videoEl.currentTime = movieOffsetStart;
+      player.videoEl.play().catch(() => {});
+    } else {
+      player.togglePlay();
     }
 
-    // GAPLESS HANDOFF: 150ms before intro ends, trigger main player play
-    if (precastDuration > 0 && (precastDuration - precastVideo.currentTime <= 0.18) && !precastHandoffInitiated) {
-      precastHandoffInitiated = true;
-      if (player.activeType === 'hls' || player.activeType === 'native') {
-        const mainVid = document.getElementById('nativeVideoPlayer');
-        if (mainVid && mainVid.paused) mainVid.play().catch(() => {});
-      } else {
-        player.togglePlay();
-      }
+    setTimeout(() => {
+      isPrecastActive = false;
+      precastVideo.style.display = 'none';
+      precastYtHost.style.display = 'none';
+      if (precastYtPlayer && precastYtPlayer.pauseVideo) precastYtPlayer.pauseVideo();
+      precastHandoffInitiated = false;
+
+      document.getElementById('playIcon').style.display = 'none';
+      document.getElementById('pauseIcon').style.display = 'block';
+    }, 180);
+  }
+
+  /* Pre_Cast: Direct Video Listeners */
+  precastVideo.ontimeupdate = () => {
+    if (!isPrecastActive || isPrecastYouTube) return;
+    precastDuration = precastVideo.duration || precastDuration || 0;
+    updateUnifiedTimeline();
+
+    // Gapless trigger 180ms before end
+    if (precastDuration > 0 && (precastDuration - precastVideo.currentTime <= 0.18)) {
+      triggerGaplessHandoffToMovie();
     }
   };
 
   precastVideo.onended = () => {
-    if (isPrecastActive) {
-      isPrecastActive = false;
-      precastVideo.style.display = 'none';
-      precastHandoffInitiated = false;
-      if (player.videoEl && player.videoEl.paused) {
-        player.videoEl.play().catch(() => {});
-      }
-      document.getElementById('playIcon').style.display = 'none';
-      document.getElementById('pauseIcon').style.display = 'block';
+    if (isPrecastActive && !isPrecastYouTube) {
+      triggerGaplessHandoffToMovie();
     }
   };
 
-  precastVideo.onplay = () => {
-    if (isPrecastActive) {
-      document.getElementById('playIcon').style.display = 'none';
-      document.getElementById('pauseIcon').style.display = 'block';
-    }
-  };
+  /* Pre_Cast: YouTube Engine Setup */
+  function playYouTubePrecast(ytId, startTime = 0) {
+    isPrecastYouTube = true;
+    precastVideo.style.display = 'none';
+    precastYtHost.style.display = 'block';
 
-  precastVideo.onpause = () => {
-    if (isPrecastActive) {
-      document.getElementById('playIcon').style.display = 'block';
-      document.getElementById('pauseIcon').style.display = 'none';
-    }
-  };
+    const playerVars = {
+      autoplay: 1,
+      controls: 0,
+      disablekb: 1,
+      modestbranding: 1,
+      rel: 0,
+      start: Math.floor(startTime),
+      playsinline: 1,
+      enablejsapi: 1
+    };
 
-  /* ========================================================================= */
-  /* CONTENT INITIALIZATION                                                    */
-  /* ========================================================================= */
-  if (!currentDocId) {
-    document.getElementById('loader').innerText = "URL Parameter Missing (?watch=DOCUMENT_ID)";
-  } else {
-    autoDetectAndInitContent(currentDocId);
-  }
-
-  async function autoDetectAndInitContent(docId) {
-    const collectionsToCheck = ["TV Shows", "Shows", "Movies", "Live TV"];
-    let detectedCollection = null;
-
-    for (const colName of collectionsToCheck) {
-      if (cachedCollectionData[colName] && cachedCollectionData[colName].some(d => d.id === docId)) {
-        detectedCollection = colName;
-        break;
-      }
+    if (precastYtPlayer && precastYtPlayer.loadVideoById) {
+      precastYtPlayer.loadVideoById({ videoId: ytId, startSeconds: startTime });
+      precastYtPlayer.playVideo();
+      return;
     }
 
-    if (!detectedCollection) {
-      for (const colName of collectionsToCheck) {
-        try {
-          const snap = await getDoc(doc(channelDb, colName, docId));
-          if (snap.exists()) {
-            detectedCollection = colName;
-            break;
+    precastYtHost.innerHTML = '<div id="precastYtFrame"></div>';
+    precastYtPlayer = new window.YT.Player('precastYtFrame', {
+      host: 'https://www.youtube-nocookie.com',
+      videoId: ytId,
+      playerVars: playerVars,
+      events: {
+        onReady: (e) => {
+          e.target.playVideo();
+          precastDuration = e.target.getDuration() || 8;
+        },
+        onStateChange: (e) => {
+          if (e.data === window.YT.PlayerState.PLAYING) {
+            precastDuration = e.target.getDuration() || precastDuration;
+            document.getElementById('playIcon').style.display = 'none';
+            document.getElementById('pauseIcon').style.display = 'block';
+          } else if (e.data === window.YT.PlayerState.ENDED) {
+            triggerGaplessHandoffToMovie();
           }
-        } catch (err) {}
+        }
       }
-    }
+    });
 
-    if (!detectedCollection) detectedCollection = "Movies";
-    startListeningDoc(docId, detectedCollection);
+    if (precastYtInterval) clearInterval(precastYtInterval);
+    precastYtInterval = setInterval(() => {
+      if (!isPrecastActive || !isPrecastYouTube || !precastYtPlayer || !precastYtPlayer.getCurrentTime) return;
+      const cur = precastYtPlayer.getCurrentTime() || 0;
+      const dur = precastYtPlayer.getDuration() || precastDuration;
+      precastDuration = dur || precastDuration;
+      updateUnifiedTimeline();
+
+      if (dur > 0 && dur - cur <= 0.25) {
+        triggerGaplessHandoffToMovie();
+      }
+    }, 250);
   }
 
-  function startListeningDoc(docId, targetCol) {
-    const loader = document.getElementById('loader');
-
+  /* ========================================================================= */
+  /* STREAM PLAYBACK ENTRY POINT                                               */
+  /* ========================================================================= */
+  async function startPlayback(mediaData) {
+    const resumeKey = mediaData.id || currentDocId;
+    let savedGlobalTime = 0;
     try {
-      const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
-      currentUser = stored ? JSON.parse(stored) : null;
-    } catch(e) { currentUser = null; }
+      const saved = localStorage.getItem(`progress_${resumeKey}`);
+      savedGlobalTime = saved ? parseFloat(saved) : 0;
+    } catch(e) {}
 
-    if (channelDocUnsub) channelDocUnsub();
-    if (digitalFeedUnsub) { digitalFeedUnsub(); digitalFeedUnsub = null; }
-    if (digitalFeedInterval) { clearInterval(digitalFeedInterval); digitalFeedInterval = null; }
+    // Store movie offset if specified in document (e.g., Start_Time: "51")
+    movieOffsetStart = mediaData.Start_Time ? parseFloat(mediaData.Start_Time) : 0;
 
-    channelDocUnsub = onSnapshot(doc(channelDb, targetCol, docId), async (snap) => {
-      if (!snap.exists()) {
-        loader.innerText = `Content item '${docId}' not found.`;
-        return;
-      }
+    // Check for Pre_Cast Intro (from Movie document or Partner Studio)
+    activePrecastUrl = await resolvePrecastIntro(mediaData);
+    precastHandoffInitiated = false;
 
-      currentChannel = { id: snap.id, ...snap.data() };
-      showDocData = currentChannel;
+    if (activePrecastUrl) {
+      const ytId = extractYouTubeId(activePrecastUrl);
 
-      // Collection Playlist Mode
-      const collectionsMap = currentChannel.Collection || currentChannel.collection || null;
-      activeCollectionKey = parseCollectionParam();
+      // 1. YouTube Precast Intro
+      if (ytId) {
+        isPrecastYouTube = true;
+        precastDuration = 10; // Default estimate until loaded
 
-      if (collectionsMap && (activeCollectionKey || Object.keys(collectionsMap).length > 0)) {
-        if (!activeCollectionKey) activeCollectionKey = Object.keys(collectionsMap)[0];
-        const selectedCol = collectionsMap[activeCollectionKey];
-        if (selectedCol && Array.isArray(selectedCol.Playlist) && selectedCol.Playlist.length > 0) {
-          isCollectionMode = true;
-          contentType = 'collection';
-          initCollectionPlaylistMode(selectedCol);
-          loader.style.display = 'none';
-          document.getElementById('appContent').style.display = 'block';
-          if (currentUser) initWatchlistState();
+        if (savedGlobalTime === 0 || savedGlobalTime < precastDuration) {
+          isPrecastActive = true;
+          playYouTubePrecast(ytId, savedGlobalTime);
+
+          // Preload main movie in background ready for gapless handoff
+          player.playStream(mediaData, movieOffsetStart);
+          if (player.videoEl) player.videoEl.pause();
+          return;
+        }
+      } 
+      // 2. Direct Video Precast Intro (.mp4, Cloudinary, etc.)
+      else {
+        isPrecastYouTube = false;
+        precastVideo.src = activePrecastUrl;
+        precastVideo.load();
+
+        await new Promise(res => {
+          if (precastVideo.readyState >= 1) return res();
+          precastVideo.onloadedmetadata = () => res();
+          setTimeout(res, 800);
+        });
+        precastDuration = precastVideo.duration || 6;
+
+        if (savedGlobalTime === 0 || savedGlobalTime < precastDuration) {
+          isPrecastActive = true;
+          precastVideo.style.display = 'block';
+          precastVideo.currentTime = savedGlobalTime;
+          precastVideo.play().catch(() => {});
+
+          // Preload main movie in background ready for gapless handoff
+          player.playStream(mediaData, movieOffsetStart);
+          if (player.videoEl) player.videoEl.pause();
           return;
         }
       }
-
-      // Standard Content Types
-      isCollectionMode = false;
-      const seasonKeys = Object.keys(currentChannel).filter(k => k.toLowerCase().startsWith('season'));
-      seasonKeys.sort((a, b) => (parseInt(b.replace(/\D/g, '')) || 0) - (parseInt(a.replace(/\D/g, '')) || 0));
-
-      if (targetCol === "Shows" || targetCol === "TV Shows" || seasonKeys.length > 0) {
-        contentType = 'show';
-        setupShowSeasons(seasonKeys);
-      } else if (targetCol === "Movies") {
-        contentType = 'movie';
-      } else {
-        contentType = 'live';
-      }
-
-      configureUIForContentType();
-      loader.style.display = 'none';
-      document.getElementById('appContent').style.display = 'block';
-
-      if (currentUser) initWatchlistState();
-
-      if (contentType === 'show') {
-        renderVerticalEpisodesSection();
-        playShowEpisode();
-      } else {
-        const titleText = currentChannel.Name || currentChannel.Title || "Title";
-        document.getElementById('overlayTitle').innerText = titleText;
-        document.getElementById('chTitle').innerText = titleText;
-        
-        let subText = currentChannel.Genres || currentChannel.Language || "Live TV";
-        if (contentType === 'movie') {
-          const year = currentChannel.Year || currentChannel.Release_Date || currentChannel["Release Year"] || "2024";
-          const dur = formatDynamicDuration(currentChannel.Duration || currentChannel.duration) || "1h 45m";
-          const langs = getDynamicLanguageString(currentChannel);
-          subText = `${year} • ${dur} • ${langs}`;
-        }
-        document.getElementById('chLangSub').innerText = subText;
-        document.getElementById('episodesVerticalWrap').style.display = 'none';
-
-        const rawStream = (currentChannel.Stream || '').trim();
-        if (rawStream.includes('.DIGI-FEED')) {
-          initDigitalFeedEngine(rawStream);
-        } else {
-          startStreamPlayback(currentChannel);
-        }
-      }
-    });
-
-    listenToRecommendations(docId, targetCol);
-  }
-
-  /* ========================================================================= */
-  /* STREAM PLAYBACK & PRE_CAST ROUTING                                       */
-  /* ========================================================================= */
-  async function startStreamPlayback(data, overrideStartTime, onDurationDiscovered) {
-    onDurationDiscoveredCallback = onDurationDiscovered;
-    const resumeKey = data.id || currentDocId;
-    let savedGlobalTime = overrideStartTime !== undefined ? overrideStartTime : getSavedProgress(resumeKey);
-
-    // Initial Start_Time field fallback if first time
-    if (!savedGlobalTime && data.Start_Time) {
-      savedGlobalTime = parseFloat(data.Start_Time) || 0;
     }
 
-    // Resolve Partner / Studio Pre_Cast Intro
-    activePrecastUrl = await resolvePrecastIntroUrl(data);
-    precastHandoffInitiated = false;
-
-    if (activePrecastUrl && contentType !== 'live') {
-      precastVideo.src = activePrecastUrl;
-      precastVideo.load();
-
-      // Read intro metadata
-      await new Promise(resolve => {
-        if (precastVideo.readyState >= 1) return resolve();
-        precastVideo.onloadedmetadata = () => resolve();
-        setTimeout(resolve, 800);
-      });
-      precastDuration = precastVideo.duration || 6;
-
-      // Check if resuming inside or past intro
-      if (savedGlobalTime < precastDuration && actionParam !== 'starting') {
-        isPrecastActive = true;
-        precastVideo.style.display = 'block';
-        precastVideo.currentTime = savedGlobalTime;
-        precastVideo.play().catch(() => {});
-
-        // Preload movie stream gaplessly in background
-        player.playStream(data, 0);
-        if (player.videoEl) player.videoEl.pause();
-        return;
-      } else {
-        // User is beyond the intro
-        isPrecastActive = false;
-        precastVideo.style.display = 'none';
-        const movieStartTime = Math.max(0, savedGlobalTime - precastDuration);
-        player.playStream(data, movieStartTime);
-        return;
-      }
-    }
-
-    // No Precast -> standard direct playback
+    // Direct movie start if resuming past intro or no intro exists
     isPrecastActive = false;
     precastDuration = 0;
     precastVideo.style.display = 'none';
-    player.playStream(data, savedGlobalTime);
+    precastYtHost.style.display = 'none';
+
+    const actualMovieStart = Math.max(movieOffsetStart, savedGlobalTime - precastDuration);
+    player.playStream(mediaData, actualMovieStart);
   }
 
   /* ========================================================================= */
-  /* SEEK, TIMELINE & CONTROLS BINDING                                         */
+  /* SCRUBBING & DOUBLE-TAP SEEKING                                            */
   /* ========================================================================= */
-  function performSeek(deltaSeconds) {
-    if (contentType === 'live') return;
-
+  function seekUnified(deltaSeconds) {
     if (isPrecastActive) {
-      const cur = precastVideo.currentTime || 0;
+      const cur = getPrecastCurrentTime();
       const target = cur + deltaSeconds;
+
       if (target >= precastDuration) {
-        // Seek directly out of intro into movie
+        // Forward past intro straight into movie
         isPrecastActive = false;
-        precastVideo.pause();
+        if (isPrecastYouTube && precastYtPlayer?.pauseVideo) precastYtPlayer.pauseVideo();
+        else precastVideo.pause();
+
         precastVideo.style.display = 'none';
-        const movieTarget = target - precastDuration;
-        player.seekToSeconds(movieTarget);
-        player.togglePlay();
+        precastYtHost.style.display = 'none';
+        player.seekToSeconds(target - precastDuration);
       } else {
-        precastVideo.currentTime = Math.max(0, target);
+        const safeTarget = Math.max(0, target);
+        if (isPrecastYouTube && precastYtPlayer?.seekTo) precastYtPlayer.seekTo(safeTarget, true);
+        else precastVideo.currentTime = safeTarget;
       }
       return;
     }
 
-    // Main media seek
-    if (player.activeType === 'youtube') {
-      player.seek(deltaSeconds);
-      return;
-    }
+    // Main movie seeking
+    const curMovieTime = player.videoEl?.currentTime || 0;
+    const targetMovieTime = curMovieTime + deltaSeconds;
 
-    const currentMovieTime = player.videoEl?.currentTime || 0;
-    const targetMovieTime = currentMovieTime + deltaSeconds;
-
+    // Check if user seeks back before movie start (into partner intro!)
     if (activePrecastUrl && targetMovieTime < 0) {
-      // Seek back into partner intro!
       const introTarget = Math.max(0, precastDuration + targetMovieTime);
       isPrecastActive = true;
       if (player.videoEl) player.videoEl.pause();
-      precastVideo.style.display = 'block';
-      precastVideo.currentTime = introTarget;
-      precastVideo.play().catch(() => {});
+
+      if (isPrecastYouTube) {
+        precastYtHost.style.display = 'block';
+        if (precastYtPlayer?.seekTo) {
+          precastYtPlayer.seekTo(introTarget, true);
+          precastYtPlayer.playVideo();
+        }
+      } else {
+        precastVideo.style.display = 'block';
+        precastVideo.currentTime = introTarget;
+        precastVideo.play().catch(() => {});
+      }
+      showToast("Intro (Pre-Cast)");
     } else {
       player.seek(deltaSeconds);
     }
   }
 
-  function handleProgressBarSeek(valPercent) {
+  function handleProgressBarScrub(percent) {
     const totalDuration = precastDuration + (mainMediaDuration || 0);
-    const targetGlobalSec = (valPercent / 100) * totalDuration;
+    const targetGlobalSec = (percent / 100) * totalDuration;
 
+    // User scrubbed to 00:00 or inside intro
     if (activePrecastUrl && targetGlobalSec < precastDuration) {
-      // Scrubbed into partner intro
       if (!isPrecastActive) {
         isPrecastActive = true;
         if (player.videoEl) player.videoEl.pause();
-        precastVideo.style.display = 'block';
       }
-      precastVideo.currentTime = targetGlobalSec;
-      precastVideo.play().catch(() => {});
+      if (isPrecastYouTube) {
+        precastVideo.style.display = 'none';
+        precastYtHost.style.display = 'block';
+        if (precastYtPlayer?.seekTo) {
+          precastYtPlayer.seekTo(targetGlobalSec, true);
+          precastYtPlayer.playVideo();
+        }
+      } else {
+        precastYtHost.style.display = 'none';
+        precastVideo.style.display = 'block';
+        precastVideo.currentTime = targetGlobalSec;
+        precastVideo.play().catch(() => {});
+      }
     } else {
-      // Scrubbed into movie
+      // User scrubbed into the movie
       if (isPrecastActive) {
         isPrecastActive = false;
-        precastVideo.pause();
+        if (isPrecastYouTube && precastYtPlayer?.pauseVideo) precastYtPlayer.pauseVideo();
+        else precastVideo.pause();
         precastVideo.style.display = 'none';
+        precastYtHost.style.display = 'none';
       }
-      const movieTarget = Math.max(0, targetGlobalSec - precastDuration);
-      player.seekToSeconds(movieTarget);
+      player.seekToSeconds(Math.max(0, targetGlobalSec - precastDuration));
     }
   }
 
-  /* Audio and Quality rendering hooks */
-  function renderHlsAudioMenu(tracks) {
-    const list = document.getElementById('audioOptionsList');
-    list.innerHTML = '';
-    if (!tracks || tracks.length === 0) return;
-
-    tracks.forEach((track, idx) => {
-      const active = (player.hlsEngine?.hls?.audioTrack === idx) || idx === 0;
-      const el = document.createElement('div');
-      el.className = 'lang-item';
-      el.innerHTML = `<div class="lang-check">${active ? '✓' : ''}</div><div class="lang-label">${track.name || track.lang || `Track ${idx + 1}`}</div>`;
-      el.onclick = () => {
-        player.setHlsAudio(idx);
-        document.querySelectorAll('#audioOptionsList .lang-check').forEach(c => c.innerText = '');
-        el.querySelector('.lang-check').innerText = '✓';
-        document.getElementById('settingsModal').classList.remove('active');
-        showToast(`Audio: ${track.name || track.lang}`);
-      };
-      list.appendChild(el);
-    });
-  }
-
-  function renderNativeAudioMenu(options) {
-    const list = document.getElementById('audioOptionsList');
-    list.innerHTML = '';
-    options.forEach(opt => {
-      const el = document.createElement('div');
-      el.className = 'lang-item';
-      el.innerHTML = `<div class="lang-check">${opt.active ? '✓' : ''}</div><div class="lang-label">${opt.label}</div>`;
-      el.onclick = () => {
-        if (opt.type === 'custom') player.nativeEngine.switchCustomAudio(opt.url);
-        else player.nativeEngine.switchEmbeddedAudio(opt.index);
-        document.querySelectorAll('#audioOptionsList .lang-check').forEach(c => c.innerText = '');
-        el.querySelector('.lang-check').innerText = '✓';
-        document.getElementById('settingsModal').classList.remove('active');
-        showToast(`Audio: ${opt.label}`);
-      };
-      list.appendChild(el);
-    });
-  }
-
-  function setupSubtitleOptions(tracks) {
-    const list = document.getElementById('subtitlesOptionsList');
-    if (!tracks || tracks.length === 0) return;
-    list.innerHTML = `<div class="lang-item" data-track="-1"><div class="lang-check">✓</div><div class="lang-label">Off</div></div>`;
-    tracks.forEach((t, i) => {
-      list.innerHTML += `<div class="lang-item" data-track="${i}"><div class="lang-check"></div><div class="lang-label">${t.name || t.lang || `Track ${i+1}`}</div></div>`;
-    });
-    document.querySelectorAll('#subtitlesOptionsList .lang-item').forEach(el => {
-      el.onclick = () => {
-        const idx = parseInt(el.dataset.track);
-        player.setSubtitle(idx);
-        document.querySelectorAll('#subtitlesOptionsList .lang-check').forEach(c => c.innerText = '');
-        el.querySelector('.lang-check').innerText = '✓';
-        document.getElementById('settingsModal').classList.remove('active');
-      };
-    });
-  }
-
-  /* Setup UI Interactions & Gestures */
+  /* Setup UI, Overlay, and Double-Tap Gestures */
   function setupUI() {
     const playerContainer = document.getElementById('playerContainer');
     const overlay = document.getElementById('controlsOverlay');
@@ -1688,9 +1471,9 @@
     const rewindBtn = document.getElementById('rewindBtn');
     const forwardBtn = document.getElementById('forwardBtn');
     const progressBarInput = document.getElementById('progressBarInput');
+    const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
     const lockBtn = document.getElementById('lockBtn');
     const unlockBtn = document.getElementById('unlockBtn');
-    const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
     const settingsBtn = document.getElementById('settingsBtn');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 
@@ -1701,112 +1484,80 @@
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
     };
 
-    playerContainer.onpointerdown = (e) => {
-      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
-        showControls();
+    // Double-Tap to Seek Detection
+    let lastTapTime = 0;
+    playerContainer.addEventListener('click', (e) => {
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input')) return;
+      if (isScreenLocked) return;
+
+      const currentTime = Date.now();
+      const tapGap = currentTime - lastTapTime;
+      const rect = playerContainer.getBoundingClientRect();
+      const tapX = e.clientX - rect.left;
+
+      if (tapGap < 300) {
+        // Double Tap Triggered
+        if (tapX < rect.width * 0.4) {
+          seekUnified(-10);
+          showToast("⟲ 10s");
+        } else if (tapX > rect.width * 0.6) {
+          seekUnified(10);
+          showToast("10s ⟳");
+        }
+        lastTapTime = 0;
         return;
       }
-      if (isScreenLocked) return;
+
+      lastTapTime = currentTime;
       if (overlay.classList.contains('show')) overlay.classList.remove('show');
       else showControls();
-    };
+    });
 
     playBtn.onclick = (e) => {
       e.stopPropagation();
       if (isPrecastActive) {
-        if (precastVideo.paused) precastVideo.play();
-        else precastVideo.pause();
+        if (isPrecastYouTube && precastYtPlayer) {
+          const s = precastYtPlayer.getPlayerState();
+          if (s === 1) precastYtPlayer.pauseVideo();
+          else precastYtPlayer.playVideo();
+        } else {
+          if (precastVideo.paused) precastVideo.play();
+          else precastVideo.pause();
+        }
       } else {
         player.togglePlay();
       }
       showControls();
     };
 
-    rewindBtn.onclick = (e) => {
-      e.stopPropagation();
-      performSeek(-10);
-      showControls();
-    };
-
-    forwardBtn.onclick = (e) => {
-      e.stopPropagation();
-      performSeek(10);
-      showControls();
-    };
+    rewindBtn.onclick = (e) => { e.stopPropagation(); seekUnified(-10); showControls(); };
+    forwardBtn.onclick = (e) => { e.stopPropagation(); seekUnified(10); showControls(); };
 
     progressBarInput.oninput = (e) => {
       e.stopPropagation();
       const val = parseFloat(progressBarInput.value);
       document.getElementById('timelineFill').style.width = `${val}%`;
       document.getElementById('thumbIndicator').style.left = `${val}%`;
-      handleProgressBarSeek(val);
+      handleProgressBarScrub(val);
     };
 
-    // Quality Switcher
-    document.querySelectorAll('#qualityOptionsList .q-item').forEach(item => {
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#qualityOptionsList .q-item .q-check').forEach(c => c.innerText = '');
-        item.querySelector('.q-check').innerText = '✓';
-        player.setQualityTier(item.dataset.tier);
-        showToast(`Quality: ${item.dataset.tier.toUpperCase()}`);
-        document.getElementById('settingsModal').classList.remove('active');
-      };
-    });
-
-    // Speed Switcher
-    document.querySelectorAll('#speedOptionsList .q-item').forEach(item => {
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('#speedOptionsList .q-item .q-check').forEach(c => c.innerText = '');
-        item.querySelector('.q-check').innerText = '✓';
-        currentSpeed = parseFloat(item.dataset.speed) || 1;
-        player.setSpeed(currentSpeed);
-        precastVideo.playbackRate = currentSpeed;
-        document.getElementById('speedBtn').innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 8v8l6-4-6-4zm9-5H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg> Speed ${currentSpeed}x`;
-        showToast(`Speed: ${currentSpeed}x`);
-        document.getElementById('settingsModal').classList.remove('active');
-      };
-    });
-
-    // Fullscreen, Lock, Modals
-    fullscreenToggleBtn.onclick = async (e) => {
-      e.stopPropagation();
-      if (!document.fullscreenElement) {
-        await playerContainer.requestFullscreen().catch(() => {});
-      } else {
-        if (document.exitFullscreen) await document.exitFullscreen().catch(() => {});
-      }
-      checkOrientation();
+    fullscreenToggleBtn.onclick = async () => {
+      if (!document.fullscreenElement) await playerContainer.requestFullscreen().catch(() => {});
+      else if (document.exitFullscreen) await document.exitFullscreen().catch(() => {});
     };
 
-    lockBtn.onclick = () => {
-      isScreenLocked = true;
-      overlay.classList.remove('show');
-      unlockBtn.style.display = 'flex';
-    };
-
-    unlockBtn.onclick = () => {
-      isScreenLocked = false;
-      unlockBtn.style.display = 'none';
-      showControls();
-    };
+    lockBtn.onclick = () => { isScreenLocked = true; overlay.classList.remove('show'); unlockBtn.style.display = 'flex'; };
+    unlockBtn.onclick = () => { isScreenLocked = false; unlockBtn.style.display = 'none'; showControls(); };
 
     settingsBtn.onclick = () => document.getElementById('settingsModal').classList.add('active');
     closeSettingsBtn.onclick = () => document.getElementById('settingsModal').classList.remove('active');
 
-    document.getElementById('tabQuality').onclick = () => switchTab('quality');
-    document.getElementById('tabAudio').onclick = () => switchTab('audio');
-    document.getElementById('tabSpeed').onclick = () => switchTab('speed');
-
     document.getElementById('backBtn').onclick = () => window.history.back();
 
-    // Pinch to fill screen
+    // Zoom Pinch
     let initialDistance = 0;
     playerContainer.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        initialDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-      }
+      if (e.touches.length === 2) initialDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
     }, { passive: true });
 
     playerContainer.addEventListener('touchmove', (e) => {
@@ -1829,180 +1580,40 @@
     showControls();
   }
 
-  function switchTab(t) {
-    ['tabQuality', 'tabAudio', 'tabSpeed'].forEach(id => document.getElementById(id).classList.remove('active'));
-    ['qualityPanel', 'audioPanel', 'speedPanel'].forEach(id => document.getElementById(id).classList.remove('active'));
-    if (t === 'quality') {
-      document.getElementById('tabQuality').classList.add('active');
-      document.getElementById('qualityPanel').classList.add('active');
-    } else if (t === 'audio') {
-      document.getElementById('tabAudio').classList.add('active');
-      document.getElementById('audioPanel').classList.add('active');
-    } else {
-      document.getElementById('tabSpeed').classList.add('active');
-      document.getElementById('speedPanel').classList.add('active');
+  /* Firestore Content Loader */
+  async function loadContent() {
+    if (!currentDocId) {
+      document.getElementById('loader').innerText = "Missing ?watch=DOCUMENT_ID parameter";
+      return;
     }
-  }
 
-  function configureUIForContentType() {
-    const rewindBtn = document.getElementById('rewindBtn');
-    const forwardBtn = document.getElementById('forwardBtn');
-    const btnEpisodes = document.getElementById('btnEpisodes');
-    const btnPreviously = document.getElementById('btnPreviously');
-    const btnNextEpisode = document.getElementById('btnNextEpisode');
-    const speedBtn = document.getElementById('speedBtn');
-    const tabSpeed = document.getElementById('tabSpeed');
+    const collectionsToCheck = ["Movies", "TV Shows", "Shows", "Live TV"];
+    for (const col of collectionsToCheck) {
+      const snap = await getDoc(doc(channelDb, col, currentDocId));
+      if (snap.exists()) {
+        currentChannel = { id: snap.id, ...snap.data() };
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
 
-    if (contentType === 'show' || contentType === 'collection') {
-      rewindBtn.style.display = 'flex';
-      forwardBtn.style.display = 'flex';
-      btnEpisodes.style.display = 'flex';
-      btnNextEpisode.style.display = 'flex';
-      btnPreviously.style.display = 'none';
-      speedBtn.style.display = 'flex';
-      tabSpeed.style.display = 'inline-block';
-    } else if (contentType === 'movie') {
-      rewindBtn.style.display = 'flex';
-      forwardBtn.style.display = 'flex';
-      btnEpisodes.style.display = 'none';
-      btnNextEpisode.style.display = 'none';
-      btnPreviously.style.display = 'none';
-      speedBtn.style.display = 'flex';
-      tabSpeed.style.display = 'inline-block';
-    } else {
-      rewindBtn.style.display = 'none';
-      forwardBtn.style.display = 'none';
-      btnEpisodes.style.display = 'none';
-      btnNextEpisode.style.display = 'none';
-      speedBtn.style.display = 'none';
-      tabSpeed.style.display = 'none';
-      document.getElementById('timeDisplay').innerText = "LIVE";
-    }
-  }
+        const title = currentChannel.Name || currentChannel.Title || "Title";
+        document.getElementById('overlayTitle').innerText = title;
+        document.getElementById('chTitle').innerText = title;
 
-  /* Watchlist & Share */
-  async function initWatchlistState() {
-    if (!currentUser) return;
-    try {
-      let q = currentUser.Lotus ? query(collection(authDb, "UARM"), where("Lotus", "==", currentUser.Lotus)) : null;
-      if (q) {
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          userDocRef = doc(authDb, "UARM", snap.docs[0].id);
-          userWatchlist = snap.docs[0].data().Watchlist || [];
-          updateWatchlistUI(userWatchlist.includes(currentDocId));
-        }
+        const year = currentChannel.Release_Date || currentChannel.Year || "2024";
+        const dur = currentChannel.Duration || "2h";
+        const lang = currentChannel.Language || "Hindi";
+        document.getElementById('chLangSub').innerText = `${year} • ${dur} • ${lang}`;
+
+        // Initiate Pre_Cast with Gapless Transition
+        startPlayback(currentChannel);
+        return;
       }
-    } catch(e) {}
-  }
-
-  function updateWatchlistUI(isAdded) {
-    const el = document.getElementById('actionWatchlist');
-    const txt = document.getElementById('watchlistText');
-    if (isAdded) {
-      el.classList.add('active');
-      txt.innerText = "Added";
-      el.querySelector('svg').innerHTML = '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
-    } else {
-      el.classList.remove('active');
-      txt.innerText = "Watchlist";
-      el.querySelector('svg').innerHTML = '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
     }
+    document.getElementById('loader').innerText = `Item '${currentDocId}' not found in database.`;
   }
 
-  document.getElementById('actionWatchlist').onclick = async () => {
-    if (!userDocRef) { showToast("Please login for Watchlist"); return; }
-    const isAdded = document.getElementById('actionWatchlist').classList.contains('active');
-    if (isAdded) {
-      await updateDoc(userDocRef, { Watchlist: arrayRemove(currentDocId) });
-      userWatchlist = userWatchlist.filter(id => id !== currentDocId);
-      updateWatchlistUI(false);
-      showToast("Removed from Watchlist");
-    } else {
-      await updateDoc(userDocRef, { Watchlist: arrayUnion(currentDocId) });
-      userWatchlist.push(currentDocId);
-      updateWatchlistUI(true);
-      showToast("Added to Watchlist");
-    }
-  };
-
-  document.getElementById('actionShare').onclick = async () => {
-    const shareUrl = window.location.href;
-    if (navigator.share) {
-      await navigator.share({ title: currentChannel?.Name, url: shareUrl }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      showToast("Link copied to clipboard!");
-    }
-  };
-
-  function setupShowSeasons(seasonKeys) {
-    if (!seasonKeys || seasonKeys.length === 0) return;
-    currentSeasonKey = seasonKeys[0];
-    currentEpisodeIdx = 0;
-  }
-
-  function renderVerticalEpisodesSection() {
-    const wrap = document.getElementById('episodesVerticalWrap');
-    const seasonsRow = document.getElementById('verticalSeasonsRow');
-    const epListEl = document.getElementById('verticalEpisodesList');
-
-    wrap.style.display = 'block';
-    const seasonKeys = Object.keys(showDocData).filter(k => k.toLowerCase().startsWith('season'));
-    seasonsRow.innerHTML = seasonKeys.map(s => `
-      <button class="ep-season-tab ${s === currentSeasonKey ? 'active' : ''}" onclick="window.selectVerticalSeason('${s}')">${s}</button>
-    `).join('');
-
-    const epList = showDocData[currentSeasonKey] || [];
-    epListEl.innerHTML = epList.slice(0, 4).map((ep, idx) => `
-      <div onclick="window.selectEpisode(${idx})" class="ep-item-card">
-        <div class="ep-thumb-box">
-          <img src="${getPosterH(showDocData)}" alt="${ep.Name}">
-          <div class="ep-play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
-        </div>
-        <div class="ep-info-box">
-          <div class="ep-item-title">${ep.Name || `Episode ${idx + 1}`}</div>
-          <div class="ep-item-meta">Ep ${idx + 1}</div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  window.selectVerticalSeason = (sKey) => { currentSeasonKey = sKey; renderVerticalEpisodesSection(); };
-  window.selectEpisode = (idx) => { currentEpisodeIdx = idx; playShowEpisode(); };
-
-  function playShowEpisode() {
-    const ep = showDocData[currentSeasonKey][currentEpisodeIdx];
-    document.getElementById('chLangSub').innerText = `${currentSeasonKey} Ep ${currentEpisodeIdx + 1} - ${ep.Name}`;
-    startStreamPlayback({
-      id: `${showDocData.id}_${currentSeasonKey}_ep${currentEpisodeIdx}`,
-      Stream: ep.Stream,
-      mpd: ep.mpd || ep.MPD,
-      Studio: showDocData.Studio,
-      Partner: showDocData.Partner
-    });
-  }
-
-  function listenToRecommendations(excludeId, colName) {
-    const fetchCol = (colName === 'TV Shows' || colName === 'Shows') ? 'TV Shows' : (colName === 'Movies' ? 'Movies' : 'Live TV');
-    collectionUnsub = onSnapshot(collection(channelDb, fetchCol), (snap) => {
-      const items = [];
-      snap.forEach(d => { if (d.id !== excludeId) items.push({ id: d.id, ...d.data() }); });
-      document.getElementById('recommendationsGrid').innerHTML = items.slice(0, 10).map(c => `
-        <div onclick="window.location.search='?watch=${c.id}'" class="banner-card">
-          <div class="banner-thumb-box">
-            <img class="main-thumb" src="${getPosterH(c)}" alt="${c.Name}">
-            <img class="banner-logo-badge" src="${safeUrl(c["Logo.png"] || c.Logo || '')}">
-          </div>
-          <div class="banner-title">${c.Name || 'Title'}</div>
-          <div class="banner-subtitle">${c.Genres || c.Language || 'Video'}</div>
-        </div>
-      `).join('');
-    });
-  }
-
-  // Initialize UI Event Handlers
   setupUI();
+  loadContent();
 </script>
 </body>
 </html>
