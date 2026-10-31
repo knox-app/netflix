@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -161,21 +160,20 @@
     /* Chapter / Episode Tooltip above scrubber */
     .chapter-preview-tooltip {
       position: absolute;
-      bottom: 28px;
+      bottom: 30px;
       transform: translateX(-50%);
       background: rgba(15, 16, 21, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       color: #ffffff;
-      padding: 4px 9px;
+      padding: 5px 10px;
       border-radius: 6px;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
       pointer-events: none;
       white-space: nowrap;
       display: none;
       z-index: 30;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-      font-variant-numeric: tabular-nums;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
     /* Controls Overlay */
@@ -282,15 +280,12 @@
       pointer-events: auto;
     }
 
-    /* Ultra-smooth scrubber container */
     .timeline-container {
       position: relative;
       display: flex;
       align-items: center;
       width: 100%;
-      height: 24px;
-      cursor: pointer;
-      touch-action: none;
+      height: 20px;
     }
     
     .timeline-track-wrap {
@@ -299,16 +294,10 @@
       height: 4px;
       background: rgba(255, 255, 255, 0.25);
       border-radius: 2px;
-      pointer-events: none;
+      cursor: pointer;
       overflow: hidden;
       display: flex;
-      transition: height 0.15s ease;
     }
-    .timeline-container:hover .timeline-track-wrap,
-    .timeline-container.dragging .timeline-track-wrap {
-      height: 6px;
-    }
-
     .timeline-fill {
       position: absolute;
       top: 0;
@@ -319,12 +308,8 @@
       width: 0%;
       z-index: 2;
       pointer-events: none;
-      transition: width 0.1s linear;
+      transition: width 0.08s linear;
     }
-    .timeline-fill.no-transition {
-      transition: none !important;
-    }
-
     .timeline-segments-host {
       position: absolute;
       inset: 0;
@@ -344,33 +329,23 @@
       width: 100%;
       height: 100%;
       opacity: 0;
-      pointer-events: none;
+      cursor: pointer;
       z-index: 5;
     }
-
     .timeline-thumb-indicator {
       position: absolute;
       top: 50%;
       left: 0%;
       transform: translate(-50%, -50%);
-      width: 13px;
-      height: 13px;
+      width: 12px;
+      height: 12px;
       background: #ffffff;
       border-radius: 50%;
       pointer-events: none;
-      box-shadow: 0 0 6px rgba(0,0,0,0.85);
+      box-shadow: 0 0 6px rgba(0,0,0,0.8);
       z-index: 6;
-      transition: left 0.1s linear, transform 0.15s ease;
+      transition: left 0.08s linear;
     }
-    .timeline-thumb-indicator.no-transition {
-      transition: none !important;
-    }
-    .timeline-container:hover .timeline-thumb-indicator,
-    .timeline-container.dragging .timeline-thumb-indicator {
-      transform: translate(-50%, -50%) scale(1.3);
-      box-shadow: 0 0 10px rgba(0, 114, 239, 0.9);
-    }
-
     .time-val {
       font-size: 12px;
       font-weight: 700;
@@ -827,13 +802,10 @@
       <div class="toast-alert" id="toastAlert">Pinch to Zoom</div>
 
       <!-- Chapter / Timestamp Tooltip on Scrubber -->
-      <div class="chapter-preview-tooltip" id="chapterTooltip">00:00:00</div>
+      <div class="chapter-preview-tooltip" id="chapterTooltip">Episode 1</div>
 
       <!-- Video Engines (.m3u8, .mp4, .mkv, .webm) -->
       <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
-      <!-- Dedicated Silent Background Preloader Video -->
-      <video id="preloadVideoPlayer" playsinline muted preload="auto" style="display: none;" crossorigin="anonymous"></video>
-      
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
@@ -892,14 +864,13 @@
 
         <!-- Bottom Controls -->
         <div class="ctrl-bottom">
-          <!-- Silky Smooth Interactive Timeline -->
-          <div class="timeline-container" id="timelineContainer">
+          <div class="timeline-container">
             <div class="timeline-track-wrap" id="timelineTrack">
               <div class="timeline-segments-host" id="timelineSegmentsHost"></div>
               <div class="timeline-fill" id="timelineFill"></div>
               <div class="timeline-thumb-indicator" id="thumbIndicator"></div>
             </div>
-            <input type="range" id="progressBarInput" class="progress-bar-input" value="0" min="0" max="100" step="0.01">
+            <input type="range" id="progressBarInput" class="progress-bar-input" value="0" min="0" max="100" step="0.1">
             <span class="time-val" id="timeDisplay">00:00:00</span>
           </div>
 
@@ -1106,7 +1077,6 @@
   let isFillScreen = false;
   let currentChannel = null;
   let isUserSeeking = false;
-  let isScrubbing = false; // Scrubbing flag to prevent slider jumping
   let currentSpeed = 1;
   let currentUser = null;
   let userDocRef = null;
@@ -1140,6 +1110,7 @@
     totalTimelineDuration: 5400
   };
 
+  // Cached recommendation data
   let cachedCollectionData = { "Shows": [], "Movies": [], "Live TV": [], "TV Shows": [] };
 
   let showDocData = null;
@@ -1156,8 +1127,7 @@
   const paramSeason = urlParams.get('season');
   const paramEp = urlParams.get('ep');
 
-  let activeVideoEl = document.getElementById('nativeVideoPlayer');
-  let preloadVideoEl = document.getElementById('preloadVideoPlayer');
+  const nativeVid = document.getElementById('nativeVideoPlayer');
 
   function parseCollectionParam() {
     let col = urlParams.get('collection');
@@ -1192,37 +1162,32 @@
   }
 
   // BIND NATIVE VIDEO EVENTS DIRECTLY
-  function bindNativeVideoEvents(vid) {
-    vid.onplay = () => updatePlayPauseUI(true);
-    vid.onplaying = () => updatePlayPauseUI(true);
-    vid.onpause = () => updatePlayPauseUI(false);
-    vid.onended = () => {
-      updatePlayPauseUI(false);
-      handlePlaybackEnded();
-    };
-    vid.ondurationchange = () => {
-      if (vid.duration && !isNaN(vid.duration) && isFinite(vid.duration)) {
-        handleEngineDuration(vid.duration);
-      }
-    };
-    vid.onloadedmetadata = () => {
-      if (vid.duration && !isNaN(vid.duration) && isFinite(vid.duration)) {
-        handleEngineDuration(vid.duration);
-      }
-    };
-    vid.ontimeupdate = () => {
-      if (isScrubbing) return; // Prevent fight with user dragging!
-      const cur = vid.currentTime || 0;
-      const dur = vid.duration;
-      handleEngineTimeUpdate(cur, dur);
-    };
-  }
+  nativeVid.addEventListener('play', () => updatePlayPauseUI(true));
+  nativeVid.addEventListener('playing', () => updatePlayPauseUI(true));
+  nativeVid.addEventListener('pause', () => updatePlayPauseUI(false));
+  nativeVid.addEventListener('ended', () => {
+    updatePlayPauseUI(false);
+    handlePlaybackEnded();
+  });
+  nativeVid.addEventListener('durationchange', () => {
+    if (nativeVid.duration && !isNaN(nativeVid.duration) && isFinite(nativeVid.duration)) {
+      handleEngineDuration(nativeVid.duration);
+    }
+  });
+  nativeVid.addEventListener('loadedmetadata', () => {
+    if (nativeVid.duration && !isNaN(nativeVid.duration) && isFinite(nativeVid.duration)) {
+      handleEngineDuration(nativeVid.duration);
+    }
+  });
+  nativeVid.addEventListener('timeupdate', () => {
+    const cur = nativeVid.currentTime || 0;
+    const dur = nativeVid.duration;
+    handleEngineTimeUpdate(cur, dur);
+  });
 
-  bindNativeVideoEvents(activeVideoEl);
-
-  // Initialize Unified Player Manager
+  // Initialize Player Manager
   playerManager = new PlayerManager({
-    video: activeVideoEl,
+    video: nativeVid,
     ytHost: document.getElementById('ytFrameHost'),
     jwHost: document.getElementById('jwHost'),
     iframe: document.getElementById('iframePlayer')
@@ -1231,7 +1196,7 @@
       handleEngineDuration(dur);
     },
     onTimeUpdate: (cur, dur) => {
-      if (!isScrubbing) handleEngineTimeUpdate(cur, dur);
+      handleEngineTimeUpdate(cur, dur);
     },
     onPlayStateChange: (isPlaying) => {
       updatePlayPauseUI(isPlaying);
@@ -1401,72 +1366,6 @@
     return intros;
   }
 
-  /* ================== BACKGROUND MOVIE PRELOADER ================== */
-  function startBackgroundMoviePreloader(movieData, startTime) {
-    if (!preloadVideoEl) return;
-    const streamUrl = safeUrl(movieData.Stream || '');
-    if (!streamUrl || streamUrl.includes('.DIGI-FEED') || streamUrl.includes('youtube') || streamUrl.includes('.mpd')) {
-      return;
-    }
-
-    // STRICT RULES: Muted, Paused, No Playback, Background Buffering Only
-    preloadVideoEl.muted = true;
-    preloadVideoEl.pause();
-    preloadVideoEl.preload = 'auto';
-    preloadVideoEl.src = streamUrl;
-
-    const onMeta = () => {
-      preloadVideoEl.removeEventListener('loadedmetadata', onMeta);
-      try {
-        preloadVideoEl.currentTime = startTime;
-        preloadVideoEl.pause();
-      } catch (err) {}
-    };
-    preloadVideoEl.addEventListener('loadedmetadata', onMeta);
-    preloadVideoEl.load();
-  }
-
-  function cleanPreloader() {
-    if (preloadVideoEl) {
-      preloadVideoEl.pause();
-      preloadVideoEl.removeAttribute('src');
-      preloadVideoEl.load();
-    }
-  }
-
-  function activatePreloadedMovie() {
-    if (preloadVideoEl && preloadVideoEl.src && preloadVideoEl.readyState >= 1) {
-      // 1. Terminate intro video
-      activeVideoEl.pause();
-      activeVideoEl.removeAttribute('src');
-      activeVideoEl.load();
-      activeVideoEl.style.display = 'none';
-
-      // 2. Bring preloaded movie to front
-      preloadVideoEl.style.display = 'block';
-      preloadVideoEl.muted = false;
-
-      // 3. Swap element references seamlessly
-      const temp = activeVideoEl;
-      activeVideoEl = preloadVideoEl;
-      preloadVideoEl = temp;
-
-      activeVideoEl.id = 'nativeVideoPlayer';
-      preloadVideoEl.id = 'preloadVideoPlayer';
-
-      // 4. Update Engine references
-      playerManager.videoEl = activeVideoEl;
-      if (playerManager.nativeEngine) playerManager.nativeEngine.video = activeVideoEl;
-      if (playerManager.hlsEngine) playerManager.hlsEngine.video = activeVideoEl;
-
-      // 5. Bind listeners and play instantly with zero buffering!
-      bindNativeVideoEvents(activeVideoEl);
-      activeVideoEl.play().catch(() => {});
-      return true;
-    }
-    return false;
-  }
-
   async function autoDetectAndInitContent(docId) {
     const collectionsToCheck = ["TV Shows", "Shows", "Movies", "Live TV"];
     let detectedCollection = null;
@@ -1505,7 +1404,6 @@
     if (channelDocUnsub) channelDocUnsub();
     if (digitalFeedUnsub) { digitalFeedUnsub(); digitalFeedUnsub = null; }
     if (digitalFeedInterval) { clearInterval(digitalFeedInterval); digitalFeedInterval = null; }
-    cleanPreloader();
 
     channelDocUnsub = onSnapshot(doc(channelDb, targetCol, docId), async (snap) => {
       if (!snap.exists()) {
@@ -1624,15 +1522,10 @@
       } else {
         preCastState.currentStage = 'intro';
         preCastState.introIndex = 0;
-
-        // 1. Play Intro
         playerManager.playStream({
           Stream: preCastState.intros[0].stream,
           Name: `${movieData.Name} - Intro`
         }, savedGlobal);
-
-        // 2. Preload Movie in background at Start_Time immediately!
-        startBackgroundMoviePreloader(movieData, startTimeSec);
       }
     } else {
       preCastState.active = false;
@@ -1665,8 +1558,6 @@
   }
 
   function handleEngineTimeUpdate(cur, dur) {
-    if (isScrubbing) return;
-
     const timelineFill = document.getElementById('timelineFill');
     const thumbIndicator = document.getElementById('thumbIndicator');
     const progressBarInput = document.getElementById('progressBarInput');
@@ -1718,7 +1609,7 @@
     }
 
     if (contentType === 'movie' || contentType === 'show') {
-      const totalDur = (dur && !isNaN(dur) && isFinite(dur) && dur > 0) ? dur : (activeVideoEl.duration || 0);
+      const totalDur = (dur && !isNaN(dur) && isFinite(dur) && dur > 0) ? dur : (nativeVid.duration || 0);
       if (totalDur > 0) {
         const percent = Math.min(100, Math.max(0, (cur / totalDur) * 100));
         timelineFill.style.width = `${percent}%`;
@@ -1755,12 +1646,8 @@
             Name: `${preCastState.mainMovieData.Name} - Intro ${preCastState.introIndex + 1}`
           }, 0);
         } else {
-          // All intros finished! Launch preloaded movie immediately
           preCastState.currentStage = 'movie';
-          const preloadedLaunched = activatePreloadedMovie();
-          if (!preloadedLaunched) {
-            playerManager.playStream(preCastState.mainMovieData, preCastState.startTime);
-          }
+          playerManager.playStream(preCastState.mainMovieData, preCastState.startTime);
         }
         return;
       }
@@ -1786,10 +1673,10 @@
       if (preCastState.currentStage === 'intro') {
         let elapsedPrior = 0;
         for (let i = 0; i < preCastState.introIndex; i++) elapsedPrior += (preCastState.intros[i].duration || 6.5);
-        const cur = activeVideoEl.currentTime || 0;
+        const cur = nativeVid.currentTime || 0;
         globalCurrent = elapsedPrior + cur;
       } else {
-        const cur = activeVideoEl.currentTime || 0;
+        const cur = nativeVid.currentTime || 0;
         globalCurrent = preCastState.totalIntroDuration + Math.max(0, cur - preCastState.startTime);
       }
       seekPreCastTimeline(globalCurrent + deltaSec);
@@ -1797,7 +1684,7 @@
     }
 
     if (isCollectionMode) {
-      const cur = activeVideoEl.currentTime || 0;
+      const cur = nativeVid.currentTime || 0;
       const currentGlobalSec = getContinuousCollectionTime(cur);
       seekContinuousCollection(currentGlobalSec + deltaSec);
       return;
@@ -1831,8 +1718,6 @@
           Stream: preCastState.intros[targetIntroIdx].stream,
           Name: `${preCastState.mainMovieData.Name} - Intro`
         }, offsetInIntro);
-        // Re-arm background preloader
-        startBackgroundMoviePreloader(preCastState.mainMovieData, preCastState.startTime);
       } else {
         playerManager.seekToSeconds(offsetInIntro);
       }
@@ -1840,12 +1725,7 @@
       const offsetInMovie = preCastState.startTime + (targetGlobalSec - preCastState.totalIntroDuration);
       if (preCastState.currentStage !== 'movie') {
         preCastState.currentStage = 'movie';
-        const preloadedLaunched = activatePreloadedMovie();
-        if (preloadedLaunched) {
-          activeVideoEl.currentTime = offsetInMovie;
-        } else {
-          playerManager.playStream(preCastState.mainMovieData, offsetInMovie);
-        }
+        playerManager.playStream(preCastState.mainMovieData, offsetInMovie);
       } else {
         playerManager.seekToSeconds(offsetInMovie);
       }
@@ -2398,18 +2278,11 @@
     });
   }
 
-  /* ================== ULTRA-SMOOTH SCRUBBER CONTROLLER ================== */
+  /* ================== CONTROLS & GESTURES ================== */
   function setupInteractionListeners() {
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
-    const timelineContainer = document.getElementById('timelineContainer');
-    const timelineTrack = document.getElementById('timelineTrack');
-    const timelineFill = document.getElementById('timelineFill');
-    const thumbIndicator = document.getElementById('thumbIndicator');
     const progressBarInput = document.getElementById('progressBarInput');
-    const timeDisplay = document.getElementById('timeDisplay');
-    const chapterTooltip = document.getElementById('chapterTooltip');
-
     const rippleLeft = document.getElementById('seekRippleLeft');
     const rippleRight = document.getElementById('seekRippleRight');
 
@@ -2420,91 +2293,9 @@
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
     };
 
-    let scrubTargetPercent = 0;
-
-    function renderScrubVisual(percent) {
-      percent = Math.max(0, Math.min(100, percent));
-      scrubTargetPercent = percent;
-
-      // Disengage transitions during drag for 60fps instant response
-      timelineFill.classList.add('no-transition');
-      thumbIndicator.classList.add('no-transition');
-      timelineContainer.classList.add('dragging');
-
-      timelineFill.style.width = `${percent}%`;
-      thumbIndicator.style.left = `${percent}%`;
-      progressBarInput.value = percent;
-
-      let totalSec = 0;
-      if (preCastState.active) totalSec = preCastState.totalTimelineDuration;
-      else if (isCollectionMode) totalSec = collectionTotalDuration;
-      else totalSec = activeVideoEl.duration || 5400;
-
-      if (totalSec > 0) {
-        const curSec = (percent / 100) * totalSec;
-        const remSec = Math.max(0, totalSec - curSec);
-        timeDisplay.innerText = formatTime(remSec);
-
-        chapterTooltip.innerText = formatTime(curSec);
-        chapterTooltip.style.left = `${percent}%`;
-        chapterTooltip.style.display = 'block';
-      }
-    }
-
-    function calculateScrubPercent(e) {
-      const rect = timelineTrack.getBoundingClientRect();
-      const clientX = e.clientX ?? (e.touches ? e.touches[0].clientX : 0);
-      const pos = (clientX - rect.left) / rect.width;
-      return Math.max(0, Math.min(100, pos * 100));
-    }
-
-    timelineContainer.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      isScrubbing = true;
-      timelineContainer.setPointerCapture(e.pointerId);
-      const p = calculateScrubPercent(e);
-      renderScrubVisual(p);
-      showControls();
-    });
-
-    timelineContainer.addEventListener('pointermove', (e) => {
-      if (!isScrubbing) return;
-      e.stopPropagation();
-      const p = calculateScrubPercent(e);
-      renderScrubVisual(p);
-    });
-
-    const commitScrub = (e) => {
-      if (!isScrubbing) return;
-      e.stopPropagation();
-      isScrubbing = false;
-
-      timelineContainer.classList.remove('dragging');
-      timelineFill.classList.remove('no-transition');
-      thumbIndicator.classList.remove('no-transition');
-      chapterTooltip.style.display = 'none';
-
-      const finalPercent = scrubTargetPercent;
-
-      if (preCastState.active) {
-        const targetGlobal = (finalPercent / 100) * preCastState.totalTimelineDuration;
-        seekPreCastTimeline(targetGlobal);
-      } else if (isCollectionMode && collectionTotalDuration > 0) {
-        seekContinuousCollection((finalPercent / 100) * collectionTotalDuration);
-      } else if (contentType === 'movie' || contentType === 'show') {
-        const totalDur = activeVideoEl.duration || 5400;
-        playerManager.seekToSeconds((finalPercent / 100) * totalDur);
-      }
-      showControls();
-    };
-
-    timelineContainer.addEventListener('pointerup', commitScrub);
-    timelineContainer.addEventListener('pointercancel', commitScrub);
-
-    // Double-tap to seek gesture detection
     let lastTapTime = 0;
     playerContainer.addEventListener('click', (e) => {
-      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('.timeline-container') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
         return;
       }
@@ -2547,6 +2338,24 @@
       e.stopPropagation();
       performContinuousSeek(10);
       showControls();
+    };
+
+    progressBarInput.oninput = (e) => {
+      e.stopPropagation();
+      const val = parseFloat(progressBarInput.value);
+
+      if (preCastState.active) {
+        const targetGlobal = (val / 100) * preCastState.totalTimelineDuration;
+        seekPreCastTimeline(targetGlobal);
+        return;
+      }
+      if (isCollectionMode && collectionTotalDuration > 0) {
+        seekContinuousCollection((val / 100) * collectionTotalDuration);
+        return;
+      }
+      if (nativeVid && nativeVid.duration) {
+        nativeVid.currentTime = (val / 100) * nativeVid.duration;
+      }
     };
 
     document.getElementById('lockBtn').onclick = (e) => {
@@ -2678,7 +2487,6 @@
 
   window.switchChannelInPlace = function(newId) {
     playerManager.destroyAll();
-    cleanPreloader();
     document.getElementById('drawerOverlay').classList.remove('show');
     window.history.pushState({}, '', `?watch=${newId}`);
     autoDetectAndInitContent(newId);
