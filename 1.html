@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -285,7 +286,8 @@
       display: flex;
       align-items: center;
       width: 100%;
-      height: 20px;
+      height: 24px;
+      cursor: pointer;
     }
     
     .timeline-track-wrap {
@@ -297,6 +299,11 @@
       cursor: pointer;
       overflow: hidden;
       display: flex;
+      transition: height 0.15s ease;
+    }
+    .timeline-container:hover .timeline-track-wrap,
+    .timeline-container.dragging .timeline-track-wrap {
+      height: 6px;
     }
     .timeline-fill {
       position: absolute;
@@ -308,7 +315,6 @@
       width: 0%;
       z-index: 2;
       pointer-events: none;
-      transition: width 0.08s linear;
     }
     .timeline-segments-host {
       position: absolute;
@@ -331,6 +337,7 @@
       opacity: 0;
       cursor: pointer;
       z-index: 5;
+      touch-action: none;
     }
     .timeline-thumb-indicator {
       position: absolute;
@@ -344,7 +351,11 @@
       pointer-events: none;
       box-shadow: 0 0 6px rgba(0,0,0,0.8);
       z-index: 6;
-      transition: left 0.08s linear;
+      transition: transform 0.15s ease;
+    }
+    .timeline-container:hover .timeline-thumb-indicator,
+    .timeline-container.dragging .timeline-thumb-indicator {
+      transform: translate(-50%, -50%) scale(1.35);
     }
     .time-val {
       font-size: 12px;
@@ -548,6 +559,7 @@
       overflow-x: auto;
       padding: 6px 0 10px;
       scrollbar-width: none;
+      min-height: 150px;
     }
     .cards-scroll-row::-webkit-scrollbar { display: none; }
 
@@ -864,13 +876,13 @@
 
         <!-- Bottom Controls -->
         <div class="ctrl-bottom">
-          <div class="timeline-container">
+          <div class="timeline-container" id="timelineContainer">
             <div class="timeline-track-wrap" id="timelineTrack">
               <div class="timeline-segments-host" id="timelineSegmentsHost"></div>
               <div class="timeline-fill" id="timelineFill"></div>
               <div class="timeline-thumb-indicator" id="thumbIndicator"></div>
             </div>
-            <input type="range" id="progressBarInput" class="progress-bar-input" value="0" min="0" max="100" step="0.1">
+            <input type="range" id="progressBarInput" class="progress-bar-input" value="0" min="0" max="100" step="0.05">
             <span class="time-val" id="timeDisplay">00:00:00</span>
           </div>
 
@@ -976,12 +988,12 @@
       <!-- Landscape Drawer Overlay -->
       <div class="drawer-overlay" id="drawerOverlay">
         <div>
-          <div class="drawer-drag-area">
+          <div class="drawer-drag-area" id="drawerDragHandleArea">
             <div class="drawer-drag-handle"></div>
           </div>
           <div class="drawer-header">
             <div class="drawer-title-tabs">
-              <button class="drawer-tab-btn" id="drawerTabWatchNext">Watch Next</button>
+              <button class="drawer-tab-btn active" id="drawerTabWatchNext">Watch Next</button>
               <button class="drawer-tab-btn" id="drawerTabEpisodes" style="display:none;">Episodes</button>
               <button class="drawer-tab-btn" id="drawerTabPreviously" style="display:none;">Previously</button>
             </div>
@@ -1025,6 +1037,12 @@
       <!-- MORE LIKE THIS -->
       <div class="section-head" id="sec1Heading">More Like This</div>
       <div class="horizontal-banners-scroll" id="recommendationsGrid"></div>
+
+      <!-- TRAILER & MORE SECTION -->
+      <div id="trailerMoreSection" style="display:none; margin-top: 14px;">
+        <div class="section-head">Trailers & More</div>
+        <div class="horizontal-banners-scroll" id="trailerMoreGrid"></div>
+      </div>
     </div>
 
   </div>
@@ -1077,6 +1095,7 @@
   let isFillScreen = false;
   let currentChannel = null;
   let isUserSeeking = false;
+  let isScrubbing = false; // Smooth drag scrubber state flag
   let currentSpeed = 1;
   let currentUser = null;
   let userDocRef = null;
@@ -1180,6 +1199,7 @@
     }
   });
   nativeVid.addEventListener('timeupdate', () => {
+    if (isScrubbing) return; // Prevent progress bar jumping while scrubbing
     const cur = nativeVid.currentTime || 0;
     const dur = nativeVid.duration;
     handleEngineTimeUpdate(cur, dur);
@@ -1196,6 +1216,7 @@
       handleEngineDuration(dur);
     },
     onTimeUpdate: (cur, dur) => {
+      if (isScrubbing) return;
       handleEngineTimeUpdate(cur, dur);
     },
     onPlayStateChange: (isPlaying) => {
@@ -1472,6 +1493,7 @@
         document.getElementById('chLangSub').innerText = `${year} • ${dur} • ${langs}`;
         document.getElementById('episodesVerticalWrap').style.display = 'none';
 
+        renderTrailersAndMoreSection(currentChannel);
         await setupAndPlayMovie(currentChannel);
       } else {
         const titleText = currentChannel.Name || currentChannel.Title || "Title";
@@ -1479,6 +1501,7 @@
         document.getElementById('chTitle').innerText = titleText;
         document.getElementById('chLangSub').innerText = currentChannel.Genres || currentChannel.Language || "Live TV";
         document.getElementById('episodesVerticalWrap').style.display = 'none';
+        document.getElementById('trailerMoreSection').style.display = 'none';
 
         const rawStream = (currentChannel.Stream || '').trim();
         if (rawStream.includes('.DIGI-FEED')) {
@@ -1491,6 +1514,51 @@
 
     listenToRecommendations(docId, targetCol);
   }
+
+  /* ================== TRAILER & MORE RENDERER ================== */
+  function renderTrailersAndMoreSection(movieData) {
+    const section = document.getElementById('trailerMoreSection');
+    const grid = document.getElementById('trailerMoreGrid');
+
+    const trailersList = movieData["Trailer & More"] || movieData["Trailer & more"] || movieData["Trailers & More"] || movieData.Trailers || [];
+
+    if (!Array.isArray(trailersList) || trailersList.length === 0) {
+      section.style.display = 'none';
+      grid.innerHTML = '';
+      return;
+    }
+
+    section.style.display = 'block';
+    grid.innerHTML = trailersList.map((item, idx) => {
+      const itemTitle = item.Tittle || item.Title || item.Name || `Extra ${idx + 1}`;
+      const itemThumb = item.Thumbnail || item.Poster || getPosterH(movieData);
+      return `
+        <div onclick="window.playTrailerItem(${idx})" class="banner-card">
+          <div class="banner-thumb-box">
+            <img class="main-thumb" src="${itemThumb}" alt="${itemTitle}" loading="lazy">
+            <div class="play-badge" style="bottom:8px; left:8px; width:26px; height:26px;">
+              <svg viewBox="0 0 24 24" style="width:12px; height:12px;"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+          <div class="banner-title">${itemTitle}</div>
+          <div class="banner-subtitle">Trailer & Extra</div>
+        </div>
+      `;
+    }).join('');
+
+    window.trailersCached = trailersList;
+  }
+
+  window.playTrailerItem = function(index) {
+    const item = window.trailersCached?.[index];
+    if (!item || !item.Stream) return;
+    const title = item.Tittle || item.Title || "Trailer";
+    document.getElementById('overlayTitle').innerText = title;
+    document.getElementById('overlaySubtitle').style.display = 'block';
+    document.getElementById('overlaySubtitle').innerText = "Clip • Trailer & More";
+    preCastState.active = false;
+    playerManager.playStream({ Stream: item.Stream, Name: title }, 0);
+  };
 
   /* ================== MOVIE PRE_CAST LAUNCHER ================== */
   async function setupAndPlayMovie(movieData) {
@@ -2283,6 +2351,10 @@
     const overlay = document.getElementById('controlsOverlay');
     const playerContainer = document.getElementById('playerContainer');
     const progressBarInput = document.getElementById('progressBarInput');
+    const timelineContainer = document.getElementById('timelineContainer');
+    const timelineFill = document.getElementById('timelineFill');
+    const thumbIndicator = document.getElementById('thumbIndicator');
+    const timeDisplay = document.getElementById('timeDisplay');
     const rippleLeft = document.getElementById('seekRippleLeft');
     const rippleRight = document.getElementById('seekRippleRight');
 
@@ -2292,6 +2364,60 @@
       clearTimeout(hideControlsTimer);
       hideControlsTimer = setTimeout(() => overlay.classList.remove('show'), 3500);
     };
+
+    // Smooth Draggable Scrubber Logic
+    const startScrubbing = () => {
+      isScrubbing = true;
+      timelineContainer.classList.add('dragging');
+      clearTimeout(hideControlsTimer);
+    };
+
+    const updateScrubUI = (percent) => {
+      timelineFill.style.width = `${percent}%`;
+      thumbIndicator.style.left = `${percent}%`;
+
+      let totalSec = 0;
+      if (preCastState.active) totalSec = preCastState.totalTimelineDuration;
+      else if (isCollectionMode) totalSec = collectionTotalDuration;
+      else totalSec = nativeVid.duration || 5400;
+
+      const currentSec = (percent / 100) * totalSec;
+      const remainingSec = Math.max(0, totalSec - currentSec);
+      timeDisplay.innerText = formatTime(remainingSec);
+    };
+
+    const commitScrub = (percent) => {
+      isScrubbing = false;
+      timelineContainer.classList.remove('dragging');
+
+      if (preCastState.active) {
+        const targetGlobal = (percent / 100) * preCastState.totalTimelineDuration;
+        seekPreCastTimeline(targetGlobal);
+      } else if (isCollectionMode && collectionTotalDuration > 0) {
+        seekContinuousCollection((percent / 100) * collectionTotalDuration);
+      } else if (nativeVid && nativeVid.duration) {
+        nativeVid.currentTime = (percent / 100) * nativeVid.duration;
+      }
+      showControls();
+    };
+
+    progressBarInput.addEventListener('pointerdown', startScrubbing);
+    progressBarInput.addEventListener('touchstart', startScrubbing, { passive: true });
+
+    progressBarInput.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      updateScrubUI(val);
+    });
+
+    progressBarInput.addEventListener('change', (e) => {
+      const val = parseFloat(e.target.value);
+      commitScrub(val);
+    });
+
+    progressBarInput.addEventListener('pointerup', (e) => {
+      const val = parseFloat(e.target.value);
+      commitScrub(val);
+    });
 
     let lastTapTime = 0;
     playerContainer.addEventListener('click', (e) => {
@@ -2338,24 +2464,6 @@
       e.stopPropagation();
       performContinuousSeek(10);
       showControls();
-    };
-
-    progressBarInput.oninput = (e) => {
-      e.stopPropagation();
-      const val = parseFloat(progressBarInput.value);
-
-      if (preCastState.active) {
-        const targetGlobal = (val / 100) * preCastState.totalTimelineDuration;
-        seekPreCastTimeline(targetGlobal);
-        return;
-      }
-      if (isCollectionMode && collectionTotalDuration > 0) {
-        seekContinuousCollection((val / 100) * collectionTotalDuration);
-        return;
-      }
-      if (nativeVid && nativeVid.duration) {
-        nativeVid.currentTime = (val / 100) * nativeVid.duration;
-      }
     };
 
     document.getElementById('lockBtn').onclick = (e) => {
@@ -2417,10 +2525,18 @@
 
     document.getElementById('backBtn').onclick = () => window.history.back();
 
-    document.getElementById('btnWatchNext').onclick = () => openDrawer('watchnext');
-    document.getElementById('btnEpisodes').onclick = () => openDrawer('episodes');
-    document.getElementById('btnPreviously').onclick = () => openDrawer('previously');
-    document.getElementById('closeDrawerBtn').onclick = () => document.getElementById('drawerOverlay').classList.remove('show');
+    // Drawer triggers
+    document.getElementById('btnWatchNext').onclick = (e) => { e.stopPropagation(); openDrawer('watchnext'); };
+    document.getElementById('btnEpisodes').onclick = (e) => { e.stopPropagation(); openDrawer('episodes'); };
+    document.getElementById('btnPreviously').onclick = (e) => { e.stopPropagation(); openDrawer('previously'); };
+    document.getElementById('closeDrawerBtn').onclick = (e) => { e.stopPropagation(); closeDrawer(); };
+
+    // Drawer tabs switcher
+    document.getElementById('drawerTabWatchNext').onclick = () => openDrawer('watchnext');
+    document.getElementById('drawerTabEpisodes').onclick = () => openDrawer('episodes');
+    document.getElementById('drawerTabPreviously').onclick = () => openDrawer('previously');
+
+    setupSwipeToCloseDrawer();
   }
 
   function switchSettingsTab(tab) {
@@ -2439,18 +2555,115 @@
     }
   }
 
+  /* ================== SWIPEABLE DRAWER CONTROLS ================== */
   function openDrawer(type) {
     const drawer = document.getElementById('drawerOverlay');
+    const tabWN = document.getElementById('drawerTabWatchNext');
+    const tabEp = document.getElementById('drawerTabEpisodes');
+    const tabPrev = document.getElementById('drawerTabPreviously');
+    const seasonsBar = document.getElementById('seasonsScrollBar');
+
+    tabWN.classList.remove('active');
+    tabEp.classList.remove('active');
+    tabPrev.classList.remove('active');
+    seasonsBar.style.display = 'none';
+
+    drawer.style.transform = 'translateY(0%)';
     drawer.classList.add('show');
-    if (type === 'episodes') renderEpisodesDrawer();
-    else if (type === 'previously') fetchPreviouslyFromYouTube();
-    else listenToRecommendations(currentChannel?.id, contentType === 'show' ? 'TV Shows' : 'Movies');
+
+    if (type === 'episodes') {
+      tabEp.classList.add('active');
+      renderEpisodesDrawer();
+    } else if (type === 'previously') {
+      tabPrev.classList.add('active');
+      fetchPreviouslyFromYouTube();
+    } else {
+      tabWN.classList.add('active');
+      renderWatchNextDrawer();
+    }
+  }
+
+  function closeDrawer() {
+    const drawer = document.getElementById('drawerOverlay');
+    drawer.style.transform = 'translateY(100%)';
+    drawer.classList.remove('show');
+  }
+
+  function setupSwipeToCloseDrawer() {
+    const drawer = document.getElementById('drawerOverlay');
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+
+    drawer.addEventListener('touchstart', (e) => {
+      if (e.target.closest('.watch-card') || e.target.closest('.seasons-scroll-bar')) return;
+      startY = e.touches[0].pageY;
+      isDragging = true;
+      drawer.style.transition = 'none';
+    }, { passive: true });
+
+    drawer.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      currentY = e.touches[0].pageY;
+      const diff = currentY - startY;
+      if (diff > 0) {
+        drawer.style.transform = `translateY(${diff}px)`;
+      }
+    }, { passive: true });
+
+    drawer.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      drawer.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease';
+      if (currentY - startY > 70) {
+        closeDrawer();
+      } else {
+        drawer.style.transform = 'translateY(0%)';
+      }
+      startY = 0;
+      currentY = 0;
+    });
+  }
+
+  function renderWatchNextDrawer() {
+    const cardsRow = document.getElementById('drawerCardsRow');
+    const fetchCol = (contentType === 'show') ? 'TV Shows' : 'Movies';
+    const items = cachedCollectionData[fetchCol] || [];
+    
+    if (items.length > 0) {
+      cardsRow.innerHTML = items.filter(c => c.id !== currentDocId).map(c => `
+        <div onclick="window.switchChannelInPlace('${c.id}')" class="watch-card">
+          <div class="watch-card-thumb-wrap">
+            <img src="${getPosterH(c)}" alt="${c.Name || 'Title'}" loading="lazy">
+            <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="watch-card-name">${c.Name || 'Title'}</div>
+          <div class="watch-card-sub">${c.Genres || c.Language || 'Video'}</div>
+        </div>
+      `).join('');
+    } else {
+      listenToRecommendations(currentChannel?.id, fetchCol);
+    }
   }
 
   function renderEpisodesDrawer() {
     const seasonsBar = document.getElementById('seasonsScrollBar');
     const cardsRow = document.getElementById('drawerCardsRow');
     if (!showDocData) return;
+
+    if (isCollectionMode) {
+      cardsRow.innerHTML = collectionPlaylist.map((ep, idx) => `
+        <div onclick="window.selectCollectionEpisode(${idx})" class="watch-card">
+          <div class="watch-card-thumb-wrap">
+            <img src="${getPosterH(showDocData)}" alt="${ep.name}" loading="lazy">
+            <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="watch-card-name">${ep.name}</div>
+          <div class="watch-card-sub">Part ${idx + 1}</div>
+        </div>
+      `).join('');
+      return;
+    }
 
     const seasonKeys = Object.keys(showDocData).filter(k => k.toLowerCase().startsWith('season'));
     if (seasonKeys.length === 0) return;
@@ -2473,6 +2686,49 @@
     `).join('');
   }
 
+  async function fetchPreviouslyFromYouTube() {
+    const cardsRow = document.getElementById('drawerCardsRow');
+    cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Loading previous broadcasts...</div>';
+
+    const rawUrl = currentChannel?.["Previously Url"] || currentChannel?.PreviouslyUrl || "";
+    let queryParam = currentChannel?.Name || 'Live News';
+
+    if (rawUrl) {
+      if (rawUrl.includes('@')) queryParam = rawUrl.split('@')[1].split('/')[0];
+      else if (rawUrl.includes('channel/') || rawUrl.includes('c/')) queryParam = rawUrl.split('/').pop();
+    }
+
+    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(queryParam)}&key=${YT_API_KEY}`;
+
+    try {
+      const res = await fetch(endpoint);
+      const data = await res.json();
+
+      if (data.items && data.items.length > 0) {
+        cardsRow.innerHTML = data.items.map(item => `
+          <div onclick="window.playYouTubePreviously('${item.id.videoId}', '${item.snippet.title.replace(/'/g, "\\'")}')" class="watch-card">
+            <div class="watch-card-thumb-wrap">
+              <img src="${item.snippet.thumbnails.medium.url}" alt="${item.snippet.title}" loading="lazy">
+              <div class="play-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+            </div>
+            <div class="watch-card-name">${item.snippet.title}</div>
+            <div class="watch-card-sub">Earlier Broadcast</div>
+          </div>
+        `).join('');
+      } else {
+        cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">No earlier broadcasts found today.</div>';
+      }
+    } catch(err) {
+      cardsRow.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Catch-up unavailable.</div>';
+    }
+  }
+
+  window.playYouTubePreviously = function(videoId, title) {
+    closeDrawer();
+    document.getElementById('overlayTitle').innerText = title;
+    playerManager.playStream({ Stream: `https://www.youtube.com/watch?v=${videoId}` });
+  };
+
   window.switchSeason = function(sKey) {
     currentSeasonKey = sKey;
     renderEpisodesDrawer();
@@ -2480,14 +2736,14 @@
 
   window.selectEpisode = function(idx) {
     currentEpisodeIdx = idx;
-    document.getElementById('drawerOverlay').classList.remove('show');
+    closeDrawer();
     playShowEpisode();
     renderVerticalEpisodesSection();
   };
 
   window.switchChannelInPlace = function(newId) {
     playerManager.destroyAll();
-    document.getElementById('drawerOverlay').classList.remove('show');
+    closeDrawer();
     window.history.pushState({}, '', `?watch=${newId}`);
     autoDetectAndInitContent(newId);
   };
