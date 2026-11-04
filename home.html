@@ -128,6 +128,135 @@
       text-transform: uppercase;
     }
 
+    /* ================= HOTSTAR-STYLE HERO CAROUSEL ================= */
+    .hero-container {
+      position: relative;
+      width: 100%;
+      height: 78vh;
+      min-height: 520px;
+      max-height: 720px;
+      overflow: hidden;
+      background: #0f1015;
+    }
+
+    .hero-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      text-align: center;
+      padding: 0 4% 60px;
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+    }
+    .hero-slide.active { opacity: 1; z-index: 1; }
+
+    /* Vignette & Gradients matching screenshot */
+    .hero-slide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 30%, transparent 20%, rgba(15, 16, 21, 0.7) 70%, var(--bg-dark) 100%),
+                  linear-gradient(180deg, transparent 40%, rgba(15, 16, 21, 0.95) 90%, var(--bg-dark) 100%);
+      z-index: 1;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      max-width: 680px;
+    }
+
+    .hero-studio-tag {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: #00bfff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hero-studio-tag span { color: #ffffff; font-weight: 800; }
+
+    .hero-title-logo {
+      max-width: 320px;
+      max-height: 100px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8));
+    }
+    .hero-fallback-title {
+      font-size: clamp(32px, 5vw, 54px);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -1px;
+      color: #e50914;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.9);
+    }
+
+    .hero-meta-line {
+      font-size: 14px;
+      font-weight: 600;
+      color: #d1d5db;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-hero-watch {
+      margin-top: 10px;
+      background: linear-gradient(90deg, #0072ef 0%, #d800ff 100%);
+      color: #fff;
+      padding: 13px 48px;
+      border-radius: 30px;
+      font-size: 15px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 114, 239, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-hero-watch:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 26px rgba(216, 0, 255, 0.5);
+    }
+
+    .hero-dots-row {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+    .hero-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .hero-dot.active {
+      width: 18px;
+      border-radius: 4px;
+      background: #ffffff;
+    }
+
     /* MAIN CONTAINER */
     .main-container {
       max-width: 1400px;
@@ -378,6 +507,7 @@
       .mobile-bottom-nav { display: flex; }
       .card-16-9 { flex: 0 0 190px; width: 190px; }
       .carousel-arrow { display: none; }
+      .hero-container { height: 60vh; min-height: 440px; }
     }
   </style>
 </head>
@@ -405,11 +535,16 @@
     </div>
   </header>
 
-  <!-- Content Container -->
+  <!-- Hotstar Style Hero Carousel (sys.carsoule.home) -->
+  <section class="hero-container" id="heroContainer">
+    <div class="hero-dots-row" id="heroDotsRow"></div>
+  </section>
+
+  <!-- Feed Container -->
   <main class="main-container" id="sectionsContainer">
     <div style="text-align: center; padding: 60px; color: var(--text-muted);">
       <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-      <p style="margin-top:12px;">Validating Age_Rating Tiers...</p>
+      <p style="margin-top:12px;">Validating Age_Rating and curating real-time feed...</p>
     </div>
   </main>
 
@@ -434,7 +569,7 @@
       <span>Home</span>
     </a>
     <a href="search.html" class="nav-item-btn">
-      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/></svg>
       <span>Search</span>
     </a>
     <a href="downloads.html" class="nav-item-btn">
@@ -459,9 +594,8 @@
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     /* ==============================================================
-       REAL-TIME FIREBASE DATABASES
+       1. REAL-TIME DATABASE 1: UARM (question-metabase)
        ============================================================== */
-    // 1. User & UARM DB
     const uarmConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
@@ -475,7 +609,9 @@
     const uarmApp = initializeApp(uarmConfig, "uarmApp");
     const uarmDb = getFirestore(uarmApp);
 
-    // 2. Content & Systems DB
+    /* ==============================================================
+       2. REAL-TIME DATABASE 2: CONTENT & SYSTEMS (internal-systems-46728)
+       ============================================================== */
     const contentConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -484,10 +620,11 @@
     const contentApp = initializeApp(contentConfig, "contentApp");
     const contentDb = getFirestore(contentApp);
 
-    // Live State
+    // Global State
     let liveUserData = null;
     let liveMoviesCatalog = [];
     let liveMoviesMap = new Map();
+    let heroAutoTimer = null;
     let uarmUnsub = null;
     let moviesUnsub = null;
 
@@ -525,7 +662,7 @@
     }
 
     /* ==============================================================
-       THE 5 AGE_RATINGS SCALE & TIER CONVERTER
+       EXACT 5-TIER AGE RATING CONVERTER
        1: U
        2: U/A 7+
        3: U/A 13+
@@ -533,7 +670,7 @@
        5: U/A 18+
        ============================================================== */
     function getRatingTier(ratingStr) {
-      if (!ratingStr) return 1; // Default unrated content to Tier 1
+      if (!ratingStr) return 1;
       const clean = String(ratingStr).trim().toUpperCase();
 
       if (clean.includes("18") || clean === "A" || clean === "U/A 18+") return 5;
@@ -556,14 +693,13 @@
       }
     }
 
-    // STRICT CHECK: Returns true ONLY if content tier <= user tier
     function isAllowedByAge(contentRatingStr) {
       const contentTier = getRatingTier(contentRatingStr);
       return contentTier <= userAllowedMaxTier;
     }
 
     /* ==============================================================
-       REAL-TIME USER SYNC (question-metabase -> UARM)
+       REAL-TIME USER & UARM SYNC
        ============================================================== */
     function syncRealtimeUARM() {
       if (uarmUnsub) uarmUnsub();
@@ -588,7 +724,7 @@
     }
 
     /* ==============================================================
-       REAL-TIME MOVIES CATALOG SYNC (internal-systems-46728)
+       REAL-TIME MOVIES CATALOG SYNC
        ============================================================== */
     function syncRealtimeMovies() {
       if (moviesUnsub) moviesUnsub();
@@ -629,18 +765,16 @@
           Name: liveUserData["First Name"] || "User",
           Avatar: liveUserData["Profile_Picture"] || "",
           Kids: "False",
-          Age_Rating: "U/A 18+"
+          Age_Rating: "U/A 18+",
+          Watchlist: []
         };
       }
 
       isKidsProfile = String(activeProfile?.Kids).toLowerCase() === "true";
 
-      // Resolve Allowed Age Tier
       if (isKidsProfile) {
-        // If Kids profile has Age_Rating specified (e.g., "U/A 7+"), use it; otherwise Tier 2
         userAllowedMaxTier = getRatingTier(activeProfile?.Age_Rating || "U/A 7+");
       } else {
-        // Adult mode (Kids=False): If profile specifies rating, respect it; otherwise Tier 5 (U/A 18+)
         userAllowedMaxTier = activeProfile?.Age_Rating ? getRatingTier(activeProfile.Age_Rating) : 5;
       }
     }
@@ -658,9 +792,6 @@
       `;
     }
 
-    /* ==============================================================
-       PARSE LIVE WATCHED LIST FROM FIRESTORE Memory.ent
-       ============================================================== */
     function getLiveRecentlyWatchedIds() {
       if (!liveUserData || !Array.isArray(liveUserData["Memory.ent"])) return [];
 
@@ -682,10 +813,113 @@
     }
 
     /* ==============================================================
-       REFINED "FOR YOU" ALGORITHM (AGE-TIER FILTERED FIRST)
+       HOTSTAR HERO CAROUSEL: RESOLVES Systems/sys.carsoule.home
+       ============================================================== */
+    async function setupHeroCarousel(allowedMoviesCatalog, forYouPool) {
+      const container = document.getElementById('heroContainer');
+      const dotsRow = document.getElementById('heroDotsRow');
+      container.querySelectorAll('.hero-slide').forEach(s => s.remove());
+      dotsRow.innerHTML = '';
+
+      let heroMovies = [];
+
+      try {
+        const sysDoc = await getDoc(doc(contentDb, "Systems", "sys.carsoule.home"));
+        if (sysDoc.exists()) {
+          const suggestions = sysDoc.data().suggest || [];
+
+          for (const token of suggestions) {
+            const cleanToken = String(token).trim();
+
+            if (cleanToken === "{.rec/auto}") {
+              // Dynamic recommendation slot (must satisfy Age_Rating)
+              const rec = forYouPool.find(m => !heroMovies.some(hm => hm.id === m.id));
+              if (rec) {
+                heroMovies.push(rec);
+              } else {
+                const fallback = allowedMoviesCatalog.find(m => !heroMovies.some(hm => hm.id === m.id));
+                if (fallback) heroMovies.push(fallback);
+              }
+            } else {
+              // Explicit Movie ID (e.g. "coco")
+              const exactMovie = liveMoviesMap.get(cleanToken.toLowerCase());
+              if (exactMovie && isAllowedByAge(exactMovie.Age_Rating)) {
+                if (!heroMovies.some(hm => hm.id === exactMovie.id)) {
+                  heroMovies.push(exactMovie);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch sys.carsoule.home:", err);
+      }
+
+      // Fallback if empty
+      if (heroMovies.length === 0) {
+        heroMovies = allowedMoviesCatalog.slice(0, 5);
+      }
+
+      if (heroMovies.length === 0) {
+        container.style.display = "none";
+        return;
+      } else {
+        container.style.display = "block";
+      }
+
+      heroMovies.forEach((movie, idx) => {
+        const slide = document.createElement('div');
+        slide.className = `hero-slide ${idx === 0 ? 'active' : ''}`;
+        slide.style.backgroundImage = `url('${getPosterH(movie)}')`;
+
+        const title = movie.Name || movie.Title || movie.id;
+        const logo = safeUrl(movie.Logo || movie["Logo.png"] || '');
+        const partner = movie.Partner || movie.Studio || (isKidsProfile ? "disney" : "hotstar specials");
+        const genres = parseGenres(movie.Genres).map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(' • ');
+        const languages = movie.Languages ? `${movie.Languages} Languages` : (movie.Language || 'Hindi');
+
+        slide.innerHTML = `
+          <div class="hero-content">
+            <div class="hero-studio-tag">
+              <i class="fa-solid fa-star"></i>
+              <span>${partner.toLowerCase()}</span>
+            </div>
+            ${logo ? `<img src="${logo}" class="hero-title-logo" alt="${title}" />` : `<h1 class="hero-fallback-title">${title}</h1>`}
+            <div class="hero-meta-line">
+              <span>${languages}</span>
+              ${genres ? `<span>•</span><span>${genres}</span>` : ''}
+            </div>
+            <a href="preview.html?watch=${encodeURIComponent(movie.id)}" class="btn-hero-watch">
+              <i class="fa-solid fa-play"></i> Watch Now
+            </a>
+          </div>
+        `;
+        container.insertBefore(slide, dotsRow);
+
+        const dot = document.createElement('div');
+        dot.className = `hero-dot ${idx === 0 ? 'active' : ''}`;
+        dot.onclick = () => showHeroIndex(idx, heroMovies.length);
+        dotsRow.appendChild(dot);
+      });
+
+      // Auto Slide
+      let currentHeroIdx = 0;
+      if (heroAutoTimer) clearInterval(heroAutoTimer);
+      heroAutoTimer = setInterval(() => {
+        currentHeroIdx = (currentHeroIdx + 1) % heroMovies.length;
+        showHeroIndex(currentHeroIdx, heroMovies.length);
+      }, 5500);
+    }
+
+    function showHeroIndex(idx, total) {
+      document.querySelectorAll('.hero-slide').forEach((s, i) => s.classList.toggle('active', i === idx));
+      document.querySelectorAll('.hero-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+    }
+
+    /* ==============================================================
+       REFINED "FOR YOU" ALGORITHM (AGE-TIER FILTERED)
        ============================================================== */
     function buildLiveForYou(allowedMoviesCatalog, watchedIds) {
-      // Step 1: Filter watched list so only age-appropriate movies influence recommendations
       const effectiveWatched = watchedIds.filter(id => {
         const m = liveMoviesMap.get(id);
         return m && isAllowedByAge(m.Age_Rating);
@@ -728,7 +962,7 @@
     }
 
     /* ==============================================================
-       MAIN FEED BUILDER (STRICT AGE_RATING ENFORCEMENT)
+       MAIN FEED BUILDER (LIVE WATCHLIST & AGE_RATING ENFORCEMENT)
        ============================================================== */
     async function buildLiveFeed() {
       if (liveMoviesCatalog.length === 0 || !liveUserData) return;
@@ -746,29 +980,46 @@
       const allowedMoviesCatalog = liveMoviesCatalog.filter(m => isAllowedByAge(m.Age_Rating));
       const rawWatchedIds = getLiveRecentlyWatchedIds();
 
+      // 2. Generate For You Pool
+      const forYouList = buildLiveForYou(allowedMoviesCatalog, rawWatchedIds);
+
+      // 3. Initialize Hotstar Hero Carousel from Systems/sys.carsoule.home
+      await setupHeroCarousel(allowedMoviesCatalog, forYouList);
+
       // ==============================================================
-      // 2. "BECAUSE YOU WATCHED <NAME>" (AGE-VERIFIED FIRST)
+      // 4. WATCHLIST CAROUSEL (FROM ACTIVE PROFILE)
+      // ==============================================================
+      if (activeProfile && Array.isArray(activeProfile.Watchlist) && activeProfile.Watchlist.length > 0) {
+        const watchlistMovies = [];
+        for (const wId of activeProfile.Watchlist) {
+          const m = liveMoviesMap.get(String(wId).trim().toLowerCase());
+          if (m && isAllowedByAge(m.Age_Rating) && !watchlistMovies.some(wm => wm.id === m.id)) {
+            watchlistMovies.push(m);
+          }
+        }
+        if (watchlistMovies.length > 0) {
+          renderCarouselSection("Watchlist", watchlistMovies, "My List");
+        }
+      }
+
+      // ==============================================================
+      // 5. "BECAUSE YOU WATCHED <NAME>" (AGE-VERIFIED)
       // ==============================================================
       let anchorMovie = null;
-
-      // Scan user's watched list for the first movie allowed within the current Age_Rating tier
       for (const wid of rawWatchedIds) {
         const candidate = liveMoviesMap.get(wid);
         if (candidate && isAllowedByAge(candidate.Age_Rating)) {
           anchorMovie = candidate;
-          break; // Found the appropriate anchor film
+          break;
         }
       }
 
-      // If an age-appropriate anchor exists, match genres ONLY within allowed age ratings
       if (anchorMovie) {
         const anchorGenres = parseGenres(anchorMovie.Genres);
-
         const similarSafeMovies = allowedMoviesCatalog
           .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
           .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
 
-        // If no compliant movies exist, skip rendering this section entirely
         if (similarSafeMovies.length >= 2) {
           renderCarouselSection(
             `Because You Watched ${anchorMovie.Name || anchorMovie.Title || 'this'}`,
@@ -779,15 +1030,14 @@
       }
 
       // ==============================================================
-      // 3. "FOR YOU" RECOMMENDATION (AGE-FILTERED FIRST)
+      // 6. "FOR YOU" RECOMMENDATION
       // ==============================================================
-      const forYouList = buildLiveForYou(allowedMoviesCatalog, rawWatchedIds);
       if (forYouList.length > 0) {
         renderCarouselSection("For You", forYouList, "Personalized");
       }
 
       // ==============================================================
-      // 4. SECTIONS FROM SYSTEMS COLLECTION (AGE-FILTERED)
+      // 7. SECTIONS FROM SYSTEMS COLLECTION
       // ==============================================================
       try {
         const pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
@@ -800,9 +1050,8 @@
 
             const secData = secSnap.data();
 
-            // Check Section Age_Rating against user's max tier
             if (!isAllowedByAge(secData.Age_Rating)) {
-              continue; // Skip section if section's rating exceeds user's tier
+              continue;
             }
 
             const isFixed = String(secData.Fixed).toLowerCase() === "true";
@@ -811,7 +1060,6 @@
 
             let sectionMovies = [];
 
-            // Add mandatory titles (strictly age-verified)
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
               const movie = liveMoviesMap.get(String(tId).trim().toLowerCase());
@@ -820,7 +1068,6 @@
               }
             }
 
-            // Fixed == False: blend similar genres within allowed ratings
             if (!isFixed) {
               const similarMovies = allowedMoviesCatalog.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
@@ -877,7 +1124,7 @@
       container.appendChild(sectionEl);
     }
 
-    /* ================= 16:9 CARD (CLEAN: NO LOGOS, NO RATINGS) ================= */
+    /* ================= 16:9 CARD ================= */
     function create16x9Card(movie) {
       const card = document.createElement('div');
       card.className = 'card-16-9';
@@ -915,7 +1162,6 @@
       const pillsRow = document.getElementById('modalGenrePillsRow');
       const grid = document.getElementById('modalGridMovies');
 
-      // Dynamically extract genres from allowed movies in this section
       const uniqueSectionGenres = Array.from(new Set(
         movies.flatMap(m => parseGenres(m.Genres).map(g => g.charAt(0).toUpperCase() + g.slice(1)))
       )).filter(Boolean);
