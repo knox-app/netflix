@@ -3,37 +3,77 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>Who's Watching? | My Space</title>
+  <title>Who's Watching? | Disney+ Hotstar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <style>
+    :root {
+      --bg-dark: #0c0e14;
+      --card-bg: #141720;
+      --accent-blue: #0072ef;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    
     body {
-      background: radial-gradient(circle at center, #181c28 0%, #0c0e14 100%);
+      background: radial-gradient(circle at center, #181c28 0%, var(--bg-dark) 100%);
       color: #ffffff;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 32px 20px;
     }
+
+    .top-actions {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .action-pill-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .action-pill-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
     .header-title {
-      font-size: clamp(24px, 4vw, 36px);
+      font-size: clamp(26px, 4.5vw, 38px);
       font-weight: 800;
-      margin-bottom: 40px;
+      margin-bottom: 36px;
       letter-spacing: -0.5px;
       text-align: center;
     }
+
     .profiles-grid {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 32px;
-      max-width: 800px;
+      max-width: 860px;
+      width: 100%;
     }
+
     .profile-card {
       display: flex;
       flex-direction: column;
@@ -43,8 +83,11 @@
       text-decoration: none;
       color: #fff;
       transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
     }
-    .profile-card:hover { transform: scale(1.08); }
+
+    .profile-card:hover { transform: scale(1.06); }
+
     .avatar-wrapper {
       position: relative;
       width: 120px;
@@ -55,15 +98,21 @@
       background: #1e2230;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       transition: border-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
     .profile-card:hover .avatar-wrapper {
       border-color: #ffffff;
     }
+
     .avatar-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
+
     .kids-badge {
       position: absolute;
       bottom: 6px;
@@ -78,108 +127,576 @@
       text-transform: uppercase;
       box-shadow: 0 2px 6px rgba(0,0,0,0.4);
     }
+
     .profile-name {
       font-size: 16px;
       font-weight: 700;
       color: #cbd5e1;
+      max-width: 130px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       transition: color 0.2s;
     }
+
     .profile-card:hover .profile-name { color: #ffffff; }
+
+    .add-avatar-wrapper {
+      border: 2px dashed rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.04);
+      color: #94a3b8;
+      font-size: 38px;
+    }
+
+    .profile-edit-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid #ffffff;
+      color: #ffffff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      z-index: 5;
+    }
+
+    body.edit-mode .profile-edit-badge {
+      display: flex;
+    }
+
+    /* MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-window {
+      background: #141722;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-head h3 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .close-modal-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .avatar-picker-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+
+    .avatar-carousel {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: none;
+    }
+
+    .avatar-carousel::-webkit-scrollbar { display: none; }
+
+    .avatar-option {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      opacity: 0.65;
+      transition: all 0.2s ease;
+    }
+
+    .avatar-option.selected {
+      border-color: #0072ef;
+      opacity: 1;
+      transform: scale(1.08);
+      box-shadow: 0 0 10px rgba(0, 114, 239, 0.6);
+    }
+
+    .avatar-option img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .input-field {
+      background: #0d0f16;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 14.5px;
+      outline: none;
+    }
+
+    .input-field:focus {
+      border-color: #0072ef;
+    }
+
+    .switch-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0d0f16;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 24px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #2b3040;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #0072ef;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .btn-delete {
+      margin-right: auto;
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #0072ef;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
     .spinner {
       color: #0072ef;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
     }
   </style>
 </head>
 <body>
 
+  <div class="top-actions">
+    <button class="action-pill-btn" id="editToggleBtn" onclick="toggleEditMode()">
+      <i class="fa-solid fa-pencil"></i>
+      <span id="editBtnText">Edit Profiles</span>
+    </button>
+  </div>
+
   <h1 class="header-title">Who's Watching?</h1>
+  
   <div class="profiles-grid" id="profilesContainer">
-    <div class="spinner">Loading profiles...</div>
+    <div class="spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading profiles...</div>
+  </div>
+
+  <!-- PROFILE EDIT / ADD MODAL -->
+  <div class="modal-backdrop" id="profileModal">
+    <div class="modal-window">
+      <div class="modal-head">
+        <h3 id="modalTitle">Edit Profile</h3>
+        <button class="close-modal-btn" onclick="closeProfileModal()">&times;</button>
+      </div>
+
+      <div>
+        <div class="avatar-picker-label">Choose Avatar</div>
+        <div class="avatar-carousel" id="avatarSelectorList"></div>
+      </div>
+
+      <div class="input-group">
+        <label for="profileNameInput">Profile Name</label>
+        <input type="text" id="profileNameInput" class="input-field" maxlength="20" placeholder="e.g. Alex" />
+      </div>
+
+      <div class="switch-group">
+        <div>
+          <div style="font-weight:600; font-size:14px;">Kids Profile</div>
+          <div style="font-size:12px; color:#8f98b2;">Only kid-friendly titles</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="profileKidsCheckbox">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-delete" id="deleteProfileBtn" onclick="deleteCurrentProfile()" style="display:none;">Delete</button>
+        <button class="btn-primary" id="saveProfileBtn" onclick="saveProfileChanges()">Save</button>
+      </div>
+    </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, doc, getDoc, getDocs, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // Project holding UARM collection
+    const LOGIN_PAGE_URL = "https://knox-app.github.io/cloud/links/task#login";
+
     const authConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
       projectId: "question-metabase"
     };
+
     const app = initializeApp(authConfig);
     const db = getFirestore(app);
 
+    const AVATAR_LIST = [
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/33.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/37.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/42.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/43.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/45.png"
+    ];
+
+    let currentEditingIndex = -1;
+    let selectedAvatarUrl = AVATAR_LIST[0];
+    let isEditMode = false;
+    let userDocId = null;
+    let userData = null;
+
+    function redirectToLogin() {
+      window.location.replace(LOGIN_PAGE_URL);
+    }
+
     async function loadProfiles() {
       const container = document.getElementById('profilesContainer');
-
-      // 1. Resolve user ID or Lotus token from localStorage or query params
       const urlParams = new URLSearchParams(window.location.search);
       const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus');
-      
-      let rawUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
-      let localUser = rawUser ? JSON.parse(rawUser) : null;
-      let userData = null;
+
+      const rawUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
+      let localUser = null;
+      try {
+        localUser = rawUser ? JSON.parse(rawUser) : null;
+      } catch (e) {
+        localUser = null;
+      }
+
+      // If absolutely no identifier exists, redirect right away
+      if (!lotusParam && !localUser?.Lotus && !localUser?.id) {
+        redirectToLogin();
+        return;
+      }
 
       try {
         if (lotusParam) {
           const q = query(collection(db, "UARM"), where("Lotus", "==", lotusParam));
           const snap = await getDocs(q);
-          if (!snap.empty) userData = snap.docs[0].data();
+          if (!snap.empty) {
+            userDocId = snap.docs[0].id;
+            userData = snap.docs[0].data();
+          }
         } else if (localUser?.Lotus) {
           const q = query(collection(db, "UARM"), where("Lotus", "==", localUser.Lotus));
           const snap = await getDocs(q);
-          if (!snap.empty) userData = snap.docs[0].data();
+          if (!snap.empty) {
+            userDocId = snap.docs[0].id;
+            userData = snap.docs[0].data();
+          }
         } else if (localUser?.id) {
           const snap = await getDoc(doc(db, "UARM", localUser.id));
-          if (snap.exists()) userData = snap.data();
+          if (snap.exists()) {
+            userDocId = snap.id;
+            userData = snap.data();
+          }
         }
 
-        // Fallback to local cache if offline
-        if (!userData && localUser) userData = localUser;
+        // Fallback to local cache if Firestore temporarily fails but we have cached profiles
+        if (!userData && localUser && Array.isArray(localUser.Profiles)) {
+          userData = localUser;
+          userDocId = localUser.id || null;
+        }
 
         if (!userData || !Array.isArray(userData.Profiles)) {
-          container.innerHTML = `<div style="color:#ef4444;">Please sign in to select a profile. <a href="1.html" style="color:#0072ef; margin-left:8px;">Sign In</a></div>`;
+          redirectToLogin();
           return;
         }
 
-        // Save fresh user data
+        // Keep local storage up to date
+        userData.id = userDocId;
         localStorage.setItem('active_user', JSON.stringify(userData));
-
-        // 2. Render Profiles
-        container.innerHTML = userData.Profiles.map((profile, idx) => {
-          const isKids = String(profile.Kids).toLowerCase() === "true";
-          const avatar = profile.Avatar || "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png";
-
-          return `
-            <div class="profile-card" onclick="window.selectProfile(${idx})">
-              <div class="avatar-wrapper">
-                <img src="${avatar}" class="avatar-img" alt="${profile.Name}" />
-                ${isKids ? `<span class="kids-badge">Kids</span>` : ''}
-              </div>
-              <span class="profile-name">${profile.Name}</span>
-            </div>
-          `;
-        }).join('');
-
         window.userProfilesCache = userData.Profiles;
+
+        renderProfilesList();
 
       } catch (err) {
         console.error("Error loading profiles:", err);
-        container.innerHTML = `<div style="color:#ef4444;">Failed to load profiles. Check connection.</div>`;
+        container.innerHTML = `<div style="color:#ef4444; font-weight:600;">Failed to load profiles. Please verify connection.</div>`;
       }
     }
+
+    function renderProfilesList() {
+      const container = document.getElementById('profilesContainer');
+      const profiles = window.userProfilesCache || [];
+
+      let html = profiles.map((profile, idx) => {
+        const isKids = String(profile.Kids).toLowerCase() === "true" || String(profile.Type).toLowerCase() === "kids";
+        const avatar = profile.Avatar || AVATAR_LIST[0];
+
+        return `
+          <div class="profile-card" onclick="window.handleProfileClick(${idx})">
+            <div class="profile-edit-badge"><i class="fa-solid fa-pencil"></i></div>
+            <div class="avatar-wrapper">
+              <img src="${avatar}" class="avatar-img" alt="${profile.Name || 'Profile'}" />
+              ${isKids ? `<span class="kids-badge">Kids</span>` : ''}
+            </div>
+            <span class="profile-name">${profile.Name || 'Profile'}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Add profile button
+      if (profiles.length < 5) {
+        html += `
+          <div class="profile-card" onclick="window.openAddProfileModal()">
+            <div class="avatar-wrapper add-avatar-wrapper">
+              <i class="fa-solid fa-plus"></i>
+            </div>
+            <span class="profile-name">Add Profile</span>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    window.toggleEditMode = function() {
+      isEditMode = !isEditMode;
+      document.body.classList.toggle('edit-mode', isEditMode);
+      document.getElementById('editBtnText').textContent = isEditMode ? 'Done' : 'Edit Profiles';
+    };
+
+    window.handleProfileClick = function(idx) {
+      if (isEditMode) {
+        window.openEditProfileModal(idx);
+      } else {
+        window.selectProfile(idx);
+      }
+    };
 
     window.selectProfile = function(idx) {
       const selected = window.userProfilesCache[idx];
       localStorage.setItem('active_profile', JSON.stringify(selected));
       localStorage.setItem('active_profile_index', idx.toString());
 
-      // Redirect to home.html with the selected profile in hash
+      if (userData) {
+        userData.active_profile = selected;
+        localStorage.setItem('active_user', JSON.stringify(userData));
+      }
+
+      // Navigate to home page with profile hashtag
       window.location.href = `home.html#movies&user#${idx}`;
     };
+
+    // Modal Helpers
+    function setupAvatarPicker(selectedUrl) {
+      const list = document.getElementById('avatarSelectorList');
+      selectedAvatarUrl = selectedUrl || AVATAR_LIST[0];
+
+      list.innerHTML = AVATAR_LIST.map(url => `
+        <div class="avatar-option ${url === selectedAvatarUrl ? 'selected' : ''}" onclick="window.pickAvatar('${url}')">
+          <img src="${url}" alt="Avatar" />
+        </div>
+      `).join('');
+    }
+
+    window.pickAvatar = function(url) {
+      selectedAvatarUrl = url;
+      document.querySelectorAll('.avatar-option').forEach(el => {
+        el.classList.toggle('selected', el.querySelector('img').src === url);
+      });
+    };
+
+    window.openAddProfileModal = function() {
+      currentEditingIndex = -1;
+      document.getElementById('modalTitle').textContent = 'Add Profile';
+      document.getElementById('profileNameInput').value = '';
+      document.getElementById('profileKidsCheckbox').checked = false;
+      document.getElementById('deleteProfileBtn').style.display = 'none';
+      setupAvatarPicker(AVATAR_LIST[0]);
+      document.getElementById('profileModal').classList.add('active');
+    };
+
+    window.openEditProfileModal = function(idx) {
+      currentEditingIndex = idx;
+      const target = window.userProfilesCache[idx];
+      if (!target) return;
+
+      document.getElementById('modalTitle').textContent = 'Edit Profile';
+      document.getElementById('profileNameInput').value = target.Name || '';
+      document.getElementById('profileKidsCheckbox').checked = String(target.Kids).toLowerCase() === 'true';
+      document.getElementById('deleteProfileBtn').style.display = window.userProfilesCache.length > 1 ? 'block' : 'none';
+
+      setupAvatarPicker(target.Avatar || AVATAR_LIST[0]);
+      document.getElementById('profileModal').classList.add('active');
+    };
+
+    window.closeProfileModal = function() {
+      document.getElementById('profileModal').classList.remove('active');
+    };
+
+    window.saveProfileChanges = async function() {
+      const name = document.getElementById('profileNameInput').value.trim();
+      if (!name) {
+        alert("Please enter a profile name.");
+        return;
+      }
+
+      const isKids = document.getElementById('profileKidsCheckbox').checked;
+      const updatedProfiles = [...(window.userProfilesCache || [])];
+
+      if (currentEditingIndex === -1) {
+        // Adding new profile
+        updatedProfiles.push({
+          Name: name,
+          Avatar: selectedAvatarUrl,
+          Kids: isKids ? "true" : "false",
+          Type: isKids ? "Kids" : "Standard",
+          Watchlist: []
+        });
+      } else {
+        // Updating existing
+        updatedProfiles[currentEditingIndex] = {
+          ...updatedProfiles[currentEditingIndex],
+          Name: name,
+          Avatar: selectedAvatarUrl,
+          Kids: isKids ? "true" : "false",
+          Type: isKids ? "Kids" : "Standard"
+        };
+      }
+
+      await commitProfileUpdates(updatedProfiles);
+      window.closeProfileModal();
+    };
+
+    window.deleteCurrentProfile = async function() {
+      if (currentEditingIndex < 0) return;
+      if (window.userProfilesCache.length <= 1) {
+        alert("You must have at least one profile.");
+        return;
+      }
+
+      if (!confirm("Are you sure you want to delete this profile?")) return;
+
+      const updatedProfiles = window.userProfilesCache.filter((_, idx) => idx !== currentEditingIndex);
+      await commitProfileUpdates(updatedProfiles);
+      window.closeProfileModal();
+    };
+
+    async function commitProfileUpdates(updatedProfiles) {
+      window.userProfilesCache = updatedProfiles;
+      userData.Profiles = updatedProfiles;
+      localStorage.setItem('active_user', JSON.stringify(userData));
+
+      renderProfilesList();
+
+      // Sync with Firestore if online & document ID is known
+      if (userDocId) {
+        try {
+          await updateDoc(doc(db, "UARM", userDocId), {
+            Profiles: updatedProfiles
+          });
+        } catch (e) {
+          console.error("Firestore sync error:", e);
+        }
+      }
+    }
 
     loadProfiles();
   </script>
