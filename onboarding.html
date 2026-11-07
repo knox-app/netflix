@@ -3,37 +3,77 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>Who's Watching? | My Space</title>
+  <title>Who's Watching? | Disney+ Hotstar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <style>
+    :root {
+      --bg-dark: #0c0e14;
+      --card-bg: #141720;
+      --accent-blue: #0072ef;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    
     body {
-      background: radial-gradient(circle at center, #181c28 0%, #0c0e14 100%);
+      background: radial-gradient(circle at center, #181c28 0%, var(--bg-dark) 100%);
       color: #ffffff;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 32px 20px;
     }
+
+    .top-actions {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .action-pill-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .action-pill-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
     .header-title {
-      font-size: clamp(24px, 4vw, 36px);
+      font-size: clamp(26px, 4.5vw, 38px);
       font-weight: 800;
-      margin-bottom: 40px;
+      margin-bottom: 36px;
       letter-spacing: -0.5px;
       text-align: center;
     }
+
     .profiles-grid {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 32px;
-      max-width: 800px;
+      max-width: 860px;
+      width: 100%;
     }
+
     .profile-card {
       display: flex;
       flex-direction: column;
@@ -43,8 +83,11 @@
       text-decoration: none;
       color: #fff;
       transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
     }
-    .profile-card:hover { transform: scale(1.08); }
+
+    .profile-card:hover { transform: scale(1.06); }
+
     .avatar-wrapper {
       position: relative;
       width: 120px;
@@ -55,15 +98,21 @@
       background: #1e2230;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       transition: border-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
     .profile-card:hover .avatar-wrapper {
       border-color: #ffffff;
     }
+
     .avatar-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
+
     .kids-badge {
       position: absolute;
       bottom: 6px;
@@ -78,110 +127,150 @@
       text-transform: uppercase;
       box-shadow: 0 2px 6px rgba(0,0,0,0.4);
     }
+
     .profile-name {
       font-size: 16px;
       font-weight: 700;
       color: #cbd5e1;
+      max-width: 130px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       transition: color 0.2s;
     }
+
     .profile-card:hover .profile-name { color: #ffffff; }
+
+    .add-avatar-wrapper {
+      border: 2px dashed rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.04);
+      color: #94a3b8;
+      font-size: 38px;
+    }
+
+    .profile-edit-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid #ffffff;
+      color: #ffffff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      z-index: 5;
+    }
+
+    body.edit-mode .profile-edit-badge {
+      display: flex;
+    }
+
     .spinner {
       color: #0072ef;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
   </style>
 </head>
 <body>
 
+  <div class="top-actions">
+    <button class="action-pill-btn" id="editToggleBtn" onclick="toggleEditMode()">
+      <i class="fa-solid fa-pencil"></i>
+      <span id="editBtnText">Edit Profiles</span>
+    </button>
+  </div>
+
   <h1 class="header-title">Who's Watching?</h1>
+  
   <div class="profiles-grid" id="profilesContainer">
-    <div class="spinner">Loading profiles...</div>
+    <div class="spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading profiles...</div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, doc, getDoc, getDocs, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const LOGIN_REDIRECT_URL = "https://knox-app.github.io/cloud/links/task#login";
+    const LOGIN_PAGE_URL = "https://knox-app.github.io/cloud/links/task#login";
 
     const authConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
       projectId: "question-metabase"
     };
+
     const app = initializeApp(authConfig);
     const db = getFirestore(app);
 
+    let isEditMode = false;
+    let userData = null;
+
     function redirectToLogin() {
-      window.location.replace(LOGIN_REDIRECT_URL);
+      window.location.replace(LOGIN_PAGE_URL);
     }
 
     async function loadProfiles() {
-      const container = document.getElementById('profilesContainer');
-
       const urlParams = new URLSearchParams(window.location.search);
       const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus');
-      
-      let rawUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
+
+      const rawUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
       let localUser = null;
       try {
         localUser = rawUser ? JSON.parse(rawUser) : null;
-      } catch(e) {
+      } catch (e) {
         localUser = null;
       }
 
-      // If no credentials or query param found, redirect to login URL
       if (!lotusParam && !localUser?.Lotus && !localUser?.id) {
         redirectToLogin();
         return;
       }
 
-      let userData = null;
-
       try {
         if (lotusParam) {
           const q = query(collection(db, "UARM"), where("Lotus", "==", lotusParam));
           const snap = await getDocs(q);
-          if (!snap.empty) userData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+          if (!snap.empty) {
+            userData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+          }
         } else if (localUser?.Lotus) {
           const q = query(collection(db, "UARM"), where("Lotus", "==", localUser.Lotus));
           const snap = await getDocs(q);
-          if (!snap.empty) userData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+          if (!snap.empty) {
+            userData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+          }
         } else if (localUser?.id) {
           const snap = await getDoc(doc(db, "UARM", localUser.id));
-          if (snap.exists()) userData = { id: snap.id, ...snap.data() };
+          if (snap.exists()) {
+            userData = { id: snap.id, ...snap.data() };
+          }
         }
 
-        // Fallback to local cache if offline
         if (!userData && localUser) userData = localUser;
 
-        // If still no valid user or profiles found, redirect to login
-        if (!userData || !Array.isArray(userData.Profiles) || userData.Profiles.length === 0) {
+        if (!userData) {
           redirectToLogin();
           return;
         }
 
-        // Save fresh user data
+        // If user is logged in but has no profiles yet, send to account creation
+        if (!Array.isArray(userData.Profiles) || userData.Profiles.length === 0) {
+          window.location.href = "account.html?action=new&mode=new";
+          return;
+        }
+
         localStorage.setItem('active_user', JSON.stringify(userData));
-
-        // Render Profiles
-        container.innerHTML = userData.Profiles.map((profile, idx) => {
-          const isKids = String(profile.Kids).toLowerCase() === "true";
-          const avatar = profile.Avatar || "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png";
-
-          return `
-            <div class="profile-card" onclick="window.selectProfile(${idx})">
-              <div class="avatar-wrapper">
-                <img src="${avatar}" class="avatar-img" alt="${profile.Name}" />
-                ${isKids ? `<span class="kids-badge">Kids</span>` : ''}
-              </div>
-              <span class="profile-name">${profile.Name}</span>
-            </div>
-          `;
-        }).join('');
-
         window.userProfilesCache = userData.Profiles;
+
+        renderProfilesList();
 
       } catch (err) {
         console.error("Error loading profiles:", err);
@@ -189,12 +278,66 @@
       }
     }
 
+    function renderProfilesList() {
+      const container = document.getElementById('profilesContainer');
+      const profiles = window.userProfilesCache || [];
+
+      let html = profiles.map((profile, idx) => {
+        const isKids = String(profile.Kids).toLowerCase() === "true" || String(profile.Type).toLowerCase() === "kids";
+        const avatar = profile.Avatar || "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png";
+
+        return `
+          <div class="profile-card" onclick="window.handleProfileClick(${idx})">
+            <div class="profile-edit-badge"><i class="fa-solid fa-pencil"></i></div>
+            <div class="avatar-wrapper">
+              <img src="${avatar}" class="avatar-img" alt="${profile.Name || 'Profile'}" />
+              ${isKids ? `<span class="kids-badge">Kids</span>` : ''}
+            </div>
+            <span class="profile-name">${profile.Name || 'Profile'}</span>
+          </div>
+        `;
+      }).join('');
+
+      if (profiles.length < 5) {
+        html += `
+          <div class="profile-card" onclick="window.location.href='account.html?action=new&mode=exc'">
+            <div class="avatar-wrapper add-avatar-wrapper">
+              <i class="fa-solid fa-plus"></i>
+            </div>
+            <span class="profile-name">Add Profile</span>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    window.toggleEditMode = function() {
+      isEditMode = !isEditMode;
+      document.body.classList.toggle('edit-mode', isEditMode);
+      document.getElementById('editBtnText').textContent = isEditMode ? 'Done' : 'Edit Profiles';
+    };
+
+    window.handleProfileClick = function(idx) {
+      if (isEditMode) {
+        // Open account.html in edit mode
+        window.location.href = `account.html?action=edit&profile=${idx}`;
+      } else {
+        window.selectProfile(idx);
+      }
+    };
+
     window.selectProfile = function(idx) {
       const selected = window.userProfilesCache[idx];
       localStorage.setItem('active_profile', JSON.stringify(selected));
       localStorage.setItem('active_profile_index', idx.toString());
 
-      // Redirect to home.html with the selected profile in hash
+      if (userData) {
+        userData.active_profile = selected;
+        localStorage.setItem('active_user', JSON.stringify(userData));
+      }
+
+      // Route to home page with profile index
       window.location.href = `home.html#movies&user#${idx}`;
     };
 
