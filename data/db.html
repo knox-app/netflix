@@ -3,113 +3,112 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Firestore Console Dashboard</title>
+  <title>Cloud Firestore Console</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
     :root {
-      --bg-dark: #12151b;
-      --bg-panel: #1a1e27;
-      --bg-card: #222733;
-      --bg-hover: #2b3242;
-      --border: #2d3545;
-      --primary: #f5820d;
-      --primary-hover: #e07204;
-      --text-main: #f0f3f8;
-      --text-muted: #8b95a8;
-      --danger: #ef4444;
-      --success: #10b981;
-      --radius: 8px;
+      --bg-root: #121519;
+      --bg-panel: #161a20;
+      --bg-hover: #1f252e;
+      --bg-active: #242c38;
+      --border: #282f3a;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --accent-blue: #8ab4f8;
+      --accent-blue-hover: #aecbfa;
+      --text-main: #e8eaed;
+      --text-secondary: #9aa0a6;
+      --text-muted: #5f6368;
+      --danger: #f28b82;
+      --radius: 4px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: var(--bg-dark);
+      font-family: 'Roboto', -apple-system, sans-serif;
+      background: var(--bg-root);
       color: var(--text-main);
       height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      font-size: 13px;
     }
 
+    /* Top Navigation Bar */
     header {
-      height: 56px;
+      height: 48px;
       background: var(--bg-panel);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 16px;
-      z-index: 20;
+      z-index: 10;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 700;
-      font-size: 1.05rem;
-    }
-
-    .brand svg { color: var(--primary); }
-
-    .status-badge {
-      font-size: 0.75rem;
-      padding: 4px 8px;
-      border-radius: 20px;
-      background: rgba(16, 185, 129, 0.15);
-      color: var(--success);
+      font-size: 14px;
       font-weight: 500;
     }
+    .brand svg { color: #f5820d; }
 
-    /* Diagnostics Banner */
-    #errorBanner {
-      display: none;
-      background: #7f1d1d;
-      color: #fecaca;
-      padding: 10px 16px;
-      font-size: 0.85rem;
-      border-bottom: 1px solid #b91c1c;
-      justify-content: space-between;
+    .header-status {
+      display: flex;
       align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #34a853;
+      display: inline-block;
     }
 
-    .mobile-tabs {
+    /* Mobile Segment Switcher */
+    .mobile-nav {
       display: none;
       background: var(--bg-panel);
       border-bottom: 1px solid var(--border);
-      grid-template-columns: 1fr 1fr 1fr;
+      padding: 6px 12px;
+      gap: 6px;
     }
-
-    .tab-btn {
-      padding: 10px 0;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 0.8rem;
-      border-bottom: 2px solid transparent;
+    .mobile-tab-btn {
+      flex: 1;
+      padding: 7px 0;
+      border-radius: var(--radius);
+      background: #1f252e;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
     }
-
-    .tab-btn.active {
-      color: var(--primary);
-      border-color: var(--primary);
+    .mobile-tab-btn.active {
+      background: #2b3545;
+      color: var(--accent-blue);
+      border-color: var(--accent-blue);
     }
 
-    .dashboard-layout {
+    /* 3-Column Firestore Console Layout */
+    .console-layout {
       flex: 1;
       display: grid;
       grid-template-columns: 280px 320px 1fr;
       overflow: hidden;
     }
 
-    .panel {
+    .column {
       display: flex;
       flex-direction: column;
       height: 100%;
@@ -118,187 +117,221 @@
       min-width: 0;
     }
 
-    .panel-header {
-      padding: 12px 16px;
+    .column-header {
+      height: 44px;
+      padding: 0 14px;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
     }
 
-    .panel-title {
-      font-size: 0.82rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
+    .header-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
-    .action-icons { display: flex; gap: 6px; }
+    .header-actions { display: flex; align-items: center; gap: 2px; }
 
     .btn-icon {
       background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-muted);
+      border: none;
+      color: var(--text-secondary);
       cursor: pointer;
-      border-radius: 6px;
+      border-radius: var(--radius);
       padding: 5px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: background 0.15s;
     }
+    .btn-icon:hover { background: var(--bg-hover); color: var(--text-main); }
+    .btn-icon.danger:hover { color: var(--danger); }
 
-    .btn-icon:hover {
-      background: var(--bg-card);
-      color: var(--text-main);
-      border-color: var(--border);
+    .btn-trigger-action {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent-blue);
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 11px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
     }
+    .btn-trigger-action:hover { background: rgba(138, 180, 248, 0.08); }
 
-    .panel-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
+    .column-body { flex: 1; overflow-y: auto; }
 
-    .list-item {
+    .row-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 12px;
-      margin-bottom: 4px;
-      border-radius: var(--radius);
+      padding: 9px 14px;
       cursor: pointer;
-      font-size: 0.9rem;
-      color: var(--text-muted);
+      user-select: none;
+      border-left: 3px solid transparent;
+      transition: background 0.1s;
     }
-
-    .list-item:hover { background: var(--bg-hover); color: var(--text-main); }
-    .list-item.active {
-      background: var(--bg-card);
-      color: var(--primary);
-      font-weight: 600;
-      border-left: 3px solid var(--primary);
+    .row-item:hover { background: var(--bg-hover); }
+    .row-item.active {
+      background: var(--bg-active);
+      border-left-color: var(--accent-blue);
+      color: var(--accent-blue);
     }
-
-    .item-text {
+    .row-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      flex: 1;
+    }
+    .row-label {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      flex: 1;
     }
 
-    .editor-wrapper {
+    /* Column 3: Fields */
+    .field-row {
       display: flex;
-      flex-direction: column;
-      height: 100%;
-      padding: 16px;
-    }
-
-    .toolbar-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .btn {
-      display: inline-flex;
       align-items: center;
-      gap: 6px;
-      background: var(--bg-card);
-      color: var(--text-main);
-      border: 1px solid var(--border);
-      padding: 8px 14px;
-      font-size: 0.85rem;
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-weight: 500;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.15s;
     }
+    .field-row:hover { background: var(--bg-hover); }
 
-    .btn:hover { background: var(--bg-hover); }
-    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-hover); }
-
-    textarea.code-editor {
+    .field-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
       flex: 1;
-      width: 100%;
-      background: #0d0f14;
-      border: 1px solid var(--border);
-      color: #68d391;
-      font-family: 'Fira Code', monospace;
-      font-size: 0.85rem;
-      padding: 16px;
-      border-radius: var(--radius);
-      resize: none;
-      outline: none;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 12.5px;
+    }
+    .field-name { color: var(--text-main); font-weight: 500; }
+    .field-separator { color: var(--text-muted); }
+    .field-value {
+      color: #93c5fd;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 55%;
+    }
+    .field-type {
+      font-family: 'Roboto', sans-serif;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: 4px;
     }
 
-    .modal-overlay {
+    .field-controls { display: flex; align-items: center; gap: 4px; }
+
+    /* Modals */
+    .modal-backdrop {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(3px);
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 100;
+      z-index: 1000;
       padding: 16px;
     }
-
-    .modal-card {
-      background: var(--bg-panel);
+    .modal-box {
+      background: #20242c;
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 8px;
       width: 100%;
       max-width: 420px;
       padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     }
-
-    .modal-card h3 { font-size: 1.1rem; margin-bottom: 12px; }
-    .input-group label {
+    .modal-box h3 { font-size: 15px; font-weight: 500; margin-bottom: 16px; }
+    .input-wrap { margin-bottom: 14px; }
+    .input-wrap label {
       display: block;
-      font-size: 0.75rem;
-      color: var(--text-muted);
+      font-size: 11px;
+      color: var(--text-secondary);
       margin-bottom: 6px;
       text-transform: uppercase;
+      font-weight: 500;
     }
-
-    .input-group input {
+    .input-wrap input, .input-wrap select, .input-wrap textarea {
       width: 100%;
-      background: var(--bg-dark);
+      background: #111418;
       border: 1px solid var(--border);
       color: var(--text-main);
-      padding: 10px;
+      padding: 8px 10px;
       border-radius: var(--radius);
       outline: none;
-      margin-bottom: 16px;
+      font-size: 13px;
     }
+    .input-wrap input:focus, .input-wrap select:focus, .input-wrap textarea:focus {
+      border-color: var(--accent-blue);
+    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .btn {
+      padding: 7px 14px;
+      border-radius: var(--radius);
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg-hover); color: var(--text-main); }
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-primary:hover { background: #1557b0; }
 
     #toast {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      padding: 10px 16px;
-      background: var(--bg-card);
+      padding: 9px 15px;
+      background: #2a313d;
+      color: #fff;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      font-size: 0.85rem;
+      font-size: 12.5px;
       opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.25s ease;
-      z-index: 200;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      z-index: 2000;
     }
     #toast.show { opacity: 1; transform: translateY(0); }
-    .empty-msg { padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
 
-    @media (max-width: 868px) {
-      .mobile-tabs { display: grid; }
-      .dashboard-layout { display: block; }
-      .panel { display: none; width: 100%; }
-      .panel.mobile-active { display: flex; }
+    .empty-state {
+      padding: 32px 14px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 820px) {
+      .mobile-nav { display: flex; }
+      .console-layout { display: block; position: relative; }
+      .column { display: none; width: 100%; border-right: none; }
+      .column.mobile-show { display: flex; }
     }
   </style>
 </head>
@@ -306,86 +339,147 @@
 
   <header>
     <div class="brand">
-      <i data-lucide="flame"></i>
-      <span>Firestore Console</span>
+      <i data-lucide="flame" style="width: 17px;"></i>
+      <span>Cloud Firestore</span>
+      <span style="color:var(--text-muted);">/</span>
+      <span style="color:var(--text-secondary); font-size:12px;">internal-systems-46728</span>
     </div>
-    <div class="status-badge" id="projectBadge">Ready</div>
+    <div class="header-status">
+      <span class="status-dot"></span>
+      <span>Connected to Main Firebase</span>
+      <button class="btn-icon" title="Refresh Live Data" onclick="refreshCurrentView()">
+        <i data-lucide="refresh-cw" style="width: 14px;"></i>
+      </button>
+    </div>
   </header>
 
-  <!-- Diagnostics bar for local debugging -->
-  <div id="errorBanner">
-    <span id="errorBannerMsg">Error occurred</span>
-    <button class="btn" style="padding:2px 8px; font-size:0.75rem;" onclick="document.getElementById('errorBanner').style.display='none'">Dismiss</button>
+  <!-- Mobile Segment Switcher -->
+  <div class="mobile-nav">
+    <button class="mobile-tab-btn active" id="tab0" onclick="switchMobileColumn(0)">1. Collections</button>
+    <button class="mobile-tab-btn" id="tab1" onclick="switchMobileColumn(1)">2. Documents</button>
+    <button class="mobile-tab-btn" id="tab2" onclick="switchMobileColumn(2)">3. Fields</button>
   </div>
 
-  <div class="mobile-tabs">
-    <button class="tab-btn active" onclick="switchMobileTab(0)">Collections</button>
-    <button class="tab-btn" onclick="switchMobileTab(1)">Documents</button>
-    <button class="tab-btn" onclick="switchMobileTab(2)">Editor</button>
+  <div class="console-layout">
+
+    <!-- Column 1: Collections -->
+    <div class="column mobile-show" id="col-collections">
+      <div class="column-header">
+        <div class="header-title-wrap">
+          <i data-lucide="layers" style="width: 14px;"></i>
+          <span>(default)</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-icon" title="Bulk Import / Sync Collection Names" onclick="promptBulkImport()"><i data-lucide="list-plus" style="width:14px;"></i></button>
+          <button class="btn-icon" title="Rename Collection in Firebase" onclick="promptRenameCollection()"><i data-lucide="edit-3" style="width:14px;"></i></button>
+        </div>
+      </div>
+      <button class="btn-trigger-action" onclick="promptStartCollection()">
+        <i data-lucide="plus" style="width: 15px;"></i> Start collection
+      </button>
+      <div class="column-body" id="collection-list"></div>
+    </div>
+
+    <!-- Column 2: Documents -->
+    <div class="column" id="col-documents">
+      <div class="column-header">
+        <div class="header-title-wrap">
+          <i data-lucide="folder" style="width: 14px;"></i>
+          <span id="docHeaderTitle">Documents</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-icon" title="Rename Document ID in Firebase" onclick="promptRenameDocId()"><i data-lucide="type" style="width:14px;"></i></button>
+          <button class="btn-icon" title="Transfer Document to Another Collection" onclick="promptTransferDoc()"><i data-lucide="arrow-right-left" style="width:14px;"></i></button>
+          <button class="btn-icon danger" title="Delete Document from Firebase" onclick="deleteActiveDocument()"><i data-lucide="trash-2" style="width:14px;"></i></button>
+        </div>
+      </div>
+      <button class="btn-trigger-action" onclick="promptAddDocument()">
+        <i data-lucide="plus" style="width: 15px;"></i> Add document
+      </button>
+      <div class="column-body" id="document-list">
+        <div class="empty-state">Select a collection on the left</div>
+      </div>
+    </div>
+
+    <!-- Column 3: Document Fields -->
+    <div class="column" id="col-fields">
+      <div class="column-header">
+        <div class="header-title-wrap">
+          <i data-lucide="file-text" style="width: 14px;"></i>
+          <span id="fieldHeaderTitle">Document Fields</span>
+        </div>
+      </div>
+      <button class="btn-trigger-action" onclick="openFieldDialog()">
+        <i data-lucide="plus" style="width: 15px;"></i> Add field
+      </button>
+      <div class="column-body" id="fields-list">
+        <div class="empty-state">Select a document to inspect fields</div>
+      </div>
+    </div>
+
   </div>
 
-  <div class="dashboard-layout">
-    <!-- Collections Panel -->
-    <div class="panel mobile-active" id="panel-collections">
-      <div class="panel-header">
-        <span class="panel-title">Collections</span>
-        <div class="action-icons">
-          <button class="btn-icon" title="Rename Collection" onclick="promptRenameCollection()"><i data-lucide="edit-3" style="width:16px;"></i></button>
-          <button class="btn-icon" title="Add / Open Collection" onclick="promptAddCollection()"><i data-lucide="folder-plus" style="width:16px;"></i></button>
-        </div>
-      </div>
-      <div class="panel-content" id="collection-list"></div>
-    </div>
-
-    <!-- Documents Panel -->
-    <div class="panel" id="panel-docs">
-      <div class="panel-header">
-        <span class="panel-title" id="docPanelTitle">Documents</span>
-        <div class="action-icons">
-          <button class="btn-icon" title="Add Document" onclick="promptAddDocument()"><i data-lucide="plus" style="width:16px;"></i></button>
-        </div>
-      </div>
-      <div class="panel-content" id="document-list">
-        <div class="empty-msg">Select a collection on the left</div>
-      </div>
-    </div>
-
-    <!-- Document Inspector Panel -->
-    <div class="panel" id="panel-editor">
-      <div class="panel-header">
-        <span class="panel-title" id="editorTitle">Document Inspector</span>
-        <div class="action-icons">
-          <button class="btn-icon" title="Delete Document" onclick="deleteActiveDocument()"><i data-lucide="trash-2" style="width:16px;"></i></button>
-        </div>
-      </div>
-      <div class="editor-wrapper">
-        <div class="toolbar-bar">
-          <button class="btn" onclick="promptRenameDocId()"><i data-lucide="type" style="width:16px;"></i> Rename ID</button>
-          <button class="btn" onclick="promptTransferDoc()"><i data-lucide="arrow-right-left" style="width:16px;"></i> Transfer</button>
-          <button class="btn btn-primary" onclick="saveDocumentData()"><i data-lucide="save" style="width:16px;"></i> Save</button>
-        </div>
-        <textarea id="jsonEditor" class="code-editor" placeholder="Select a document to inspect or edit fields..."></textarea>
-      </div>
-    </div>
-  </div>
-
-  <!-- Reusable Action Modal -->
-  <div class="modal-overlay" id="modal">
-    <div class="modal-card">
-      <h3 id="modalTitle">Action</h3>
-      <div class="input-group">
-        <label id="modalInputLabel">Value</label>
-        <input type="text" id="modalInput" autofocus />
+  <!-- Generic Prompt Modal -->
+  <div class="modal-backdrop" id="promptModal">
+    <div class="modal-box">
+      <h3 id="promptTitle">Input</h3>
+      <div class="input-wrap">
+        <label id="promptLabel">Value</label>
+        <input type="text" id="promptInput" autofocus />
       </div>
       <div class="modal-actions">
-        <button class="btn" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-primary" id="modalConfirmBtn">Confirm</button>
+        <button class="btn btn-secondary" onclick="closePromptModal()">Cancel</button>
+        <button class="btn btn-primary" id="promptConfirmBtn">Confirm in Firebase</button>
       </div>
     </div>
   </div>
 
-  <div id="toast">Ready</div>
+  <!-- Bulk Import Modal -->
+  <div class="modal-backdrop" id="bulkModal">
+    <div class="modal-box">
+      <h3>Sync Collection Names</h3>
+      <div class="input-wrap">
+        <label>Enter Collection Names (comma or newline separated)</label>
+        <textarea id="bulkInput" rows="5" placeholder="Ads, Digital-Feed, Live TV, Movies, ..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="document.getElementById('bulkModal').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="submitBulkImport()">Save to Cloud Schema</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Field Modal -->
+  <div class="modal-backdrop" id="fieldModal">
+    <div class="modal-box">
+      <h3 id="fieldModalTitle">Add Field</h3>
+      <div class="input-wrap">
+        <label>Field Name</label>
+        <input type="text" id="fKeyInput" placeholder="e.g. Name" />
+      </div>
+      <div class="input-wrap">
+        <label>Type</label>
+        <select id="fTypeSelect">
+          <option value="string">string</option>
+          <option value="number">number</option>
+          <option value="boolean">boolean</option>
+          <option value="json">json / map / array</option>
+        </select>
+      </div>
+      <div class="input-wrap">
+        <label>Value</label>
+        <input type="text" id="fValInput" placeholder="e.g. Gas O Fast" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeFieldModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitFieldForm()">Update in Firebase</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">Connecting...</div>
+
+  <!-- Firebase Modular SDK v10 (Direct Live Connection) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { 
@@ -395,7 +489,9 @@
       doc, 
       getDoc, 
       setDoc, 
-      deleteDoc 
+      deleteDoc,
+      updateDoc,
+      deleteField
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -408,21 +504,12 @@
       measurementId: "G-Y87B8VRQ1N"
     };
 
-    function showBannerError(msg) {
-      const banner = document.getElementById('errorBanner');
-      const text = document.getElementById('errorBannerMsg');
-      text.innerText = msg;
-      banner.style.display = 'flex';
-    }
-
-    if (window.location.protocol === 'file:') {
-      showBannerError("⚠️ You opened this via file://. Browser security may block Firebase requests. Run using localhost or VS Code Live Server.");
-    }
-
+    // Initialize Real Cloud Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let collections = JSON.parse(localStorage.getItem('fbc_collections') || '["users"]');
+    // Dynamic State (Fetched and saved directly into Firebase: __metadata/schema)
+    let collections = [];
     let activeCollection = null;
     let activeDocId = null;
     let activeDocData = {};
@@ -431,90 +518,114 @@
       const toast = document.getElementById('toast');
       toast.innerText = msg;
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2800);
+      setTimeout(() => toast.classList.remove('show'), 2600);
     };
 
-    window.switchMobileTab = function(index) {
-      const panels = [document.getElementById('panel-collections'), document.getElementById('panel-docs'), document.getElementById('panel-editor')];
-      const tabs = document.querySelectorAll('.tab-btn');
-      panels.forEach((p, i) => p.classList.toggle('mobile-active', i === index));
-      tabs.forEach((t, i) => t.classList.toggle('active', i === index));
+    window.switchMobileColumn = function(idx) {
+      const cols = [document.getElementById('col-collections'), document.getElementById('col-documents'), document.getElementById('col-fields')];
+      const tabs = [document.getElementById('tab0'), document.getElementById('tab1'), document.getElementById('tab2')];
+      cols.forEach((col, i) => col.classList.toggle('mobile-show', i === idx));
+      tabs.forEach((tab, i) => tab.classList.toggle('active', i === idx));
     };
 
-    function saveCollectionsList() {
-      localStorage.setItem('fbc_collections', JSON.stringify(collections));
+    // Save collection registry straight to cloud database doc
+    async function syncCollectionsToCloud() {
+      try {
+        await setDoc(doc(db, "__metadata", "schema"), { collections: collections }, { merge: true });
+        localStorage.setItem('fbc_cached_cols', JSON.stringify(collections));
+      } catch (e) {
+        console.warn("Could not save to __metadata collection (check Firestore rules):", e);
+        localStorage.setItem('fbc_cached_cols', JSON.stringify(collections));
+      }
       renderCollections();
     }
 
-    function openModal(title, label, defaultValue, onConfirm) {
-      const modal = document.getElementById('modal');
-      const input = document.getElementById('modalInput');
-      document.getElementById('modalTitle').innerText = title;
-      document.getElementById('modalInputLabel').innerText = label;
-      input.value = defaultValue || '';
+    async function loadCollectionsFromCloud() {
+      try {
+        const snap = await getDoc(doc(db, "__metadata", "schema"));
+        if (snap.exists() && Array.isArray(snap.data().collections)) {
+          collections = snap.data().collections;
+        } else {
+          collections = JSON.parse(localStorage.getItem('fbc_cached_cols') || '[]');
+        }
+      } catch (e) {
+        collections = JSON.parse(localStorage.getItem('fbc_cached_cols') || '[]');
+      }
+      renderCollections();
+    }
+
+    // Modal Helpers
+    function showPrompt(title, label, defaultVal, onConfirm) {
+      const modal = document.getElementById('promptModal');
+      const input = document.getElementById('promptInput');
+      document.getElementById('promptTitle').innerText = title;
+      document.getElementById('promptLabel').innerText = label;
+      input.value = defaultVal || '';
       modal.style.display = 'flex';
       input.focus();
 
-      document.getElementById('modalConfirmBtn').onclick = () => {
+      document.getElementById('promptConfirmBtn').onclick = () => {
         const val = input.value.trim();
         if (val) {
           onConfirm(val);
-          closeModal();
+          closePromptModal();
         }
       };
     }
 
-    window.closeModal = function() {
-      document.getElementById('modal').style.display = 'none';
+    window.closePromptModal = function() {
+      document.getElementById('promptModal').style.display = 'none';
     };
 
+    window.promptBulkImport = function() {
+      document.getElementById('bulkInput').value = collections.join(', ');
+      document.getElementById('bulkModal').style.display = 'flex';
+    };
+
+    window.submitBulkImport = async function() {
+      const val = document.getElementById('bulkInput').value;
+      const parsed = val.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+      collections = Array.from(new Set([...collections, ...parsed]));
+      await syncCollectionsToCloud();
+      document.getElementById('bulkModal').style.display = 'none';
+      showToast('Collections synchronized in Cloud');
+    };
+
+    // ========================================================
+    // 1. COLLECTIONS (Live Firebase)
+    // ========================================================
     function renderCollections() {
-      const container = document.getElementById('collection-list');
-      container.innerHTML = '';
-      if(collections.length === 0) {
-        container.innerHTML = '<div class="empty-msg">No collections. Click + to add your collection name.</div>';
+      const list = document.getElementById('collection-list');
+      list.innerHTML = '';
+
+      if (collections.length === 0) {
+        list.innerHTML = `<div class="empty-state">No collections added yet.<br>Click <b>"+ Start collection"</b> or use the <b>List Plus</b> icon to sync your collection names.</div>`;
         return;
       }
-      collections.forEach(col => {
+
+      collections.forEach(colName => {
         const item = document.createElement('div');
-        item.className = `list-item ${col === activeCollection ? 'active' : ''}`;
-        item.innerHTML = `<span class="item-text">${col}</span><i data-lucide="chevron-right" style="width:14px; opacity:0.5;"></i>`;
-        item.onclick = () => selectCollection(col);
-        container.appendChild(item);
+        item.className = `row-item ${colName === activeCollection ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="row-left">
+            <i data-lucide="more-vertical" style="width:13px; opacity:0.4;"></i>
+            <span class="row-label">${colName}</span>
+          </div>
+          <i data-lucide="chevron-right" style="width:14px; opacity:0.4;"></i>
+        `;
+        item.onclick = () => selectCollection(colName);
+        list.appendChild(item);
       });
       lucide.createIcons();
     }
 
-    window.promptAddCollection = function() {
-      openModal('Open or Add Collection', 'Exact Collection Name', '', (name) => {
+    window.promptStartCollection = function() {
+      showPrompt('Start Collection in Firebase', 'Collection Name', '', async (name) => {
         if (!collections.includes(name)) {
           collections.push(name);
-          saveCollectionsList();
+          await syncCollectionsToCloud();
         }
         selectCollection(name);
-      });
-    };
-
-    window.promptRenameCollection = async function() {
-      if (!activeCollection) return showToast('Please select a collection first');
-      openModal(`Rename "${activeCollection}"`, 'New Collection Name', activeCollection, async (newColName) => {
-        if (newColName === activeCollection) return;
-        showToast('Migrating documents...');
-        try {
-          const colRef = collection(db, activeCollection);
-          const snap = await getDocs(colRef);
-          for (const docSnap of snap.docs) {
-            await setDoc(doc(db, newColName, docSnap.id), docSnap.data());
-            await deleteDoc(doc(db, activeCollection, docSnap.id));
-          }
-          collections = collections.filter(c => c !== activeCollection);
-          if (!collections.includes(newColName)) collections.push(newColName);
-          saveCollectionsList();
-          selectCollection(newColName);
-          showToast(`Renamed collection to ${newColName}`);
-        } catch(err) {
-          showBannerError('Rename Collection Error: ' + err.message);
-        }
       });
     };
 
@@ -522,150 +633,293 @@
       activeCollection = colName;
       activeDocId = null;
       activeDocData = {};
-      document.getElementById('docPanelTitle').innerText = colName;
-      document.getElementById('jsonEditor').value = '';
-      document.getElementById('editorTitle').innerText = 'Document Inspector';
+      document.getElementById('docHeaderTitle').innerText = colName;
+      document.getElementById('fieldHeaderTitle').innerText = 'Document Fields';
+      document.getElementById('fields-list').innerHTML = `<div class="empty-state">Select a document to inspect fields</div>`;
       renderCollections();
-      loadDocuments();
-      if (window.innerWidth <= 868) switchMobileTab(1);
+      await fetchDocuments();
+      if (window.innerWidth <= 820) switchMobileColumn(1);
     };
 
-    async function loadDocuments() {
-      const container = document.getElementById('document-list');
-      container.innerHTML = '<div class="empty-msg">Loading documents...</div>';
-      
-      try {
-        const colRef = collection(db, activeCollection);
-        const snap = await getDocs(colRef);
+    // Rename Collection in Firebase (Copies all documents to the new collection, then deletes old ones)
+    window.promptRenameCollection = async function() {
+      if (!activeCollection) return showToast('Select a collection first');
+      showPrompt(`Rename "${activeCollection}" in Firebase`, 'New Collection Name', activeCollection, async (newColName) => {
+        if (newColName === activeCollection) return;
+        showToast('Writing changes to live Firebase...');
+        try {
+          const snap = await getDocs(collection(db, activeCollection));
+          for (const docSnap of snap.docs) {
+            // Write to new collection in Firebase
+            await setDoc(doc(db, newColName, docSnap.id), docSnap.data());
+            // Delete from old collection in Firebase
+            await deleteDoc(doc(db, activeCollection, docSnap.id));
+          }
+          collections = collections.filter(c => c !== activeCollection);
+          if (!collections.includes(newColName)) collections.push(newColName);
+          await syncCollectionsToCloud();
+          selectCollection(newColName);
+          showToast(`Renamed in Firebase to: ${newColName}`);
+        } catch (err) {
+          alert('Firebase Error: ' + err.message);
+        }
+      });
+    };
 
+    // ========================================================
+    // 2. DOCUMENTS (Live Firebase)
+    // ========================================================
+    async function fetchDocuments() {
+      const container = document.getElementById('document-list');
+      container.innerHTML = `<div class="empty-state">Fetching from Firebase...</div>`;
+      try {
+        const snap = await getDocs(collection(db, activeCollection));
         if (snap.empty) {
-          container.innerHTML = '<div class="empty-msg">No documents exist in this collection. Click + to add one.</div>';
+          container.innerHTML = `<div class="empty-state">No documents in this collection. Click "+ Add document".</div>`;
           return;
         }
-
         container.innerHTML = '';
         snap.forEach(docSnap => {
-          const id = docSnap.id;
+          const docId = docSnap.id;
           const item = document.createElement('div');
-          item.className = `list-item ${id === activeDocId ? 'active' : ''}`;
-          item.innerHTML = `<span class="item-text">${id}</span><i data-lucide="file-text" style="width:14px; opacity:0.5;"></i>`;
-          item.onclick = () => selectDocument(id);
+          item.className = `row-item ${docId === activeDocId ? 'active' : ''}`;
+          item.innerHTML = `
+            <div class="row-left">
+              <i data-lucide="more-vertical" style="width:13px; opacity:0.4;"></i>
+              <span class="row-label">${docId}</span>
+            </div>
+            <i data-lucide="chevron-right" style="width:14px; opacity:0.4;"></i>
+          `;
+          item.onclick = () => selectDocument(docId);
           container.appendChild(item);
         });
         lucide.createIcons();
       } catch (err) {
-        showBannerError("Firestore Error: " + err.message);
-        container.innerHTML = `<div class="empty-msg" style="color:var(--danger)">Failed to load: ${err.message}</div>`;
+        container.innerHTML = `<div class="empty-state" style="color:var(--danger)">Firebase Error: ${err.message}</div>`;
       }
     }
 
     window.promptAddDocument = function() {
       if (!activeCollection) return showToast('Select a collection first');
-      openModal('Create Document', 'Document ID', 'doc_' + Math.random().toString(36).substring(2, 7), async (id) => {
+      const randomId = 'doc_' + Math.random().toString(36).substring(2, 9);
+      showPrompt('Add Document to Firebase', 'Document ID', randomId, async (id) => {
         try {
-          const initialData = { createdAt: new Date().toISOString() };
-          await setDoc(doc(db, activeCollection, id), initialData);
-          showToast('Document created');
-          loadDocuments();
+          showToast('Creating in Firebase...');
+          await setDoc(doc(db, activeCollection, id), {});
+          showToast('Document created in Firebase');
+          await fetchDocuments();
           selectDocument(id);
         } catch (err) {
-          showBannerError("Error creating document: " + err.message);
+          alert('Firebase Error: ' + err.message);
         }
       });
     };
 
-    window.selectDocument = async function(id) {
-      activeDocId = id;
-      document.getElementById('editorTitle').innerText = `${activeCollection} / ${id}`;
-      document.querySelectorAll('#document-list .list-item').forEach(el => {
-        el.classList.toggle('active', el.innerText.trim() === activeDocId);
+    window.selectDocument = async function(docId) {
+      activeDocId = docId;
+      document.getElementById('fieldHeaderTitle').innerText = `${docId}`;
+      document.querySelectorAll('#document-list .row-item').forEach(el => {
+        el.classList.toggle('active', el.innerText.trim() === docId);
       });
-      
-      try {
-        const ref = doc(db, activeCollection, id);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          activeDocData = snap.data();
-          document.getElementById('jsonEditor').value = JSON.stringify(activeDocData, null, 2);
-        }
-        if (window.innerWidth <= 868) switchMobileTab(2);
-      } catch (err) {
-        showBannerError('Error reading document: ' + err.message);
-      }
+      await fetchDocumentFields();
+      if (window.innerWidth <= 820) switchMobileColumn(2);
     };
 
+    // Rename Document ID directly in Firebase
     window.promptRenameDocId = function() {
       if (!activeDocId) return showToast('No document selected');
-      openModal(`Rename Document ID`, 'New ID', activeDocId, async (newDocId) => {
-        if (newDocId === activeDocId) return;
+      showPrompt(`Rename Document ID in Firebase`, 'New Document ID', activeDocId, async (newId) => {
+        if (newId === activeDocId) return;
+        showToast('Renaming in Firebase...');
         try {
-          await setDoc(doc(db, activeCollection, newDocId), activeDocData);
+          // Re-create doc with new ID in Firebase
+          await setDoc(doc(db, activeCollection, newId), activeDocData);
+          // Delete old doc from Firebase
           await deleteDoc(doc(db, activeCollection, activeDocId));
-          showToast(`Renamed to ${newDocId}`);
-          activeDocId = newDocId;
-          loadDocuments();
-          selectDocument(newDocId);
+          
+          showToast(`Document ID updated in Firebase: ${newId}`);
+          activeDocId = newId;
+          await fetchDocuments();
+          selectDocument(newId);
         } catch (err) {
-          showBannerError('Error renaming ID: ' + err.message);
+          alert('Firebase Error: ' + err.message);
         }
       });
     };
 
+    // Transfer Document into another collection directly in Firebase
     window.promptTransferDoc = function() {
       if (!activeDocId) return showToast('No document selected');
-      openModal(`Transfer to Collection`, 'Destination Collection', '', async (targetCol) => {
+      showPrompt(`Transfer ${activeDocId} to Collection`, 'Target Collection', '', async (targetCol) => {
+        showToast('Transferring in Firebase...');
         try {
+          // Write to target collection in Firebase
           await setDoc(doc(db, targetCol, activeDocId), activeDocData);
+          // Delete from current collection in Firebase
           await deleteDoc(doc(db, activeCollection, activeDocId));
 
           if (!collections.includes(targetCol)) {
             collections.push(targetCol);
-            saveCollectionsList();
+            await syncCollectionsToCloud();
           }
 
-          showToast(`Transferred to ${targetCol}`);
-          loadDocuments();
+          showToast(`Transferred to ${targetCol} in Firebase`);
           selectCollection(targetCol);
-          selectDocument(activeDocId);
         } catch (err) {
-          showBannerError('Transfer error: ' + err.message);
+          alert('Firebase Transfer Error: ' + err.message);
         }
       });
     };
 
-    window.saveDocumentData = async function() {
-      if (!activeDocId) return showToast('Select a document to save');
-      const val = document.getElementById('jsonEditor').value;
-      try {
-        const parsed = JSON.parse(val);
-        await setDoc(doc(db, activeCollection, activeDocId), parsed);
-        activeDocData = parsed;
-        showToast('Document saved successfully');
-      } catch (e) {
-        showToast('Invalid JSON: ' + e.message);
-      }
-    };
-
+    // Delete Document from Firebase
     window.deleteActiveDocument = async function() {
       if (!activeDocId) return showToast('No document selected');
-      if (!confirm(`Delete ${activeDocId}? This cannot be undone.`)) return;
-
+      if (!confirm(`Delete "${activeDocId}" permanently from Firebase?`)) return;
+      showToast('Deleting from Firebase...');
       try {
         await deleteDoc(doc(db, activeCollection, activeDocId));
-        showToast('Document deleted');
+        showToast('Deleted from Firebase');
         activeDocId = null;
-        document.getElementById('jsonEditor').value = '';
-        document.getElementById('editorTitle').innerText = 'Document Inspector';
-        loadDocuments();
-        if (window.innerWidth <= 868) switchMobileTab(1);
+        document.getElementById('fields-list').innerHTML = `<div class="empty-state">Select a document to inspect fields</div>`;
+        document.getElementById('fieldHeaderTitle').innerText = 'Document Fields';
+        await fetchDocuments();
+        if (window.innerWidth <= 820) switchMobileColumn(1);
       } catch (err) {
-        showBannerError('Delete error: ' + err.message);
+        alert('Firebase Delete Error: ' + err.message);
       }
     };
 
-    renderCollections();
+    // ========================================================
+    // 3. FIELDS (Live Firebase updates)
+    // ========================================================
+    async function fetchDocumentFields() {
+      const container = document.getElementById('fields-list');
+      container.innerHTML = `<div class="empty-state">Fetching fields from Firebase...</div>`;
+      try {
+        const snap = await getDoc(doc(db, activeCollection, activeDocId));
+        if (!snap.exists()) {
+          container.innerHTML = `<div class="empty-state">Document does not exist in Firebase.</div>`;
+          return;
+        }
+
+        activeDocData = snap.data() || {};
+        const keys = Object.keys(activeDocData);
+
+        if (keys.length === 0) {
+          container.innerHTML = `<div class="empty-state">No fields. Click "+ Add field" to add one.</div>`;
+          return;
+        }
+
+        container.innerHTML = '';
+        keys.forEach(key => {
+          const val = activeDocData[key];
+          let type = typeof val;
+          let displayVal = val;
+
+          if (type === 'string') {
+            displayVal = `"${val}"`;
+          } else if (type === 'object') {
+            displayVal = JSON.stringify(val);
+          } else {
+            displayVal = String(val);
+          }
+
+          const row = document.createElement('div');
+          row.className = 'field-row';
+          row.innerHTML = `
+            <div class="field-left">
+              <span class="field-name">${key}</span>
+              <span class="field-separator">:</span>
+              <span class="field-value" title="${escapeHtml(displayVal)}">${escapeHtml(displayVal)}</span>
+              <span class="field-type">(${type})</span>
+            </div>
+            <div class="field-controls">
+              <button class="btn-icon" title="Edit in Firebase" onclick="openFieldDialog('${escapeAttr(key)}', '${escapeAttr(typeof val === 'object' ? JSON.stringify(val) : val)}', '${type}')">
+                <i data-lucide="edit-2" style="width:13px;"></i>
+              </button>
+              <button class="btn-icon danger" title="Delete from Firebase" onclick="deleteFieldItem('${escapeAttr(key)}')">
+                <i data-lucide="trash-2" style="width:13px;"></i>
+              </button>
+            </div>
+          `;
+          container.appendChild(row);
+        });
+        lucide.createIcons();
+      } catch (err) {
+        container.innerHTML = `<div class="empty-state" style="color:var(--danger)">Firebase Error: ${err.message}</div>`;
+      }
+    }
+
+    window.openFieldDialog = function(existingKey = '', existingVal = '', existingType = 'string') {
+      if (!activeDocId) return showToast('Select a document first');
+      document.getElementById('fieldModalTitle').innerText = existingKey ? 'Edit Field in Firebase' : 'Add Field in Firebase';
+      const keyInput = document.getElementById('fKeyInput');
+      keyInput.value = existingKey;
+      keyInput.disabled = !!existingKey;
+      document.getElementById('fTypeSelect').value = existingType;
+      document.getElementById('fValInput').value = existingVal;
+      document.getElementById('fieldModal').style.display = 'flex';
+    };
+
+    window.closeFieldModal = function() {
+      document.getElementById('fieldModal').style.display = 'none';
+    };
+
+    window.submitFieldForm = async function() {
+      const key = document.getElementById('fKeyInput').value.trim();
+      const type = document.getElementById('fTypeSelect').value;
+      const rawVal = document.getElementById('fValInput').value;
+
+      if (!key) return showToast('Field key cannot be empty');
+
+      let parsedVal = rawVal;
+      if (type === 'number') parsedVal = Number(rawVal);
+      if (type === 'boolean') parsedVal = (rawVal.toLowerCase() === 'true');
+      if (type === 'json') {
+        try { parsedVal = JSON.parse(rawVal); } catch(e) { return alert('Invalid JSON: ' + e.message); }
+      }
+
+      showToast('Updating Firebase document...');
+      try {
+        // Direct setDoc with merge to ensure updates reflect on Firebase servers
+        await setDoc(doc(db, activeCollection, activeDocId), { [key]: parsedVal }, { merge: true });
+        closeFieldModal();
+        showToast('Updated in Firebase');
+        await fetchDocumentFields();
+      } catch (err) {
+        alert('Firebase Error: ' + err.message);
+      }
+    };
+
+    window.deleteFieldItem = async function(key) {
+      if (!confirm(`Delete field "${key}" from Firebase?`)) return;
+      showToast('Deleting field in Firebase...');
+      try {
+        await updateDoc(doc(db, activeCollection, activeDocId), { [key]: deleteField() });
+        showToast(`Field "${key}" deleted from Firebase`);
+        await fetchDocumentFields();
+      } catch (err) {
+        alert('Firebase Delete Error: ' + err.message);
+      }
+    };
+
+    window.refreshCurrentView = function() {
+      if (activeDocId) fetchDocumentFields();
+      else if (activeCollection) fetchDocuments();
+      showToast('Refreshed from Firebase');
+    };
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function escapeAttr(str) {
+      return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    // Startup
+    await loadCollectionsFromCloud();
     lucide.createIcons();
-    if (collections.length > 0) selectCollection(collections[0]);
+    showToast('Connected to Firebase');
   </script>
 </body>
 </html>
