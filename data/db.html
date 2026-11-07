@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Firestore Console Dashboard</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --bg-dark: #12151b;
+      --bg-panel: #1a1e27;
+      --bg-card: #222733;
+      --bg-hover: #2b3242;
+      --border: #2d3545;
+      --primary: #f5820d;
+      --primary-hover: #e07204;
+      --text-main: #f0f3f8;
+      --text-muted: #8b95a8;
+      --danger: #ef4444;
+      --success: #10b981;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      height: 56px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .brand svg { color: var(--primary); }
+
+    .status-badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      font-weight: 500;
+    }
+
+    /* Diagnostics Banner */
+    #errorBanner {
+      display: none;
+      background: #7f1d1d;
+      color: #fecaca;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      border-bottom: 1px solid #b91c1c;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mobile-tabs {
+      display: none;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .tab-btn {
+      padding: 10px 0;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .dashboard-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 280px 320px 1fr;
+      overflow: hidden;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border-right: 1px solid var(--border);
+      background: var(--bg-panel);
+      min-width: 0;
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .panel-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .action-icons { display: flex; gap: 6px; }
+
+    .btn-icon {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-icon:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-color: var(--border);
+    }
+
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      margin-bottom: 4px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .list-item:hover { background: var(--bg-hover); color: var(--text-main); }
+    .list-item.active {
+      background: var(--bg-card);
+      color: var(--primary);
+      font-weight: 600;
+      border-left: 3px solid var(--primary);
+    }
+
+    .item-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .editor-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 16px;
+    }
+
+    .toolbar-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .btn:hover { background: var(--bg-hover); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    textarea.code-editor {
+      flex: 1;
+      width: 100%;
+      background: #0d0f14;
+      border: 1px solid var(--border);
+      color: #68d391;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      padding: 16px;
+      border-radius: var(--radius);
+      resize: none;
+      outline: none;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+    }
+
+    .modal-card h3 { font-size: 1.1rem; margin-bottom: 12px; }
+    .input-group label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .input-group input {
+      width: 100%;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 10px;
+      border-radius: var(--radius);
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.25s ease;
+      z-index: 200;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    .empty-msg { padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+
+    @media (max-width: 868px) {
+      .mobile-tabs { display: grid; }
+      .dashboard-layout { display: block; }
+      .panel { display: none; width: 100%; }
+      .panel.mobile-active { display: flex; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i data-lucide="flame"></i>
+      <span>Firestore Console</span>
+    </div>
+    <div class="status-badge" id="projectBadge">Ready</div>
+  </header>
+
+  <!-- Diagnostics bar for local debugging -->
+  <div id="errorBanner">
+    <span id="errorBannerMsg">Error occurred</span>
+    <button class="btn" style="padding:2px 8px; font-size:0.75rem;" onclick="document.getElementById('errorBanner').style.display='none'">Dismiss</button>
+  </div>
+
+  <div class="mobile-tabs">
+    <button class="tab-btn active" onclick="switchMobileTab(0)">Collections</button>
+    <button class="tab-btn" onclick="switchMobileTab(1)">Documents</button>
+    <button class="tab-btn" onclick="switchMobileTab(2)">Editor</button>
+  </div>
+
+  <div class="dashboard-layout">
+    <!-- Collections Panel -->
+    <div class="panel mobile-active" id="panel-collections">
+      <div class="panel-header">
+        <span class="panel-title">Collections</span>
+        <div class="action-icons">
+          <button class="btn-icon" title="Rename Collection" onclick="promptRenameCollection()"><i data-lucide="edit-3" style="width:16px;"></i></button>
+          <button class="btn-icon" title="Add / Open Collection" onclick="promptAddCollection()"><i data-lucide="folder-plus" style="width:16px;"></i></button>
+        </div>
+      </div>
+      <div class="panel-content" id="collection-list"></div>
+    </div>
+
+    <!-- Documents Panel -->
+    <div class="panel" id="panel-docs">
+      <div class="panel-header">
+        <span class="panel-title" id="docPanelTitle">Documents</span>
+        <div class="action-icons">
+          <button class="btn-icon" title="Add Document" onclick="promptAddDocument()"><i data-lucide="plus" style="width:16px;"></i></button>
+        </div>
+      </div>
+      <div class="panel-content" id="document-list">
+        <div class="empty-msg">Select a collection on the left</div>
+      </div>
+    </div>
+
+    <!-- Document Inspector Panel -->
+    <div class="panel" id="panel-editor">
+      <div class="panel-header">
+        <span class="panel-title" id="editorTitle">Document Inspector</span>
+        <div class="action-icons">
+          <button class="btn-icon" title="Delete Document" onclick="deleteActiveDocument()"><i data-lucide="trash-2" style="width:16px;"></i></button>
+        </div>
+      </div>
+      <div class="editor-wrapper">
+        <div class="toolbar-bar">
+          <button class="btn" onclick="promptRenameDocId()"><i data-lucide="type" style="width:16px;"></i> Rename ID</button>
+          <button class="btn" onclick="promptTransferDoc()"><i data-lucide="arrow-right-left" style="width:16px;"></i> Transfer</button>
+          <button class="btn btn-primary" onclick="saveDocumentData()"><i data-lucide="save" style="width:16px;"></i> Save</button>
+        </div>
+        <textarea id="jsonEditor" class="code-editor" placeholder="Select a document to inspect or edit fields..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reusable Action Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal-card">
+      <h3 id="modalTitle">Action</h3>
+      <div class="input-group">
+        <label id="modalInputLabel">Value</label>
+        <input type="text" id="modalInput" autofocus />
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="modalConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">Ready</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      getDocs, 
+      doc, 
+      getDoc, 
+      setDoc, 
+      deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+      measurementId: "G-Y87B8VRQ1N"
+    };
+
+    function showBannerError(msg) {
+      const banner = document.getElementById('errorBanner');
+      const text = document.getElementById('errorBannerMsg');
+      text.innerText = msg;
+      banner.style.display = 'flex';
+    }
+
+    if (window.location.protocol === 'file:') {
+      showBannerError("⚠️ You opened this via file://. Browser security may block Firebase requests. Run using localhost or VS Code Live Server.");
+    }
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let collections = JSON.parse(localStorage.getItem('fbc_collections') || '["users"]');
+    let activeCollection = null;
+    let activeDocId = null;
+    let activeDocData = {};
+
+    window.showToast = function(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    };
+
+    window.switchMobileTab = function(index) {
+      const panels = [document.getElementById('panel-collections'), document.getElementById('panel-docs'), document.getElementById('panel-editor')];
+      const tabs = document.querySelectorAll('.tab-btn');
+      panels.forEach((p, i) => p.classList.toggle('mobile-active', i === index));
+      tabs.forEach((t, i) => t.classList.toggle('active', i === index));
+    };
+
+    function saveCollectionsList() {
+      localStorage.setItem('fbc_collections', JSON.stringify(collections));
+      renderCollections();
+    }
+
+    function openModal(title, label, defaultValue, onConfirm) {
+      const modal = document.getElementById('modal');
+      const input = document.getElementById('modalInput');
+      document.getElementById('modalTitle').innerText = title;
+      document.getElementById('modalInputLabel').innerText = label;
+      input.value = defaultValue || '';
+      modal.style.display = 'flex';
+      input.focus();
+
+      document.getElementById('modalConfirmBtn').onclick = () => {
+        const val = input.value.trim();
+        if (val) {
+          onConfirm(val);
+          closeModal();
+        }
+      };
+    }
+
+    window.closeModal = function() {
+      document.getElementById('modal').style.display = 'none';
+    };
+
+    function renderCollections() {
+      const container = document.getElementById('collection-list');
+      container.innerHTML = '';
+      if(collections.length === 0) {
+        container.innerHTML = '<div class="empty-msg">No collections. Click + to add your collection name.</div>';
+        return;
+      }
+      collections.forEach(col => {
+        const item = document.createElement('div');
+        item.className = `list-item ${col === activeCollection ? 'active' : ''}`;
+        item.innerHTML = `<span class="item-text">${col}</span><i data-lucide="chevron-right" style="width:14px; opacity:0.5;"></i>`;
+        item.onclick = () => selectCollection(col);
+        container.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    window.promptAddCollection = function() {
+      openModal('Open or Add Collection', 'Exact Collection Name', '', (name) => {
+        if (!collections.includes(name)) {
+          collections.push(name);
+          saveCollectionsList();
+        }
+        selectCollection(name);
+      });
+    };
+
+    window.promptRenameCollection = async function() {
+      if (!activeCollection) return showToast('Please select a collection first');
+      openModal(`Rename "${activeCollection}"`, 'New Collection Name', activeCollection, async (newColName) => {
+        if (newColName === activeCollection) return;
+        showToast('Migrating documents...');
+        try {
+          const colRef = collection(db, activeCollection);
+          const snap = await getDocs(colRef);
+          for (const docSnap of snap.docs) {
+            await setDoc(doc(db, newColName, docSnap.id), docSnap.data());
+            await deleteDoc(doc(db, activeCollection, docSnap.id));
+          }
+          collections = collections.filter(c => c !== activeCollection);
+          if (!collections.includes(newColName)) collections.push(newColName);
+          saveCollectionsList();
+          selectCollection(newColName);
+          showToast(`Renamed collection to ${newColName}`);
+        } catch(err) {
+          showBannerError('Rename Collection Error: ' + err.message);
+        }
+      });
+    };
+
+    window.selectCollection = async function(colName) {
+      activeCollection = colName;
+      activeDocId = null;
+      activeDocData = {};
+      document.getElementById('docPanelTitle').innerText = colName;
+      document.getElementById('jsonEditor').value = '';
+      document.getElementById('editorTitle').innerText = 'Document Inspector';
+      renderCollections();
+      loadDocuments();
+      if (window.innerWidth <= 868) switchMobileTab(1);
+    };
+
+    async function loadDocuments() {
+      const container = document.getElementById('document-list');
+      container.innerHTML = '<div class="empty-msg">Loading documents...</div>';
+      
+      try {
+        const colRef = collection(db, activeCollection);
+        const snap = await getDocs(colRef);
+
+        if (snap.empty) {
+          container.innerHTML = '<div class="empty-msg">No documents exist in this collection. Click + to add one.</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        snap.forEach(docSnap => {
+          const id = docSnap.id;
+          const item = document.createElement('div');
+          item.className = `list-item ${id === activeDocId ? 'active' : ''}`;
+          item.innerHTML = `<span class="item-text">${id}</span><i data-lucide="file-text" style="width:14px; opacity:0.5;"></i>`;
+          item.onclick = () => selectDocument(id);
+          container.appendChild(item);
+        });
+        lucide.createIcons();
+      } catch (err) {
+        showBannerError("Firestore Error: " + err.message);
+        container.innerHTML = `<div class="empty-msg" style="color:var(--danger)">Failed to load: ${err.message}</div>`;
+      }
+    }
+
+    window.promptAddDocument = function() {
+      if (!activeCollection) return showToast('Select a collection first');
+      openModal('Create Document', 'Document ID', 'doc_' + Math.random().toString(36).substring(2, 7), async (id) => {
+        try {
+          const initialData = { createdAt: new Date().toISOString() };
+          await setDoc(doc(db, activeCollection, id), initialData);
+          showToast('Document created');
+          loadDocuments();
+          selectDocument(id);
+        } catch (err) {
+          showBannerError("Error creating document: " + err.message);
+        }
+      });
+    };
+
+    window.selectDocument = async function(id) {
+      activeDocId = id;
+      document.getElementById('editorTitle').innerText = `${activeCollection} / ${id}`;
+      document.querySelectorAll('#document-list .list-item').forEach(el => {
+        el.classList.toggle('active', el.innerText.trim() === activeDocId);
+      });
+      
+      try {
+        const ref = doc(db, activeCollection, id);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          activeDocData = snap.data();
+          document.getElementById('jsonEditor').value = JSON.stringify(activeDocData, null, 2);
+        }
+        if (window.innerWidth <= 868) switchMobileTab(2);
+      } catch (err) {
+        showBannerError('Error reading document: ' + err.message);
+      }
+    };
+
+    window.promptRenameDocId = function() {
+      if (!activeDocId) return showToast('No document selected');
+      openModal(`Rename Document ID`, 'New ID', activeDocId, async (newDocId) => {
+        if (newDocId === activeDocId) return;
+        try {
+          await setDoc(doc(db, activeCollection, newDocId), activeDocData);
+          await deleteDoc(doc(db, activeCollection, activeDocId));
+          showToast(`Renamed to ${newDocId}`);
+          activeDocId = newDocId;
+          loadDocuments();
+          selectDocument(newDocId);
+        } catch (err) {
+          showBannerError('Error renaming ID: ' + err.message);
+        }
+      });
+    };
+
+    window.promptTransferDoc = function() {
+      if (!activeDocId) return showToast('No document selected');
+      openModal(`Transfer to Collection`, 'Destination Collection', '', async (targetCol) => {
+        try {
+          await setDoc(doc(db, targetCol, activeDocId), activeDocData);
+          await deleteDoc(doc(db, activeCollection, activeDocId));
+
+          if (!collections.includes(targetCol)) {
+            collections
