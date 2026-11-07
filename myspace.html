@@ -217,6 +217,7 @@
       cursor: pointer;
       min-width: 66px;
       max-width: 78px;
+      position: relative;
     }
 
     .avatar-box {
@@ -256,6 +257,27 @@
       padding: 1px 6px;
       border-radius: 6px;
       text-transform: uppercase;
+    }
+
+    .profile-item-badge {
+      position: absolute;
+      top: 0;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #000;
+      border: 1.5px solid #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #fff;
+      z-index: 4;
+    }
+
+    .editing .profile-item-badge {
+      display: flex;
     }
 
     .add-box {
@@ -585,9 +607,9 @@
           <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8L12 2Z" fill="currentColor"/>
         </svg>
       </div>
-      <button class="settings-btn" onclick="alert('Help & Settings')">
-        <i class="fa-solid fa-gear"></i>
-        <span>Help & Settings</span>
+      <button class="settings-btn" onclick="window.location.href='onboarding.html'">
+        <i class="fa-solid fa-users"></i>
+        <span>Switch Profile</span>
       </button>
     </header>
 
@@ -610,9 +632,9 @@
     <section>
       <div class="section-header">
         <h3 class="section-title">Profiles</h3>
-        <button class="edit-btn" onclick="window.location.href='onboarding.html'">
+        <button class="edit-btn" id="editBtn" onclick="window.toggleEditMode()">
           <i class="fa-solid fa-pencil"></i>
-          <span>Edit</span>
+          <span id="editBtnText">Edit</span>
         </button>
       </div>
       <div class="profiles-row" id="profilesRow">
@@ -719,7 +741,6 @@
 
     const LOGIN_REDIRECT_URL = "https://knox-app.github.io/cloud/links/task#login";
 
-    // 1. Users & Plans Database (question-metabase)
     const usersConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
@@ -731,7 +752,6 @@
       measurementId: "G-6ZP1FPMKSJ"
     };
 
-    // 2. Movies Database (internal-systems-46728)
     const moviesConfig = {
       apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
       authDomain: "internal-systems-46728.firebaseapp.com",
@@ -752,6 +772,7 @@
     let activeProfileIndex = 0;
     let currentPlanData = null;
     let tickerInterval = null;
+    let isEditMode = false;
 
     function redirectToLogin() {
       window.location.replace(LOGIN_REDIRECT_URL);
@@ -769,7 +790,6 @@
         localUser = null;
       }
 
-      // If user is not logged in / no identifiers available, redirect
       if (!lotusParam && !localUser?.Lotus && !localUser?.id) {
         redirectToLogin();
         return;
@@ -793,15 +813,20 @@
 
         if (!userData && localUser) userData = localUser;
 
-        if (!userData || !Array.isArray(userData.Profiles) || userData.Profiles.length === 0) {
+        if (!userData) {
           redirectToLogin();
+          return;
+        }
+
+        if (!Array.isArray(userData.Profiles) || userData.Profiles.length === 0) {
+          window.location.href = "account.html?action=new&mode=new";
           return;
         }
 
         activeUserData = userData;
         localStorage.setItem('active_user', JSON.stringify(userData));
 
-        // Read active profile index saved by onboarding.html or hash
+        // Read active profile index
         const hashMatch = window.location.hash.match(/user#(\d+)/);
         const storedIndex = localStorage.getItem('active_profile_index');
 
@@ -928,6 +953,20 @@
       redirectToLogin();
     };
 
+    window.toggleEditMode = function() {
+      isEditMode = !isEditMode;
+      document.getElementById('editBtnText').textContent = isEditMode ? 'Done' : 'Edit';
+      document.getElementById('profilesRow').classList.toggle('editing', isEditMode);
+    };
+
+    window.handleProfileClick = function(idx) {
+      if (isEditMode) {
+        window.location.href = `account.html?action=edit&profile=${idx}`;
+      } else {
+        window.selectMySpaceProfile(idx);
+      }
+    };
+
     function renderProfiles(profiles) {
       const container = document.getElementById('profilesRow');
 
@@ -937,7 +976,8 @@
         const avatar = p.Avatar || "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png";
 
         return `
-          <div class="profile-item ${isActive ? 'active' : ''}" onclick="window.selectMySpaceProfile(${idx})">
+          <div class="profile-item ${isActive ? 'active' : ''}" onclick="window.handleProfileClick(${idx})">
+            <div class="profile-item-badge"><i class="fa-solid fa-pencil"></i></div>
             <div class="avatar-box">
               <img src="${avatar}" class="avatar-img" alt="${p.Name}" />
               ${isKids ? `<span class="kids-badge">Kids</span>` : ''}
@@ -947,14 +987,16 @@
         `;
       }).join('');
 
-      html += `
-        <div class="profile-item" onclick="window.location.href='onboarding.html'">
-          <div class="avatar-box add-box">
-            <i class="fa-solid fa-plus"></i>
+      if (profiles.length < 5) {
+        html += `
+          <div class="profile-item" onclick="window.location.href='account.html?action=new&mode=exc'">
+            <div class="avatar-box add-box">
+              <i class="fa-solid fa-plus"></i>
+            </div>
+            <span class="profile-name">Add</span>
           </div>
-          <span class="profile-name">Add</span>
-        </div>
-      `;
+        `;
+      }
 
       container.innerHTML = html;
 
