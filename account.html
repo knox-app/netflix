@@ -77,7 +77,7 @@
       letter-spacing: -0.3px;
     }
 
-    /* STEP 1: AVATAR & NAME (Image 2) */
+    /* STEP 1: AVATAR & NAME */
     .step-view {
       display: flex;
       flex-direction: column;
@@ -122,7 +122,7 @@
       box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
     }
 
-    /* FLOATING LABEL INPUT (Image 2) */
+    /* FLOATING LABEL INPUT */
     .custom-input-box {
       position: relative;
       border: 1px solid rgba(255, 255, 255, 0.2);
@@ -179,7 +179,7 @@
     }
     .fab-next:active { transform: scale(0.92); }
 
-    /* STEP 2: PROFILE DETAILS & PERMISSIONS (Image 4) */
+    /* STEP 2: PROFILE DETAILS & PERMISSIONS */
     .profile-hero {
       display: flex;
       flex-direction: column;
@@ -300,9 +300,15 @@
       flex-shrink: 0;
     }
 
-    /* BOTTOM SUBMIT BUTTON */
+    /* ACTION BUTTONS */
+    .action-button-group {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
     .primary-submit-btn {
-      margin-top: auto;
       background: var(--accent-gradient);
       border: none;
       color: #ffffff;
@@ -313,10 +319,22 @@
       cursor: pointer;
       width: 100%;
       box-shadow: 0 10px 25px rgba(0, 114, 239, 0.25);
-      margin-top: 40px;
     }
 
-    /* ================= MODAL / BOTTOM SHEET ================= */
+    .delete-profile-btn {
+      background: transparent;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #ef4444;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 14.5px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      display: none;
+    }
+
+    /* MODAL / BOTTOM SHEET */
     .bottom-sheet {
       position: fixed;
       inset: 0;
@@ -384,7 +402,7 @@
       margin-top: -12px;
     }
 
-    /* TIMELINE RATINGS (Image 3 & 5) */
+    /* TIMELINE RATINGS */
     .ratings-list {
       display: flex;
       flex-direction: column;
@@ -447,17 +465,7 @@
       margin-top: 2px;
     }
 
-    /* CREATE PIN SHEET (Image 1) */
-    .pin-icon-wrap {
-      width: 72px;
-      height: 72px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 10px 0;
-    }
-
+    /* PIN SHEET */
     .pin-shield {
       width: 64px;
       height: 64px;
@@ -529,11 +537,9 @@
       <div style="width: 40px;"></div>
     </header>
 
-    <!-- VIEW 1: NAME & AVATAR PICKER (Image 2) -->
+    <!-- VIEW 1: NAME & AVATAR PICKER -->
     <div class="step-view" id="step1View">
-      <div class="avatars-carousel" id="avatarOptionsContainer">
-        <!-- Injected dynamically -->
-      </div>
+      <div class="avatars-carousel" id="avatarOptionsContainer"></div>
 
       <div class="custom-input-box">
         <label>Your Name</label>
@@ -545,7 +551,7 @@
       </button>
     </div>
 
-    <!-- VIEW 2: PROFILE PREFERENCES (Image 4) -->
+    <!-- VIEW 2: PROFILE PREFERENCES -->
     <div class="step-view" id="step2View" style="display: none;">
       <div class="profile-hero">
         <div class="hero-avatar-wrapper" id="editHeroAvatarBtn">
@@ -593,12 +599,15 @@
         </div>
       </div>
 
-      <button class="primary-submit-btn" id="primarySubmitBtn">Create Profile</button>
+      <div class="action-button-group">
+        <button class="primary-submit-btn" id="primarySubmitBtn">Create Profile</button>
+        <button class="delete-profile-btn" id="deleteProfileBtn">Delete Profile</button>
+      </div>
     </div>
 
   </div>
 
-  <!-- MODAL: CONTENT RATING (Images 3 & 5) -->
+  <!-- MODAL: CONTENT RATING -->
   <div class="bottom-sheet" id="ratingSheet">
     <div class="sheet-card">
       <div class="sheet-header">
@@ -655,7 +664,7 @@
     </div>
   </div>
 
-  <!-- MODAL: CREATE PIN (Image 1) -->
+  <!-- MODAL: CREATE PIN -->
   <div class="bottom-sheet" id="pinSheet">
     <div class="sheet-card">
       <div class="sheet-header">
@@ -686,6 +695,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+    const LOGIN_PAGE_URL = "https://knox-app.github.io/cloud/links/task#login";
+
     const firebaseConfig = {
       apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
       authDomain: "question-metabase.firebaseapp.com",
@@ -699,17 +710,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // AVATARS CATALOG
     const AVATAR_OPTIONS = [
-      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png", // Blue smiley
-      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/42.png", // Mandalorian
-      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/33.png", // Panda
-      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/38.png", // Moana
-      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/feature/profile/19.png",    // Mickey
-      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/45.png"  // Olaf
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/27.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/42.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/33.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/38.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/feature/profile/19.png",
+      "https://img1.hotstarext.com/image/upload/w_auto,c_fill/v1/feature/profile/45.png"
     ];
 
-    // STATE
     let currentUserDocId = null;
     let currentUserData = null;
     let action = null;
@@ -720,17 +729,29 @@
     let selectedRating = "U/A 7+";
     let enteredPin = "";
 
-    // Parse URL Params
     const urlParams = new URLSearchParams(window.location.search);
-    action = urlParams.get('action'); // 'new' | 'edit'
-    mode = urlParams.get('mode');     // 'new' | 'exc'
+    action = urlParams.get('action');
+    mode = urlParams.get('mode');
     const profileParam = urlParams.get('profile');
 
+    function redirectToLogin() {
+      window.location.replace(LOGIN_PAGE_URL);
+    }
+
     async function initAccountSystem() {
-      // 1. Authenticate user from session or lotus param
       const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus');
       const rawUser = localStorage.getItem('active_user') || localStorage.getItem('UARM');
-      let localUser = rawUser ? JSON.parse(rawUser) : null;
+      let localUser = null;
+      try {
+        localUser = rawUser ? JSON.parse(rawUser) : null;
+      } catch(e) {
+        localUser = null;
+      }
+
+      if (!lotusParam && !localUser?.Lotus && !localUser?.id) {
+        redirectToLogin();
+        return;
+      }
 
       try {
         if (lotusParam) {
@@ -755,48 +776,39 @@
           }
         }
 
-        // Fallback local session if offline
         if (!currentUserData && localUser) {
           currentUserData = localUser;
-          currentUserDocId = localUser.id || localUser.UARMS_ID || "current";
+          currentUserDocId = localUser.id || "current";
         }
 
         if (!currentUserData) {
-          alert("Session expired. Please sign in.");
-          window.location.href = "1.html";
+          redirectToLogin();
           return;
         }
 
-        // 2. Evaluate Mode & Action Handlers
         currentUserData.Profiles = Array.isArray(currentUserData.Profiles) ? currentUserData.Profiles : [];
 
         if (action === "new" && mode === "new") {
-          // If user ALREADY has profiles, redirect to myspace.html
           if (currentUserData.Profiles.length > 0) {
             window.location.href = "myspace.html";
             return;
           }
-          // Prefill with user's First Name
           document.getElementById('profileNameInput').value = currentUserData["First Name"] || "";
           document.getElementById('pageTitle').textContent = "Create Profile";
           document.getElementById('primarySubmitBtn').textContent = "Create Profile";
         } else if (action === "new" && mode === "exc") {
-          // Existing account adding an additional profile
           document.getElementById('pageTitle').textContent = "Create Profile";
           document.getElementById('profileNameInput').value = "";
           document.getElementById('primarySubmitBtn').textContent = "Create Profile";
         } else if (action === "edit" && profileParam !== null) {
-          // Editing existing profile
           editProfileIndex = parseInt(profileParam, 10);
           const target = currentUserData.Profiles[editProfileIndex];
           if (!target) {
-            alert("Profile does not exist.");
             window.location.href = "myspace.html";
             return;
           }
           loadProfileForEdit(target);
         } else {
-          // Default fallback
           window.location.href = "myspace.html";
           return;
         }
@@ -806,12 +818,17 @@
 
       } catch (err) {
         console.error("Account manager init error:", err);
+        redirectToLogin();
       }
     }
 
     function loadProfileForEdit(profile) {
       document.getElementById('pageTitle').textContent = "Edit Profile";
       document.getElementById('primarySubmitBtn').textContent = "Save Changes";
+
+      if (currentUserData.Profiles.length > 1) {
+        document.getElementById('deleteProfileBtn').style.display = "block";
+      }
 
       selectedAvatar = profile.Avatar || AVATAR_OPTIONS[0];
       document.getElementById('profileNameInput').value = profile.Name || "";
@@ -826,7 +843,6 @@
         document.getElementById('parentalLockToggle').checked = true;
       }
 
-      // Skip directly to step 2 for convenient editing
       goToStep2();
     }
 
@@ -846,7 +862,6 @@
       document.getElementById('ratingSheetAvatar').src = url;
     };
 
-    // Navigation Between View 1 (Name) and View 2 (Details)
     function goToStep2() {
       const name = document.getElementById('profileNameInput').value.trim();
       if (!name) {
@@ -877,7 +892,6 @@
       }
     });
 
-    // Kids Toggle Behavior
     const kidsToggle = document.getElementById('kidsToggle');
     kidsToggle.addEventListener('change', (e) => {
       const isChecked = e.target.checked;
@@ -894,7 +908,6 @@
       }
     });
 
-    // Content Rating Timeline Logic (Images 3 & 5)
     function updateRatingUI(rating) {
       document.getElementById('selectedRatingLabel').textContent = rating;
 
@@ -940,7 +953,6 @@
       document.getElementById('ratingSheet').classList.remove('active');
     });
 
-    // Parental Lock & PIN Setup Sheet (Image 1)
     const parentalLockToggle = document.getElementById('parentalLockToggle');
     parentalLockToggle.addEventListener('change', (e) => {
       if (e.target.checked) {
@@ -956,7 +968,6 @@
       if (!enteredPin) parentalLockToggle.checked = false;
     });
 
-    // 4-box auto-advance PIN Inputs
     const pinInputs = [
       document.getElementById('pin1'),
       document.getElementById('pin2'),
@@ -986,10 +997,49 @@
       document.getElementById('pinSheet').classList.remove('active');
     });
 
-    // ================= FINAL SUBMISSION TO FIRESTORE =================
+    // Delete Profile Action
+    document.getElementById('deleteProfileBtn').addEventListener('click', async () => {
+      if (editProfileIndex === null) return;
+      if (currentUserData.Profiles.length <= 1) {
+        alert("You must maintain at least one profile.");
+        return;
+      }
+
+      if (!confirm("Are you sure you want to delete this profile?")) return;
+
+      const deleteBtn = document.getElementById('deleteProfileBtn');
+      deleteBtn.innerText = "Deleting...";
+      deleteBtn.disabled = true;
+
+      try {
+        const updatedProfiles = currentUserData.Profiles.filter((_, idx) => idx !== editProfileIndex);
+        
+        if (currentUserDocId) {
+          await updateDoc(doc(db, "UARM", currentUserDocId), {
+            Profiles: updatedProfiles,
+            lastUpdated: new Date().toISOString()
+          });
+        }
+
+        currentUserData.Profiles = updatedProfiles;
+        localStorage.setItem('active_user', JSON.stringify(currentUserData));
+        localStorage.setItem('active_profile', JSON.stringify(updatedProfiles[0]));
+        localStorage.setItem('active_profile_index', '0');
+
+        window.location.href = "myspace.html#user#0";
+
+      } catch (err) {
+        console.error("Delete error:", err);
+        alert("Could not delete profile. Check connection.");
+        deleteBtn.innerText = "Delete Profile";
+        deleteBtn.disabled = false;
+      }
+    });
+
+    // Save Profile Action
     document.getElementById('primarySubmitBtn').addEventListener('click', async () => {
       const name = document.getElementById('profileNameInput').value.trim();
-      if (!name) return alert("Please enter a valid profile name.");
+      if (!name) return alert("Please enter a profile name.");
 
       const isKids = document.getElementById('kidsToggle').checked;
       const btn = document.getElementById('primarySubmitBtn');
@@ -1000,7 +1050,6 @@
         let profiles = Array.isArray(currentUserData.Profiles) ? [...currentUserData.Profiles] : [];
 
         if (action === "new" && mode === "new") {
-          // 1. Create main profile
           const mainProfile = {
             App: "Hotstar",
             Avatar: selectedAvatar,
@@ -1011,7 +1060,6 @@
             Watchlist: []
           };
 
-          // 2. Automatically create default Kids Profile like Hotstar requirement
           const defaultKidsProfile = {
             App: "Hotstar",
             Avatar: "https://img1.hotstarext.com/image/upload/w_auto,c_fill/feature/profile/19.png",
@@ -1026,7 +1074,6 @@
           profiles = [mainProfile, defaultKidsProfile];
 
         } else if (action === "new" && mode === "exc") {
-          // Additional profile
           const newProfile = {
             App: "Hotstar",
             Avatar: selectedAvatar,
@@ -1039,7 +1086,6 @@
           profiles.push(newProfile);
 
         } else if (action === "edit" && editProfileIndex !== null) {
-          // Edit existing profile
           const existing = profiles[editProfileIndex] || {};
           profiles[editProfileIndex] = {
             ...existing,
@@ -1052,24 +1098,23 @@
           };
         }
 
-        // Commit update directly to Firestore UARM document
-        await updateDoc(doc(db, "UARM", currentUserDocId), {
-          Profiles: profiles,
-          lastUpdated: new Date().toISOString()
-        });
+        if (currentUserDocId) {
+          await updateDoc(doc(db, "UARM", currentUserDocId), {
+            Profiles: profiles,
+            lastUpdated: new Date().toISOString()
+          });
+        }
 
-        // Sync with active session in LocalStorage
         currentUserData.Profiles = profiles;
-        const activeIdx = (action === "edit" && editProfileIndex !== null) ? editProfileIndex : 0;
+        const activeIdx = (action === "edit" && editProfileIndex !== null) ? editProfileIndex : (profiles.length - 1);
         localStorage.setItem('active_user', JSON.stringify(currentUserData));
         localStorage.setItem('active_profile', JSON.stringify(profiles[activeIdx]));
         localStorage.setItem('active_profile_index', activeIdx.toString());
 
-        // Redirect to myspace.html
         window.location.href = `myspace.html#user#${activeIdx}`;
 
       } catch (err) {
-        console.error("Failed to commit profile changes:", err);
+        console.error("Failed to save profile:", err);
         alert("Failed to save profile. Check connection.");
         btn.innerText = "Try Again";
         btn.disabled = false;
