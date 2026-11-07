@@ -619,4 +619,53 @@
           await deleteDoc(doc(db, activeCollection, activeDocId));
 
           if (!collections.includes(targetCol)) {
-            collections
+            collections.push(targetCol);
+            saveCollectionsList();
+          }
+
+          showToast(`Transferred to ${targetCol}`);
+          loadDocuments();
+          selectCollection(targetCol);
+          selectDocument(activeDocId);
+        } catch (err) {
+          showBannerError('Transfer error: ' + err.message);
+        }
+      });
+    };
+
+    window.saveDocumentData = async function() {
+      if (!activeDocId) return showToast('Select a document to save');
+      const val = document.getElementById('jsonEditor').value;
+      try {
+        const parsed = JSON.parse(val);
+        await setDoc(doc(db, activeCollection, activeDocId), parsed);
+        activeDocData = parsed;
+        showToast('Document saved successfully');
+      } catch (e) {
+        showToast('Invalid JSON: ' + e.message);
+      }
+    };
+
+    window.deleteActiveDocument = async function() {
+      if (!activeDocId) return showToast('No document selected');
+      if (!confirm(`Delete ${activeDocId}? This cannot be undone.`)) return;
+
+      try {
+        await deleteDoc(doc(db, activeCollection, activeDocId));
+        showToast('Document deleted');
+        activeDocId = null;
+        document.getElementById('jsonEditor').value = '';
+        document.getElementById('editorTitle').innerText = 'Document Inspector';
+        loadDocuments();
+        if (window.innerWidth <= 868) switchMobileTab(1);
+      } catch (err) {
+        showBannerError('Delete error: ' + err.message);
+      }
+    };
+
+    renderCollections();
+    lucide.createIcons();
+    if (collections.length > 0) selectCollection(collections[0]);
+  </script>
+</body>
+</html>
