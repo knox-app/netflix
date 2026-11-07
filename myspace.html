@@ -76,6 +76,7 @@
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
+      text-decoration: none;
     }
 
     .settings-btn i {
@@ -303,14 +304,14 @@
       font-weight: 700;
     }
 
-    /* WATCHLIST (16:9) */
-    .watchlist-section {
+    /* HORIZONTAL SCROLL LISTS (16:9) */
+    .media-section {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    .watchlist-row {
+    .media-row {
       display: flex;
       gap: 14px;
       overflow-x: auto;
@@ -318,7 +319,7 @@
       padding-bottom: 8px;
     }
 
-    .watchlist-row::-webkit-scrollbar {
+    .media-row::-webkit-scrollbar {
       display: none;
     }
 
@@ -600,16 +601,16 @@
 
   <div class="app-container" id="mainContainer">
     
-    <!-- TOP BAR -->
+    <!-- TOP BAR (Redirects to knox-app.github.io/netflix/settings) -->
     <header class="top-bar">
       <div class="brand-icon">
         <svg viewBox="0 0 24 24">
           <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8L12 2Z" fill="currentColor"/>
         </svg>
       </div>
-      <button class="settings-btn" onclick="window.location.href='onboarding.html'">
-        <i class="fa-solid fa-users"></i>
-        <span>Switch Profile</span>
+      <button class="settings-btn" onclick="window.location.href='https://knox-app.github.io/netflix/settings'">
+        <i class="fa-solid fa-gear"></i>
+        <span>Help & Settings</span>
       </button>
     </header>
 
@@ -628,7 +629,7 @@
       <button class="upgrade-btn" id="upgradeBtn" onclick="event.stopPropagation(); window.openPlanModal();">Upgrade</button>
     </div>
 
-    <!-- PROFILES SECTION -->
+    <!-- PROFILES SECTION (LIMIT 5 PROFILES) -->
     <section>
       <div class="section-header">
         <h3 class="section-title">Profiles</h3>
@@ -643,12 +644,22 @@
     </section>
 
     <!-- WATCHLIST SECTION (16:9) -->
-    <section class="watchlist-section">
+    <section class="media-section">
       <div class="section-header">
         <h3 class="section-title">Watchlist</h3>
       </div>
-      <div class="watchlist-row" id="watchlistRow">
+      <div class="media-row" id="watchlistRow">
         <div class="status-msg">Loading watchlist...</div>
+      </div>
+    </section>
+
+    <!-- PLAYLIST SECTION (16:9) -->
+    <section class="media-section">
+      <div class="section-header">
+        <h3 class="section-title">Playlist</h3>
+      </div>
+      <div class="media-row" id="playlistRow">
+        <div class="status-msg">Loading playlist...</div>
       </div>
     </section>
 
@@ -846,7 +857,8 @@
         await fetchPlanDetails(activeUserData);
 
         renderProfiles(activeUserData.Profiles);
-        renderWatchlist(activeUserData.Profiles[activeProfileIndex]);
+        renderMediaSection("Watchlist", activeUserData.Profiles[activeProfileIndex]?.Watchlist, "watchlistRow");
+        renderMediaSection("Playlist", activeUserData.Profiles[activeProfileIndex]?.Playlist, "playlistRow");
 
       } catch (err) {
         console.error("Error loading My Space data:", err);
@@ -987,6 +999,7 @@
         `;
       }).join('');
 
+      // ONLY SHOW ADD PROFILE IF LESS THAN 5 PROFILES
       if (profiles.length < 5) {
         html += `
           <div class="profile-item" onclick="window.location.href='account.html?action=new&mode=exc'">
@@ -1009,35 +1022,37 @@
     window.selectMySpaceProfile = function(idx) {
       syncProfileToLocalStorage(idx);
       renderProfiles(activeUserData.Profiles);
-      renderWatchlist(activeUserData.Profiles[idx]);
+      renderMediaSection("Watchlist", activeUserData.Profiles[idx]?.Watchlist, "watchlistRow");
+      renderMediaSection("Playlist", activeUserData.Profiles[idx]?.Playlist, "playlistRow");
     };
 
-    async function renderWatchlist(profile) {
-      const container = document.getElementById('watchlistRow');
-      container.innerHTML = `<div class="status-msg">Loading watchlist...</div>`;
-
-      const list = profile?.Watchlist;
+    // Generic Fetcher & Renderer for 16:9 Movie Lists (Watchlist & Playlist)
+    async function renderMediaSection(typeLabel, list, containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = `<div class="status-msg">Loading ${typeLabel.toLowerCase()}...</div>`;
 
       if (!Array.isArray(list) || list.length === 0) {
-        container.innerHTML = `<div class="status-msg">No titles in watchlist for ${profile?.Name || 'this profile'}.</div>`;
+        container.innerHTML = `<div class="status-msg">No titles in ${typeLabel.toLowerCase()}.</div>`;
         return;
       }
 
       try {
         const moviePromises = list.map(async (movieId) => {
           try {
+            // First check direct key
             const snap = await getDoc(doc(moviesDb, "Movies", movieId));
             if (snap.exists()) {
               return { id: snap.id, ...snap.data() };
             }
 
+            // Fallback lowercase check
             const q = query(collection(moviesDb, "Movies"), where("__name__", "==", movieId.toLowerCase()));
             const qSnap = await getDocs(q);
             if (!qSnap.empty) {
               return { id: qSnap.docs[0].id, ...qSnap.docs[0].data() };
             }
           } catch (e) {
-            console.error("Could not fetch movie:", movieId, e);
+            console.error(`Could not fetch ${typeLabel} item:`, movieId, e);
           }
           return null;
         });
@@ -1046,7 +1061,7 @@
         const validMovies = fetchedMovies.filter(m => m !== null);
 
         if (validMovies.length === 0) {
-          container.innerHTML = `<div class="status-msg">No watchlist movies found.</div>`;
+          container.innerHTML = `<div class="status-msg">No ${typeLabel.toLowerCase()} items found.</div>`;
           return;
         }
 
@@ -1064,8 +1079,8 @@
         }).join('');
 
       } catch (err) {
-        console.error("Watchlist fetch error:", err);
-        container.innerHTML = `<div class="status-msg" style="color:#ef4444;">Failed to load watchlist items.</div>`;
+        console.error(`${typeLabel} fetch error:`, err);
+        container.innerHTML = `<div class="status-msg" style="color:#ef4444;">Failed to load ${typeLabel.toLowerCase()} items.</div>`;
       }
     }
 
