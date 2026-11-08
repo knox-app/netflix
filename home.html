@@ -272,7 +272,7 @@
       gap: 36px;
     }
 
-    /* ================= STUDIOS SECTION ================= */
+    /* STUDIOS SECTION */
     .studios-section {
       display: flex;
       flex-direction: column;
@@ -338,7 +338,7 @@
       pointer-events: none;
     }
 
-    /* ================= GENRES ROW ================= */
+    /* GENRES ROW */
     .genres-section {
       display: flex;
       flex-direction: column;
@@ -404,7 +404,7 @@
       transition: transform 0.3s ease;
     }
 
-    /* ================= CONTINUE WATCHING ================= */
+    /* CONTINUE WATCHING */
     .continue-card {
       flex: 0 0 240px;
       width: 240px;
@@ -466,7 +466,7 @@
     }
     .btn-continue-more:hover { color: #fff; }
 
-    /* ================= CAROUSEL SECTIONS ================= */
+    /* CAROUSEL SECTIONS */
     .section-block { display: flex; flex-direction: column; gap: 14px; }
     .section-header-row {
       display: flex;
@@ -623,7 +623,7 @@
     .carousel-arrow.right { right: -14px; }
     .carousel-arrow:hover { background: var(--accent); color: #000; }
 
-    /* ================= FULL PAGE MODAL (16:9 GRID 2 PER ROW) ================= */
+    /* ================= FULL PAGE MODAL: 16:9 GRID (2 IN EACH ROW) ================= */
     .section-modal-page {
       position: fixed;
       inset: 0;
@@ -804,7 +804,7 @@
     .sheet-option-item:hover { background: rgba(255, 255, 255, 0.08); }
     .sheet-option-item i { font-size: 18px; color: #8f98b2; }
 
-    /* ================= MOBILE BOTTOM NAV ================= */
+    /* MOBILE BOTTOM NAV */
     .mobile-bottom-nav {
       display: none;
       position: fixed;
@@ -880,13 +880,12 @@
 </head>
 <body>
 
-  <!-- NAVBAR -->
+  <!-- TOP HEADER (DYNAMIC LOGO FROM SYSTEMS/HSTR.LOGO-MANAGER) -->
   <header class="navbar">
     <div class="brand-logo-slot" id="brandLogoSlot" onclick="window.location.href='home.html#home'">
       <img src="https://images.seeklogo.com/logo-png/42/2/disney-hotstar-logo-png_seeklogo-427118.png" alt="Logo" id="defaultBrandLogo" />
     </div>
     <ul class="nav-links">
-      <li><a class="nav-link active" data-hash="home" href="#home">Home</a></li>
       <li><a class="nav-link" data-hash="movies" href="#movies">Movies</a></li>
       <li><a class="nav-link" data-hash="shows" href="#shows">Shows</a></li>
       <li><a class="nav-link" data-hash="tvshows" href="#tvshows">TV Shows</a></li>
@@ -894,7 +893,7 @@
     </ul>
   </header>
 
-  <!-- HERO CAROUSEL -->
+  <!-- TOP HERO CAROUSEL -->
   <section class="hero-container" id="heroContainer">
     <div class="hero-dots-row" id="heroDotsRow"></div>
   </section>
@@ -945,7 +944,7 @@
       <span>Home</span>
     </a>
     <a href="search.html" class="nav-item-btn">
-      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/></svg>
       <span>Search</span>
     </a>
     <a href="https://knox-app.github.io/netflix/myspace" class="nav-item-btn" id="mySpaceNavBtn">
@@ -1009,7 +1008,7 @@
     let activeProfile = null;
     let activeProfileIndex = 0;
     let isKidsProfile = false;
-    let userAllowedMaxTier = 2;
+    let userAllowedMaxTier = 2; // Default to U/A 7+ (Tier 2)
 
     let sheetTargetMovie = null;
 
@@ -1069,6 +1068,7 @@
       });
     }
 
+    /* ================= AGE TIERS & COMPLIANCE ================= */
     function getRatingTier(ratingStr) {
       if (!ratingStr) return 1;
       const clean = String(ratingStr).trim().toUpperCase();
@@ -1083,7 +1083,7 @@
       return getRatingTier(contentRatingStr) <= userAllowedMaxTier;
     }
 
-    /* ================= LOGO MANAGER ================= */
+    /* ================= 1. DYNAMIC LOGO ENGINE ================= */
     function syncRealtimeLogo() {
       if (logoUnsub) logoUnsub();
 
@@ -1234,9 +1234,13 @@
       }
 
       isKidsProfile = String(activeProfile?.Kids).toLowerCase() === "true";
-      userAllowedMaxTier = isKidsProfile 
-        ? getRatingTier(activeProfile?.Age_Rating || "U/A 7+")
-        : (activeProfile?.Age_Rating ? getRatingTier(activeProfile.Age_Rating) : 5);
+      
+      // Calculate max tier
+      if (isKidsProfile) {
+        userAllowedMaxTier = getRatingTier(activeProfile?.Age_Rating || "U/A 7+");
+      } else {
+        userAllowedMaxTier = activeProfile?.Age_Rating ? getRatingTier(activeProfile.Age_Rating) : 5;
+      }
     }
 
     function renderNavAvatar() {
@@ -1273,7 +1277,7 @@
       return [];
     }
 
-    /* ================= TOP HERO CAROUSEL: KIDS_SUGGEST VS SUGGEST ================= */
+    /* ================= TOP HERO CAROUSEL ================= */
     async function setupHeroCarousel(allowedMoviesCatalog, forYouPool) {
       const container = document.getElementById('heroContainer');
       const dotsRow = document.getElementById('heroDotsRow');
@@ -1286,10 +1290,11 @@
         const sysDoc = await getDoc(doc(contentDb, "Systems", "sys.carsoule.home"));
         if (sysDoc.exists()) {
           const data = sysDoc.data();
-          // Use Kids_suggest for kids, else suggest for adult
+          
+          // 1. Kids profile uses Kids_suggest; Adults use suggest
           const suggestions = (isKidsProfile && Array.isArray(data.Kids_suggest))
-            ? data.Kids_suggest 
-            : (Array.isArray(data.suggest) ? data.suggest : []);
+            ? data.Kids_suggest
+            : (data.suggest || []);
 
           for (const token of suggestions) {
             const cleanToken = String(token).trim();
@@ -1668,7 +1673,7 @@
       }
     };
 
-    /* ================= POPULAR SHOWS & MOVIES (HOTSTAR STYLE) ================= */
+    /* ================= POPULAR SHOWS & MOVIES ================= */
     function renderFilteredInteractiveSection(sectionTitle, candidates, defaultGenre = "All") {
       const container = document.getElementById('sectionsContainer');
       const sectionEl = document.createElement('section');
@@ -1776,24 +1781,23 @@
       return scored.slice(0, 20).map(s => s.movie);
     }
 
-    /* ================= MAIN FEED BUILDER (KIDS_HOME VS HOME) ================= */
+    /* ================= MAIN FEED BUILDER ================= */
     async function buildLiveFeed() {
       if (liveMoviesCatalog.length === 0 || !liveUserData) return;
 
-      const rawHash = window.location.hash.split('&')[0].replace('#', '').trim().toLowerCase();
+      // 1. DYNAMIC PAGE SELECTION:
+      // Kids -> "kids_home"; Adults (U/A 16+ or 18+) -> "home"
+      const defaultPage = isKidsProfile ? 'kids_home' : 'home';
+      const hashParam = window.location.hash.split('&')[0].replace('#', '').trim().toLowerCase();
+      const pageId = hashParam || defaultPage;
 
-      // For Kids: page is "kids_home"
-      // For Others: page is "home"
-      let pageId;
-      if (!rawHash || rawHash === 'home' || rawHash === 'kids_home') {
-        pageId = isKidsProfile ? 'kids_home' : 'home';
-      } else {
-        pageId = rawHash;
-      }
+      // Update brand logo and bottom nav home target
+      const homeLink = `#${defaultPage}`;
+      const mHome = document.getElementById('mNavHome');
+      if (mHome) mHome.setAttribute('href', `home.html${homeLink}`);
 
       document.querySelectorAll('.nav-link').forEach(link => {
-        const target = link.dataset.hash;
-        link.classList.toggle('active', target === rawHash || (target === 'home' && (pageId === 'home' || pageId === 'kids_home')));
+        link.classList.toggle('active', link.dataset.hash === pageId);
       });
 
       const container = document.getElementById('sectionsContainer');
@@ -1808,10 +1812,8 @@
 
       const forYouList = buildLiveForYou(allowedMoviesCatalog, rawWatchedIds);
 
-      // Hero Carousel (Uses Kids_suggest for kids, suggest for others)
       await setupHeroCarousel(allowedMoviesCatalog, forYouList);
 
-      // Continue Watching
       renderContinueWatchingSection();
 
       let sectionCounter = 0;
@@ -1865,16 +1867,9 @@
         sectionCounter++;
       }
 
-      // ==========================================
-      // SYSTEMS SECTIONS (WITH KIDS_E & CONTENT_TYPE)
-      // ==========================================
+      /* ================= 2. SYSTEMS SECTIONS WITH KIDS_E & HSTR_SEC03 FIX ================= */
       try {
-        let pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
-        // Fallback check if pageId has alternate casing
-        if (!pageDoc.exists() && (pageId === 'home' || pageId === 'kids_home')) {
-          pageDoc = await getDoc(doc(contentDb, "Systems", isKidsProfile ? "kids_home" : "home"));
-        }
-
+        const pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
         if (pageDoc.exists()) {
           const sectionIds = pageDoc.data().Sections || [];
 
@@ -1884,37 +1879,28 @@
 
             const secData = secSnap.data();
 
-            // 1. Age Rating Check
-            if (!isAllowedByAge(secData.Age_Rating)) continue;
+            // 1. RULE: If Kids_E == "True", show in Kids profile ONLY
+            const isKidsOnly = String(secData.Kids_E).toLowerCase() === "true" || secData.Kids_E === true;
+            if (isKidsOnly && !isKidsProfile) {
+              continue; // Skip section for non-kids profile
+            }
 
-            // 2. Kids_E check:
-            // If Kids_E === "True" -> Strictly show only in Kids Profile
-            const isSectionKidsExclusive = String(secData.Kids_E).toLowerCase() === "true";
-            if (isSectionKidsExclusive && !isKidsProfile) {
-              continue; // Skip for adult profiles
-            }
-            if (!isSectionKidsExclusive && isKidsProfile && secData.Kids_E === "False") {
-              continue; // Skip adult-only sections in kids profile
-            }
+            // 2. Standard Age Rating check
+            if (!isAllowedByAge(secData.Age_Rating)) continue;
 
             const isFixed = String(secData.Fixed).toLowerCase() === "true";
             const maxLimit = parseInt(secData.Max_Limit || "50", 10);
             const sectionGenres = parseGenres(secData.Genres);
+            const sectionFranchise = secData.Franchise ? String(secData.Franchise).trim().toLowerCase() : null;
 
-            // Determine Target Pool from Content_Type (e.g. Content_Type: ["Movies"])
-            const rawContentTypes = Array.isArray(secData.Content_Type) ? secData.Content_Type.map(c => String(c).toLowerCase()) : [];
-            let targetPool;
-            if (rawContentTypes.includes("shows") || rawContentTypes.includes("tv shows")) {
-              targetPool = allowedShowsCatalog;
-            } else if (rawContentTypes.includes("movies")) {
-              targetPool = allowedMoviesCatalog;
-            } else {
-              targetPool = [...allowedMoviesCatalog, ...allowedShowsCatalog];
-            }
+            // Content Type support (["Movies"], ["Shows"], etc.)
+            const contentTypes = Array.isArray(secData.Content_Type)
+              ? secData.Content_Type.map(c => String(c).toLowerCase())
+              : ["movies"];
 
             let sectionMovies = [];
 
-            // Explicit Mandatory Titles
+            // A. Add explicit mandatory titles
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
               const cleanTId = String(tId).trim().toLowerCase();
@@ -1924,26 +1910,46 @@
               }
             }
 
-            // Fixed === False: Mix in similar genre movies from the targeted pool
+            // B. If Fixed == False, pull similar content
             if (!isFixed) {
-              const similarMovies = targetPool.filter(m => {
+              let candidatePool = [];
+              if (contentTypes.includes("shows")) {
+                candidatePool = [...candidatePool, ...allowedShowsCatalog];
+              }
+              if (contentTypes.includes("movies") || candidatePool.length === 0) {
+                candidatePool = [...candidatePool, ...allowedMoviesCatalog];
+              }
+
+              const similarCandidates = candidatePool.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
+
+                // Match Franchise if defined (e.g. "Dora")
+                if (sectionFranchise) {
+                  const mFranchise = (m.Franchise || m.franchise || '').toLowerCase();
+                  const mName = (m.Name || m.Title || '').toLowerCase();
+                  if (mFranchise.includes(sectionFranchise) || mName.includes(sectionFranchise)) {
+                    return true;
+                  }
+                }
+
+                // Match Genres
                 const mG = parseGenres(m.Genres);
                 return sectionGenres.some(sg => mG.includes(sg));
               });
-              sectionMovies = mixupArray([...sectionMovies, ...similarMovies]).slice(0, maxLimit);
+
+              sectionMovies = mixupArray([...sectionMovies, ...similarCandidates]).slice(0, maxLimit);
             }
 
             if (sectionMovies.length > 0) {
               renderCarouselSection(secData.Name || sId, sectionMovies);
               sectionCounter++;
 
-              if (sectionCounter === 4 && !popularShowsInjected && !isKidsProfile) {
+              if (sectionCounter === 4 && !popularShowsInjected) {
                 renderFilteredInteractiveSection("Popular Shows", allowedShowsCatalog.length > 0 ? allowedShowsCatalog : allowedMoviesCatalog);
                 popularShowsInjected = true;
               }
 
-              if (sectionCounter === 8 && !popularMoviesInjected && !isKidsProfile) {
+              if (sectionCounter === 8 && !popularMoviesInjected) {
                 renderFilteredInteractiveSection("Popular Movies", mixupArray(allowedMoviesCatalog));
                 popularMoviesInjected = true;
               }
@@ -1954,10 +1960,10 @@
         console.error("Systems fetch error:", err);
       }
 
-      if (!popularShowsInjected && !isKidsProfile) {
+      if (!popularShowsInjected) {
         renderFilteredInteractiveSection("Popular Shows", allowedShowsCatalog.length > 0 ? allowedShowsCatalog : allowedMoviesCatalog);
       }
-      if (!popularMoviesInjected && !isKidsProfile) {
+      if (!popularMoviesInjected) {
         renderFilteredInteractiveSection("Popular Movies", mixupArray(allowedMoviesCatalog));
       }
     }
@@ -2062,7 +2068,7 @@
       document.body.style.overflow = 'hidden';
     };
 
-    /* ================= CLEAN STUDIOS MODAL ================= */
+    /* ================= STUDIOS MODAL ================= */
     window.openStudiosModal = function() {
       document.getElementById('modalSectionTitle').innerText = "Studios";
       const bodyContainer = document.getElementById('modalBodyContainer');
@@ -2126,7 +2132,7 @@
       buildLiveFeed();
     });
 
-    // Initialize Real-time streams
+    // Boot Real-time streams
     syncRealtimeLogo();
     syncRealtimeUARM();
     syncRealtimeMovies();
