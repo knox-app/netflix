@@ -47,7 +47,7 @@
       top: 0;
       left: 0;
       width: 100%;
-      height: 72px;
+      height: 80px;
       padding: 0 4%;
       display: flex;
       align-items: center;
@@ -57,21 +57,39 @@
       border-bottom: none;
     }
 
+    /* Dynamic Brand Logo Container - Made Bigger */
     .brand-logo-slot {
       display: flex;
       align-items: center;
       justify-content: center;
       margin-right: 36px;
       cursor: pointer;
-      height: 42px;
-      min-width: 40px;
+      height: 56px;
+      min-width: 48px;
     }
 
-    .brand-logo-slot img, .brand-logo-slot svg, .brand-logo-slot video {
-      height: 38px;
-      max-height: 42px;
-      max-width: 160px;
+    .brand-logo-slot img {
+      height: 50px;
+      max-height: 54px;
+      max-width: 220px;
       object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+    }
+
+    .brand-logo-slot svg {
+      height: 50px;
+      max-height: 54px;
+      max-width: 220px;
+      width: auto;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+    }
+
+    .brand-logo-slot video {
+      height: 50px;
+      max-height: 54px;
+      max-width: 220px;
+      object-fit: contain;
+      pointer-events: none;
       filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
     }
 
@@ -154,19 +172,20 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
-      max-width: 680px;
+      gap: 12px;
+      max-width: 720px;
     }
 
+    /* Hero Foreground Movie Logo - Made Bigger */
     .hero-title-logo {
-      max-width: 220px;
-      max-height: 75px;
+      max-width: 340px;
+      max-height: 125px;
       object-fit: contain;
-      filter: drop-shadow(0 4px 14px rgba(0,0,0,0.85));
-      margin-bottom: 2px;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.85));
+      margin-bottom: 4px;
     }
     .hero-fallback-title {
-      font-size: clamp(26px, 4.5vw, 42px);
+      font-size: clamp(28px, 5vw, 48px);
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: -0.5px;
@@ -863,6 +882,17 @@
     }
 
     @media (max-width: 768px) {
+      .navbar { height: 70px; }
+      .brand-logo-slot { height: 48px; }
+      .brand-logo-slot img, .brand-logo-slot svg, .brand-logo-slot video {
+        height: 44px;
+        max-height: 46px;
+        max-width: 170px;
+      }
+      .hero-title-logo {
+        max-width: 240px;
+        max-height: 90px;
+      }
       .nav-links { display: none; }
       .mobile-bottom-nav { display: flex; }
       .card-16-9 { flex: 0 0 190px; width: 190px; }
@@ -1008,7 +1038,7 @@
     let activeProfile = null;
     let activeProfileIndex = 0;
     let isKidsProfile = false;
-    let userAllowedMaxTier = 2; // Default to U/A 7+ (Tier 2)
+    let userAllowedMaxTier = 2;
 
     let sheetTargetMovie = null;
 
@@ -1083,7 +1113,7 @@
       return getRatingTier(contentRatingStr) <= userAllowedMaxTier;
     }
 
-    /* ================= 1. DYNAMIC LOGO ENGINE ================= */
+    /* ================= DYNAMIC LOGO ENGINE ================= */
     function syncRealtimeLogo() {
       if (logoUnsub) logoUnsub();
 
@@ -1109,8 +1139,8 @@
         if (svg) {
           svg.removeAttribute('width');
           svg.removeAttribute('height');
-          svg.style.height = '38px';
-          svg.style.maxWidth = '160px';
+          svg.style.height = '50px';
+          svg.style.maxWidth = '220px';
           svg.style.display = 'block';
         }
         return;
@@ -1235,7 +1265,6 @@
 
       isKidsProfile = String(activeProfile?.Kids).toLowerCase() === "true";
       
-      // Calculate max tier
       if (isKidsProfile) {
         userAllowedMaxTier = getRatingTier(activeProfile?.Age_Rating || "U/A 7+");
       } else {
@@ -1291,7 +1320,6 @@
         if (sysDoc.exists()) {
           const data = sysDoc.data();
           
-          // 1. Kids profile uses Kids_suggest; Adults use suggest
           const suggestions = (isKidsProfile && Array.isArray(data.Kids_suggest))
             ? data.Kids_suggest
             : (data.suggest || []);
@@ -1785,13 +1813,10 @@
     async function buildLiveFeed() {
       if (liveMoviesCatalog.length === 0 || !liveUserData) return;
 
-      // 1. DYNAMIC PAGE SELECTION:
-      // Kids -> "kids_home"; Adults (U/A 16+ or 18+) -> "home"
       const defaultPage = isKidsProfile ? 'kids_home' : 'home';
       const hashParam = window.location.hash.split('&')[0].replace('#', '').trim().toLowerCase();
       const pageId = hashParam || defaultPage;
 
-      // Update brand logo and bottom nav home target
       const homeLink = `#${defaultPage}`;
       const mHome = document.getElementById('mNavHome');
       if (mHome) mHome.setAttribute('href', `home.html${homeLink}`);
@@ -1867,7 +1892,7 @@
         sectionCounter++;
       }
 
-      /* ================= 2. SYSTEMS SECTIONS WITH KIDS_E & HSTR_SEC03 FIX ================= */
+      /* ================= SYSTEMS SECTIONS ================= */
       try {
         const pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
         if (pageDoc.exists()) {
@@ -1879,13 +1904,11 @@
 
             const secData = secSnap.data();
 
-            // 1. RULE: If Kids_E == "True", show in Kids profile ONLY
             const isKidsOnly = String(secData.Kids_E).toLowerCase() === "true" || secData.Kids_E === true;
             if (isKidsOnly && !isKidsProfile) {
-              continue; // Skip section for non-kids profile
+              continue;
             }
 
-            // 2. Standard Age Rating check
             if (!isAllowedByAge(secData.Age_Rating)) continue;
 
             const isFixed = String(secData.Fixed).toLowerCase() === "true";
@@ -1893,14 +1916,12 @@
             const sectionGenres = parseGenres(secData.Genres);
             const sectionFranchise = secData.Franchise ? String(secData.Franchise).trim().toLowerCase() : null;
 
-            // Content Type support (["Movies"], ["Shows"], etc.)
             const contentTypes = Array.isArray(secData.Content_Type)
               ? secData.Content_Type.map(c => String(c).toLowerCase())
               : ["movies"];
 
             let sectionMovies = [];
 
-            // A. Add explicit mandatory titles
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
               const cleanTId = String(tId).trim().toLowerCase();
@@ -1910,7 +1931,6 @@
               }
             }
 
-            // B. If Fixed == False, pull similar content
             if (!isFixed) {
               let candidatePool = [];
               if (contentTypes.includes("shows")) {
@@ -1923,7 +1943,6 @@
               const similarCandidates = candidatePool.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
 
-                // Match Franchise if defined (e.g. "Dora")
                 if (sectionFranchise) {
                   const mFranchise = (m.Franchise || m.franchise || '').toLowerCase();
                   const mName = (m.Name || m.Title || '').toLowerCase();
@@ -1932,7 +1951,6 @@
                   }
                 }
 
-                // Match Genres
                 const mG = parseGenres(m.Genres);
                 return sectionGenres.some(sg => mG.includes(sg));
               });
