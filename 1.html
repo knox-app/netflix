@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,6 +83,22 @@
     }
     video.fill-screen { object-fit: cover !important; }
 
+    /* Precast Dual-Video Layer */
+    .precast-video-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      z-index: 4;
+      background: #000;
+      display: none;
+      opacity: 1;
+      transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      pointer-events: none;
+    }
+    .precast-video-layer.fill-screen { object-fit: cover !important; }
+
     #ytFrameHost {
       position: absolute;
       inset: 0;
@@ -115,6 +130,39 @@
     #jwHost.fill-screen { transform: scale(1.18); }
 
     iframe#iframePlayer { width: 100%; height: 100%; border: none; z-index: 2; }
+
+    /* Skip Intro Pill Button for Pre-Cast */
+    .btn-skip-precast {
+      position: absolute;
+      bottom: 68px;
+      right: 20px;
+      z-index: 32;
+      background: rgba(18, 20, 26, 0.88);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: #ffffff;
+      padding: 7px 15px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      transition: background 0.15s ease, transform 0.1s ease, opacity 0.2s ease;
+      touch-action: manipulation;
+    }
+    .btn-skip-precast:active {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(0.95);
+    }
+    .btn-skip-precast svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
 
     /* Double Tap Seek Feedback Ripple */
     .seek-ripple {
@@ -431,6 +479,7 @@
       z-index: 50;
       background: rgba(0, 0, 0, 0.94);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       display: none;
       flex-direction: column;
       padding: 20px 24px;
@@ -818,9 +867,17 @@
 
       <!-- Video Engines (.m3u8, .mp4, .mkv, .webm) -->
       <video id="nativeVideoPlayer" playsinline crossorigin="anonymous"></video>
+      <!-- Dedicated Gapless Pre-Cast Video Layer -->
+      <video id="precastVideoPlayer" playsinline crossorigin="anonymous" class="precast-video-layer"></video>
       <div id="ytFrameHost"></div>
       <div id="jwHost"><div id="jwActualContainer"></div></div>
       <iframe id="iframePlayer" style="display: none;" allowfullscreen allow="autoplay"></iframe>
+
+      <!-- Skip Precast Intro Button -->
+      <button class="btn-skip-precast" id="skipPrecastBtn">
+        Skip Intro
+        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+      </button>
 
       <!-- Double Tap Seek Feedback Ripple -->
       <div class="seek-ripple left" id="seekRippleLeft">◀◀ 10s</div>
@@ -1095,7 +1152,7 @@
   let isFillScreen = false;
   let currentChannel = null;
   let isUserSeeking = false;
-  let isScrubbing = false; // Smooth drag scrubber state flag
+  let isScrubbing = false;
   let currentSpeed = 1;
   let currentUser = null;
   let userDocRef = null;
@@ -1126,7 +1183,8 @@
     introIndex: 0,
     totalIntroDuration: 0,
     movieDuration: 5400,
-    totalTimelineDuration: 5400
+    totalTimelineDuration: 5400,
+    moviePreloaded: false
   };
 
   // Cached recommendation data
@@ -1147,6 +1205,8 @@
   const paramEp = urlParams.get('ep');
 
   const nativeVid = document.getElementById('nativeVideoPlayer');
+  const precastVid = document.getElementById('precastVideoPlayer');
+  const skipPrecastBtn = document.getElementById('skipPrecastBtn');
 
   function parseCollectionParam() {
     let col = urlParams.get('collection');
@@ -1180,10 +1240,16 @@
     }
   }
 
-  // BIND NATIVE VIDEO EVENTS DIRECTLY
-  nativeVid.addEventListener('play', () => updatePlayPauseUI(true));
-  nativeVid.addEventListener('playing', () => updatePlayPauseUI(true));
-  nativeVid.addEventListener('pause', () => updatePlayPauseUI(false));
+  // BIND NATIVE VIDEO EVENTS
+  nativeVid.addEventListener('play', () => {
+    if (!preCastState.active || preCastState.currentStage === 'movie') updatePlayPauseUI(true);
+  });
+  nativeVid.addEventListener('playing', () => {
+    if (!preCastState.active || preCastState.currentStage === 'movie') updatePlayPauseUI(true);
+  });
+  nativeVid.addEventListener('pause', () => {
+    if (!preCastState.active || preCastState.currentStage === 'movie') updatePlayPauseUI(false);
+  });
   nativeVid.addEventListener('ended', () => {
     updatePlayPauseUI(false);
     handlePlaybackEnded();
@@ -1199,11 +1265,50 @@
     }
   });
   nativeVid.addEventListener('timeupdate', () => {
-    if (isScrubbing) return; // Prevent progress bar jumping while scrubbing
+    if (isScrubbing) return;
+    if (preCastState.active && preCastState.currentStage === 'intro') return;
     const cur = nativeVid.currentTime || 0;
     const dur = nativeVid.duration;
     handleEngineTimeUpdate(cur, dur);
   });
+
+  // BIND PRECAST DUAL-VIDEO EVENTS
+  precastVid.addEventListener('play', () => {
+    if (preCastState.active && preCastState.currentStage === 'intro') updatePlayPauseUI(true);
+  });
+  precastVid.addEventListener('playing', () => {
+    if (preCastState.active && preCastState.currentStage === 'intro') updatePlayPauseUI(true);
+  });
+  precastVid.addEventListener('pause', () => {
+    if (preCastState.active && preCastState.currentStage === 'intro') updatePlayPauseUI(false);
+  });
+  precastVid.addEventListener('ended', () => {
+    if (preCastState.active && preCastState.currentStage === 'intro') {
+      handlePlaybackEnded();
+    }
+  });
+  precastVid.addEventListener('loadedmetadata', () => {
+    if (precastVid.duration && !isNaN(precastVid.duration) && isFinite(precastVid.duration)) {
+      if (preCastState.intros[preCastState.introIndex]) {
+        preCastState.intros[preCastState.introIndex].duration = precastVid.duration;
+        preCastState.totalIntroDuration = preCastState.intros.reduce((acc, it) => acc + (it.duration || 6.5), 0);
+        preCastState.totalTimelineDuration = preCastState.totalIntroDuration + Math.max(0, preCastState.movieDuration - preCastState.startTime);
+        buildPreCastTimelineBar();
+      }
+    }
+  });
+  precastVid.addEventListener('timeupdate', () => {
+    if (isScrubbing) return;
+    if (preCastState.active && preCastState.currentStage === 'intro') {
+      handleEngineTimeUpdate(precastVid.currentTime, precastVid.duration);
+    }
+  });
+
+  // Skip Intro Button Action
+  skipPrecastBtn.onclick = (e) => {
+    e.stopPropagation();
+    transitionFromPrecastToMovie();
+  };
 
   // Initialize Player Manager
   playerManager = new PlayerManager({
@@ -1217,10 +1322,13 @@
     },
     onTimeUpdate: (cur, dur) => {
       if (isScrubbing) return;
+      if (preCastState.active && preCastState.currentStage === 'intro') return;
       handleEngineTimeUpdate(cur, dur);
     },
     onPlayStateChange: (isPlaying) => {
-      updatePlayPauseUI(isPlaying);
+      if (!preCastState.active || preCastState.currentStage === 'movie') {
+        updatePlayPauseUI(isPlaying);
+      }
     },
     onHlsAudioTracks: (tracks) => {
       populateM3u8DynamicAudio(tracks);
@@ -1444,7 +1552,7 @@
         if (selectedCol && Array.isArray(selectedCol.Playlist) && selectedCol.Playlist.length > 0) {
           isCollectionMode = true;
           contentType = 'collection';
-          preCastState.active = false;
+          resetPrecastState();
           initCollectionPlaylistMode(selectedCol);
           loader.style.display = 'none';
           document.getElementById('appContent').style.display = 'block';
@@ -1464,13 +1572,13 @@
 
       if (targetCol === "Shows" || targetCol === "TV Shows" || seasonKeys.length > 0) {
         contentType = 'show';
-        preCastState.active = false;
+        resetPrecastState();
         setupShowSeasons(seasonKeys);
       } else if (targetCol === "Movies") {
         contentType = 'movie';
       } else {
         contentType = 'live';
-        preCastState.active = false;
+        resetPrecastState();
       }
 
       configureUIForContentType();
@@ -1556,9 +1664,99 @@
     document.getElementById('overlayTitle').innerText = title;
     document.getElementById('overlaySubtitle').style.display = 'block';
     document.getElementById('overlaySubtitle').innerText = "Clip • Trailer & More";
-    preCastState.active = false;
+    resetPrecastState();
     playerManager.playStream({ Stream: item.Stream, Name: title }, 0);
   };
+
+  /* ================== PRECAST TIMELINE VISUAL DIVIDER ================== */
+  function buildPreCastTimelineBar() {
+    const segmentsHost = document.getElementById('timelineSegmentsHost');
+    segmentsHost.innerHTML = '';
+    if (!preCastState.active || !preCastState.totalTimelineDuration) return;
+
+    const introWidthPercent = (preCastState.totalIntroDuration / preCastState.totalTimelineDuration) * 100;
+    if (introWidthPercent > 0 && introWidthPercent < 100) {
+      const seg = document.createElement('div');
+      seg.className = 'timeline-segment-divider';
+      seg.style.width = `${introWidthPercent}%`;
+      seg.style.borderRight = '2.5px solid var(--accent-blue)';
+      segmentsHost.appendChild(seg);
+    }
+  }
+
+  function resetPrecastState() {
+    preCastState.active = false;
+    preCastState.moviePreloaded = false;
+    skipPrecastBtn.style.display = 'none';
+    precastVid.style.display = 'none';
+    precastVid.style.opacity = '0';
+    precastVid.pause();
+    precastVid.removeAttribute('src');
+    precastVid.load();
+    document.getElementById('timelineSegmentsHost').innerHTML = '';
+  }
+
+  /* ================== BACKGROUND MOVIE PRELOADER ================== */
+  function preloadMainMovieInBackground(movieData, startTime) {
+    preCastState.moviePreloaded = false;
+
+    // Mute the primary video during background buffering
+    nativeVid.muted = true;
+
+    // Instruct PlayerManager to initiate stream decoding and network buffering
+    playerManager.playStream(movieData, startTime);
+
+    const onPreloadReady = () => {
+      nativeVid.pause();
+      preCastState.moviePreloaded = true;
+      nativeVid.removeEventListener('canplay', onPreloadReady);
+      nativeVid.removeEventListener('playing', onPreloadReady);
+      nativeVid.removeEventListener('timeupdate', onPreloadReady);
+    };
+
+    nativeVid.addEventListener('canplay', onPreloadReady, { once: true });
+    nativeVid.addEventListener('playing', onPreloadReady);
+    nativeVid.addEventListener('timeupdate', onPreloadReady);
+  }
+
+  /* ================== SEAMLESS 0-GAP TRANSITION TO MOVIE ================== */
+  function transitionFromPrecastToMovie(seekOffset = null) {
+    if (!preCastState.active) return;
+    preCastState.currentStage = 'movie';
+
+    // Hide Skip Intro button
+    skipPrecastBtn.style.display = 'none';
+
+    // Cross-fade out the precast layer smoothly
+    precastVid.style.opacity = '0';
+    setTimeout(() => {
+      precastVid.style.display = 'none';
+      precastVid.pause();
+      precastVid.removeAttribute('src');
+      precastVid.load();
+    }, 300);
+
+    const targetTime = (seekOffset !== null) ? seekOffset : preCastState.startTime;
+
+    // Un-mute primary movie audio
+    nativeVid.muted = false;
+
+    if (preCastState.moviePreloaded && seekOffset === null) {
+      // Movie has already buffered and decoded keyframe: instant start with 0s latency!
+      nativeVid.play().catch(() => {
+        playerManager.togglePlay();
+      });
+    } else {
+      if (seekOffset !== null) {
+        playerManager.seekToSeconds(targetTime);
+      }
+      playerManager.playStream(preCastState.mainMovieData, targetTime);
+      nativeVid.muted = false;
+      nativeVid.play().catch(() => {});
+    }
+
+    updatePlayPauseUI(true);
+  }
 
   /* ================== MOVIE PRE_CAST LAUNCHER ================== */
   async function setupAndPlayMovie(movieData) {
@@ -1571,32 +1769,49 @@
     if (introsList.length > 0) {
       preCastState = {
         active: true,
-        intros: introsList.map(url => ({ stream: url, duration: 6.5 })),
+        intros: introsList.map(url => ({ stream: safeUrl(url), duration: 6.5 })),
         startTime: startTimeSec,
         mainMovieData: movieData,
         currentStage: 'intro',
         introIndex: 0,
         totalIntroDuration: introsList.length * 6.5,
         movieDuration: parsedDur,
-        totalTimelineDuration: (introsList.length * 6.5) + Math.max(0, parsedDur - startTimeSec)
+        totalTimelineDuration: (introsList.length * 6.5) + Math.max(0, parsedDur - startTimeSec),
+        moviePreloaded: false
       };
 
       const savedGlobal = getSavedProgress(movieData.id);
-      
+
+      // If user has already watched past the intros, resume the movie directly
       if (savedGlobal >= preCastState.totalIntroDuration) {
+        resetPrecastState();
+        preCastState.active = false;
         preCastState.currentStage = 'movie';
         const movieOffset = preCastState.startTime + (savedGlobal - preCastState.totalIntroDuration);
         playerManager.playStream(movieData, movieOffset);
       } else {
-        preCastState.currentStage = 'intro';
-        preCastState.introIndex = 0;
-        playerManager.playStream({
-          Stream: preCastState.intros[0].stream,
-          Name: `${movieData.Name} - Intro`
-        }, savedGlobal);
+        // Show Precast video layer and start playing intro
+        precastVid.style.display = 'block';
+        precastVid.style.opacity = '1';
+        skipPrecastBtn.style.display = 'flex';
+        buildPreCastTimelineBar();
+
+        precastVid.src = preCastState.intros[0].stream;
+        precastVid.currentTime = savedGlobal;
+        precastVid.play().catch(e => console.warn("Precast play error:", e));
+
+        // SIMULTANEOUSLY WARM UP & PRE-BUFFER MAIN MOVIE IN BACKGROUND
+        preloadMainMovieInBackground(movieData, preCastState.startTime);
+
+        // Preload next intro if multiple are present
+        if (preCastState.intros.length > 1) {
+          const nextPreload = document.createElement('video');
+          nextPreload.preload = 'auto';
+          nextPreload.src = preCastState.intros[1].stream;
+        }
       }
     } else {
-      preCastState.active = false;
+      resetPrecastState();
       const savedTime = getSavedProgress(movieData.id);
       playerManager.playStream(movieData, savedTime);
     }
@@ -1612,9 +1827,11 @@
         if (curIntro) curIntro.duration = dur;
         preCastState.totalIntroDuration = preCastState.intros.reduce((acc, it) => acc + (it.duration || 6.5), 0);
         preCastState.totalTimelineDuration = preCastState.totalIntroDuration + Math.max(0, preCastState.movieDuration - preCastState.startTime);
+        buildPreCastTimelineBar();
       } else if (preCastState.currentStage === 'movie') {
         preCastState.movieDuration = dur;
         preCastState.totalTimelineDuration = preCastState.totalIntroDuration + Math.max(0, dur - preCastState.startTime);
+        buildPreCastTimelineBar();
       }
     } else if (isCollectionMode) {
       const item = collectionPlaylist[currentCollectionItemIdx];
@@ -1709,13 +1926,12 @@
       if (preCastState.currentStage === 'intro') {
         if (preCastState.introIndex + 1 < preCastState.intros.length) {
           preCastState.introIndex++;
-          playerManager.playStream({
-            Stream: preCastState.intros[preCastState.introIndex].stream,
-            Name: `${preCastState.mainMovieData.Name} - Intro ${preCastState.introIndex + 1}`
-          }, 0);
+          precastVid.src = preCastState.intros[preCastState.introIndex].stream;
+          precastVid.currentTime = 0;
+          precastVid.play().catch(() => {});
         } else {
-          preCastState.currentStage = 'movie';
-          playerManager.playStream(preCastState.mainMovieData, preCastState.startTime);
+          // Intros finished -> instant 0-gap switch to background preloaded movie!
+          transitionFromPrecastToMovie();
         }
         return;
       }
@@ -1741,7 +1957,7 @@
       if (preCastState.currentStage === 'intro') {
         let elapsedPrior = 0;
         for (let i = 0; i < preCastState.introIndex; i++) elapsedPrior += (preCastState.intros[i].duration || 6.5);
-        const cur = nativeVid.currentTime || 0;
+        const cur = precastVid.currentTime || 0;
         globalCurrent = elapsedPrior + cur;
       } else {
         const cur = nativeVid.currentTime || 0;
@@ -1779,24 +1995,18 @@
         accumulated += d;
       }
 
-      if (preCastState.currentStage !== 'intro' || preCastState.introIndex !== targetIntroIdx) {
-        preCastState.currentStage = 'intro';
-        preCastState.introIndex = targetIntroIdx;
-        playerManager.playStream({
-          Stream: preCastState.intros[targetIntroIdx].stream,
-          Name: `${preCastState.mainMovieData.Name} - Intro`
-        }, offsetInIntro);
-      } else {
-        playerManager.seekToSeconds(offsetInIntro);
-      }
+      preCastState.currentStage = 'intro';
+      preCastState.introIndex = targetIntroIdx;
+      precastVid.style.display = 'block';
+      precastVid.style.opacity = '1';
+      skipPrecastBtn.style.display = 'flex';
+
+      precastVid.src = preCastState.intros[targetIntroIdx].stream;
+      precastVid.currentTime = offsetInIntro;
+      precastVid.play().catch(() => {});
     } else {
       const offsetInMovie = preCastState.startTime + (targetGlobalSec - preCastState.totalIntroDuration);
-      if (preCastState.currentStage !== 'movie') {
-        preCastState.currentStage = 'movie';
-        playerManager.playStream(preCastState.mainMovieData, offsetInMovie);
-      } else {
-        playerManager.seekToSeconds(offsetInMovie);
-      }
+      transitionFromPrecastToMovie(offsetInMovie);
     }
   }
 
@@ -2384,11 +2594,27 @@
       const currentSec = (percent / 100) * totalSec;
       const remainingSec = Math.max(0, totalSec - currentSec);
       timeDisplay.innerText = formatTime(remainingSec);
+
+      // Tooltip positioning
+      if (preCastState.active) {
+        const tooltip = document.getElementById('chapterTooltip');
+        if (tooltip) {
+          tooltip.style.display = 'block';
+          tooltip.style.left = `${percent}%`;
+          if (currentSec < preCastState.totalIntroDuration) {
+            tooltip.innerText = "Studio Intro";
+          } else {
+            tooltip.innerText = preCastState.mainMovieData?.Name || "Main Feature";
+          }
+        }
+      }
     };
 
     const commitScrub = (percent) => {
       isScrubbing = false;
       timelineContainer.classList.remove('dragging');
+      const tooltip = document.getElementById('chapterTooltip');
+      if (tooltip) tooltip.style.display = 'none';
 
       if (preCastState.active) {
         const targetGlobal = (percent / 100) * preCastState.totalTimelineDuration;
@@ -2421,7 +2647,7 @@
 
     let lastTapTime = 0;
     playerContainer.addEventListener('click', (e) => {
-      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
+      if (e.target.closest('.icon-btn') || e.target.closest('.action-btn') || e.target.closest('.btn-skip-precast') || e.target.closest('input') || e.target.closest('.settings-modal') || e.target.closest('.drawer-overlay')) {
         showControls();
         return;
       }
@@ -2452,9 +2678,20 @@
 
     document.getElementById('playBtn').onclick = (e) => {
       e.stopPropagation();
-      playerManager.togglePlay();
+      if (preCastState.active && preCastState.currentStage === 'intro') {
+        if (precastVid.paused) {
+          precastVid.play();
+          updatePlayPauseUI(true);
+        } else {
+          precastVid.pause();
+          updatePlayPauseUI(false);
+        }
+      } else {
+        playerManager.togglePlay();
+      }
       showControls();
     };
+
     document.getElementById('rewindBtn').onclick = (e) => {
       e.stopPropagation();
       performContinuousSeek(-10);
@@ -2726,6 +2963,7 @@
   window.playYouTubePreviously = function(videoId, title) {
     closeDrawer();
     document.getElementById('overlayTitle').innerText = title;
+    resetPrecastState();
     playerManager.playStream({ Stream: `https://www.youtube.com/watch?v=${videoId}` });
   };
 
@@ -2742,6 +2980,7 @@
   };
 
   window.switchChannelInPlace = function(newId) {
+    resetPrecastState();
     playerManager.destroyAll();
     closeDrawer();
     window.history.pushState({}, '', `?watch=${newId}`);
