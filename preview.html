@@ -7,19 +7,22 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.youtube.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- YouTube IFrame API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="https://www.youtube.com/iframe_api" async></script>
 
   <style>
     :root {
       --bg-color: #090a0f;
+      --surface-bg: #12151e;
       --card-bg: #151821;
       --accent-blue: #1480f0;
       --text-main: #ffffff;
       --text-muted: #94a3b8;
       --border-color: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.24);
       --live-red: #e50914;
     }
 
@@ -32,12 +35,17 @@
       outline: none;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
       user-select: none;
+      -webkit-font-smoothing: antialiased;
     }
 
     /* Sticky Top Header on Scroll */
@@ -52,13 +60,15 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 28px;
-      transition: background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease;
+      transition: background-color 0.28s ease, backdrop-filter 0.28s ease, border-color 0.28s ease;
+      border-bottom: 1px solid transparent;
       pointer-events: none;
     }
     .sticky-top-nav.scrolled {
-      background: rgba(9, 10, 15, 0.94);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border-color);
+      background: rgba(9, 10, 15, 0.88);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom-color: var(--border-color);
       pointer-events: auto;
     }
 
@@ -80,7 +90,7 @@
     }
 
     .nav-close-btn {
-      background: rgba(15, 16, 23, 0.65);
+      background: rgba(15, 16, 23, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.18);
       color: #fff;
       width: 40px;
@@ -91,12 +101,71 @@
       justify-content: center;
       cursor: pointer;
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       pointer-events: auto;
       margin-left: auto;
-      transition: transform 0.15s ease, background 0.15s ease;
+      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background 0.18s ease, border-color 0.18s ease;
     }
-    .nav-close-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+    @media (hover: hover) {
+      .nav-close-btn:hover {
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.35);
+      }
+    }
+    .nav-close-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.22); }
     .nav-close-btn svg { width: 20px; height: 20px; fill: #fff; }
+
+    /* ==========================================================
+       SKELETON LOADER (FAST & SMOOTH FEEL)
+       ========================================================== */
+    .loader-wrap {
+      width: 100%;
+      min-height: 100vh;
+      padding: 90px 48px 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: radial-gradient(circle at 75% 30%, rgba(20, 128, 240, 0.08), transparent 55%), var(--bg-color);
+    }
+    .skeleton-box {
+      background: linear-gradient(90deg, #131620 25%, #1c2130 50%, #131620 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 10px;
+    }
+    .sk-logo { width: 260px; height: 74px; margin-bottom: 20px; }
+    .sk-meta { width: 220px; height: 18px; margin-bottom: 16px; border-radius: 6px; }
+    .sk-desc { width: 460px; max-width: 100%; height: 64px; margin-bottom: 24px; }
+    .sk-btns { display: flex; gap: 12px; }
+    .sk-btn-lg { width: 190px; height: 52px; }
+    .sk-btn-sq { width: 52px; height: 52px; }
+    .loader-error-msg {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 16px;
+      font-weight: 600;
+      margin: auto;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    @media (max-width: 899px) {
+      .loader-wrap { padding: 16px; justify-content: flex-start; }
+      .sk-logo { width: 100%; height: 220px; border-radius: 18px; }
+      .sk-meta, .sk-desc { margin-inline: auto; }
+      .sk-btns { justify-content: center; }
+    }
+
+    /* Smooth Reveal for Main Content */
+    #previewMain {
+      animation: fadeInPage 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    @keyframes fadeInPage {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     /* ==========================================================
        HERO BILLBOARD SECTION
@@ -104,11 +173,12 @@
     .hero-billboard-wrap {
       position: relative;
       width: 100%;
-      min-height: 82vh;
+      min-height: 84vh;
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      padding: 90px 48px 50px;
+      padding: 96px 48px 56px;
+      overflow: hidden;
     }
 
     @media (max-width: 899px) {
@@ -133,10 +203,11 @@
     @media (max-width: 899px) {
       .hero-media-box {
         position: relative;
-        aspect-ratio: 16/10;
+        aspect-ratio: 16/9.5;
         border-radius: 18px;
-        margin-bottom: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
       }
     }
 
@@ -145,7 +216,8 @@
       height: 100%;
       object-fit: cover;
       object-position: center right;
-      transition: opacity 0.6s ease;
+      transition: opacity 0.65s ease, transform 6s ease-out;
+      will-change: opacity, transform;
     }
 
     .hero-trailer-host {
@@ -153,9 +225,10 @@
       inset: 0;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.6s ease;
+      transition: opacity 0.65s ease;
       background: #000;
       overflow: hidden;
+      will-change: opacity;
     }
     .hero-trailer-host.playing { opacity: 1; }
     .hero-trailer-host iframe {
@@ -178,31 +251,34 @@
       position: absolute;
       inset: 0;
       background: 
-        linear-gradient(90deg, #090a0f 0%, rgba(9, 10, 15, 0.95) 38%, rgba(9, 10, 15, 0.6) 62%, transparent 88%),
-        linear-gradient(0deg, #090a0f 0%, rgba(9, 10, 15, 0.6) 18%, transparent 45%);
+        linear-gradient(90deg, #090a0f 0%, rgba(9, 10, 15, 0.94) 36%, rgba(9, 10, 15, 0.62) 60%, rgba(9, 10, 15, 0.15) 85%, transparent 100%),
+        linear-gradient(0deg, #090a0f 0%, rgba(9, 10, 15, 0.72) 18%, transparent 48%),
+        linear-gradient(180deg, rgba(9, 10, 15, 0.5) 0%, transparent 20%);
       pointer-events: none;
       z-index: 2;
     }
 
     @media (max-width: 899px) {
       .hero-desktop-gradient {
-        background: linear-gradient(180deg, transparent 50%, rgba(9, 10, 15, 0.8) 100%);
+        background: linear-gradient(180deg, rgba(9, 10, 15, 0.2) 0%, transparent 40%, rgba(9, 10, 15, 0.85) 100%);
       }
     }
 
     /* Top Left Trailer Text */
     .trailer-status-text {
       position: absolute;
-      top: 24px;
+      top: 26px;
       left: 48px;
-      color: #ffffff;
-      font-size: 12px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 11.5px;
       font-weight: 800;
-      letter-spacing: 1px;
+      letter-spacing: 1.4px;
       text-transform: uppercase;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0,0,0,0.8);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
       z-index: 10;
       display: none;
+      align-items: center;
+      gap: 6px;
     }
     @media (max-width: 899px) {
       .trailer-status-text {
@@ -216,8 +292,8 @@
       position: absolute;
       bottom: 28px;
       right: 48px;
-      background: rgba(0, 0, 0, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(15, 17, 26, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.22);
       width: 40px;
       height: 40px;
       border-radius: 50%;
@@ -226,15 +302,29 @@
       justify-content: center;
       cursor: pointer;
       z-index: 10;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: transform 0.18s ease, background 0.18s ease;
     }
+    @media (max-width: 899px) {
+      .mute-toggle-btn {
+        bottom: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+      }
+    }
+    @media (hover: hover) {
+      .mute-toggle-btn:hover { background: rgba(255, 255, 255, 0.18); transform: scale(1.06); }
+    }
+    .mute-toggle-btn:active { transform: scale(0.92); }
     .mute-toggle-btn svg { width: 18px; height: 18px; fill: #fff; }
 
     /* Foreground Content Box */
     .billboard-foreground-content {
       position: relative;
       z-index: 5;
-      max-width: 580px;
+      max-width: 590px;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -252,60 +342,72 @@
 
     /* Logo & Title */
     .brand-logo-img {
-      max-width: 320px;
-      max-height: 120px;
+      max-width: 340px;
+      max-height: 128px;
       object-fit: contain;
       object-position: left center;
-      margin-bottom: 16px;
-      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.85));
+      margin-bottom: 18px;
+      filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.85));
     }
     @media (max-width: 899px) {
       .brand-logo-img {
         object-position: center;
         max-width: 240px;
-        max-height: 90px;
+        max-height: 92px;
+        margin-bottom: 14px;
       }
     }
 
     .title-fallback-text {
-      font-size: 44px;
+      font-size: 46px;
       font-weight: 900;
-      line-height: 1.18;
+      line-height: 1.12;
       margin-bottom: 14px;
       color: #ffffff;
-      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.95);
-      letter-spacing: -0.5px;
+      text-shadow: 0 4px 24px rgba(0, 0, 0, 0.95);
+      letter-spacing: -0.6px;
     }
     @media (max-width: 899px) {
-      .title-fallback-text {
-        font-size: 30px;
-      }
+      .title-fallback-text { font-size: 30px; }
     }
 
-    /* Metadata Line (Release_Date • Age_Rating • Language • Rating) */
+    /* Metadata Line */
     .meta-pills-row {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 10px;
-      font-size: 15px;
+      gap: 9px;
+      font-size: 14.5px;
       font-weight: 700;
-      color: #ffffff;
+      color: #f1f5f9;
       margin-bottom: 14px;
       letter-spacing: 0.2px;
+    }
+    @media (max-width: 899px) {
+      .meta-pills-row { justify-content: center; }
     }
     .meta-pills-row span.sep {
       color: var(--text-muted);
       font-size: 11px;
     }
+    .meta-badge-pill {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
 
     /* Description */
     .description-para {
-      font-size: 14.5px;
+      font-size: 15px;
       line-height: 1.6;
-      color: #e2e8f0;
+      color: rgba(226, 232, 240, 0.92);
       margin-bottom: 16px;
       max-width: 540px;
+      font-weight: 400;
     }
 
     /* Tags / Genres with Pipes */
@@ -313,11 +415,11 @@
       font-size: 14px;
       font-weight: 700;
       color: #ffffff;
-      margin-bottom: 22px;
+      margin-bottom: 24px;
       letter-spacing: 0.3px;
     }
     .genres-tags-line span.pipe {
-      color: var(--text-muted);
+      color: rgba(148, 163, 184, 0.55);
       margin: 0 8px;
       font-weight: 400;
     }
@@ -329,13 +431,16 @@
       gap: 12px;
       flex-wrap: wrap;
     }
+    @media (max-width: 899px) {
+      .actions-row-container { justify-content: center; width: 100%; }
+    }
 
     /* Hotstar Blue-to-Magenta CTA Button */
     .btn-hotstar-cta {
       height: 52px;
-      padding: 0 28px;
-      border-radius: 8px;
-      background: linear-gradient(90deg, #027bfd 0%, #0d6efd 35%, #be0876 100%);
+      padding: 0 30px;
+      border-radius: 10px;
+      background: linear-gradient(95deg, #0976f8 0%, #0d6efd 42%, #cc097c 100%);
       color: #ffffff;
       font-size: 15.5px;
       font-weight: 700;
@@ -346,25 +451,31 @@
       text-decoration: none;
       cursor: pointer;
       border: none;
-      transition: transform 0.15s ease, filter 0.15s ease;
-      box-shadow: 0 4px 16px rgba(0, 123, 253, 0.35);
+      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), filter 0.18s ease, box-shadow 0.2s ease;
+      box-shadow: 0 8px 24px rgba(10, 120, 250, 0.35);
+      will-change: transform;
+    }
+    @media (hover: hover) {
+      .btn-hotstar-cta:hover {
+        transform: translateY(-1px) scale(1.02);
+        filter: brightness(1.08);
+        box-shadow: 0 10px 28px rgba(10, 120, 250, 0.48);
+      }
     }
     .btn-hotstar-cta:active {
-      transform: scale(0.98);
-      filter: brightness(0.9);
+      transform: scale(0.97);
+      filter: brightness(0.92);
     }
-    .btn-hotstar-cta svg {
-      width: 18px;
-      height: 18px;
-      fill: currentColor;
-    }
+    .btn-hotstar-cta svg { width: 18px; height: 18px; fill: currentColor; }
 
     .btn-hotstar-secondary {
       height: 52px;
       padding: 0 20px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       color: #ffffff;
       font-size: 15px;
       font-weight: 700;
@@ -373,47 +484,56 @@
       gap: 8px;
       text-decoration: none;
       cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease;
     }
-    .btn-hotstar-secondary:active { background: rgba(255, 255, 255, 0.22); }
+    @media (hover: hover) {
+      .btn-hotstar-secondary:hover { background: rgba(255, 255, 255, 0.18); transform: translateY(-1px); }
+    }
+    .btn-hotstar-secondary:active { background: rgba(255, 255, 255, 0.24); transform: scale(0.97); }
     .btn-hotstar-secondary svg { width: 17px; height: 17px; fill: currentColor; }
 
     /* Square Companion Buttons ([ + ] Watchlist & Share) */
     .btn-square-companion {
       width: 52px;
       height: 52px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background 0.15s ease, transform 0.1s ease, color 0.15s ease;
+      transition: background 0.18s ease, transform 0.16s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+    @media (hover: hover) {
+      .btn-square-companion:hover {
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+      }
     }
     .btn-square-companion:active {
-      transform: scale(0.94);
-      background: rgba(255, 255, 255, 0.2);
+      transform: scale(0.93);
+      background: rgba(255, 255, 255, 0.22);
     }
-    .btn-square-companion svg {
-      width: 22px;
-      height: 22px;
-      fill: currentColor;
-    }
+    .btn-square-companion svg { width: 22px; height: 22px; fill: currentColor; }
     .btn-square-companion.active {
-      background: rgba(20, 128, 240, 0.3);
+      background: rgba(20, 128, 240, 0.24);
       border-color: var(--accent-blue);
-      color: var(--accent-blue);
+      color: #5ab0ff;
     }
 
     @keyframes bouncePop {
       0% { transform: scale(1); }
-      40% { transform: scale(1.3) rotate(-10deg); }
-      75% { transform: scale(0.92) rotate(5deg); }
+      40% { transform: scale(1.28) rotate(-8deg); }
+      75% { transform: scale(0.92) rotate(4deg); }
       100% { transform: scale(1) rotate(0deg); }
     }
     .btn-square-companion.animating svg {
-      animation: bouncePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: bouncePop 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     /* Lower Flow (Episodes & More Like This) */
@@ -421,20 +541,20 @@
       position: relative;
       z-index: 10;
       width: 100%;
-      max-width: 1320px;
-      margin: 40px auto 60px;
+      max-width: 1360px;
+      margin: 28px auto 64px;
       padding: 0 48px;
     }
     @media (max-width: 899px) {
       .lower-content-container {
         padding: 0 16px;
-        margin: 20px auto 40px;
+        margin: 18px auto 44px;
       }
     }
 
     .section-container {
       width: 100%;
-      margin-bottom: 34px;
+      margin-bottom: 38px;
       text-align: left;
     }
     .section-heading {
@@ -442,13 +562,14 @@
       font-weight: 800;
       margin-bottom: 16px;
       color: #fff;
+      letter-spacing: -0.2px;
     }
 
     /* TV Show Episodes List */
     .episodes-wrapper { display: none; }
     .season-tab-row {
       display: flex;
-      gap: 20px;
+      gap: 24px;
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 10px;
       margin-bottom: 18px;
@@ -466,7 +587,9 @@
       white-space: nowrap;
       position: relative;
       padding-bottom: 6px;
+      transition: color 0.18s ease;
     }
+    .season-btn:hover { color: #e2e8f0; }
     .season-btn.active { color: #fff; }
     .season-btn.active::after {
       content: '';
@@ -475,55 +598,66 @@
       left: 0;
       right: 0;
       height: 2.5px;
-      background: #fff;
+      border-radius: 2px;
+      background: var(--accent-blue);
     }
 
     .episodes-list {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 10px;
     }
     .ep-card {
       display: flex;
       align-items: center;
       gap: 16px;
       padding: 10px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid transparent;
       cursor: pointer;
       text-decoration: none;
       color: #fff;
-      transition: background 0.15s ease;
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
     }
-    .ep-card:active { background: rgba(255, 255, 255, 0.08); }
+    @media (hover: hover) {
+      .ep-card:hover {
+        background: rgba(255, 255, 255, 0.065);
+        border-color: var(--border-color);
+      }
+    }
+    .ep-card:active { background: rgba(255, 255, 255, 0.09); transform: scale(0.99); }
     .ep-thumb-wrap {
       position: relative;
-      width: 135px;
-      min-width: 135px;
+      width: 146px;
+      min-width: 146px;
       aspect-ratio: 16/9;
       border-radius: 8px;
       overflow: hidden;
       background: #151821;
+    }
+    @media (max-width: 540px) {
+      .ep-thumb-wrap { width: 124px; min-width: 124px; }
     }
     .ep-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
     .ep-play-circle {
       position: absolute;
       bottom: 6px;
       left: 6px;
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
-      background: rgba(0,0,0,0.65);
-      border: 1px solid rgba(255,255,255,0.4);
+      background: rgba(0, 0, 0, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.45);
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .ep-play-circle svg { width: 11px; height: 11px; fill: #fff; margin-left: 1px; }
+    .ep-play-circle svg { width: 12px; height: 12px; fill: #fff; margin-left: 1px; }
 
     .ep-info { flex: 1; min-width: 0; }
     .ep-name {
-      font-size: 14.5px;
+      font-size: 15px;
       font-weight: 700;
       line-height: 1.35;
       white-space: nowrap;
@@ -541,16 +675,20 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      width: 140px;
+      min-width: 144px;
       margin: 18px auto 6px;
-      padding: 9px 16px;
-      border-radius: 20px;
+      padding: 10px 20px;
+      border-radius: 24px;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       color: #fff;
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 700;
       cursor: pointer;
+      transition: background 0.18s ease, border-color 0.18s ease;
+    }
+    @media (hover: hover) {
+      .view-more-btn:hover { background: #1e2330; border-color: var(--border-hover); }
     }
 
     /* 16:9 Recommendations */
@@ -558,23 +696,31 @@
       display: flex;
       gap: 16px;
       overflow-x: auto;
-      scroll-snap-type: x mandatory;
+      scroll-snap-type: x proximity;
       -webkit-overflow-scrolling: touch;
-      padding-bottom: 12px;
+      padding: 4px 2px 14px;
       scrollbar-width: none;
     }
     .rec-scroll-row::-webkit-scrollbar { display: none; }
 
     .rec-16-9-card {
-      min-width: 230px;
-      width: 230px;
+      min-width: 244px;
+      width: 244px;
       scroll-snap-align: start;
       text-decoration: none;
       color: #fff;
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      transition: transform 0.15s ease;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+    @media (max-width: 540px) {
+      .rec-16-9-card { min-width: 204px; width: 204px; }
+    }
+    @media (hover: hover) {
+      .rec-16-9-card:hover { transform: scale(1.035); }
+      .rec-16-9-card:hover .rec-16-9-thumb { border-color: rgba(255, 255, 255, 0.35); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55); }
     }
     .rec-16-9-card:active { transform: scale(0.96); }
     
@@ -586,12 +732,13 @@
       overflow: hidden;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      margin-bottom: 8px;
+      margin-bottom: 9px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .rec-16-9-thumb img { width: 100%; height: 100%; object-fit: cover; }
     
     .rec-title {
-      font-size: 14px;
+      font-size: 14.5px;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
@@ -601,33 +748,35 @@
       font-size: 12px;
       color: var(--text-muted);
       margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .toast-box {
       position: fixed;
-      bottom: 40px;
+      bottom: 36px;
       left: 50%;
-      transform: translateX(-50%);
-      background: rgba(21, 24, 33, 0.95);
-      border: 1px solid var(--border-color);
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(21, 24, 33, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
       color: #fff;
-      padding: 9px 20px;
-      border-radius: 20px;
+      padding: 10px 22px;
+      border-radius: 24px;
       font-size: 13.5px;
       font-weight: 600;
       z-index: 200;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.24s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+      white-space: nowrap;
     }
-    .toast-box.show { opacity: 1; }
-
-    .loader-wrap {
-      text-align: center;
-      padding: 160px 20px;
-      color: var(--accent-blue);
-      font-weight: 700;
-      font-size: 16px;
+    .toast-box.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
   </style>
 </head>
@@ -641,7 +790,17 @@
     </button>
   </div>
 
-  <div id="loader" class="loader-wrap">Loading content...</div>
+  <!-- Skeleton Loader -->
+  <div id="loader" class="loader-wrap">
+    <div class="skeleton-box sk-logo"></div>
+    <div class="skeleton-box sk-meta"></div>
+    <div class="skeleton-box sk-desc"></div>
+    <div class="sk-btns">
+      <div class="skeleton-box sk-btn-lg"></div>
+      <div class="skeleton-box sk-btn-sq"></div>
+      <div class="skeleton-box sk-btn-sq"></div>
+    </div>
+  </div>
 
   <div id="previewMain" style="display: none;">
     
@@ -650,7 +809,7 @@
       
       <!-- Background Media Box -->
       <div class="hero-media-box" id="heroMediaBox">
-        <img id="heroBanner" class="hero-banner-img" src="" alt="Banner">
+        <img id="heroBanner" class="hero-banner-img" src="" alt="Banner" fetchpriority="high">
         <div id="heroTrailerHost" class="hero-trailer-host"></div>
         <div class="hero-desktop-gradient"></div>
 
@@ -745,6 +904,8 @@
     let currentCollection = 'Movies';
     let currentUser = null;
     let userDocRef = null;
+    let userProfiles = null;
+    let activeProfileIndex = -1;
     let userWatchlist = [];
     let userAuthorizedStudios = new Set();
     let hasAccess = false;
@@ -753,16 +914,25 @@
     let currentSeasonKey = null;
     let showAllEpisodes = false;
     let isMuted = true;
+    let toastTimer = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const contentId = urlParams.get('preview') || urlParams.get('watch');
 
+    // Smooth rAF-throttled scroll handler
+    let scrollTicking = false;
     window.addEventListener('scroll', () => {
-      const topNav = document.getElementById('stickyTopNav');
-      if (window.scrollY > 90) {
-        topNav.classList.add('scrolled');
-      } else {
-        topNav.classList.remove('scrolled');
+      if (!scrollTicking) {
+        window.requestAnimationFrame(() => {
+          const topNav = document.getElementById('stickyTopNav');
+          if (window.scrollY > 90) {
+            topNav.classList.add('scrolled');
+          } else {
+            topNav.classList.remove('scrolled');
+          }
+          scrollTicking = false;
+        });
+        scrollTicking = true;
       }
     }, { passive: true });
 
@@ -770,18 +940,19 @@
       const toast = document.getElementById('toastAlert');
       toast.innerText = msg;
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2200);
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
     }
 
     function safeUrl(url) {
       if (!url) return '';
-      return url.trim().replace(/^http:\/\//i, 'https://');
+      return String(url).trim().replace(/^http:\/\//i, 'https://');
     }
 
-    // Horizontal Banner / Poster resolver
+    // Horizontal Banner resolver (Strictly uses Banner, NOT Poster.h)
     function getHorizontalImage(c) {
       if (!c) return '';
-      return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster || c["Poster.v"] || '');
+      return safeUrl(c.Banner || c.banner || c.Poster || c["Poster.v"] || '');
     }
 
     function extractYouTubeId(url) {
@@ -800,7 +971,62 @@
       return null;
     }
 
-    // Load User Plan & Subscribed Studios
+    // Resolve which Profile inside UARM.Profiles is currently active
+    function resolveActiveProfileIndex(profiles, uData) {
+      if (!Array.isArray(profiles) || profiles.length === 0) return -1;
+
+      // 1. Check explicit index stored in localStorage or user object
+      const storedIdx = localStorage.getItem('active_profile_index') ?? localStorage.getItem('profile_index');
+      if (storedIdx !== null && storedIdx !== '' && !Number.isNaN(Number(storedIdx))) {
+        const idx = Number(storedIdx);
+        if (profiles[idx]) return idx;
+      }
+
+      if (typeof currentUser?.activeProfileIndex === 'number' && profiles[currentUser.activeProfileIndex]) {
+        return currentUser.activeProfileIndex;
+      }
+
+      // 2. Check active_profile / selected_profile object or string in localStorage
+      const rawProfile = localStorage.getItem('active_profile') || localStorage.getItem('selected_profile') || localStorage.getItem('current_profile');
+      if (rawProfile) {
+        try {
+          const parsed = JSON.parse(rawProfile);
+          if (parsed && typeof parsed === 'object') {
+            const matchIdx = profiles.findIndex(p =>
+              (parsed.Name && p.Name === parsed.Name) ||
+              (parsed.Avatar && p.Avatar === parsed.Avatar)
+            );
+            if (matchIdx !== -1) return matchIdx;
+          }
+        } catch (e) {
+          const matchByName = profiles.findIndex(p => p.Name === rawProfile);
+          if (matchByName !== -1) return matchByName;
+        }
+      }
+
+      // 3. Fallback to first Hotstar profile, or index 0
+      const hotstarIdx = profiles.findIndex(p => String(p?.App || '').toLowerCase() === 'hotstar');
+      return hotstarIdx !== -1 ? hotstarIdx : 0;
+    }
+
+    // Sync userWatchlist state from UARM data (supports Profiles[i].Watchlist + top-level fallback)
+    function extractWatchlistFromUserData(uData) {
+      if (!uData) return [];
+      if (Array.isArray(uData.Profiles) && uData.Profiles.length > 0) {
+        userProfiles = uData.Profiles;
+        activeProfileIndex = resolveActiveProfileIndex(uData.Profiles, uData);
+        const activeProf = uData.Profiles[activeProfileIndex];
+        if (activeProf && Array.isArray(activeProf.Watchlist)) {
+          return [...activeProf.Watchlist];
+        }
+        return [];
+      }
+      userProfiles = null;
+      activeProfileIndex = -1;
+      return Array.isArray(uData.Watchlist) ? [...uData.Watchlist] : [];
+    }
+
+    // Load User Plan, Active Profile Watchlist & Subscribed Studios
     async function loadUserSubscriptionPlan() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
@@ -809,7 +1035,7 @@
 
       if (!currentUser) return;
 
-      userWatchlist = Array.isArray(currentUser.Watchlist) ? currentUser.Watchlist : [];
+      userWatchlist = extractWatchlistFromUserData(currentUser);
 
       try {
         let uData = null;
@@ -834,7 +1060,7 @@
         }
 
         if (uData) {
-          userWatchlist = Array.isArray(uData.Watchlist) ? uData.Watchlist : userWatchlist;
+          userWatchlist = extractWatchlistFromUserData(uData);
           currentUser = { ...currentUser, ...uData };
           localStorage.setItem('active_user', JSON.stringify(currentUser));
         }
@@ -876,29 +1102,32 @@
       return false;
     }
 
-    // Search document across all collections
+    // Parallel Search across all collections (up to 6x faster)
     async function fetchContentData(id) {
+      if (!id) {
+        document.getElementById('loader').innerHTML = `<div class="loader-error-msg">No content ID specified.</div>`;
+        return null;
+      }
+
       const collections = ["Movies", "TV Shows", "Shows", "Live TV", "Digital-Feed", "Sports"];
-      let matchedDoc = null;
+      const snaps = await Promise.all(
+        collections.map(async (col) => {
+          try {
+            const snap = await getDoc(doc(contentDb, col, id));
+            if (snap.exists()) return { col, data: snap.data() };
+          } catch (e) {}
+          return null;
+        })
+      );
 
-      for (const col of collections) {
-        try {
-          const snap = await getDoc(doc(contentDb, col, id));
-          if (snap.exists()) {
-            matchedDoc = snap.data();
-            currentCollection = col;
-            break;
-          }
-        } catch (e) {}
+      const found = snaps.find(Boolean);
+      if (!found) {
+        document.getElementById('loader').innerHTML = `<div class="loader-error-msg">Content "${id}" not found.</div>`;
+        return null;
       }
 
-      if (!matchedDoc) {
-        document.getElementById('loader').innerText = `Content "${id}" not found.`;
-        return;
-      }
-
-      currentItem = { id, ...matchedDoc };
-      hasAccess = checkContentAccess(currentItem);
+      currentCollection = found.col;
+      currentItem = { id, ...found.data };
 
       const seasons = Object.keys(currentItem).filter(k => k.toLowerCase().startsWith('season'));
       if (currentCollection === "TV Shows" || currentCollection === "Shows" || seasons.length > 0) {
@@ -910,9 +1139,7 @@
         contentType = 'live';
       }
 
-      renderPreviewUI();
-      scheduleTrailerPlayback();
-      fetchRecommendations();
+      return currentItem;
     }
 
     function renderPreviewUI() {
@@ -921,11 +1148,12 @@
 
       const showName = currentItem.Name || currentItem.Title || "";
       document.getElementById('stickyNavTitle').innerText = showName;
+      if (showName) document.title = `${showName} - Hotstar`;
 
-      // 1. Banner
+      // 1. Banner (Strictly Banner, not Poster.h)
       const bannerImg = document.getElementById('heroBanner');
       const primaryBanner = getHorizontalImage(currentItem);
-      const secondaryBanner = safeUrl(currentItem.Banner || currentItem.Poster || '');
+      const secondaryBanner = safeUrl(currentItem.Poster || currentItem["Poster.v"] || '');
 
       bannerImg.src = primaryBanner;
       bannerImg.onerror = () => {
@@ -956,23 +1184,16 @@
         titleFallback.style.display = 'block';
       }
 
-      // 3. Exact Metadata from Document (Release_Date, Age_Rating, Language, Rating)
+      // 3. Exact Metadata from Document
       const metaRow = document.getElementById('metaPillsRow');
       const metaParts = [];
 
-      // Release Date (supporting Release_Date, Release_date, Release Year, Year)
       const releaseYear = currentItem.Release_Date || currentItem.Release_date || currentItem["Release Date"] || currentItem.Year || currentItem["Release Year"];
-      if (releaseYear) {
-        metaParts.push(`<span>${releaseYear}</span>`);
-      }
+      if (releaseYear) metaParts.push(`<span>${releaseYear}</span>`);
 
-      // Age Rating
       const age = currentItem.Age_Rating || currentItem["Age Rating"] || currentItem.AgeRating;
-      if (age) {
-        metaParts.push(`<span>${age}</span>`);
-      }
+      if (age) metaParts.push(`<span class="meta-badge-pill">${age}</span>`);
 
-      // TV Show Seasons count
       if (contentType === 'show') {
         const seasons = Object.keys(currentItem).filter(k => k.toLowerCase().startsWith('season'));
         if (seasons.length > 0) {
@@ -980,27 +1201,18 @@
         }
       }
 
-      // Duration (Only if exists in Firestore)
       const duration = currentItem.Duration || currentItem.duration || currentItem.Runtime || currentItem.runtime;
-      if (duration) {
-        metaParts.push(`<span>${duration}</span>`);
-      }
+      if (duration) metaParts.push(`<span>${duration}</span>`);
 
-      // Language
       const lang = Array.isArray(currentItem.Language) ? currentItem.Language.join(', ') : currentItem.Language;
-      if (lang) {
-        metaParts.push(`<span>${lang}</span>`);
-      }
+      if (lang) metaParts.push(`<span>${lang}</span>`);
 
-      // Rating (e.g. 7.6)
       const rating = currentItem.Rating || currentItem.rating || currentItem.IMDb || currentItem.imdb;
-      if (rating) {
-        metaParts.push(`<span>★ ${rating}</span>`);
-      }
+      if (rating) metaParts.push(`<span>★ ${rating}</span>`);
 
       metaRow.innerHTML = metaParts.join(' <span class="sep">•</span> ');
 
-      // 4. Description (Strictly from document)
+      // 4. Description
       const descEl = document.getElementById('contentDescription');
       const desc = currentItem.Discription || currentItem.Description || currentItem.description || '';
       if (desc) {
@@ -1010,7 +1222,7 @@
         descEl.style.display = 'none';
       }
 
-      // 5. Tags / Genres with Pipes (Strictly from document)
+      // 5. Tags / Genres with Pipes
       const tagsEl = document.getElementById('genresTagsLine');
       const rawTags = currentItem.Tags || currentItem.Genres || currentItem.Channel || '';
       if (rawTags) {
@@ -1112,17 +1324,17 @@
       trailerTimeout = setTimeout(() => {
         if (!trailerUrl) {
           trailerStatusText.innerText = "TRAILER UNAVAILABLE";
-          trailerStatusText.style.display = "block";
+          trailerStatusText.style.display = "flex";
           return;
         }
 
         const ytId = extractYouTubeId(trailerUrl);
 
-        if (ytId) {
+        if (ytId && typeof YT !== 'undefined' && YT.Player) {
           host.innerHTML = `<div id="ytTrailerActualPlayer"></div>`;
           host.classList.add('playing');
           trailerStatusText.innerText = "TRAILER";
-          trailerStatusText.style.display = "block";
+          trailerStatusText.style.display = "flex";
 
           ytTrailerPlayer = new YT.Player('ytTrailerActualPlayer', {
             videoId: ytId,
@@ -1135,7 +1347,7 @@
               modestbranding: 1,
               showinfo: 0,
               iv_load_policy: 3,
-              mute: 1,
+              mute: isMuted ? 1 : 0,
               playsinline: 1
             },
             events: {
@@ -1154,21 +1366,21 @@
             }
           });
         } else if (trailerUrl.endsWith('.mp4') || trailerUrl.includes('.m3u8')) {
-          host.innerHTML = `<video id="videoTrailerEl" src="${trailerUrl}" autoplay muted playsinline></video>`;
+          host.innerHTML = `<video id="videoTrailerEl" src="${trailerUrl}" autoplay ${isMuted ? 'muted' : ''} playsinline></video>`;
           host.classList.add('playing');
           trailerStatusText.innerText = "TRAILER";
-          trailerStatusText.style.display = "block";
+          trailerStatusText.style.display = "flex";
 
           const vid = document.getElementById('videoTrailerEl');
           vid.onended = () => {
             host.classList.remove('playing');
             trailerStatusText.style.display = 'none';
           };
-        } else {
+        } else if (!ytId) {
           trailerStatusText.innerText = "TRAILER UNAVAILABLE";
-          trailerStatusText.style.display = "block";
+          trailerStatusText.style.display = "flex";
         }
-      }, 3000);
+      }, 2800);
     }
 
     // Audio Mute Toggle
@@ -1210,12 +1422,12 @@
       const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
       const limit = showAllEpisodes ? epList.length : 5;
       const thumbUrl = getHorizontalImage(currentItem);
-      const fallbackThumb = safeUrl(currentItem.Banner || currentItem.Poster || '');
+      const fallbackThumb = safeUrl(currentItem.Poster || currentItem["Poster.v"] || '');
 
       listEl.innerHTML = epList.slice(0, limit).map((ep, idx) => `
         <a class="ep-card" href="1.html?watch=${currentItem.id}&season=${encodeURIComponent(currentSeasonKey)}&ep=${idx + 1}">
           <div class="ep-thumb-wrap">
-            <img src="${thumbUrl}" alt="${ep.Name || ''}" onerror="if(this.src!=='${fallbackThumb}') this.src='${fallbackThumb}';">
+            <img src="${thumbUrl}" alt="${ep.Name || ''}" loading="lazy" onerror="if(this.src!=='${fallbackThumb}') this.src='${fallbackThumb}';">
             <div class="ep-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="ep-info">
@@ -1244,12 +1456,66 @@
 
     function updateWatchlistButtonState() {
       const btn = document.getElementById('btnWatchlist');
-      if (!btn) return;
+      if (!btn || !currentItem) return;
       const isAdded = userWatchlist.includes(currentItem.id);
       btn.classList.toggle('active', isAdded);
+      btn.title = isAdded ? "Remove from Watchlist" : "Add to Watchlist";
       document.getElementById('wlIcon').innerHTML = isAdded 
         ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' 
         : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
+    }
+
+    // Updated Watchlist System (Syncs UARM.Profiles[activeProfileIndex].Watchlist)
+    async function persistWatchlistUpdate(targetId, shouldAdd) {
+      try {
+        if (!userDocRef && currentUser?.Lotus) {
+          const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
+          if (!snap.empty) userDocRef = doc(userDb, "UARM", snap.docs[0].id);
+        }
+        if (!userDocRef) return;
+
+        // Read fresh doc so we never overwrite sibling profile fields
+        const freshSnap = await getDoc(userDocRef);
+        if (!freshSnap.exists()) return;
+        const freshData = freshSnap.data();
+
+        if (Array.isArray(freshData.Profiles) && freshData.Profiles.length > 0) {
+          const profIdx = resolveActiveProfileIndex(freshData.Profiles, freshData);
+          if (profIdx === -1) return;
+
+          const updatedProfiles = freshData.Profiles.map((p, idx) => {
+            if (idx !== profIdx) return p;
+            const existingWl = Array.isArray(p.Watchlist) ? p.Watchlist : [];
+            const nextWl = shouldAdd
+              ? (existingWl.includes(targetId) ? existingWl : [...existingWl, targetId])
+              : existingWl.filter(item => item !== targetId);
+            return { ...p, Watchlist: nextWl };
+          });
+
+          userProfiles = updatedProfiles;
+          activeProfileIndex = profIdx;
+          userWatchlist = [...(updatedProfiles[profIdx].Watchlist || [])];
+          updateWatchlistButtonState();
+
+          // Sync localStorage cleanly
+          currentUser.Profiles = updatedProfiles;
+          localStorage.setItem('active_user', JSON.stringify(currentUser));
+          if (localStorage.getItem('active_profile')) {
+            localStorage.setItem('active_profile', JSON.stringify(updatedProfiles[profIdx]));
+          }
+
+          await updateDoc(userDocRef, { Profiles: updatedProfiles });
+        } else {
+          // Legacy fallback if document has top-level Watchlist
+          if (shouldAdd) {
+            await updateDoc(userDocRef, { Watchlist: arrayUnion(targetId) });
+          } else {
+            await updateDoc(userDocRef, { Watchlist: arrayRemove(targetId) });
+          }
+        }
+      } catch (err) {
+        console.warn("Watchlist sync error:", err);
+      }
     }
 
     function attachActionListeners() {
@@ -1262,9 +1528,9 @@
 
           if (!currentUser) {
             try {
-              const stored = localStorage.getItem('active_user') || localStorage.getItem('user');
+              const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
               currentUser = stored ? JSON.parse(stored) : null;
-            } catch (e){}
+            } catch (e) {}
           }
 
           if (!currentUser) {
@@ -1273,32 +1539,26 @@
           }
 
           const isAdded = userWatchlist.includes(currentItem.id);
+          const shouldAdd = !isAdded;
 
-          if (isAdded) {
-            userWatchlist = userWatchlist.filter(id => id !== currentItem.id);
-            showToast("Removed from Watchlist");
-          } else {
+          // Optimistic UI update for instant response
+          if (shouldAdd) {
             userWatchlist.push(currentItem.id);
             showToast("Added to Watchlist");
+          } else {
+            userWatchlist = userWatchlist.filter(id => id !== currentItem.id);
+            showToast("Removed from Watchlist");
           }
-          currentUser.Watchlist = userWatchlist;
+
+          if (Array.isArray(currentUser.Profiles) && activeProfileIndex >= 0 && currentUser.Profiles[activeProfileIndex]) {
+            currentUser.Profiles[activeProfileIndex].Watchlist = [...userWatchlist];
+          } else {
+            currentUser.Watchlist = [...userWatchlist];
+          }
           localStorage.setItem('active_user', JSON.stringify(currentUser));
           updateWatchlistButtonState();
 
-          try {
-            if (!userDocRef && currentUser.Lotus) {
-              const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
-              if (!snap.empty) userDocRef = doc(userDb, "UARM", snap.docs[0].id);
-            }
-
-            if (userDocRef) {
-              if (isAdded) {
-                await updateDoc(userDocRef, { Watchlist: arrayRemove(currentItem.id) });
-              } else {
-                await updateDoc(userDocRef, { Watchlist: arrayUnion(currentItem.id) });
-              }
-            }
-          } catch (err) {}
+          await persistWatchlistUpdate(currentItem.id, shouldAdd);
         };
       }
 
@@ -1357,7 +1617,7 @@
 
         grid.innerHTML = items.slice(0, 14).map(c => {
           const primary = getHorizontalImage(c);
-          const fallback = safeUrl(c.Banner || c.Poster || '');
+          const fallback = safeUrl(c.Poster || c["Poster.v"] || '');
           const genres = c.Genres || c.Tags || c.Channel || c.Language || '';
           
           return `
@@ -1374,8 +1634,18 @@
     }
 
     async function start() {
-      await loadUserSubscriptionPlan();
-      await fetchContentData(contentId);
+      // Load user subscription/watchlist AND content document concurrently for faster startup
+      const [, item] = await Promise.all([
+        loadUserSubscriptionPlan(),
+        fetchContentData(contentId)
+      ]);
+
+      if (!item) return;
+
+      hasAccess = checkContentAccess(currentItem);
+      renderPreviewUI();
+      scheduleTrailerPlayback();
+      fetchRecommendations();
     }
     start();
   </script>
