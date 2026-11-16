@@ -88,6 +88,11 @@
       align-items: center;
       gap: 6px;
     }
+    .status-pill.ready {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.35);
+      color: #34d399;
+    }
     .status-pill.offline {
       background: rgba(245, 158, 11, 0.16);
       border-color: rgba(245, 158, 11, 0.4);
@@ -291,14 +296,14 @@
       </button>
       <div class="page-title">Offline Downloads</div>
     </div>
-    <div class="status-pill" id="networkStatusPill">Online</div>
+    <div class="status-pill" id="networkStatusPill">Checking...</div>
   </div>
 
   <div class="container">
     <div class="storage-bar-row">
       <div>
         <div class="storage-info" id="storageCount">Loading saved videos...</div>
-        <div class="storage-sub">Stored privately inside browser storage (hidden from device Gallery)</div>
+        <div class="storage-sub">Page & videos are stored privately inside browser storage (hidden from device Gallery)</div>
       </div>
     </div>
 
@@ -322,28 +327,57 @@
   </div>
 
   <script>
+    const CACHE_NAME = 'hotstar-offline-shell-v2';
     const OFFLINE_DB_NAME = 'HotstarOfflineDB';
     const OFFLINE_STORE = 'downloads';
     let currentVideoObjectUrl = null;
     const thumbObjectUrls = [];
+    let isPageCachedOffline = false;
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    async function ensurePageCachedLocally() {
+      const pill = document.getElementById('networkStatusPill');
+
+      // 1. Register Service Worker so fresh visits offline load from local cache
+      if ('serviceWorker' in navigator) {
+        try {
+          await navigator.serviceWorker.register('./sw.js');
+          await navigator.serviceWorker.ready;
+        } catch (e) {}
+      }
+
+      // 2. Also explicitly save download.html into Cache Storage on first visit
+      if ('caches' in window) {
+        try {
+          const cache = await caches.open(CACHE_NAME);
+          const pageUrl = new URL('./download.html', window.location.href).href;
+          if (navigator.onLine) {
+            await cache.add(pageUrl);
+          }
+          const matched = await cache.match(pageUrl);
+          isPageCachedOffline = Boolean(matched);
+        } catch (e) {}
+      }
+
+      updateNetworkBadge();
     }
 
     function updateNetworkBadge() {
       const pill = document.getElementById('networkStatusPill');
-      if (navigator.onLine) {
-        pill.innerText = 'Online';
-        pill.classList.remove('offline');
-      } else {
+      if (!navigator.onLine) {
         pill.innerText = 'Offline Mode';
-        pill.classList.add('offline');
+        pill.className = 'status-pill offline';
+      } else if (isPageCachedOffline) {
+        pill.innerText = 'Offline Ready';
+        pill.className = 'status-pill ready';
+      } else {
+        pill.innerText = 'Online';
+        pill.className = 'status-pill';
       }
     }
+
     window.addEventListener('online', updateNetworkBadge);
     window.addEventListener('offline', updateNetworkBadge);
-    updateNetworkBadge();
+    ensurePageCachedLocally();
 
     function openOfflineDB() {
       return new Promise((resolve, reject) => {
