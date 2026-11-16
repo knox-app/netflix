@@ -51,6 +51,10 @@
       -webkit-font-smoothing: antialiased;
     }
 
+    body.modal-open {
+      overflow: hidden;
+    }
+
     /* Sticky Top Header on Scroll */
     .sticky-top-nav {
       position: fixed;
@@ -356,6 +360,7 @@
       position: relative;
       z-index: 5;
       max-width: 590px;
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -435,31 +440,111 @@
       letter-spacing: 0.4px;
     }
 
-    /* Description */
+    /* Description + Inline "..more" */
     .description-para {
       font-size: 15px;
-      line-height: 1.6;
+      line-height: 1.62;
       color: rgba(226, 232, 240, 0.92);
       margin-bottom: 16px;
       max-width: 540px;
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+    }
+    .desc-more-btn {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 14.5px;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 0 2px;
+      display: inline;
+      letter-spacing: 0.2px;
+      transition: color 0.15s ease;
+    }
+    .desc-more-btn:hover {
+      color: #60a5fa;
+      text-decoration: underline;
     }
 
-    /* Tags / Genres with Pipes */
+    /* Genres Only (Inline when <= 3, Horizontal Carousel when more) */
     .genres-tags-line {
       font-size: 14px;
       font-weight: 700;
       color: #ffffff;
       margin-bottom: 24px;
       letter-spacing: 0.3px;
+      max-width: 100%;
     }
     .genres-tags-line span.pipe {
       color: rgba(148, 163, 184, 0.65);
       margin: 0 8px;
       font-weight: 400;
+    }
+
+    /* Genres Carousel Mode (when > 3 genres) */
+    .genres-carousel-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      max-width: 560px;
+      gap: 6px;
+    }
+    .genres-carousel-track {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scroll-snap-type: x proximity;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 2px 4px;
+      mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
+    }
+    .genres-carousel-track::-webkit-scrollbar { display: none; }
+    .genre-pill-chip {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+      white-space: nowrap;
+      transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s var(--ease-out);
+    }
+    .genre-pill-chip:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+    .genre-nav-arrow {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.15s ease;
+    }
+    .genre-nav-arrow:hover { background: rgba(255, 255, 255, 0.24); transform: scale(1.06); }
+    .genre-nav-arrow:active { transform: scale(0.92); }
+    .genre-nav-arrow svg { width: 16px; height: 16px; fill: currentColor; }
+    @media (max-width: 899px) {
+      .genres-carousel-wrap {
+        max-width: 100%;
+        justify-content: center;
+      }
+      .genre-nav-arrow { display: none; }
     }
 
     /* Action Buttons Row */
@@ -830,6 +915,106 @@
       text-overflow: ellipsis;
     }
 
+    /* ==========================================================
+       DESCRIPTION POPUP MODAL
+       ========================================================== */
+    .desc-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(5, 6, 10, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s var(--ease-out);
+    }
+    .desc-modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .desc-modal-card {
+      width: 100%;
+      max-width: 560px;
+      max-height: 82vh;
+      overflow-y: auto;
+      background: linear-gradient(180deg, #161a26 0%, #0f121b 100%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 20px;
+      padding: 26px 26px 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+      transform: translateY(18px) scale(0.96);
+      transition: transform 0.28s var(--ease-out);
+    }
+    .desc-modal-overlay.open .desc-modal-card {
+      transform: translateY(0) scale(1);
+    }
+    .desc-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .desc-modal-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+    }
+    .desc-modal-close {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.18s ease, transform 0.18s ease;
+    }
+    .desc-modal-close:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.06); }
+    .desc-modal-close svg { width: 18px; height: 18px; fill: #fff; }
+    .desc-modal-meta {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .desc-modal-body {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #e2e8f0;
+      user-select: text;
+      white-space: pre-line;
+    }
+    .desc-modal-genres {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+    @media (max-width: 599px) {
+      .desc-modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+      }
+      .desc-modal-card {
+        border-radius: 22px 22px 0 0;
+        max-height: 85vh;
+        padding: 22px 20px 30px;
+      }
+    }
+
     .toast-box {
       position: fixed;
       bottom: 36px;
@@ -844,7 +1029,7 @@
       border-radius: 24px;
       font-size: 13.5px;
       font-weight: 600;
-      z-index: 200;
+      z-index: 400;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);
@@ -926,6 +1111,21 @@
 
     </div>
 
+  </div>
+
+  <!-- Full Description Popup Modal -->
+  <div class="desc-modal-overlay" id="descModalOverlay" aria-hidden="true">
+    <div class="desc-modal-card" role="dialog" aria-modal="true" aria-labelledby="descModalTitle">
+      <div class="desc-modal-header">
+        <h2 class="desc-modal-title" id="descModalTitle"></h2>
+        <button class="desc-modal-close" id="descModalCloseBtn" title="Close">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="desc-modal-meta" id="descModalMeta"></div>
+      <div class="desc-modal-body" id="descModalBody"></div>
+      <div class="desc-modal-genres" id="descModalGenres" style="display: none;"></div>
+    </div>
   </div>
 
   <div class="toast-box" id="toastAlert"></div>
@@ -1013,6 +1213,14 @@
       return String(url).trim().replace(/^http:\/\//i, 'https://');
     }
 
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
     // Hero Media Box strictly uses Banner (no Poster.h)
     function getBannerImage(c) {
       if (!c) return '';
@@ -1041,11 +1249,47 @@
       return null;
     }
 
+    // Modal Open / Close Helpers
+    function openDescriptionModal(title, metaText, fullDesc, genreItems) {
+      const overlay = document.getElementById('descModalOverlay');
+      document.getElementById('descModalTitle').innerText = title || 'Overview';
+      const metaEl = document.getElementById('descModalMeta');
+      metaEl.innerText = metaText || '';
+      metaEl.style.display = metaText ? 'block' : 'none';
+      document.getElementById('descModalBody').innerText = fullDesc;
+
+      const genresWrap = document.getElementById('descModalGenres');
+      if (Array.isArray(genreItems) && genreItems.length > 0) {
+        genresWrap.innerHTML = genreItems.map(g => `<span class="genre-pill-chip">${escapeHtml(g)}</span>`).join('');
+        genresWrap.style.display = 'flex';
+      } else {
+        genresWrap.style.display = 'none';
+      }
+
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeDescriptionModal() {
+      const overlay = document.getElementById('descModalOverlay');
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('modal-open');
+    }
+
+    document.getElementById('descModalCloseBtn').onclick = closeDescriptionModal;
+    document.getElementById('descModalOverlay').onclick = (e) => {
+      if (e.target.id === 'descModalOverlay') closeDescriptionModal();
+    };
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeDescriptionModal();
+    });
+
     // Resolve active profile index inside UARM.Profiles array
     function resolveActiveProfileIndex(profiles) {
       if (!Array.isArray(profiles) || profiles.length === 0) return -1;
 
-      // 1. Check explicit index keys in localStorage
       const idxKeys = ['active_profile_index', 'activeProfileIndex', 'profile_index', 'selected_profile_index'];
       for (const k of idxKeys) {
         const val = localStorage.getItem(k);
@@ -1055,7 +1299,6 @@
         }
       }
 
-      // 2. Check stored profile object in localStorage
       const profKeys = ['active_profile', 'selected_profile', 'current_profile', 'hotstar_profile'];
       for (const k of profKeys) {
         try {
@@ -1072,7 +1315,6 @@
         } catch (e) {}
       }
 
-      // 3. Fallback: first profile for Hotstar app, or index 0
       const hotstarIdx = profiles.findIndex(p => String(p?.App || '').toLowerCase() === 'hotstar');
       return hotstarIdx !== -1 ? hotstarIdx : 0;
     }
@@ -1105,7 +1347,6 @@
 
       if (!currentUser) return;
 
-      // Immediate optimistic local state from Profiles or top-level Watchlist
       if (Array.isArray(currentUser.Profiles) && currentUser.Profiles.length > 0) {
         userProfiles = currentUser.Profiles;
         activeProfileIndex = resolveActiveProfileIndex(userProfiles);
@@ -1288,54 +1529,106 @@
       // 3. Exact Metadata from Document
       const metaRow = document.getElementById('metaPillsRow');
       const metaParts = [];
+      const plainMetaParts = [];
 
       const releaseYear = currentItem.Release_Date || currentItem.Release_date || currentItem["Release Date"] || currentItem.Year || currentItem["Release Year"];
-      if (releaseYear) metaParts.push(`<span>${releaseYear}</span>`);
+      if (releaseYear) {
+        metaParts.push(`<span>${escapeHtml(releaseYear)}</span>`);
+        plainMetaParts.push(releaseYear);
+      }
 
       const age = currentItem.Age_Rating || currentItem["Age Rating"] || currentItem.AgeRating;
-      if (age) metaParts.push(`<span class="meta-badge-pill">${age}</span>`);
+      if (age) {
+        metaParts.push(`<span class="meta-badge-pill">${escapeHtml(age)}</span>`);
+        plainMetaParts.push(age);
+      }
 
       if (contentType === 'show') {
         const seasons = Object.keys(currentItem).filter(k => k.toLowerCase().startsWith('season'));
         if (seasons.length > 0) {
-          metaParts.push(`<span>${seasons.length} Season${seasons.length > 1 ? 's' : ''}</span>`);
+          const sTxt = `${seasons.length} Season${seasons.length > 1 ? 's' : ''}`;
+          metaParts.push(`<span>${sTxt}</span>`);
+          plainMetaParts.push(sTxt);
         }
       }
 
       const duration = currentItem.Duration || currentItem.duration || currentItem.Runtime || currentItem.runtime;
-      if (duration) metaParts.push(`<span>${duration}</span>`);
+      if (duration) {
+        metaParts.push(`<span>${escapeHtml(duration)}</span>`);
+        plainMetaParts.push(duration);
+      }
 
       const lang = Array.isArray(currentItem.Language) ? currentItem.Language.join(', ') : currentItem.Language;
-      if (lang) metaParts.push(`<span>${lang}</span>`);
+      if (lang) {
+        metaParts.push(`<span>${escapeHtml(lang)}</span>`);
+        plainMetaParts.push(lang);
+      }
 
       const rating = currentItem.Rating || currentItem.rating || currentItem.IMDb || currentItem.imdb;
-      if (rating) metaParts.push(`<span>★ ${rating}</span>`);
+      if (rating) {
+        metaParts.push(`<span>★ ${escapeHtml(rating)}</span>`);
+        plainMetaParts.push(`★ ${rating}`);
+      }
 
       metaRow.innerHTML = metaParts.join(' <span class="sep">•</span> ');
 
-      // 4. Description
+      // 4. Genres ONLY (carousel when there are more genres)
+      const genresEl = document.getElementById('genresTagsLine');
+      const rawGenres = currentItem.Genres || currentItem.genres || '';
+      const genreItems = rawGenres
+        ? (Array.isArray(rawGenres) ? rawGenres : String(rawGenres).split(/[,/|]+/)).map(g => g.trim()).filter(Boolean)
+        : [];
+
+      if (genreItems.length > 0) {
+        if (genreItems.length > 3) {
+          genresEl.innerHTML = `
+            <div class="genres-carousel-wrap">
+              <button type="button" class="genre-nav-arrow" id="genrePrevBtn" aria-label="Scroll genres left">
+                <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+              </button>
+              <div class="genres-carousel-track" id="genresCarouselTrack">
+                ${genreItems.map(g => `<span class="genre-pill-chip">${escapeHtml(g)}</span>`).join('')}
+              </div>
+              <button type="button" class="genre-nav-arrow" id="genreNextBtn" aria-label="Scroll genres right">
+                <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+              </button>
+            </div>
+          `;
+          const track = document.getElementById('genresCarouselTrack');
+          document.getElementById('genrePrevBtn').onclick = () => track.scrollBy({ left: -180, behavior: 'smooth' });
+          document.getElementById('genreNextBtn').onclick = () => track.scrollBy({ left: 180, behavior: 'smooth' });
+        } else {
+          genresEl.innerHTML = genreItems.map(g => escapeHtml(g)).join(' <span class="pipe">|</span> ');
+        }
+        genresEl.style.display = 'block';
+      } else {
+        genresEl.style.display = 'none';
+      }
+
+      // 5. Description with "..more" popup trigger if big
       const descEl = document.getElementById('contentDescription');
-      const desc = currentItem.Discription || currentItem.Description || currentItem.description || '';
-      if (desc) {
-        descEl.innerText = desc;
+      const rawDesc = String(currentItem.Discription || currentItem.Description || currentItem.description || '').trim();
+      const MAX_DESC_CHARS = 155;
+
+      if (rawDesc) {
+        const hasManyLines = rawDesc.split('\n').length > 3;
+        if (rawDesc.length > MAX_DESC_CHARS || hasManyLines) {
+          let previewText = rawDesc.split('\n').slice(0, 3).join(' ').trim();
+          if (previewText.length > MAX_DESC_CHARS) {
+            const cut = previewText.slice(0, MAX_DESC_CHARS);
+            const lastSpace = cut.lastIndexOf(' ');
+            previewText = (lastSpace > 80 ? cut.slice(0, lastSpace) : cut).trimEnd();
+          }
+          descEl.innerHTML = `${escapeHtml(previewText)}.. <button type="button" class="desc-more-btn" id="btnDescMore">more</button>`;
+          document.getElementById('btnDescMore').onclick = () => {
+            openDescriptionModal(showName, plainMetaParts.join(' • '), rawDesc, genreItems);
+          };
+        } else {
+          descEl.innerText = rawDesc;
+        }
         descEl.style.display = 'block';
       } else {
         descEl.style.display = 'none';
-      }
-
-      // 5. Tags / Genres
-      const tagsEl = document.getElementById('genresTagsLine');
-      const rawTags = currentItem.Tags || currentItem.Genres || currentItem.Channel || '';
-      if (rawTags) {
-        const tagItems = (Array.isArray(rawTags) ? rawTags : String(rawTags).split(/[,/|]+/)).map(t => t.trim()).filter(Boolean);
-        if (tagItems.length > 0) {
-          tagsEl.innerHTML = tagItems.join(' <span class="pipe">|</span> ');
-          tagsEl.style.display = 'block';
-        } else {
-          tagsEl.style.display = 'none';
-        }
-      } else {
-        tagsEl.style.display = 'none';
       }
 
       // 6. Action Buttons
@@ -1534,12 +1827,12 @@
       listEl.innerHTML = epList.slice(0, limit).map((ep, idx) => `
         <a class="ep-card" href="1.html?watch=${currentItem.id}&season=${encodeURIComponent(currentSeasonKey)}&ep=${idx + 1}">
           <div class="ep-thumb-wrap">
-            <img src="${safeUrl(ep.Thumbnail || ep.Poster || thumbUrl)}" alt="${ep.Name || ''}" loading="lazy" onerror="if(this.src!=='${fallbackThumb}') this.src='${fallbackThumb}';">
+            <img src="${safeUrl(ep.Thumbnail || ep.Poster || thumbUrl)}" alt="${escapeHtml(ep.Name || '')}" loading="lazy" onerror="if(this.src!=='${fallbackThumb}') this.src='${fallbackThumb}';">
             <div class="ep-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="ep-info">
-            <div class="ep-name">${ep.Name || `Episode ${idx + 1}`}</div>
-            <div class="ep-subtext">S${seasonNum} E${idx + 1}${ep.Duration ? ` • ${ep.Duration}` : ''}</div>
+            <div class="ep-name">${escapeHtml(ep.Name || `Episode ${idx + 1}`)}</div>
+            <div class="ep-subtext">S${seasonNum} E${idx + 1}${ep.Duration ? ` • ${escapeHtml(ep.Duration)}` : ''}</div>
           </div>
         </a>
       `).join('');
@@ -1599,7 +1892,6 @@
             ? userWatchlist.filter(id => id !== currentItem.id)
             : [...new Set([...userWatchlist, currentItem.id])];
 
-          // Optimistic UI update
           userWatchlist = updatedWatchlist;
           syncLocalWatchlist(userProfiles, activeProfileIndex, userWatchlist);
           updateWatchlistButtonState();
@@ -1620,7 +1912,6 @@
             }
 
             if (userDocRef) {
-              // Fetch latest document so we safely update Profiles[activeProfileIndex].Watchlist without overwriting sibling profiles
               const freshSnap = await getDoc(userDocRef);
               if (freshSnap.exists()) {
                 const freshData = freshSnap.data();
@@ -1645,7 +1936,6 @@
                   syncLocalWatchlist(userProfiles, idx, userWatchlist);
                   updateWatchlistButtonState();
                 } else {
-                  // Legacy fallback if document has top-level Watchlist
                   await updateDoc(userDocRef, {
                     Watchlist: isAdded ? arrayRemove(currentItem.id) : arrayUnion(currentItem.id)
                   });
@@ -1689,7 +1979,7 @@
           if (d.id !== currentItem.id) items.push({ id: d.id, ...d.data() });
         });
 
-        const targetGenres = String(currentItem.Genres || currentItem.Tags || currentItem.Channel || '').toLowerCase().split(/[,/|]+/).map(s => s.trim()).filter(Boolean);
+        const targetGenres = String(currentItem.Genres || currentItem.genres || '').toLowerCase().split(/[,/|]+/).map(s => s.trim()).filter(Boolean);
         const targetStudio = String(currentItem.Studio || currentItem.Channel || '').toLowerCase();
         const targetAge = String(currentItem.Age_Rating || '').toLowerCase();
 
@@ -1697,8 +1987,8 @@
           let scoreA = 0;
           let scoreB = 0;
 
-          const aG = String(a.Genres || a.Tags || a.Channel || '').toLowerCase();
-          const bG = String(b.Genres || b.Tags || b.Channel || '').toLowerCase();
+          const aG = String(a.Genres || a.genres || '').toLowerCase();
+          const bG = String(b.Genres || b.genres || '').toLowerCase();
           for (const g of targetGenres) {
             if (aG.includes(g)) scoreA += 10;
             if (bG.includes(g)) scoreB += 10;
@@ -1717,15 +2007,15 @@
           // Recommendations strictly show Poster.h first
           const primary = getHorizontalImage(c);
           const fallback = safeUrl(c.Banner || c.Poster || '');
-          const genres = c.Genres || c.Tags || c.Channel || c.Language || '';
+          const genres = c.Genres || c.genres || c.Language || '';
 
           return `
             <a class="rec-16-9-card" href="preview.html?preview=${c.id}">
               <div class="rec-16-9-thumb">
-                <img src="${primary}" alt="${c.Name || 'Title'}" loading="lazy" decoding="async" onerror="if(this.src!=='${fallback}') this.src='${fallback}';">
+                <img src="${primary}" alt="${escapeHtml(c.Name || 'Title')}" loading="lazy" decoding="async" onerror="if(this.src!=='${fallback}') this.src='${fallback}';">
               </div>
-              <div class="rec-title">${c.Name || 'Title'}</div>
-              ${genres ? `<div class="rec-sub">${genres}</div>` : ''}
+              <div class="rec-title">${escapeHtml(c.Name || 'Title')}</div>
+              ${genres ? `<div class="rec-sub">${escapeHtml(genres)}</div>` : ''}
             </a>
           `;
         }).join('');
@@ -1733,7 +2023,6 @@
     }
 
     async function start() {
-      // Run user subscription/profile fetch and content document lookup in parallel
       const [, item] = await Promise.all([
         loadUserSubscriptionPlan(),
         fetchContentData(contentId)
