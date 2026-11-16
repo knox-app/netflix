@@ -48,7 +48,6 @@
         .container { text-align: center; max-width: 400px; width: 90%; padding: 20px; }
         h1 { font-size: 28px; font-weight: 600; margin-bottom: 15px; color: var(--text-primary); }
         
-        /* Updated capsule styling to support profile picture */
         .user-badge {
             display: inline-flex;
             align-items: center;
@@ -68,7 +67,7 @@
             height: 24px;
             border-radius: 50%;
             object-fit: cover;
-            display: none; /* hidden until loaded */
+            display: none;
         }
 
         .input-group { position: relative; margin-bottom: 20px; text-align: left; }
@@ -116,7 +115,6 @@
 <div class="container">
     <h1>Welcome</h1>
     
-    <!-- Profile picture + Email Capsule -->
     <div class="user-badge">
         <img id="userAvatar" alt="Profile Picture" />
         <span id="userEmailDisplay">Loading...</span>
@@ -132,16 +130,40 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { 
+        getFirestore, 
+        collection, 
+        getDocs, 
+        query, 
+        where, 
+        updateDoc, 
+        doc, 
+        setDoc, 
+        addDoc, 
+        serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+    // 1. Primary DB (UARM & ASPX Keys)
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
         authDomain: "question-metabase.firebaseapp.com",
         projectId: "question-metabase"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+
+    // 2. Secondary DB (cloud-computer-4891a for Email collection)
+    const mailFirebaseConfig = {
+        apiKey: "AIzaSyAo8Uzs4XZHDHTSTfgx59w5h5NlYuGC8s0",
+        authDomain: "cloud-computer-4891a.firebaseapp.com",
+        projectId: "cloud-computer-4891a",
+        storageBucket: "cloud-computer-4891a.firebasestorage.app",
+        messagingSenderId: "744203234287",
+        appId: "1:744203234287:web:81d943ae9b75fd77dce41a",
+        measurementId: "G-QE17C33TMN"
+    };
+    const mailApp = initializeApp(mailFirebaseConfig, "mailApp");
+    const mailDb = getFirestore(mailApp);
 
     const urlParams = new URLSearchParams(window.location.search);
     const session = urlParams.get('session');
@@ -166,10 +188,8 @@
                 currentUserDocId = querySnapshot.docs[0].id;
                 currentUserData = querySnapshot.docs[0].data();
 
-                // Display Email
                 document.getElementById('userEmailDisplay').innerText = currentUserData["Email"] || "";
 
-                // Display Profile Picture if available
                 const profilePicUrl = currentUserData["Profile_Picture"] || currentUserData["Profile Picture"];
                 if (profilePicUrl) {
                     const avatar = document.getElementById('userAvatar');
@@ -192,6 +212,103 @@
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
+    // --- Device Detection Helper ---
+    function detectDeviceType() {
+        const ua = navigator.userAgent;
+        if (/iPad|tablet|PlayBook|Silk/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+            return "Tablet";
+        }
+        if (/Macintosh|Mac OS X/i.test(ua)) {
+            return "Macbook";
+        }
+        if (/Windows NT/i.test(ua)) {
+            return "Windows";
+        }
+        if (/Android/i.test(ua)) {
+            return "Android";
+        }
+        if (/iPhone|iPod/i.test(ua)) {
+            return "iPhone";
+        }
+        if (/Linux/i.test(ua)) {
+            return "PC";
+        }
+        return "Device";
+    }
+
+    // --- Location Detection Helper (Falls back gracefully to Timezone) ---
+    async function getApproximateLocation() {
+        try {
+            const res = await fetch("https://ipapi.co/json/");
+            if (res.ok) {
+                const data = await res.json();
+                if (data.city && data.country_name) {
+                    return `${data.city}, ${data.country_name}`;
+                }
+            }
+        } catch (e) {
+            // Network fallback
+        }
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown Region";
+        return tz.replace("_", " ");
+    }
+
+    // --- Send Security Email Function ---
+    async function sendLoginAlertEmail() {
+        try {
+            const userEmail = currentUserData["Email"] || "";
+            if (!userEmail) return;
+
+            // Determine if account is Kids or Personal
+            const isKids = currentUserData["Type"] === "kids" || currentUserData["Family"] === "commited" || currentUserData["Family"] === "commit";
+            const firstName = currentUserData["First Name"] || "User";
+            const accountLabel = isKids ? `${firstName} Kids Account` : "Personal";
+
+            // Device, Date, Location
+            const device = detectDeviceType();
+            const dateStr = new Date().toLocaleString('en-US', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            const location = await getApproximateLocation();
+
+            // Construct exact body format
+            const emailBody = `Hello,
+We noticed a new sign-in to your ${accountLabel} account.
+On ${device} ${dateStr} Near ${location}
+
+If this was you, no action is needed.
+If you don't recognize this activity, please review your account security right away.
+Knox-app.github.io/cloud/links/task#review-account`;
+
+            // Write into cloud-computer-4891a -> "Email" collection
+            await addDoc(collection(mailDb, "Email"), {
+                subject: "New sign-in to your Account",
+                body: emailBody,
+                from: "systemplx.mail",
+                to: userEmail,
+                timestamp: serverTimestamp()
+            });
+
+            // If it is a kids account with a guardian, notify the guardian too
+            if (isKids && currentUserData["Guardian"] && currentUserData["Guardian"] !== userEmail) {
+                await addDoc(collection(mailDb, "Email"), {
+                    subject: "New sign-in to your Account",
+                    body: emailBody,
+                    from: "systemplx.mail",
+                    to: currentUserData["Guardian"],
+                    timestamp: serverTimestamp()
+                });
+            }
+        } catch (err) {
+            console.warn("Failed to log security notification email:", err);
+        }
+    }
+
     document.getElementById('password').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('loginBtn').click();
     });
@@ -204,12 +321,15 @@
 
         try {
             if (currentUserData["Password"] === pass) {
-                // 1. Refresh user Lotus
+                // 1. Send Security Alert Email (asynchronous without blocking)
+                await sendLoginAlertEmail();
+
+                // 2. Refresh user Lotus
                 const newLotus = generateNewLotus();
                 await updateDoc(doc(db, "UARM", currentUserDocId), { "Lotus": newLotus });
                 currentUserData["Lotus"] = newLotus;
 
-                // 2. Notify QR Device via ASPX Keys
+                // 3. Notify QR Device via ASPX Keys
                 if (session) {
                     try {
                         await setDoc(doc(db, "ASPX Keys", session), {
@@ -227,7 +347,7 @@
                     }
                 }
 
-                // 3. Save locally on this phone/device
+                // 4. Save locally on this phone/device
                 let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
                 accounts = accounts.filter(acc => acc.email !== currentUserData["Email"]);
                 accounts.push({
@@ -238,7 +358,7 @@
                 localStorage.setItem('saved_accounts', JSON.stringify(accounts));
                 localStorage.setItem('active_user', JSON.stringify(currentUserData));
 
-                // 4. Redirect current device
+                // 5. Redirect current device
                 window.location.href = continueUrl;
             } else {
                 alert("Incorrect password");
