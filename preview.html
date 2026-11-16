@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Preview - Hotstar</title>
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://www.youtube.com">
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://www.youtube.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- YouTube IFrame API -->
@@ -16,14 +17,16 @@
   <style>
     :root {
       --bg-color: #090a0f;
-      --surface-bg: #12151e;
-      --card-bg: #151821;
+      --surface-bg: #11131c;
+      --card-bg: #161924;
       --accent-blue: #1480f0;
+      --accent-magenta: #be0876;
       --text-main: #ffffff;
       --text-muted: #94a3b8;
-      --border-color: rgba(255, 255, 255, 0.1);
+      --border-color: rgba(255, 255, 255, 0.09);
       --border-hover: rgba(255, 255, 255, 0.24);
       --live-red: #e50914;
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     * {
@@ -60,9 +63,12 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 28px;
-      transition: background-color 0.28s ease, backdrop-filter 0.28s ease, border-color 0.28s ease;
-      border-bottom: 1px solid transparent;
+      transition: background-color 0.3s var(--ease-out), backdrop-filter 0.3s var(--ease-out), border-color 0.3s ease;
       pointer-events: none;
+      border-bottom: 1px solid transparent;
+    }
+    @media (max-width: 899px) {
+      .sticky-top-nav { padding: 0 16px; }
     }
     .sticky-top-nav.scrolled {
       background: rgba(9, 10, 15, 0.88);
@@ -81,8 +87,9 @@
       text-overflow: ellipsis;
       max-width: 75%;
       opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.25s ease, transform 0.25s ease;
+      transform: translateY(8px);
+      transition: opacity 0.28s var(--ease-out), transform 0.28s var(--ease-out);
+      will-change: opacity, transform;
     }
     .sticky-top-nav.scrolled .sticky-nav-title {
       opacity: 1;
@@ -90,7 +97,7 @@
     }
 
     .nav-close-btn {
-      background: rgba(15, 16, 23, 0.6);
+      background: rgba(15, 16, 23, 0.65);
       border: 1px solid rgba(255, 255, 255, 0.18);
       color: #fff;
       width: 40px;
@@ -104,67 +111,68 @@
       -webkit-backdrop-filter: blur(12px);
       pointer-events: auto;
       margin-left: auto;
-      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background 0.18s ease, border-color 0.18s ease;
+      transition: transform 0.18s var(--ease-out), background-color 0.18s ease, border-color 0.18s ease;
     }
-    @media (hover: hover) {
-      .nav-close-btn:hover {
-        background: rgba(255, 255, 255, 0.16);
-        border-color: rgba(255, 255, 255, 0.35);
-      }
+    .nav-close-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: scale(1.06);
     }
     .nav-close-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.22); }
     .nav-close-btn svg { width: 20px; height: 20px; fill: #fff; }
 
     /* ==========================================================
-       SKELETON LOADER (FAST & SMOOTH FEEL)
+       SKELETON LOADER
        ========================================================== */
     .loader-wrap {
-      width: 100%;
-      min-height: 100vh;
-      padding: 90px 48px 50px;
+      min-height: 82vh;
+      padding: 100px 48px 50px;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      background: radial-gradient(circle at 75% 30%, rgba(20, 128, 240, 0.08), transparent 55%), var(--bg-color);
+      justify-content: flex-end;
+      gap: 16px;
+      background: radial-gradient(circle at 70% 35%, rgba(20, 128, 240, 0.08), transparent 60%);
     }
-    .skeleton-box {
+    @media (max-width: 899px) {
+      .loader-wrap {
+        min-height: auto;
+        padding: 20px 16px;
+        align-items: center;
+      }
+    }
+    .skel {
       background: linear-gradient(90deg, #131620 25%, #1c2130 50%, #131620 75%);
       background-size: 200% 100%;
-      animation: shimmer 1.4s infinite linear;
+      animation: skelShimmer 1.4s infinite linear;
       border-radius: 10px;
     }
-    .sk-logo { width: 260px; height: 74px; margin-bottom: 20px; }
-    .sk-meta { width: 220px; height: 18px; margin-bottom: 16px; border-radius: 6px; }
-    .sk-desc { width: 460px; max-width: 100%; height: 64px; margin-bottom: 24px; }
-    .sk-btns { display: flex; gap: 12px; }
-    .sk-btn-lg { width: 190px; height: 52px; }
-    .sk-btn-sq { width: 52px; height: 52px; }
-    .loader-error-msg {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 16px;
-      font-weight: 600;
-      margin: auto;
+    .skel-banner-mob { display: none; }
+    @media (max-width: 899px) {
+      .skel-banner-mob { display: block; width: 100%; aspect-ratio: 16/10; border-radius: 18px; margin-bottom: 12px; }
     }
-
-    @keyframes shimmer {
+    .skel-logo { width: 260px; height: 64px; }
+    .skel-meta { width: 220px; height: 18px; border-radius: 6px; }
+    .skel-desc { width: 460px; max-width: 90%; height: 48px; }
+    .skel-cta  { width: 210px; height: 52px; }
+    .loader-error {
+      text-align: center;
+      padding: 160px 20px;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 16px;
+    }
+    @keyframes skelShimmer {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
-    @media (max-width: 899px) {
-      .loader-wrap { padding: 16px; justify-content: flex-start; }
-      .sk-logo { width: 100%; height: 220px; border-radius: 18px; }
-      .sk-meta, .sk-desc { margin-inline: auto; }
-      .sk-btns { justify-content: center; }
-    }
 
-    /* Smooth Reveal for Main Content */
+    /* Smooth Page Entry */
     #previewMain {
-      animation: fadeInPage 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation: pageReveal 0.45s var(--ease-out) forwards;
     }
-    @keyframes fadeInPage {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes pageReveal {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     /* ==========================================================
@@ -175,9 +183,9 @@
       width: 100%;
       min-height: 84vh;
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: flex-start;
-      padding: 96px 48px 56px;
+      padding: 100px 48px 56px;
       overflow: hidden;
     }
 
@@ -185,6 +193,7 @@
       .hero-billboard-wrap {
         min-height: auto;
         flex-direction: column;
+        align-items: stretch;
         padding: 14px 16px 24px;
       }
     }
@@ -203,11 +212,11 @@
     @media (max-width: 899px) {
       .hero-media-box {
         position: relative;
-        aspect-ratio: 16/9.5;
+        aspect-ratio: 16/9;
         border-radius: 18px;
         margin-bottom: 22px;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
       }
     }
 
@@ -215,9 +224,15 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center right;
-      transition: opacity 0.65s ease, transform 6s ease-out;
+      object-position: center 20%;
+      opacity: 0;
+      transform: scale(1.02);
+      transition: opacity 0.65s var(--ease-out), transform 0.85s var(--ease-out);
       will-change: opacity, transform;
+    }
+    .hero-banner-img.loaded {
+      opacity: 1;
+      transform: scale(1);
     }
 
     .hero-trailer-host {
@@ -225,7 +240,7 @@
       inset: 0;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.65s ease;
+      transition: opacity 0.75s var(--ease-out);
       background: #000;
       overflow: hidden;
       will-change: opacity;
@@ -250,35 +265,48 @@
     .hero-desktop-gradient {
       position: absolute;
       inset: 0;
-      background: 
-        linear-gradient(90deg, #090a0f 0%, rgba(9, 10, 15, 0.94) 36%, rgba(9, 10, 15, 0.62) 60%, rgba(9, 10, 15, 0.15) 85%, transparent 100%),
+      background:
+        linear-gradient(90deg, #090a0f 0%, rgba(9, 10, 15, 0.94) 36%, rgba(9, 10, 15, 0.58) 60%, rgba(9, 10, 15, 0.12) 88%, transparent 100%),
         linear-gradient(0deg, #090a0f 0%, rgba(9, 10, 15, 0.72) 18%, transparent 48%),
-        linear-gradient(180deg, rgba(9, 10, 15, 0.5) 0%, transparent 20%);
+        linear-gradient(180deg, rgba(9, 10, 15, 0.45) 0%, transparent 18%);
       pointer-events: none;
       z-index: 2;
     }
 
     @media (max-width: 899px) {
       .hero-desktop-gradient {
-        background: linear-gradient(180deg, rgba(9, 10, 15, 0.2) 0%, transparent 40%, rgba(9, 10, 15, 0.85) 100%);
+        background: linear-gradient(180deg, rgba(9, 10, 15, 0.15) 0%, transparent 45%, rgba(9, 10, 15, 0.82) 100%);
       }
     }
 
     /* Top Left Trailer Text */
     .trailer-status-text {
       position: absolute;
-      top: 26px;
+      top: 24px;
       left: 48px;
       color: rgba(255, 255, 255, 0.92);
       font-size: 11.5px;
       font-weight: 800;
       letter-spacing: 1.4px;
       text-transform: uppercase;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0,0,0,0.8);
       z-index: 10;
       display: none;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
+    }
+    .trailer-status-text.live-dot::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      box-shadow: 0 0 8px var(--accent-blue);
+      animation: pulseDot 1.6s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.8); }
     }
     @media (max-width: 899px) {
       .trailer-status-text {
@@ -292,10 +320,10 @@
       position: absolute;
       bottom: 28px;
       right: 48px;
-      background: rgba(15, 17, 26, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      width: 40px;
-      height: 40px;
+      background: rgba(15, 16, 23, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -304,8 +332,15 @@
       z-index: 10;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      transition: transform 0.18s ease, background 0.18s ease;
+      transition: transform 0.18s var(--ease-out), background-color 0.18s ease, border-color 0.18s ease;
     }
+    .mute-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: scale(1.06);
+    }
+    .mute-toggle-btn:active { transform: scale(0.92); }
+    .mute-toggle-btn svg { width: 18px; height: 18px; fill: #fff; }
     @media (max-width: 899px) {
       .mute-toggle-btn {
         bottom: 12px;
@@ -313,12 +348,8 @@
         width: 36px;
         height: 36px;
       }
+      .mute-toggle-btn svg { width: 16px; height: 16px; }
     }
-    @media (hover: hover) {
-      .mute-toggle-btn:hover { background: rgba(255, 255, 255, 0.18); transform: scale(1.06); }
-    }
-    .mute-toggle-btn:active { transform: scale(0.92); }
-    .mute-toggle-btn svg { width: 18px; height: 18px; fill: #fff; }
 
     /* Foreground Content Box */
     .billboard-foreground-content {
@@ -329,6 +360,11 @@
       flex-direction: column;
       align-items: flex-start;
       text-align: left;
+      animation: contentSlideUp 0.55s var(--ease-out) forwards;
+    }
+    @keyframes contentSlideUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     @media (max-width: 899px) {
@@ -342,26 +378,25 @@
 
     /* Logo & Title */
     .brand-logo-img {
-      max-width: 340px;
-      max-height: 128px;
+      max-width: 330px;
+      max-height: 120px;
       object-fit: contain;
       object-position: left center;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.85));
     }
     @media (max-width: 899px) {
       .brand-logo-img {
         object-position: center;
         max-width: 240px;
-        max-height: 92px;
-        margin-bottom: 14px;
+        max-height: 90px;
       }
     }
 
     .title-fallback-text {
-      font-size: 46px;
+      font-size: 44px;
       font-weight: 900;
-      line-height: 1.12;
+      line-height: 1.15;
       margin-bottom: 14px;
       color: #ffffff;
       text-shadow: 0 4px 24px rgba(0, 0, 0, 0.95);
@@ -376,7 +411,7 @@
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 9px;
+      gap: 10px;
       font-size: 14.5px;
       font-weight: 700;
       color: #f1f5f9;
@@ -388,16 +423,16 @@
     }
     .meta-pills-row span.sep {
       color: var(--text-muted);
-      font-size: 11px;
+      font-size: 10px;
     }
     .meta-badge-pill {
       background: rgba(255, 255, 255, 0.14);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       padding: 2px 8px;
       border-radius: 5px;
       font-size: 12.5px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
     }
 
     /* Description */
@@ -407,7 +442,10 @@
       color: rgba(226, 232, 240, 0.92);
       margin-bottom: 16px;
       max-width: 540px;
-      font-weight: 400;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     /* Tags / Genres with Pipes */
@@ -419,7 +457,7 @@
       letter-spacing: 0.3px;
     }
     .genres-tags-line span.pipe {
-      color: rgba(148, 163, 184, 0.55);
+      color: rgba(148, 163, 184, 0.65);
       margin: 0 8px;
       font-weight: 400;
     }
@@ -440,7 +478,8 @@
       height: 52px;
       padding: 0 30px;
       border-radius: 10px;
-      background: linear-gradient(95deg, #0976f8 0%, #0d6efd 42%, #cc097c 100%);
+      background: linear-gradient(95deg, #027bfd 0%, #0d6efd 42%, #be0876 100%);
+      background-size: 140% 100%;
       color: #ffffff;
       font-size: 15.5px;
       font-weight: 700;
@@ -451,31 +490,31 @@
       text-decoration: none;
       cursor: pointer;
       border: none;
-      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), filter 0.18s ease, box-shadow 0.2s ease;
-      box-shadow: 0 8px 24px rgba(10, 120, 250, 0.35);
-      will-change: transform;
+      transition: transform 0.2s var(--ease-out), filter 0.2s ease, box-shadow 0.2s ease, background-position 0.3s ease;
+      box-shadow: 0 8px 24px rgba(2, 123, 253, 0.32);
     }
-    @media (hover: hover) {
-      .btn-hotstar-cta:hover {
-        transform: translateY(-1px) scale(1.02);
-        filter: brightness(1.08);
-        box-shadow: 0 10px 28px rgba(10, 120, 250, 0.48);
-      }
+    .btn-hotstar-cta:hover {
+      transform: translateY(-2px);
+      background-position: 100% 0;
+      box-shadow: 0 12px 28px rgba(190, 8, 118, 0.36);
     }
     .btn-hotstar-cta:active {
       transform: scale(0.97);
       filter: brightness(0.92);
     }
-    .btn-hotstar-cta svg { width: 18px; height: 18px; fill: currentColor; }
+    .btn-hotstar-cta svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
 
     .btn-hotstar-secondary {
       height: 52px;
       padding: 0 20px;
       border-radius: 10px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.11);
       border: 1px solid rgba(255, 255, 255, 0.18);
       backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
       color: #ffffff;
       font-size: 15px;
       font-weight: 700;
@@ -484,15 +523,17 @@
       gap: 8px;
       text-decoration: none;
       cursor: pointer;
-      transition: transform 0.18s ease, background 0.18s ease;
+      transition: transform 0.18s var(--ease-out), background-color 0.18s ease, border-color 0.18s ease;
     }
-    @media (hover: hover) {
-      .btn-hotstar-secondary:hover { background: rgba(255, 255, 255, 0.18); transform: translateY(-1px); }
+    .btn-hotstar-secondary:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
     }
-    .btn-hotstar-secondary:active { background: rgba(255, 255, 255, 0.24); transform: scale(0.97); }
+    .btn-hotstar-secondary:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.22); }
     .btn-hotstar-secondary svg { width: 17px; height: 17px; fill: currentColor; }
 
-    /* Square Companion Buttons ([ + ] Watchlist & Share) */
+    /* Square Companion Buttons (Watchlist & Share) */
     .btn-square-companion {
       width: 52px;
       height: 52px;
@@ -500,40 +541,42 @@
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.16);
       backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background 0.18s ease, transform 0.16s ease, color 0.18s ease, border-color 0.18s ease;
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.18s var(--ease-out), color 0.2s ease;
     }
-    @media (hover: hover) {
-      .btn-square-companion:hover {
-        background: rgba(255, 255, 255, 0.18);
-        border-color: rgba(255, 255, 255, 0.3);
-        transform: translateY(-1px);
-      }
+    .btn-square-companion:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
     }
     .btn-square-companion:active {
       transform: scale(0.93);
       background: rgba(255, 255, 255, 0.22);
     }
-    .btn-square-companion svg { width: 22px; height: 22px; fill: currentColor; }
+    .btn-square-companion svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
     .btn-square-companion.active {
       background: rgba(20, 128, 240, 0.24);
       border-color: var(--accent-blue);
-      color: #5ab0ff;
+      color: #60a5fa;
+      box-shadow: 0 0 18px rgba(20, 128, 240, 0.22);
     }
 
     @keyframes bouncePop {
       0% { transform: scale(1); }
-      40% { transform: scale(1.28) rotate(-8deg); }
-      75% { transform: scale(0.92) rotate(4deg); }
+      40% { transform: scale(1.32) rotate(-10deg); }
+      75% { transform: scale(0.9) rotate(5deg); }
       100% { transform: scale(1) rotate(0deg); }
     }
     .btn-square-companion.animating svg {
-      animation: bouncePop 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: bouncePop 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     /* Lower Flow (Episodes & More Like This) */
@@ -541,14 +584,16 @@
       position: relative;
       z-index: 10;
       width: 100%;
-      max-width: 1360px;
+      max-width: 1380px;
       margin: 28px auto 64px;
       padding: 0 48px;
+      content-visibility: auto;
+      contain-intrinsic-size: 500px;
     }
     @media (max-width: 899px) {
       .lower-content-container {
         padding: 0 16px;
-        margin: 18px auto 44px;
+        margin: 16px auto 44px;
       }
     }
 
@@ -569,7 +614,7 @@
     .episodes-wrapper { display: none; }
     .season-tab-row {
       display: flex;
-      gap: 24px;
+      gap: 22px;
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 10px;
       margin-bottom: 18px;
@@ -599,14 +644,21 @@
       right: 0;
       height: 2.5px;
       border-radius: 2px;
-      background: var(--accent-blue);
+      background: linear-gradient(90deg, var(--accent-blue), #fff);
     }
 
     .episodes-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
     }
+    @media (min-width: 960px) {
+      .episodes-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+    }
+
     .ep-card {
       display: flex;
       align-items: center;
@@ -618,15 +670,15 @@
       cursor: pointer;
       text-decoration: none;
       color: #fff;
-      transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s var(--ease-out);
     }
-    @media (hover: hover) {
-      .ep-card:hover {
-        background: rgba(255, 255, 255, 0.065);
-        border-color: var(--border-color);
-      }
+    .ep-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--border-color);
+      transform: translateY(-2px);
     }
     .ep-card:active { background: rgba(255, 255, 255, 0.09); transform: scale(0.99); }
+
     .ep-thumb-wrap {
       position: relative;
       width: 146px;
@@ -635,11 +687,16 @@
       border-radius: 8px;
       overflow: hidden;
       background: #151821;
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
-    @media (max-width: 540px) {
-      .ep-thumb-wrap { width: 124px; min-width: 124px; }
+    .ep-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s var(--ease-out);
     }
-    .ep-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .ep-card:hover .ep-thumb-wrap img { transform: scale(1.06); }
+
     .ep-play-circle {
       position: absolute;
       bottom: 6px;
@@ -647,17 +704,24 @@
       width: 26px;
       height: 26px;
       border-radius: 50%;
-      background: rgba(0, 0, 0, 0.72);
+      background: rgba(0, 0, 0, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: background-color 0.2s ease, transform 0.2s ease;
     }
-    .ep-play-circle svg { width: 12px; height: 12px; fill: #fff; margin-left: 1px; }
+    .ep-card:hover .ep-play-circle {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      transform: scale(1.1);
+    }
+    .ep-play-circle svg { width: 11px; height: 11px; fill: #fff; margin-left: 1px; }
 
     .ep-info { flex: 1; min-width: 0; }
     .ep-name {
-      font-size: 15px;
+      font-size: 14.5px;
       font-weight: 700;
       line-height: 1.35;
       white-space: nowrap;
@@ -675,21 +739,24 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      min-width: 144px;
-      margin: 18px auto 6px;
-      padding: 10px 20px;
+      width: 150px;
+      margin: 20px auto 6px;
+      padding: 10px 18px;
       border-radius: 24px;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       color: #fff;
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      transition: background 0.18s ease, border-color 0.18s ease;
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.18s var(--ease-out);
     }
-    @media (hover: hover) {
-      .view-more-btn:hover { background: #1e2330; border-color: var(--border-hover); }
+    .view-more-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
     }
+    .view-more-btn:active { transform: scale(0.96); }
 
     /* 16:9 Recommendations */
     .rec-scroll-row {
@@ -704,41 +771,51 @@
     .rec-scroll-row::-webkit-scrollbar { display: none; }
 
     .rec-16-9-card {
-      min-width: 244px;
-      width: 244px;
+      min-width: 240px;
+      width: 240px;
       scroll-snap-align: start;
       text-decoration: none;
       color: #fff;
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 0.24s var(--ease-out);
       will-change: transform;
     }
-    @media (max-width: 540px) {
-      .rec-16-9-card { min-width: 204px; width: 204px; }
+    @media (max-width: 599px) {
+      .rec-16-9-card {
+        min-width: 200px;
+        width: 200px;
+      }
     }
-    @media (hover: hover) {
-      .rec-16-9-card:hover { transform: scale(1.035); }
-      .rec-16-9-card:hover .rec-16-9-thumb { border-color: rgba(255, 255, 255, 0.35); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55); }
-    }
+    .rec-16-9-card:hover { transform: translateY(-4px); }
     .rec-16-9-card:active { transform: scale(0.96); }
-    
+
     .rec-16-9-thumb {
       position: relative;
       width: 100%;
       aspect-ratio: 16/9;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       margin-bottom: 9px;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      transition: border-color 0.24s ease, box-shadow 0.24s ease;
     }
-    .rec-16-9-thumb img { width: 100%; height: 100%; object-fit: cover; }
-    
+    .rec-16-9-card:hover .rec-16-9-thumb {
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.55);
+    }
+    .rec-16-9-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s var(--ease-out);
+    }
+    .rec-16-9-card:hover .rec-16-9-thumb img { transform: scale(1.05); }
+
     .rec-title {
-      font-size: 14.5px;
+      font-size: 14px;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
@@ -757,12 +834,11 @@
       position: fixed;
       bottom: 36px;
       left: 50%;
-      transform: translateX(-50%) translateY(10px);
-      background: rgba(21, 24, 33, 0.94);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      transform: translate(-50%, 10px);
+      background: rgba(18, 21, 30, 0.94);
+      backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
       color: #fff;
       padding: 10px 22px;
       border-radius: 24px;
@@ -771,12 +847,11 @@
       z-index: 200;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.24s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
-      white-space: nowrap;
+      transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);
     }
     .toast-box.show {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+      transform: translate(-50%, 0);
     }
   </style>
 </head>
@@ -790,32 +865,29 @@
     </button>
   </div>
 
-  <!-- Skeleton Loader -->
+  <!-- Fast Skeleton Loader -->
   <div id="loader" class="loader-wrap">
-    <div class="skeleton-box sk-logo"></div>
-    <div class="skeleton-box sk-meta"></div>
-    <div class="skeleton-box sk-desc"></div>
-    <div class="sk-btns">
-      <div class="skeleton-box sk-btn-lg"></div>
-      <div class="skeleton-box sk-btn-sq"></div>
-      <div class="skeleton-box sk-btn-sq"></div>
-    </div>
+    <div class="skel skel-banner-mob"></div>
+    <div class="skel skel-logo"></div>
+    <div class="skel skel-meta"></div>
+    <div class="skel skel-desc"></div>
+    <div class="skel skel-cta"></div>
   </div>
 
   <div id="previewMain" style="display: none;">
-    
+
     <!-- Hero Billboard Section -->
     <div class="hero-billboard-wrap">
-      
-      <!-- Background Media Box -->
+
+      <!-- Background Media Box (Banner Only + Trailer) -->
       <div class="hero-media-box" id="heroMediaBox">
-        <img id="heroBanner" class="hero-banner-img" src="" alt="Banner" fetchpriority="high">
+        <img id="heroBanner" class="hero-banner-img" src="" alt="Banner" decoding="async" fetchpriority="high">
         <div id="heroTrailerHost" class="hero-trailer-host"></div>
         <div class="hero-desktop-gradient"></div>
 
-        <!-- Top Left Trailer Text Without Background Layer -->
+        <!-- Top Left Trailer Text -->
         <div class="trailer-status-text" id="trailerStatusText"></div>
-        
+
         <!-- Audio Mute Toggle Button -->
         <button class="mute-toggle-btn" id="muteToggleBtn" title="Toggle Sound">
           <svg id="muteIcon" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
@@ -824,28 +896,20 @@
 
       <!-- Foreground Content Box -->
       <div class="billboard-foreground-content">
-        <!-- 1. Real Logo (or Title Fallback) -->
         <img id="contentLogo" class="brand-logo-img" src="" alt="Logo" style="display: none;">
         <h1 id="contentTitle" class="title-fallback-text" style="display: none;"></h1>
 
-        <!-- 2. Real Metadata Line (Release_Date • Age_Rating • Language • Rating) -->
         <div class="meta-pills-row" id="metaPillsRow"></div>
-
-        <!-- 3. Real Description from Document -->
         <div class="description-para" id="contentDescription" style="display: none;"></div>
-
-        <!-- 4. Real Tags / Genres from Document -->
         <div class="genres-tags-line" id="genresTagsLine" style="display: none;"></div>
-
-        <!-- 5. Dynamic Action Buttons -->
         <div class="actions-row-container" id="ctaContainer"></div>
       </div>
 
     </div>
 
-    <!-- Lower Content (Episodes & Recommendations) Strictly Follows Below -->
+    <!-- Lower Content (Episodes & Recommendations) -->
     <div class="lower-content-container">
-      
+
       <!-- TV Shows Episodes Section -->
       <div class="section-container episodes-wrapper" id="episodesSection">
         <div class="section-heading">Episodes</div>
@@ -854,7 +918,7 @@
         <button class="view-more-btn" id="btnViewMoreEpisodes" style="display: none;">View More</button>
       </div>
 
-      <!-- 16:9 Recommendations -->
+      <!-- 16:9 Recommendations (Poster.h) -->
       <div class="section-container">
         <div class="section-heading">More Like This</div>
         <div class="rec-scroll-row" id="recommendationsGrid"></div>
@@ -900,12 +964,12 @@
 
     // State
     let currentItem = null;
-    let contentType = 'movie'; 
+    let contentType = 'movie';
     let currentCollection = 'Movies';
     let currentUser = null;
     let userDocRef = null;
     let userProfiles = null;
-    let activeProfileIndex = -1;
+    let activeProfileIndex = 0;
     let userWatchlist = [];
     let userAuthorizedStudios = new Set();
     let hasAccess = false;
@@ -914,16 +978,15 @@
     let currentSeasonKey = null;
     let showAllEpisodes = false;
     let isMuted = true;
-    let toastTimer = null;
+    let watchlistPending = false;
 
     const urlParams = new URLSearchParams(window.location.search);
     const contentId = urlParams.get('preview') || urlParams.get('watch');
 
-    // Smooth rAF-throttled scroll handler
     let scrollTicking = false;
     window.addEventListener('scroll', () => {
       if (!scrollTicking) {
-        window.requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
           const topNav = document.getElementById('stickyTopNav');
           if (window.scrollY > 90) {
             topNav.classList.add('scrolled');
@@ -936,6 +999,7 @@
       }
     }, { passive: true });
 
+    let toastTimer = null;
     function showToast(msg) {
       const toast = document.getElementById('toastAlert');
       toast.innerText = msg;
@@ -949,10 +1013,16 @@
       return String(url).trim().replace(/^http:\/\//i, 'https://');
     }
 
-    // Horizontal Banner resolver (Strictly uses Banner, NOT Poster.h)
+    // Hero Media Box strictly uses Banner (no Poster.h)
+    function getBannerImage(c) {
+      if (!c) return '';
+      return safeUrl(c.Banner || c.banner || c.Backdrop || c.backdrop || '');
+    }
+
+    // Recommendations & Thumbnails strictly prioritize Poster.h
     function getHorizontalImage(c) {
       if (!c) return '';
-      return safeUrl(c.Banner || c.banner || c.Poster || c["Poster.v"] || '');
+      return safeUrl(c["Poster.h"] || c.Poster_h || c.poster_h || c.Banner || c.banner || c.Poster || c["Poster.v"] || '');
     }
 
     function extractYouTubeId(url) {
@@ -971,62 +1041,62 @@
       return null;
     }
 
-    // Resolve which Profile inside UARM.Profiles is currently active
-    function resolveActiveProfileIndex(profiles, uData) {
+    // Resolve active profile index inside UARM.Profiles array
+    function resolveActiveProfileIndex(profiles) {
       if (!Array.isArray(profiles) || profiles.length === 0) return -1;
 
-      // 1. Check explicit index stored in localStorage or user object
-      const storedIdx = localStorage.getItem('active_profile_index') ?? localStorage.getItem('profile_index');
-      if (storedIdx !== null && storedIdx !== '' && !Number.isNaN(Number(storedIdx))) {
-        const idx = Number(storedIdx);
-        if (profiles[idx]) return idx;
-      }
-
-      if (typeof currentUser?.activeProfileIndex === 'number' && profiles[currentUser.activeProfileIndex]) {
-        return currentUser.activeProfileIndex;
-      }
-
-      // 2. Check active_profile / selected_profile object or string in localStorage
-      const rawProfile = localStorage.getItem('active_profile') || localStorage.getItem('selected_profile') || localStorage.getItem('current_profile');
-      if (rawProfile) {
-        try {
-          const parsed = JSON.parse(rawProfile);
-          if (parsed && typeof parsed === 'object') {
-            const matchIdx = profiles.findIndex(p =>
-              (parsed.Name && p.Name === parsed.Name) ||
-              (parsed.Avatar && p.Avatar === parsed.Avatar)
-            );
-            if (matchIdx !== -1) return matchIdx;
-          }
-        } catch (e) {
-          const matchByName = profiles.findIndex(p => p.Name === rawProfile);
-          if (matchByName !== -1) return matchByName;
+      // 1. Check explicit index keys in localStorage
+      const idxKeys = ['active_profile_index', 'activeProfileIndex', 'profile_index', 'selected_profile_index'];
+      for (const k of idxKeys) {
+        const val = localStorage.getItem(k);
+        if (val !== null && val !== '' && !isNaN(Number(val))) {
+          const parsed = Number(val);
+          if (parsed >= 0 && parsed < profiles.length) return parsed;
         }
       }
 
-      // 3. Fallback to first Hotstar profile, or index 0
+      // 2. Check stored profile object in localStorage
+      const profKeys = ['active_profile', 'selected_profile', 'current_profile', 'hotstar_profile'];
+      for (const k of profKeys) {
+        try {
+          const raw = localStorage.getItem(k);
+          if (!raw) continue;
+          const obj = JSON.parse(raw);
+          if (obj && typeof obj === 'object') {
+            const matchIdx = profiles.findIndex(p =>
+              (obj.Name && p.Name === obj.Name && (!obj.App || p.App === obj.App)) ||
+              (obj.Avatar && p.Avatar === obj.Avatar)
+            );
+            if (matchIdx !== -1) return matchIdx;
+          }
+        } catch (e) {}
+      }
+
+      // 3. Fallback: first profile for Hotstar app, or index 0
       const hotstarIdx = profiles.findIndex(p => String(p?.App || '').toLowerCase() === 'hotstar');
       return hotstarIdx !== -1 ? hotstarIdx : 0;
     }
 
-    // Sync userWatchlist state from UARM data (supports Profiles[i].Watchlist + top-level fallback)
-    function extractWatchlistFromUserData(uData) {
-      if (!uData) return [];
-      if (Array.isArray(uData.Profiles) && uData.Profiles.length > 0) {
-        userProfiles = uData.Profiles;
-        activeProfileIndex = resolveActiveProfileIndex(uData.Profiles, uData);
-        const activeProf = uData.Profiles[activeProfileIndex];
-        if (activeProf && Array.isArray(activeProf.Watchlist)) {
-          return [...activeProf.Watchlist];
-        }
-        return [];
+    function syncLocalWatchlist(profiles, idx, watchlistArr) {
+      if (!currentUser) return;
+      if (Array.isArray(profiles) && idx >= 0 && profiles[idx]) {
+        profiles[idx].Watchlist = watchlistArr;
+        currentUser.Profiles = profiles;
+        try {
+          const rawActiveProf = localStorage.getItem('active_profile');
+          if (rawActiveProf) {
+            const parsed = JSON.parse(rawActiveProf);
+            parsed.Watchlist = watchlistArr;
+            localStorage.setItem('active_profile', JSON.stringify(parsed));
+          }
+        } catch (e) {}
+      } else {
+        currentUser.Watchlist = watchlistArr;
       }
-      userProfiles = null;
-      activeProfileIndex = -1;
-      return Array.isArray(uData.Watchlist) ? [...uData.Watchlist] : [];
+      localStorage.setItem('active_user', JSON.stringify(currentUser));
     }
 
-    // Load User Plan, Active Profile Watchlist & Subscribed Studios
+    // Load User Plan, Profile Watchlist & Subscribed Studios
     async function loadUserSubscriptionPlan() {
       try {
         const stored = localStorage.getItem('active_user') || localStorage.getItem('user') || localStorage.getItem('UARM');
@@ -1035,22 +1105,30 @@
 
       if (!currentUser) return;
 
-      userWatchlist = extractWatchlistFromUserData(currentUser);
+      // Immediate optimistic local state from Profiles or top-level Watchlist
+      if (Array.isArray(currentUser.Profiles) && currentUser.Profiles.length > 0) {
+        userProfiles = currentUser.Profiles;
+        activeProfileIndex = resolveActiveProfileIndex(userProfiles);
+        const prof = userProfiles[activeProfileIndex];
+        userWatchlist = Array.isArray(prof?.Watchlist) ? [...prof.Watchlist] : [];
+      } else {
+        userWatchlist = Array.isArray(currentUser.Watchlist) ? [...currentUser.Watchlist] : [];
+      }
 
       try {
         let uData = null;
 
-        if (currentUser.Lotus) {
+        if (currentUser["UARMS ID"] || currentUser.UARMS_ID || currentUser.id) {
+          const uId = currentUser["UARMS ID"] || currentUser.UARMS_ID || currentUser.id;
+          userDocRef = doc(userDb, "UARM", uId);
+          const snap = await getDoc(userDocRef);
+          if (snap.exists()) uData = snap.data();
+        } else if (currentUser.Lotus) {
           const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
           if (!snap.empty) {
             userDocRef = doc(userDb, "UARM", snap.docs[0].id);
             uData = snap.docs[0].data();
           }
-        } else if (currentUser["UARMS ID"] || currentUser.UARMS_ID || currentUser.id) {
-          const uId = currentUser["UARMS ID"] || currentUser.UARMS_ID || currentUser.id;
-          userDocRef = doc(userDb, "UARM", uId);
-          const snap = await getDoc(userDocRef);
-          if (snap.exists()) uData = snap.data();
         } else if (currentUser.Email) {
           const snap = await getDocs(query(collection(userDb, "UARM"), where("Email", "==", currentUser.Email)));
           if (!snap.empty) {
@@ -1060,8 +1138,16 @@
         }
 
         if (uData) {
-          userWatchlist = extractWatchlistFromUserData(uData);
           currentUser = { ...currentUser, ...uData };
+          if (Array.isArray(uData.Profiles) && uData.Profiles.length > 0) {
+            userProfiles = uData.Profiles;
+            activeProfileIndex = resolveActiveProfileIndex(userProfiles);
+            const prof = userProfiles[activeProfileIndex];
+            userWatchlist = Array.isArray(prof?.Watchlist) ? [...prof.Watchlist] : [];
+          } else {
+            userProfiles = null;
+            userWatchlist = Array.isArray(uData.Watchlist) ? [...uData.Watchlist] : userWatchlist;
+          }
           localStorage.setItem('active_user', JSON.stringify(currentUser));
         }
 
@@ -1102,15 +1188,17 @@
       return false;
     }
 
-    // Parallel Search across all collections (up to 6x faster)
+    // Fast parallel search across all collections
     async function fetchContentData(id) {
       if (!id) {
-        document.getElementById('loader').innerHTML = `<div class="loader-error-msg">No content ID specified.</div>`;
+        const loader = document.getElementById('loader');
+        loader.className = 'loader-error';
+        loader.innerText = 'No content ID specified.';
         return null;
       }
 
       const collections = ["Movies", "TV Shows", "Shows", "Live TV", "Digital-Feed", "Sports"];
-      const snaps = await Promise.all(
+      const results = await Promise.all(
         collections.map(async (col) => {
           try {
             const snap = await getDoc(doc(contentDb, col, id));
@@ -1120,14 +1208,16 @@
         })
       );
 
-      const found = snaps.find(Boolean);
-      if (!found) {
-        document.getElementById('loader').innerHTML = `<div class="loader-error-msg">Content "${id}" not found.</div>`;
+      const match = results.find(Boolean);
+      if (!match) {
+        const loader = document.getElementById('loader');
+        loader.className = 'loader-error';
+        loader.innerText = `Content "${id}" not found.`;
         return null;
       }
 
-      currentCollection = found.col;
-      currentItem = { id, ...found.data };
+      currentCollection = match.col;
+      currentItem = { id, ...match.data };
 
       const seasons = Object.keys(currentItem).filter(k => k.toLowerCase().startsWith('season'));
       if (currentCollection === "TV Shows" || currentCollection === "Shows" || seasons.length > 0) {
@@ -1150,17 +1240,28 @@
       document.getElementById('stickyNavTitle').innerText = showName;
       if (showName) document.title = `${showName} - Hotstar`;
 
-      // 1. Banner (Strictly Banner, not Poster.h)
+      // 1. Hero Banner (Banner ONLY, never Poster.h)
       const bannerImg = document.getElementById('heroBanner');
-      const primaryBanner = getHorizontalImage(currentItem);
-      const secondaryBanner = safeUrl(currentItem.Poster || currentItem["Poster.v"] || '');
+      const primaryBanner = getBannerImage(currentItem);
+      const fallbackPoster = safeUrl(currentItem.Poster || '');
 
-      bannerImg.src = primaryBanner;
+      bannerImg.classList.remove('loaded');
+      bannerImg.onload = () => bannerImg.classList.add('loaded');
       bannerImg.onerror = () => {
-        if (secondaryBanner && bannerImg.src !== secondaryBanner) {
-          bannerImg.src = secondaryBanner;
+        if (fallbackPoster && bannerImg.src !== fallbackPoster) {
+          bannerImg.src = fallbackPoster;
+        } else {
+          bannerImg.classList.add('loaded');
         }
       };
+
+      if (primaryBanner) {
+        bannerImg.src = primaryBanner;
+      } else if (fallbackPoster) {
+        bannerImg.src = fallbackPoster;
+      } else {
+        bannerImg.classList.add('loaded');
+      }
 
       // 2. Real Logo from Document (or Name)
       const logoImg = document.getElementById('contentLogo');
@@ -1222,7 +1323,7 @@
         descEl.style.display = 'none';
       }
 
-      // 5. Tags / Genres with Pipes
+      // 5. Tags / Genres
       const tagsEl = document.getElementById('genresTagsLine');
       const rawTags = currentItem.Tags || currentItem.Genres || currentItem.Channel || '';
       if (rawTags) {
@@ -1253,8 +1354,6 @@
 
     function renderCTAButtons() {
       const ctaBox = document.getElementById('ctaContainer');
-      ctaBox.innerHTML = '';
-
       let primaryBtnHtml = '';
 
       if (!hasAccess) {
@@ -1287,11 +1386,8 @@
           `;
         } else {
           let label = "Watch Movie";
-          if (contentType === 'show') {
-            label = "Watch Show";
-          } else if (contentType === 'live') {
-            label = "Watch Live";
-          }
+          if (contentType === 'show') label = "Watch Show";
+          else if (contentType === 'live') label = "Watch Live";
 
           primaryBtnHtml = `
             <a class="btn-hotstar-cta" href="1.html?watch=${currentItem.id}&action=starting">
@@ -1324,16 +1420,24 @@
       trailerTimeout = setTimeout(() => {
         if (!trailerUrl) {
           trailerStatusText.innerText = "TRAILER UNAVAILABLE";
+          trailerStatusText.classList.remove('live-dot');
           trailerStatusText.style.display = "flex";
           return;
         }
 
         const ytId = extractYouTubeId(trailerUrl);
 
-        if (ytId && typeof YT !== 'undefined' && YT.Player) {
+        if (ytId) {
+          if (typeof YT === 'undefined' || !YT.Player) {
+            trailerStatusText.innerText = "TRAILER UNAVAILABLE";
+            trailerStatusText.style.display = "flex";
+            return;
+          }
+
           host.innerHTML = `<div id="ytTrailerActualPlayer"></div>`;
           host.classList.add('playing');
           trailerStatusText.innerText = "TRAILER";
+          trailerStatusText.classList.add('live-dot');
           trailerStatusText.style.display = "flex";
 
           ytTrailerPlayer = new YT.Player('ytTrailerActualPlayer', {
@@ -1356,11 +1460,12 @@
                 if (e.data === YT.PlayerState.ENDED) {
                   host.classList.remove('playing');
                   trailerStatusText.style.display = 'none';
-                  try { ytTrailerPlayer.destroy(); } catch(err){}
+                  try { ytTrailerPlayer.destroy(); } catch (err) {}
                 }
               },
               onError: () => {
                 host.classList.remove('playing');
+                trailerStatusText.classList.remove('live-dot');
                 trailerStatusText.innerText = "TRAILER UNAVAILABLE";
               }
             }
@@ -1369,6 +1474,7 @@
           host.innerHTML = `<video id="videoTrailerEl" src="${trailerUrl}" autoplay ${isMuted ? 'muted' : ''} playsinline></video>`;
           host.classList.add('playing');
           trailerStatusText.innerText = "TRAILER";
+          trailerStatusText.classList.add('live-dot');
           trailerStatusText.style.display = "flex";
 
           const vid = document.getElementById('videoTrailerEl');
@@ -1376,11 +1482,12 @@
             host.classList.remove('playing');
             trailerStatusText.style.display = 'none';
           };
-        } else if (!ytId) {
+        } else {
           trailerStatusText.innerText = "TRAILER UNAVAILABLE";
+          trailerStatusText.classList.remove('live-dot');
           trailerStatusText.style.display = "flex";
         }
-      }, 2800);
+      }, 2400);
     }
 
     // Audio Mute Toggle
@@ -1393,7 +1500,7 @@
       const vid = document.getElementById('videoTrailerEl');
       if (vid) vid.muted = isMuted;
 
-      icon.innerHTML = isMuted 
+      icon.innerHTML = isMuted
         ? '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>'
         : '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
     };
@@ -1420,14 +1527,14 @@
 
       const epList = currentItem[currentSeasonKey] || [];
       const seasonNum = currentSeasonKey.replace(/\D/g, '') || '1';
-      const limit = showAllEpisodes ? epList.length : 5;
+      const limit = showAllEpisodes ? epList.length : 6;
       const thumbUrl = getHorizontalImage(currentItem);
-      const fallbackThumb = safeUrl(currentItem.Poster || currentItem["Poster.v"] || '');
+      const fallbackThumb = safeUrl(currentItem.Banner || currentItem.Poster || '');
 
       listEl.innerHTML = epList.slice(0, limit).map((ep, idx) => `
         <a class="ep-card" href="1.html?watch=${currentItem.id}&season=${encodeURIComponent(currentSeasonKey)}&ep=${idx + 1}">
           <div class="ep-thumb-wrap">
-            <img src="${thumbUrl}" alt="${ep.Name || ''}" loading="lazy" onerror="if(this.src!=='${fallbackThumb}') this.src='${fallbackThumb}';">
+            <img src="${safeUrl(ep.Thumbnail || ep.Poster || thumbUrl)}" alt="${ep.Name || ''}" loading="lazy" onerror="if(this.src!=='${fallbackThumb}') this.src='${fallbackThumb}';">
             <div class="ep-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           </div>
           <div class="ep-info">
@@ -1437,7 +1544,7 @@
         </a>
       `).join('');
 
-      if (epList.length > 5) {
+      if (epList.length > 6) {
         viewMoreBtn.style.display = 'flex';
         viewMoreBtn.innerText = showAllEpisodes ? 'View Less' : 'View More';
         viewMoreBtn.onclick = () => {
@@ -1459,69 +1566,18 @@
       if (!btn || !currentItem) return;
       const isAdded = userWatchlist.includes(currentItem.id);
       btn.classList.toggle('active', isAdded);
-      btn.title = isAdded ? "Remove from Watchlist" : "Add to Watchlist";
-      document.getElementById('wlIcon').innerHTML = isAdded 
-        ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>' 
+      btn.title = isAdded ? 'Remove from Watchlist' : 'Add to Watchlist';
+      document.getElementById('wlIcon').innerHTML = isAdded
+        ? '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>'
         : '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
-    }
-
-    // Updated Watchlist System (Syncs UARM.Profiles[activeProfileIndex].Watchlist)
-    async function persistWatchlistUpdate(targetId, shouldAdd) {
-      try {
-        if (!userDocRef && currentUser?.Lotus) {
-          const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
-          if (!snap.empty) userDocRef = doc(userDb, "UARM", snap.docs[0].id);
-        }
-        if (!userDocRef) return;
-
-        // Read fresh doc so we never overwrite sibling profile fields
-        const freshSnap = await getDoc(userDocRef);
-        if (!freshSnap.exists()) return;
-        const freshData = freshSnap.data();
-
-        if (Array.isArray(freshData.Profiles) && freshData.Profiles.length > 0) {
-          const profIdx = resolveActiveProfileIndex(freshData.Profiles, freshData);
-          if (profIdx === -1) return;
-
-          const updatedProfiles = freshData.Profiles.map((p, idx) => {
-            if (idx !== profIdx) return p;
-            const existingWl = Array.isArray(p.Watchlist) ? p.Watchlist : [];
-            const nextWl = shouldAdd
-              ? (existingWl.includes(targetId) ? existingWl : [...existingWl, targetId])
-              : existingWl.filter(item => item !== targetId);
-            return { ...p, Watchlist: nextWl };
-          });
-
-          userProfiles = updatedProfiles;
-          activeProfileIndex = profIdx;
-          userWatchlist = [...(updatedProfiles[profIdx].Watchlist || [])];
-          updateWatchlistButtonState();
-
-          // Sync localStorage cleanly
-          currentUser.Profiles = updatedProfiles;
-          localStorage.setItem('active_user', JSON.stringify(currentUser));
-          if (localStorage.getItem('active_profile')) {
-            localStorage.setItem('active_profile', JSON.stringify(updatedProfiles[profIdx]));
-          }
-
-          await updateDoc(userDocRef, { Profiles: updatedProfiles });
-        } else {
-          // Legacy fallback if document has top-level Watchlist
-          if (shouldAdd) {
-            await updateDoc(userDocRef, { Watchlist: arrayUnion(targetId) });
-          } else {
-            await updateDoc(userDocRef, { Watchlist: arrayRemove(targetId) });
-          }
-        }
-      } catch (err) {
-        console.warn("Watchlist sync error:", err);
-      }
     }
 
     function attachActionListeners() {
       const wlBtn = document.getElementById('btnWatchlist');
       if (wlBtn) {
         wlBtn.onclick = async () => {
+          if (watchlistPending) return;
+
           wlBtn.classList.remove('animating');
           void wlBtn.offsetWidth;
           wlBtn.classList.add('animating');
@@ -1539,26 +1595,68 @@
           }
 
           const isAdded = userWatchlist.includes(currentItem.id);
-          const shouldAdd = !isAdded;
+          const updatedWatchlist = isAdded
+            ? userWatchlist.filter(id => id !== currentItem.id)
+            : [...new Set([...userWatchlist, currentItem.id])];
 
-          // Optimistic UI update for instant response
-          if (shouldAdd) {
-            userWatchlist.push(currentItem.id);
-            showToast("Added to Watchlist");
-          } else {
-            userWatchlist = userWatchlist.filter(id => id !== currentItem.id);
-            showToast("Removed from Watchlist");
-          }
-
-          if (Array.isArray(currentUser.Profiles) && activeProfileIndex >= 0 && currentUser.Profiles[activeProfileIndex]) {
-            currentUser.Profiles[activeProfileIndex].Watchlist = [...userWatchlist];
-          } else {
-            currentUser.Watchlist = [...userWatchlist];
-          }
-          localStorage.setItem('active_user', JSON.stringify(currentUser));
+          // Optimistic UI update
+          userWatchlist = updatedWatchlist;
+          syncLocalWatchlist(userProfiles, activeProfileIndex, userWatchlist);
           updateWatchlistButtonState();
+          showToast(isAdded ? "Removed from Watchlist" : "Added to Watchlist");
 
-          await persistWatchlistUpdate(currentItem.id, shouldAdd);
+          watchlistPending = true;
+          try {
+            if (!userDocRef) {
+              if (currentUser["UARMS ID"] || currentUser.UARMS_ID || currentUser.id) {
+                userDocRef = doc(userDb, "UARM", currentUser["UARMS ID"] || currentUser.UARMS_ID || currentUser.id);
+              } else if (currentUser.Lotus) {
+                const snap = await getDocs(query(collection(userDb, "UARM"), where("Lotus", "==", currentUser.Lotus)));
+                if (!snap.empty) userDocRef = doc(userDb, "UARM", snap.docs[0].id);
+              } else if (currentUser.Email) {
+                const snap = await getDocs(query(collection(userDb, "UARM"), where("Email", "==", currentUser.Email)));
+                if (!snap.empty) userDocRef = doc(userDb, "UARM", snap.docs[0].id);
+              }
+            }
+
+            if (userDocRef) {
+              // Fetch latest document so we safely update Profiles[activeProfileIndex].Watchlist without overwriting sibling profiles
+              const freshSnap = await getDoc(userDocRef);
+              if (freshSnap.exists()) {
+                const freshData = freshSnap.data();
+                if (Array.isArray(freshData.Profiles) && freshData.Profiles.length > 0) {
+                  const idx = (activeProfileIndex >= 0 && activeProfileIndex < freshData.Profiles.length)
+                    ? activeProfileIndex
+                    : resolveActiveProfileIndex(freshData.Profiles);
+                  activeProfileIndex = idx;
+
+                  const updatedProfiles = freshData.Profiles.map((p, i) => {
+                    if (i !== idx) return p;
+                    const baseList = Array.isArray(p.Watchlist) ? p.Watchlist : [];
+                    const nextList = isAdded
+                      ? baseList.filter(id => id !== currentItem.id)
+                      : [...new Set([...baseList, currentItem.id])];
+                    return { ...p, Watchlist: nextList };
+                  });
+
+                  await updateDoc(userDocRef, { Profiles: updatedProfiles });
+                  userProfiles = updatedProfiles;
+                  userWatchlist = updatedProfiles[idx].Watchlist;
+                  syncLocalWatchlist(userProfiles, idx, userWatchlist);
+                  updateWatchlistButtonState();
+                } else {
+                  // Legacy fallback if document has top-level Watchlist
+                  await updateDoc(userDocRef, {
+                    Watchlist: isAdded ? arrayRemove(currentItem.id) : arrayUnion(currentItem.id)
+                  });
+                }
+              }
+            }
+          } catch (err) {
+            console.error("Watchlist sync failed:", err);
+          } finally {
+            watchlistPending = false;
+          }
         };
       }
 
@@ -1573,9 +1671,9 @@
                 text: `Watch ${currentItem.Name} on Hotstar!`,
                 url: shareUrl
               });
-            } catch(e){}
-          } else {
-            navigator.clipboard.writeText(shareUrl);
+            } catch (e) {}
+          } else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(shareUrl);
             showToast("Link copied to clipboard!");
           }
         };
@@ -1591,7 +1689,7 @@
           if (d.id !== currentItem.id) items.push({ id: d.id, ...d.data() });
         });
 
-        const targetGenres = String(currentItem.Genres || currentItem.Tags || currentItem.Channel || '').toLowerCase().split(/[,/|]+/);
+        const targetGenres = String(currentItem.Genres || currentItem.Tags || currentItem.Channel || '').toLowerCase().split(/[,/|]+/).map(s => s.trim()).filter(Boolean);
         const targetStudio = String(currentItem.Studio || currentItem.Channel || '').toLowerCase();
         const targetAge = String(currentItem.Age_Rating || '').toLowerCase();
 
@@ -1601,10 +1699,10 @@
 
           const aG = String(a.Genres || a.Tags || a.Channel || '').toLowerCase();
           const bG = String(b.Genres || b.Tags || b.Channel || '').toLowerCase();
-          targetGenres.forEach(g => {
-            if (g && aG.includes(g.trim())) scoreA += 10;
-            if (g && bG.includes(g.trim())) scoreB += 10;
-          });
+          for (const g of targetGenres) {
+            if (aG.includes(g)) scoreA += 10;
+            if (bG.includes(g)) scoreB += 10;
+          }
 
           if (targetStudio && String(a.Studio || a.Channel || '').toLowerCase().includes(targetStudio)) scoreA += 15;
           if (targetStudio && String(b.Studio || b.Channel || '').toLowerCase().includes(targetStudio)) scoreB += 15;
@@ -1616,14 +1714,15 @@
         });
 
         grid.innerHTML = items.slice(0, 14).map(c => {
+          // Recommendations strictly show Poster.h first
           const primary = getHorizontalImage(c);
-          const fallback = safeUrl(c.Poster || c["Poster.v"] || '');
+          const fallback = safeUrl(c.Banner || c.Poster || '');
           const genres = c.Genres || c.Tags || c.Channel || c.Language || '';
-          
+
           return `
             <a class="rec-16-9-card" href="preview.html?preview=${c.id}">
               <div class="rec-16-9-thumb">
-                <img src="${primary}" alt="${c.Name || 'Title'}" loading="lazy" onerror="if(this.src!=='${fallback}') this.src='${fallback}';">
+                <img src="${primary}" alt="${c.Name || 'Title'}" loading="lazy" decoding="async" onerror="if(this.src!=='${fallback}') this.src='${fallback}';">
               </div>
               <div class="rec-title">${c.Name || 'Title'}</div>
               ${genres ? `<div class="rec-sub">${genres}</div>` : ''}
@@ -1634,7 +1733,7 @@
     }
 
     async function start() {
-      // Load user subscription/watchlist AND content document concurrently for faster startup
+      // Run user subscription/profile fetch and content document lookup in parallel
       const [, item] = await Promise.all([
         loadUserSubscriptionPlan(),
         fetchContentData(contentId)
