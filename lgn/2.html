@@ -212,7 +212,6 @@
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
-    // --- Device Detection Helper ---
     function detectDeviceType() {
         const ua = navigator.userAgent;
         if (/iPad|tablet|PlayBook|Silk/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
@@ -236,7 +235,6 @@
         return "Device";
     }
 
-    // --- Location Detection Helper ---
     async function getApproximateLocation() {
         try {
             const res = await fetch("https://ipapi.co/json/");
@@ -247,23 +245,27 @@
                 }
             }
         } catch (e) {
-            // fallback
+            // Network fallback
         }
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown Region";
         return tz.replace("_", " ");
     }
 
-    // --- Send Security Alerts to User and Guardian ---
+    // --- Send Security Email Function (User + Guardian) ---
     async function sendLoginAlertEmail() {
         try {
             const userEmail = currentUserData["Email"] || "";
             if (!userEmail) return;
 
+            // Check if this is a kids account
             const isKids = currentUserData["Type"] === "kids" || 
                            currentUserData["Family"] === "commited" || 
-                           currentUserData["Family"] === "commit";
+                           currentUserData["Family"] === "commit" ||
+                           Boolean(currentUserData["Guardian"]);
 
             const firstName = currentUserData["First Name"] || "User";
+            const accountLabel = isKids ? `${firstName} Kids Account` : "Personal";
+
             const device = detectDeviceType();
             const dateStr = new Date().toLocaleString('en-US', {
                 day: 'numeric',
@@ -275,8 +277,7 @@
             });
             const location = await getApproximateLocation();
 
-            // 1. Email to the signing-in user
-            const accountLabel = isKids ? `${firstName} Kids Account` : "Personal";
+            // 1. Template for the kid/user
             const userBody = `Hello,
 We noticed a new sign-in to your ${accountLabel} account.
 On ${device} ${dateStr} Near ${location}
@@ -285,6 +286,7 @@ If this was you, no action is needed.
 If you don't recognize this activity, please review your account security right away.
 Knox-app.github.io/cloud/links/task#review-account`;
 
+            // Send to user
             await addDoc(collection(mailDb, "Email"), {
                 subject: "New sign-in to your Account",
                 body: userBody,
@@ -293,28 +295,19 @@ Knox-app.github.io/cloud/links/task#review-account`;
                 timestamp: serverTimestamp()
             });
 
-            // 2. If it is a Kids Account, also notify the Guardian
-            const guardianEmail = currentUserData["Guardian"] || currentUserData["Parent"] || "";
+            // 2. If Kids Account, also send notification to Guardian
+            const guardianEmail = currentUserData["Guardian"] || currentUserData["guardian"];
             if (isKids && guardianEmail && guardianEmail !== userEmail) {
-                // Determine gender relationship term
-                const gender = (currentUserData["Gender"] || currentUserData["gender"] || "").toLowerCase();
-                let relation = "child";
-                if (gender === "male" || gender === "m" || gender === "boy") {
-                    relation = "son";
-                } else if (gender === "female" || gender === "f" || gender === "girl") {
-                    relation = "daughter";
-                }
-
                 const guardianBody = `Hello,
-We noticed a new sign-in to your ${relation}'s account (${firstName}).
+We noticed a new sign-in to ${firstName}'s Kids Account (${userEmail}).
 On ${device} ${dateStr} Near ${location}
 
-If this was expected, no action is needed.
+If this was approved by you, no action is needed.
 If you don't recognize this activity, please review your family account security right away.
 Knox-app.github.io/cloud/links/task#review-account`;
 
                 await addDoc(collection(mailDb, "Email"), {
-                    subject: `New sign-in to your ${relation}'s Account`,
+                    subject: `New sign-in to ${firstName}'s Kids Account`,
                     body: guardianBody,
                     from: "systemplx.mail",
                     to: guardianEmail,
@@ -338,7 +331,7 @@ Knox-app.github.io/cloud/links/task#review-account`;
 
         try {
             if (currentUserData["Password"] === pass) {
-                // 1. Send Security Alert Emails (to user + guardian if kids)
+                // 1. Send Security Alert Emails (to User and Guardian)
                 await sendLoginAlertEmail();
 
                 // 2. Refresh user Lotus
