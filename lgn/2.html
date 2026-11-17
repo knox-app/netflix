@@ -143,7 +143,7 @@
         serverTimestamp 
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // Primary Database (UARM & ASPX Keys)
+    // 1. Primary DB (UARM & ASPX Keys)
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
         authDomain: "question-metabase.firebaseapp.com",
@@ -152,7 +152,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Secondary Database (cloud-computer-4891a for Email collection)
+    // 2. Secondary DB (cloud-computer-4891a for Email collection)
     const mailFirebaseConfig = {
         apiKey: "AIzaSyAo8Uzs4XZHDHTSTfgx59w5h5NlYuGC8s0",
         authDomain: "cloud-computer-4891a.firebaseapp.com",
@@ -212,6 +212,7 @@
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
+    // --- Device Detection Helper ---
     function detectDeviceType() {
         const ua = navigator.userAgent;
         if (/iPad|tablet|PlayBook|Silk/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
@@ -235,6 +236,7 @@
         return "Device";
     }
 
+    // --- Location Detection Helper ---
     async function getApproximateLocation() {
         try {
             const res = await fetch("https://ipapi.co/json/");
@@ -245,7 +247,7 @@
                 }
             }
         } catch (e) {
-            // Network fallback
+            // fallback
         }
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown Region";
         return tz.replace("_", " ");
@@ -254,7 +256,7 @@
     // --- Send Security Alerts to User and Guardian ---
     async function sendLoginAlertEmail() {
         try {
-            const userEmail = currentUserData["Email"] || currentUserData["email"] || "";
+            const userEmail = currentUserData["Email"] || "";
             if (!userEmail) return;
 
             const isKids = currentUserData["Type"] === "kids" || 
@@ -273,9 +275,9 @@
             });
             const location = await getApproximateLocation();
 
-            // 1. Email Body for the User
+            // 1. Email to the signing-in user
             const accountLabel = isKids ? `${firstName} Kids Account` : "Personal";
-            const userEmailBody = `Hello,
+            const userBody = `Hello,
 We noticed a new sign-in to your ${accountLabel} account.
 On ${device} ${dateStr} Near ${location}
 
@@ -283,37 +285,44 @@ If this was you, no action is needed.
 If you don't recognize this activity, please review your account security right away.
 Knox-app.github.io/cloud/links/task#review-account`;
 
-            // Save user alert into cloud-computer-4891a -> Email collection
             await addDoc(collection(mailDb, "Email"), {
                 subject: "New sign-in to your Account",
-                body: userEmailBody,
+                body: userBody,
                 from: "systemplx.mail",
                 to: userEmail,
                 timestamp: serverTimestamp()
             });
 
-            // 2. Email Body for the Guardian (if kids account and guardian exists)
-            const guardianEmail = currentUserData["Guardian"] || currentUserData["guardian"];
-            if (isKids && guardianEmail) {
-                const guardianEmailBody = `Hello,
-We noticed a new sign-in to ${firstName}'s Kids Account (${userEmail}).
+            // 2. If it is a Kids Account, also notify the Guardian
+            const guardianEmail = currentUserData["Guardian"] || currentUserData["Parent"] || "";
+            if (isKids && guardianEmail && guardianEmail !== userEmail) {
+                // Determine gender relationship term
+                const gender = (currentUserData["Gender"] || currentUserData["gender"] || "").toLowerCase();
+                let relation = "child";
+                if (gender === "male" || gender === "m" || gender === "boy") {
+                    relation = "son";
+                } else if (gender === "female" || gender === "f" || gender === "girl") {
+                    relation = "daughter";
+                }
+
+                const guardianBody = `Hello,
+We noticed a new sign-in to your ${relation}'s account (${firstName}).
 On ${device} ${dateStr} Near ${location}
 
-If this was authorized by you, no action is needed.
-If you don't recognize this activity, please review your child's account security right away.
+If this was expected, no action is needed.
+If you don't recognize this activity, please review your family account security right away.
 Knox-app.github.io/cloud/links/task#review-account`;
 
-                // Save guardian alert into cloud-computer-4891a -> Email collection
                 await addDoc(collection(mailDb, "Email"), {
-                    subject: `New sign-in to ${firstName}'s Account`,
-                    body: guardianEmailBody,
+                    subject: `New sign-in to your ${relation}'s Account`,
+                    body: guardianBody,
                     from: "systemplx.mail",
                     to: guardianEmail,
                     timestamp: serverTimestamp()
                 });
             }
         } catch (err) {
-            console.warn("Failed to send security alert email:", err);
+            console.warn("Failed to log security notification email:", err);
         }
     }
 
@@ -329,7 +338,7 @@ Knox-app.github.io/cloud/links/task#review-account`;
 
         try {
             if (currentUserData["Password"] === pass) {
-                // 1. Send Security Alert Emails
+                // 1. Send Security Alert Emails (to user + guardian if kids)
                 await sendLoginAlertEmail();
 
                 // 2. Refresh user Lotus
