@@ -57,7 +57,6 @@
       border-bottom: none;
     }
 
-    /* Dynamic Brand Logo Container - Made Bigger */
     .brand-logo-slot {
       display: flex;
       align-items: center;
@@ -68,28 +67,11 @@
       min-width: 48px;
     }
 
-    .brand-logo-slot img {
+    .brand-logo-slot img, .brand-logo-slot svg, .brand-logo-slot video {
       height: 50px;
       max-height: 54px;
       max-width: 220px;
       object-fit: contain;
-      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
-    }
-
-    .brand-logo-slot svg {
-      height: 50px;
-      max-height: 54px;
-      max-width: 220px;
-      width: auto;
-      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
-    }
-
-    .brand-logo-slot video {
-      height: 50px;
-      max-height: 54px;
-      max-width: 220px;
-      object-fit: contain;
-      pointer-events: none;
       filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
     }
 
@@ -176,7 +158,6 @@
       max-width: 720px;
     }
 
-    /* Hero Foreground Movie Logo - Made Bigger */
     .hero-title-logo {
       max-width: 340px;
       max-height: 125px;
@@ -910,7 +891,7 @@
 </head>
 <body>
 
-  <!-- TOP HEADER (DYNAMIC LOGO FROM SYSTEMS/HSTR.LOGO-MANAGER) -->
+  <!-- TOP HEADER -->
   <header class="navbar">
     <div class="brand-logo-slot" id="brandLogoSlot" onclick="window.location.href='home.html#home'">
       <img src="https://images.seeklogo.com/logo-png/42/2/disney-hotstar-logo-png_seeklogo-427118.png" alt="Logo" id="defaultBrandLogo" />
@@ -932,7 +913,7 @@
   <main class="main-container" id="sectionsContainer">
     <div style="text-align: center; padding: 60px; color: var(--text-muted);">
       <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
-      <p style="margin-top:12px;">Validating Age_Rating and loading content...</p>
+      <p style="margin-top:12px;">Validating Content_Collection and loading content...</p>
     </div>
   </main>
 
@@ -974,7 +955,7 @@
       <span>Home</span>
     </a>
     <a href="search.html" class="nav-item-btn">
-      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
       <span>Search</span>
     </a>
     <a href="https://knox-app.github.io/netflix/myspace" class="nav-item-btn" id="mySpaceNavBtn">
@@ -993,6 +974,7 @@
       onSnapshot, 
       collection, 
       getDoc, 
+      getDocs,
       updateDoc 
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -1019,10 +1001,14 @@
 
     // Global State
     let liveUserData = null;
+
+    // Master pool mapping all active collections
+    let liveCatalogMap = new Map();
+    let liveCatalogList = [];
+
+    // Distinct stores for categorized collections
     let liveMoviesCatalog = [];
-    let liveMoviesMap = new Map();
     let liveShowsCatalog = [];
-    let liveShowsMap = new Map();
     let livePartnersList = [];
     
     let heroAutoTimer = null;
@@ -1030,8 +1016,7 @@
     let heroMoviesLength = 0;
 
     let uarmUnsub = null;
-    let moviesUnsub = null;
-    let showsUnsub = null;
+    let collectionUnsubs = new Map();
     let partnersUnsub = null;
     let logoUnsub = null;
 
@@ -1098,7 +1083,6 @@
       });
     }
 
-    /* ================= AGE TIERS & COMPLIANCE ================= */
     function getRatingTier(ratingStr) {
       if (!ratingStr) return 1;
       const clean = String(ratingStr).trim().toUpperCase();
@@ -1159,7 +1143,7 @@
       slot.innerHTML = `<img src="${safeUrl(raw)}" alt="Brand Logo" loading="eager" />`;
     }
 
-    /* ================= SYNC STREAMS ================= */
+    /* ================= UARM SYNC ================= */
     function syncRealtimeUARM() {
       if (uarmUnsub) uarmUnsub();
 
@@ -1180,39 +1164,40 @@
       });
     }
 
-    function syncRealtimeMovies() {
-      if (moviesUnsub) moviesUnsub();
+    /* ================= DYNAMIC CONTENT_COLLECTION SYNC ENGINE ================= */
+    // Syncs any collection mentioned in Content_Collection (e.g. Movies, Shows, Movies.New, Shows.1)
+    function syncContentCollection(collectionName) {
+      if (!collectionName || collectionUnsubs.has(collectionName)) return;
 
-      moviesUnsub = onSnapshot(collection(contentDb, "Movies"), (snapshot) => {
-        liveMoviesCatalog = [];
-        liveMoviesMap.clear();
+      try {
+        const unsub = onSnapshot(collection(contentDb, collectionName), (snapshot) => {
+          snapshot.forEach(docSnap => {
+            const item = { id: docSnap.id, _collection: collectionName, ...docSnap.data() };
+            if (!item.Age_Rating && item.AgeRating) item.Age_Rating = item.AgeRating;
 
-        snapshot.forEach(docSnap => {
-          const m = { id: docSnap.id, ...docSnap.data() };
-          liveMoviesCatalog.push(m);
-          liveMoviesMap.set(docSnap.id.toLowerCase(), m);
+            liveCatalogMap.set(docSnap.id.toLowerCase(), item);
+          });
+
+          // Rebuild lists
+          liveCatalogList = Array.from(liveCatalogMap.values());
+          liveMoviesCatalog = liveCatalogList.filter(i => {
+            const col = (i._collection || '').toLowerCase();
+            return col.includes('movie');
+          });
+          liveShowsCatalog = liveCatalogList.filter(i => {
+            const col = (i._collection || '').toLowerCase();
+            return col.includes('show');
+          });
+
+          buildLiveFeed();
+        }, (err) => {
+          console.warn(`Collection ${collectionName} sync failed:`, err);
         });
 
-        buildLiveFeed();
-      });
-    }
-
-    function syncRealtimeShows() {
-      if (showsUnsub) showsUnsub();
-
-      showsUnsub = onSnapshot(collection(contentDb, "Shows"), (snapshot) => {
-        liveShowsCatalog = [];
-        liveShowsMap.clear();
-
-        snapshot.forEach(docSnap => {
-          const s = { id: docSnap.id, ...docSnap.data() };
-          if (!s.Age_Rating && s.AgeRating) s.Age_Rating = s.AgeRating;
-          liveShowsCatalog.push(s);
-          liveShowsMap.set(docSnap.id.toLowerCase(), s);
-        });
-
-        buildLiveFeed();
-      });
+        collectionUnsubs.set(collectionName, unsub);
+      } catch (e) {
+        console.warn(`Error setting up listener for collection ${collectionName}:`, e);
+      }
     }
 
     function syncRealtimePartners() {
@@ -1336,7 +1321,7 @@
                 if (fallback) heroMovies.push(fallback);
               }
             } else {
-              const exactMovie = liveMoviesMap.get(cleanToken.toLowerCase()) || liveShowsMap.get(cleanToken.toLowerCase());
+              const exactMovie = liveCatalogMap.get(cleanToken.toLowerCase());
               if (exactMovie && isAllowedByAge(exactMovie.Age_Rating)) {
                 if (!heroMovies.some(hm => hm.id === exactMovie.id)) {
                   heroMovies.push(exactMovie);
@@ -1606,7 +1591,7 @@
       const continueMovies = [];
       for (const rawId of playlistIds) {
         const cleanId = String(rawId).trim().toLowerCase();
-        const movie = liveMoviesMap.get(cleanId) || liveShowsMap.get(cleanId);
+        const movie = liveCatalogMap.get(cleanId);
         if (movie && isAllowedByAge(movie.Age_Rating)) {
           continueMovies.push(movie);
         }
@@ -1767,20 +1752,20 @@
       container.appendChild(sectionEl);
     }
 
-    function buildLiveForYou(allowedMoviesCatalog, watchedIds) {
+    function buildLiveForYou(allowedCatalog, watchedIds) {
       const effectiveWatched = watchedIds.filter(id => {
-        const m = liveMoviesMap.get(id) || liveShowsMap.get(id);
+        const m = liveCatalogMap.get(id);
         return m && isAllowedByAge(m.Age_Rating);
       });
 
-      const unwatched = allowedMoviesCatalog.filter(m => !effectiveWatched.includes(m.id.toLowerCase()));
+      const unwatched = allowedCatalog.filter(m => !effectiveWatched.includes(m.id.toLowerCase()));
       if (effectiveWatched.length === 0) return mixupArray(unwatched).slice(0, 20);
 
       const genreFreq = {};
       const studioFreq = {};
 
       effectiveWatched.forEach((id, idx) => {
-        const movie = liveMoviesMap.get(id) || liveShowsMap.get(id);
+        const movie = liveCatalogMap.get(id);
         if (!movie) return;
         const decay = Math.max(1, 5 - idx);
 
@@ -1811,7 +1796,7 @@
 
     /* ================= MAIN FEED BUILDER ================= */
     async function buildLiveFeed() {
-      if (liveMoviesCatalog.length === 0 || !liveUserData) return;
+      if (!liveUserData) return;
 
       const defaultPage = isKidsProfile ? 'kids_home' : 'home';
       const hashParam = window.location.hash.split('&')[0].replace('#', '').trim().toLowerCase();
@@ -1825,20 +1810,54 @@
         link.classList.toggle('active', link.dataset.hash === pageId);
       });
 
+      /* ==============================================================
+         1. FETCH PAGE DOC & RESOLVE "Content_Collection"
+         ============================================================== */
+      let pageDocData = null;
+      try {
+        const pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
+        if (pageDoc.exists()) {
+          pageDocData = pageDoc.data();
+        } else {
+          // Fallback to default page if route doesn't exist
+          const defDoc = await getDoc(doc(contentDb, "Systems", defaultPage));
+          if (defDoc.exists()) pageDocData = defDoc.data();
+        }
+      } catch (err) {
+        console.warn("Could not fetch page doc:", err);
+      }
+
+      // Read Content_Collection array (e.g. ["Movies", "Shows", "Movies.New"])
+      const contentCollections = (pageDocData && Array.isArray(pageDocData.Content_Collection) && pageDocData.Content_Collection.length > 0)
+        ? pageDocData.Content_Collection
+        : ["Movies", "Shows"];
+
+      // Setup Real-time listeners for all collections in Content_Collection
+      contentCollections.forEach(colName => syncContentCollection(colName));
+
+      // Wait until content from Content_Collection has synced
+      if (liveCatalogList.length === 0) return;
+
       const container = document.getElementById('sectionsContainer');
       container.innerHTML = "";
 
       renderStudiosSection();
       renderGenresSection();
 
-      const allowedMoviesCatalog = liveMoviesCatalog.filter(m => isAllowedByAge(m.Age_Rating));
-      const allowedShowsCatalog = liveShowsCatalog.filter(s => isAllowedByAge(s.Age_Rating));
+      // Filter full catalog by allowed Age_Rating tier
+      const allowedCatalog = liveCatalogList.filter(item => {
+        // Enforce that item comes from one of the page's Content_Collection
+        const matchesCol = contentCollections.some(c => c.toLowerCase() === (item._collection || '').toLowerCase());
+        return matchesCol && isAllowedByAge(item.Age_Rating);
+      });
+
       const rawWatchedIds = getLiveRecentlyWatchedIds();
+      const forYouList = buildLiveForYou(allowedCatalog, rawWatchedIds);
 
-      const forYouList = buildLiveForYou(allowedMoviesCatalog, rawWatchedIds);
+      // Hero Carousel
+      await setupHeroCarousel(allowedCatalog, forYouList);
 
-      await setupHeroCarousel(allowedMoviesCatalog, forYouList);
-
+      // Continue Watching
       renderContinueWatchingSection();
 
       let sectionCounter = 0;
@@ -1849,7 +1868,7 @@
       if (activeProfile && Array.isArray(activeProfile.Watchlist) && activeProfile.Watchlist.length > 0) {
         const watchlistMovies = [];
         for (const wId of activeProfile.Watchlist) {
-          const m = liveMoviesMap.get(String(wId).trim().toLowerCase()) || liveShowsMap.get(String(wId).trim().toLowerCase());
+          const m = liveCatalogMap.get(String(wId).trim().toLowerCase());
           if (m && isAllowedByAge(m.Age_Rating) && !watchlistMovies.some(wm => wm.id === m.id)) {
             watchlistMovies.push(m);
           }
@@ -1863,7 +1882,7 @@
       // Because You Watched
       let anchorMovie = null;
       for (const wid of rawWatchedIds) {
-        const candidate = liveMoviesMap.get(wid) || liveShowsMap.get(wid);
+        const candidate = liveCatalogMap.get(wid);
         if (candidate && isAllowedByAge(candidate.Age_Rating)) {
           anchorMovie = candidate;
           break;
@@ -1872,8 +1891,7 @@
 
       if (anchorMovie) {
         const anchorGenres = parseGenres(anchorMovie.Genres);
-        const combinedPool = [...allowedMoviesCatalog, ...allowedShowsCatalog];
-        const similarSafeMovies = combinedPool
+        const similarSafeMovies = allowedCatalog
           .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
           .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
 
@@ -1892,23 +1910,22 @@
         sectionCounter++;
       }
 
-      /* ================= SYSTEMS SECTIONS ================= */
-      try {
-        const pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
-        if (pageDoc.exists()) {
-          const sectionIds = pageDoc.data().Sections || [];
-
-          for (const sId of sectionIds) {
+      /* ==============================================================
+         2. RENDER SECTIONS CONFIGURED IN PAGE (with Content_Collection)
+         ============================================================== */
+      if (pageDocData && Array.isArray(pageDocData.Sections)) {
+        for (const sId of pageDocData.Sections) {
+          try {
             const secSnap = await getDoc(doc(contentDb, "Systems", sId));
             if (!secSnap.exists()) continue;
 
             const secData = secSnap.data();
 
+            // Kids_E Rule
             const isKidsOnly = String(secData.Kids_E).toLowerCase() === "true" || secData.Kids_E === true;
-            if (isKidsOnly && !isKidsProfile) {
-              continue;
-            }
+            if (isKidsOnly && !isKidsProfile) continue;
 
+            // Age Rating Rule
             if (!isAllowedByAge(secData.Age_Rating)) continue;
 
             const isFixed = String(secData.Fixed).toLowerCase() === "true";
@@ -1916,31 +1933,32 @@
             const sectionGenres = parseGenres(secData.Genres);
             const sectionFranchise = secData.Franchise ? String(secData.Franchise).trim().toLowerCase() : null;
 
-            const contentTypes = Array.isArray(secData.Content_Type)
+            // Check if section specifies its own Content_Type; otherwise fallback to Page's Content_Collection
+            const secContentTypes = Array.isArray(secData.Content_Type) && secData.Content_Type.length > 0
               ? secData.Content_Type.map(c => String(c).toLowerCase())
-              : ["movies"];
+              : contentCollections.map(c => c.toLowerCase());
+
+            // Pool of items matching section content collection & age rating
+            const sectionCandidatePool = liveCatalogList.filter(m => {
+              const matchesType = secContentTypes.includes((m._collection || '').toLowerCase());
+              return matchesType && isAllowedByAge(m.Age_Rating);
+            });
 
             let sectionMovies = [];
 
+            // A. Mandatory Titles
             const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
             for (const tId of explicitTitles) {
               const cleanTId = String(tId).trim().toLowerCase();
-              const movie = liveMoviesMap.get(cleanTId) || liveShowsMap.get(cleanTId);
+              const movie = liveCatalogMap.get(cleanTId);
               if (movie && isAllowedByAge(movie.Age_Rating) && !sectionMovies.some(m => m.id === movie.id)) {
                 sectionMovies.push(movie);
               }
             }
 
+            // B. If Fixed == False, populate similar content
             if (!isFixed) {
-              let candidatePool = [];
-              if (contentTypes.includes("shows")) {
-                candidatePool = [...candidatePool, ...allowedShowsCatalog];
-              }
-              if (contentTypes.includes("movies") || candidatePool.length === 0) {
-                candidatePool = [...candidatePool, ...allowedMoviesCatalog];
-              }
-
-              const similarCandidates = candidatePool.filter(m => {
+              const similarCandidates = sectionCandidatePool.filter(m => {
                 if (sectionMovies.some(sm => sm.id === m.id)) return false;
 
                 if (sectionFranchise) {
@@ -1963,26 +1981,26 @@
               sectionCounter++;
 
               if (sectionCounter === 4 && !popularShowsInjected) {
-                renderFilteredInteractiveSection("Popular Shows", allowedShowsCatalog.length > 0 ? allowedShowsCatalog : allowedMoviesCatalog);
+                renderFilteredInteractiveSection("Popular Shows", liveShowsCatalog.length > 0 ? liveShowsCatalog : allowedCatalog);
                 popularShowsInjected = true;
               }
 
               if (sectionCounter === 8 && !popularMoviesInjected) {
-                renderFilteredInteractiveSection("Popular Movies", mixupArray(allowedMoviesCatalog));
+                renderFilteredInteractiveSection("Popular Movies", mixupArray(liveMoviesCatalog.length > 0 ? liveMoviesCatalog : allowedCatalog));
                 popularMoviesInjected = true;
               }
             }
+          } catch (secErr) {
+            console.warn(`Section ${sId} load error:`, secErr);
           }
         }
-      } catch (err) {
-        console.error("Systems fetch error:", err);
       }
 
       if (!popularShowsInjected) {
-        renderFilteredInteractiveSection("Popular Shows", allowedShowsCatalog.length > 0 ? allowedShowsCatalog : allowedMoviesCatalog);
+        renderFilteredInteractiveSection("Popular Shows", liveShowsCatalog.length > 0 ? liveShowsCatalog : allowedCatalog);
       }
       if (!popularMoviesInjected) {
-        renderFilteredInteractiveSection("Popular Movies", mixupArray(allowedMoviesCatalog));
+        renderFilteredInteractiveSection("Popular Movies", mixupArray(liveMoviesCatalog.length > 0 ? liveMoviesCatalog : allowedCatalog));
       }
     }
 
@@ -2153,9 +2171,2189 @@
     // Boot Real-time streams
     syncRealtimeLogo();
     syncRealtimeUARM();
-    syncRealtimeMovies();
-    syncRealtimeShows();
     syncRealtimePartners();
+    // Default collections preload
+    syncContentCollection("Movies");
+    syncContentCollection("Shows");
+  </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>My Space | OTT Platform</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-dark: #0f1015;
+      --card-bg: #161822;
+      --accent: #d6e6ff;
+      --accent-soft: rgba(214, 230, 255, 0.15);
+      --accent-blue: #0072ef;
+      --text-main: #ffffff;
+      --text-muted: #8f98b2;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --chip-bg: #1a1e2b;
+      --chip-active: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 85px;
+    }
+
+    /* ================= HEADER BAR ================= */
+    .navbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 80px;
+      padding: 0 4%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      z-index: 1000;
+      background: transparent;
+      border-bottom: none;
+    }
+
+    .brand-logo-slot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 36px;
+      cursor: pointer;
+      height: 56px;
+      min-width: 48px;
+    }
+
+    .brand-logo-slot img, .brand-logo-slot svg, .brand-logo-slot video {
+      height: 50px;
+      max-height: 54px;
+      max-width: 220px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-link {
+      color: rgba(255, 255, 255, 0.75);
+      text-decoration: none;
+      font-size: 14.5px;
+      font-weight: 600;
+      position: relative;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+      transition: color 0.2s;
+    }
+    .nav-link:hover, .nav-link.active { color: var(--accent); }
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 100%;
+      height: 2.5px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    /* ================= TOP HERO CAROUSEL ================= */
+    .hero-container {
+      position: relative;
+      width: 100%;
+      height: 82vh;
+      min-height: 540px;
+      max-height: 760px;
+      overflow: hidden;
+      background: #0f1015;
+      user-select: none;
+      cursor: grab;
+      touch-action: pan-y;
+    }
+    .hero-container:active { cursor: grabbing; }
+
+    .hero-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.6s ease-in-out;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      text-align: center;
+      padding: 0 4% 65px;
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+      pointer-events: none;
+    }
+    .hero-slide.active {
+      opacity: 1;
+      z-index: 1;
+      pointer-events: auto;
+    }
+
+    .hero-slide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 35%, transparent 15%, rgba(15, 16, 21, 0.6) 65%, var(--bg-dark) 100%),
+                  linear-gradient(180deg, transparent 40%, rgba(15, 16, 21, 0.95) 90%, var(--bg-dark) 100%);
+      z-index: 1;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      max-width: 720px;
+    }
+
+    .hero-title-logo {
+      max-width: 340px;
+      max-height: 125px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.85));
+      margin-bottom: 4px;
+    }
+    .hero-fallback-title {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+      color: #fff;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.9);
+      margin-bottom: 2px;
+    }
+
+    .hero-meta-line {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #d1d5db;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .hero-buttons-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .btn-hero-watch {
+      background: #ffffff;
+      color: var(--bg-dark);
+      padding: 12px 38px;
+      border-radius: 30px;
+      font-size: 14.5px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.25);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-hero-watch:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 26px rgba(255, 255, 255, 0.35);
+    }
+    .btn-hero-watch i { color: var(--bg-dark); }
+
+    .btn-hero-watchlist {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .btn-hero-watchlist:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.08);
+    }
+    .btn-hero-watchlist.in-watchlist {
+      background: #fff;
+      color: #000;
+      border-color: #fff;
+    }
+
+    .hero-dots-row {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+    .hero-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .hero-dot.active {
+      width: 18px;
+      border-radius: 4px;
+      background: var(--accent);
+    }
+
+    /* ================= MAIN CONTAINER ================= */
+    .main-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 10px 4% 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+
+    /* STUDIOS SECTION */
+    .studios-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .studios-heading {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      width: fit-content;
+      transition: opacity 0.2s;
+    }
+    .studios-heading:hover { opacity: 0.85; }
+    .studios-heading i.fa-chevron-right {
+      font-size: 12px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .studios-heading:hover i.fa-chevron-right {
+      transform: translateX(3px);
+      color: #fff;
+    }
+
+    .studios-grid {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 4px;
+      cursor: grab;
+      user-select: none;
+      -webkit-overflow-scrolling: touch;
+      align-items: center;
+    }
+    .studios-grid::-webkit-scrollbar { display: none; }
+    .studios-grid:active { cursor: grabbing; }
+
+    .studio-card {
+      flex: 0 0 140px;
+      width: 140px;
+      height: 78px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 6px;
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .studio-card:hover { transform: scale(1.06); }
+    .studio-card img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+      pointer-events: none;
+    }
+
+    /* GENRES ROW */
+    .genres-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .genres-heading {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      width: fit-content;
+      transition: opacity 0.2s;
+    }
+    .genres-heading:hover { opacity: 0.85; }
+    .genres-heading i.fa-chevron-right {
+      font-size: 12px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .genres-heading:hover i.fa-chevron-right {
+      transform: translateX(3px);
+      color: #fff;
+    }
+
+    .genres-track {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 4px;
+      cursor: grab;
+      user-select: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .genres-track::-webkit-scrollbar { display: none; }
+    .genres-track:active { cursor: grabbing; }
+
+    .genre-card {
+      flex: 0 0 140px;
+      width: 140px;
+      height: 78px;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s;
+      background: #141824;
+    }
+    .genre-card:hover {
+      transform: scale(1.05);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+    .genre-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      transition: transform 0.3s ease;
+    }
+
+    /* CONTINUE WATCHING */
+    .continue-card {
+      flex: 0 0 240px;
+      width: 240px;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+    }
+    .continue-card:hover { transform: scale(1.03); }
+
+    .continue-thumb-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #141721;
+      border: 1px solid var(--border-color);
+    }
+    .continue-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .continue-play-icon {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: #ffffff;
+      font-size: 16px;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
+    }
+
+    .continue-details-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 2px 0;
+      gap: 8px;
+    }
+    .continue-name-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .btn-continue-more {
+      background: none;
+      border: none;
+      color: #8f98b2;
+      font-size: 16px;
+      padding: 4px 6px;
+      cursor: pointer;
+    }
+    .btn-continue-more:hover { color: #fff; }
+
+    /* CAROUSEL SECTIONS */
+    .section-block { display: flex; flex-direction: column; gap: 14px; }
+    .section-header-row {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      width: fit-content;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .section-header-row:hover { opacity: 0.85; }
+    .section-heading {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-heading i.fa-chevron-right {
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+    }
+    .section-header-row:hover i.fa-chevron-right {
+      transform: translateX(4px);
+      color: #fff;
+    }
+
+    .filter-chips-row {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+      cursor: grab;
+      user-select: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filter-chips-row::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      background: #1a1e2b;
+      color: #8f98b2;
+      border: 1px solid var(--border-color);
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .filter-chip:hover { color: #fff; background: #262c3e; }
+    .filter-chip.active {
+      background: #2b3347;
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .carousel-wrapper { position: relative; }
+    .carousel-track {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding-bottom: 8px;
+      scrollbar-width: none;
+      cursor: grab;
+      user-select: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .carousel-track::-webkit-scrollbar { display: none; }
+    .carousel-track:active { cursor: grabbing; }
+
+    .card-16-9 {
+      flex: 0 0 240px;
+      width: 240px;
+      text-decoration: none;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .card-16-9:hover { transform: scale(1.03); }
+
+    .card-thumb-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #141721;
+      border: 1px solid var(--border-color);
+    }
+    .card-thumb-wrap img.main-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .card-play-hover {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .card-16-9:hover .card-play-hover { opacity: 1; }
+    .card-play-btn-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .card-details { padding: 8px 2px 0; }
+    .card-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
+    }
+
+    .carousel-arrow {
+      position: absolute;
+      top: 40%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(15, 16, 21, 0.85);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .carousel-wrapper:hover .carousel-arrow { opacity: 1; }
+    .carousel-arrow.left { left: -14px; }
+    .carousel-arrow.right { right: -14px; }
+    .carousel-arrow:hover { background: var(--accent); color: #000; }
+
+    /* ================= FULL PAGE MODAL: 16:9 GRID (2 IN EACH ROW) ================= */
+    .section-modal-page {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: var(--bg-dark);
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 24px 4% 60px;
+    }
+    .section-modal-page.active { display: flex; }
+    
+    .modal-nav-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .modal-title-box { display: flex; align-items: center; gap: 16px; }
+    .btn-close-modal {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-page-title { font-size: 22px; font-weight: 800; }
+
+    .modal-16-9-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .grid-card-16-9 {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .grid-card-16-9:hover { transform: scale(1.02); }
+
+    .grid-thumb-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #141721;
+      border: 1px solid var(--border-color);
+    }
+    .grid-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .grid-card-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+      padding: 8px 2px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .modal-tiles-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      align-items: center;
+    }
+
+    .modal-studio-tile {
+      height: 100px;
+      background: transparent;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .modal-studio-tile:hover { transform: scale(1.06); }
+    .modal-studio-tile img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+    }
+
+    .modal-genre-tile {
+      height: 120px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s;
+    }
+    .modal-genre-tile:hover { transform: scale(1.03); }
+    .modal-genre-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* BOTTOM SHEET */
+    .bottom-sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      z-index: 10000;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .bottom-sheet-overlay.active { display: flex; }
+
+    .bottom-sheet-modal {
+      width: 100%;
+      max-width: 520px;
+      background: #181b24;
+      border-radius: 20px 20px 0 0;
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: slideUp 0.25s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .btn-sheet-close {
+      background: none;
+      border: none;
+      color: #8f98b2;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .sheet-option-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 8px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 14.5px;
+      font-weight: 600;
+      border-radius: 10px;
+      transition: background 0.15s;
+    }
+    .sheet-option-item:hover { background: rgba(255, 255, 255, 0.08); }
+    .sheet-option-item i { font-size: 18px; color: #8f98b2; }
+
+    /* MOBILE BOTTOM NAV */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: rgba(15, 16, 21, 0.95);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-color);
+      z-index: 2000;
+      justify-content: space-around;
+      align-items: center;
+    }
+    .nav-item-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 10.5px;
+      font-weight: 600;
+      width: 33.33%;
+      transition: color 0.2s;
+    }
+    .nav-item-btn svg { width: 20px; height: 20px; fill: currentColor; }
+    .nav-item-btn.active, .nav-item-btn:hover { color: var(--accent); }
+    .nav-item-btn.active svg { fill: var(--accent); }
+
+    .nav-avatar-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #232733;
+      border: 1.5px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-item-btn:hover .nav-avatar-icon,
+    .nav-item-btn.active .nav-avatar-icon {
+      border-color: var(--accent);
+    }
+    .nav-avatar-fallback {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #232733;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1.5px solid transparent;
+    }
+
+    @media (max-width: 768px) {
+      .navbar { height: 70px; }
+      .brand-logo-slot { height: 48px; }
+      .brand-logo-slot img, .brand-logo-slot svg, .brand-logo-slot video {
+        height: 44px;
+        max-height: 46px;
+        max-width: 170px;
+      }
+      .hero-title-logo {
+        max-width: 240px;
+        max-height: 90px;
+      }
+      .nav-links { display: none; }
+      .mobile-bottom-nav { display: flex; }
+      .card-16-9 { flex: 0 0 190px; width: 190px; }
+      .continue-card { flex: 0 0 200px; width: 200px; }
+      .studio-card { flex: 0 0 115px; width: 115px; height: 65px; }
+      .genre-card { flex: 0 0 115px; width: 115px; height: 65px; }
+      .carousel-arrow { display: none; }
+      .hero-container { height: 60vh; min-height: 440px; }
+      .modal-16-9-grid { gap: 12px; }
+      .modal-tiles-grid { gap: 14px; }
+      .modal-studio-tile { height: 80px; }
+      .modal-genre-tile { height: 95px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header class="navbar">
+    <div class="brand-logo-slot" id="brandLogoSlot" onclick="window.location.href='home.html#home'">
+      <img src="https://images.seeklogo.com/logo-png/42/2/disney-hotstar-logo-png_seeklogo-427118.png" alt="Logo" id="defaultBrandLogo" />
+    </div>
+    <ul class="nav-links">
+      <li><a class="nav-link" data-hash="movies" href="#movies">Movies</a></li>
+      <li><a class="nav-link" data-hash="shows" href="#shows">Shows</a></li>
+      <li><a class="nav-link" data-hash="tvshows" href="#tvshows">TV Shows</a></li>
+      <li><a class="nav-link" data-hash="livetv" href="#livetv">Live TV</a></li>
+    </ul>
+  </header>
+
+  <!-- TOP HERO CAROUSEL -->
+  <section class="hero-container" id="heroContainer">
+    <div class="hero-dots-row" id="heroDotsRow"></div>
+  </section>
+
+  <!-- MAIN FEED CONTAINER -->
+  <main class="main-container" id="sectionsContainer">
+    <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+      <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i>
+      <p style="margin-top:12px;">Validating Content_Collection and loading content...</p>
+    </div>
+  </main>
+
+  <!-- BOTTOM SHEET FOR CONTINUE WATCHING -->
+  <div class="bottom-sheet-overlay" id="continueBottomSheet">
+    <div class="bottom-sheet-modal">
+      <div class="sheet-header">
+        <h3 class="sheet-title" id="sheetMovieTitle">Title</h3>
+        <button class="btn-sheet-close" id="closeBottomSheetBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="sheet-option-item" id="sheetViewDetailsBtn">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>View More Details</span>
+      </div>
+      <div class="sheet-option-item" id="sheetRemoveBtn" style="color:#ff5252;">
+        <i class="fa-solid fa-xmark" style="color:#ff5252;"></i>
+        <span>Remove from Continue Watching</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION CLICK FULL-PAGE VIEW (16:9 GRID 2 PER ROW) -->
+  <div class="section-modal-page" id="sectionViewModal">
+    <div class="modal-nav-header">
+      <div class="modal-title-box">
+        <button class="btn-close-modal" id="closeSectionModalBtn">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h2 class="modal-page-title" id="modalSectionTitle">Section</h2>
+      </div>
+    </div>
+    <div id="modalBodyContainer"></div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="mobile-bottom-nav">
+    <a href="home.html#home" class="nav-item-btn active" id="mNavHome">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="search.html" class="nav-item-btn">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <span>Search</span>
+    </a>
+    <a href="https://knox-app.github.io/netflix/myspace" class="nav-item-btn" id="mySpaceNavBtn">
+      <div id="navAvatarSlot">
+        <div class="nav-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+      </div>
+      <span>My Space</span>
+    </a>
+  </nav>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { 
+      getFirestore, 
+      doc, 
+      onSnapshot, 
+      collection, 
+      getDoc, 
+      getDocs,
+      updateDoc 
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    import { getGenresByTier } from "./genres.js";
+
+    /* ================= DATABASE 1: UARM ================= */
+    const uarmConfig = {
+      apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+      authDomain: "question-metabase.firebaseapp.com",
+      databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "question-metabase"
+    };
+    const uarmApp = initializeApp(uarmConfig, "uarmApp");
+    const uarmDb = getFirestore(uarmApp);
+
+    /* ================= DATABASE 2: CONTENT & PARTNERS ================= */
+    const contentConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728"
+    };
+    const contentApp = initializeApp(contentConfig, "contentApp");
+    const contentDb = getFirestore(contentApp);
+
+    // Global State
+    let liveUserData = null;
+
+    // Master pool mapping all active collections
+    let liveCatalogMap = new Map();
+    let liveCatalogList = [];
+
+    // Distinct stores for categorized collections
+    let liveMoviesCatalog = [];
+    let liveShowsCatalog = [];
+    let livePartnersList = [];
+    
+    let heroAutoTimer = null;
+    let currentHeroIdx = 0;
+    let heroMoviesLength = 0;
+
+    let uarmUnsub = null;
+    let collectionUnsubs = new Map();
+    let partnersUnsub = null;
+    let logoUnsub = null;
+
+    let activeProfile = null;
+    let activeProfileIndex = 0;
+    let isKidsProfile = false;
+    let userAllowedMaxTier = 2;
+
+    let sheetTargetMovie = null;
+
+    function safeUrl(url) {
+      if (!url) return '';
+      return url.trim().replace(/^http:\/\//i, 'https://');
+    }
+
+    function getPosterH(c) {
+      if (!c) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800';
+      return safeUrl(
+        c["Poster.h"] || 
+        c.Poster_h || 
+        c.poster_h || 
+        c.Banner || 
+        c.banner || 
+        'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800'
+      );
+    }
+
+    function parseGenres(field) {
+      if (!field) return [];
+      if (Array.isArray(field)) return field.map(g => String(g).trim().toLowerCase()).filter(Boolean);
+      if (typeof field === 'string') return field.split(/[,/|•]+/).map(g => g.trim().toLowerCase()).filter(Boolean);
+      return [String(field).trim().toLowerCase()];
+    }
+
+    function mixupArray(arr) {
+      const shuffled = [...arr];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    function makeElementSwipeable(el) {
+      if (!el) return;
+      let isDown = false;
+      let startX, scrollLeft;
+
+      el.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startX = e.pageX - el.offsetLeft;
+        scrollLeft = el.scrollLeft;
+      });
+
+      el.addEventListener('mouseleave', () => { isDown = false; });
+      el.addEventListener('mouseup', () => { isDown = false; });
+
+      el.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - el.offsetLeft;
+        const walk = (x - startX) * 1.8;
+        el.scrollLeft = scrollLeft - walk;
+      });
+    }
+
+    function getRatingTier(ratingStr) {
+      if (!ratingStr) return 1;
+      const clean = String(ratingStr).trim().toUpperCase();
+      if (clean.includes("18") || clean === "A" || clean === "U/A 18+") return 5;
+      if (clean.includes("16") || clean === "U/A 16+") return 4;
+      if (clean.includes("13") || clean === "U/A 13+") return 3;
+      if (clean.includes("7") || clean === "U/A 7+") return 2;
+      return 1;
+    }
+
+    function isAllowedByAge(contentRatingStr) {
+      return getRatingTier(contentRatingStr) <= userAllowedMaxTier;
+    }
+
+    /* ================= DYNAMIC LOGO ENGINE ================= */
+    function syncRealtimeLogo() {
+      if (logoUnsub) logoUnsub();
+
+      logoUnsub = onSnapshot(doc(contentDb, "Systems", "hstr.logo-manager"), (docSnap) => {
+        if (!docSnap.exists()) return;
+        const data = docSnap.data();
+        const logoData = data["Logo.h"] || data.Logo_h || data.Logo || "";
+        renderDynamicLogo(logoData);
+      }, (err) => {
+        console.warn("hstr.logo-manager fetch skipped:", err);
+      });
+    }
+
+    function renderDynamicLogo(logoData) {
+      const slot = document.getElementById('brandLogoSlot');
+      if (!slot || !logoData) return;
+
+      const raw = String(logoData).trim();
+
+      if (raw.startsWith('<svg') || raw.includes('</svg>')) {
+        slot.innerHTML = raw;
+        const svg = slot.querySelector('svg');
+        if (svg) {
+          svg.removeAttribute('width');
+          svg.removeAttribute('height');
+          svg.style.height = '50px';
+          svg.style.maxWidth = '220px';
+          svg.style.display = 'block';
+        }
+        return;
+      }
+
+      const lower = raw.toLowerCase();
+      if (lower.includes('.mp4') || lower.includes('.webm') || lower.includes('.ogg')) {
+        slot.innerHTML = `
+          <video autoplay muted loop playsinline preload="auto">
+            <source src="${safeUrl(raw)}" type="video/mp4" />
+          </video>
+        `;
+        return;
+      }
+
+      slot.innerHTML = `<img src="${safeUrl(raw)}" alt="Brand Logo" loading="eager" />`;
+    }
+
+    /* ================= UARM SYNC ================= */
+    function syncRealtimeUARM() {
+      if (uarmUnsub) uarmUnsub();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const uarmIdParam = urlParams.get('uarm') || urlParams.get('uarms');
+      const cachedRaw = localStorage.getItem('active_user') || localStorage.getItem('UARM');
+      const cached = cachedRaw ? JSON.parse(cachedRaw) : null;
+      const targetDocId = uarmIdParam || cached?.["UARMS ID"] || cached?.id || "7I4d9vmlm9WiUAUneQGByq6jT";
+
+      uarmUnsub = onSnapshot(doc(uarmDb, "UARM", targetDocId), (snap) => {
+        if (!snap.exists()) return;
+        liveUserData = { id: snap.id, ...snap.data() };
+        localStorage.setItem('active_user', JSON.stringify(liveUserData));
+
+        updateActiveProfile();
+        renderNavAvatar();
+        buildLiveFeed();
+      });
+    }
+
+    /* ================= DYNAMIC CONTENT_COLLECTION SYNC ENGINE ================= */
+    // Syncs any collection mentioned in Content_Collection (e.g. Movies, Shows, Movies.New, Shows.1)
+    function syncContentCollection(collectionName) {
+      if (!collectionName || collectionUnsubs.has(collectionName)) return;
+
+      try {
+        const unsub = onSnapshot(collection(contentDb, collectionName), (snapshot) => {
+          snapshot.forEach(docSnap => {
+            const item = { id: docSnap.id, _collection: collectionName, ...docSnap.data() };
+            if (!item.Age_Rating && item.AgeRating) item.Age_Rating = item.AgeRating;
+
+            liveCatalogMap.set(docSnap.id.toLowerCase(), item);
+          });
+
+          // Rebuild lists
+          liveCatalogList = Array.from(liveCatalogMap.values());
+          liveMoviesCatalog = liveCatalogList.filter(i => {
+            const col = (i._collection || '').toLowerCase();
+            return col.includes('movie');
+          });
+          liveShowsCatalog = liveCatalogList.filter(i => {
+            const col = (i._collection || '').toLowerCase();
+            return col.includes('show');
+          });
+
+          buildLiveFeed();
+        }, (err) => {
+          console.warn(`Collection ${collectionName} sync failed:`, err);
+        });
+
+        collectionUnsubs.set(collectionName, unsub);
+      } catch (e) {
+        console.warn(`Error setting up listener for collection ${collectionName}:`, e);
+      }
+    }
+
+    function syncRealtimePartners() {
+      if (partnersUnsub) partnersUnsub();
+
+      partnersUnsub = onSnapshot(collection(contentDb, "Partners"), (snapshot) => {
+        livePartnersList = [];
+
+        snapshot.forEach(docSnap => {
+          const p = { id: docSnap.id, ...docSnap.data() };
+          const isHome = String(p.Home).toLowerCase() === "true" || p.Home === true;
+          if (isHome) {
+            livePartnersList.push(p);
+          }
+        });
+
+        renderStudiosSection();
+      });
+    }
+
+    function updateActiveProfile() {
+      if (!liveUserData) return;
+
+      const hash = window.location.hash;
+      let targetUserIdx = 0;
+
+      if (hash.includes('user#')) {
+        targetUserIdx = parseInt(hash.split('user#')[1], 10) || 0;
+      } else {
+        const cachedIdx = localStorage.getItem('active_profile_index');
+        if (cachedIdx !== null) targetUserIdx = parseInt(cachedIdx, 10);
+      }
+
+      activeProfileIndex = targetUserIdx;
+
+      if (Array.isArray(liveUserData.Profiles) && liveUserData.Profiles.length > targetUserIdx) {
+        activeProfile = liveUserData.Profiles[targetUserIdx];
+      } else if (Array.isArray(liveUserData.Profiles) && liveUserData.Profiles.length > 0) {
+        activeProfile = liveUserData.Profiles[0];
+      } else {
+        activeProfile = {
+          Name: liveUserData["First Name"] || "User",
+          Avatar: liveUserData["Profile_Picture"] || "",
+          Kids: "False",
+          Age_Rating: "U/A 18+",
+          Playlist: [],
+          Watchlist: []
+        };
+      }
+
+      isKidsProfile = String(activeProfile?.Kids).toLowerCase() === "true";
+      
+      if (isKidsProfile) {
+        userAllowedMaxTier = getRatingTier(activeProfile?.Age_Rating || "U/A 7+");
+      } else {
+        userAllowedMaxTier = activeProfile?.Age_Rating ? getRatingTier(activeProfile.Age_Rating) : 5;
+      }
+    }
+
+    function renderNavAvatar() {
+      const slot = document.getElementById('navAvatarSlot');
+      if (!slot) return;
+
+      const pAvatar = activeProfile?.Avatar || liveUserData?.["Profile_Picture"];
+      const pName = activeProfile?.Name || liveUserData?.["First Name"] || "U";
+
+      if (pAvatar) {
+        slot.innerHTML = `<img src="${pAvatar}" class="nav-avatar-icon" alt="${pName}" />`;
+      } else {
+        slot.innerHTML = `<div class="nav-avatar-fallback">${pName.charAt(0).toUpperCase()}</div>`;
+      }
+    }
+
+    function getLiveRecentlyWatchedIds() {
+      if (!liveUserData || !Array.isArray(liveUserData["Memory.ent"])) return [];
+
+      for (const item of liveUserData["Memory.ent"]) {
+        if (typeof item === 'object' && item !== null) {
+          for (const key of Object.keys(item)) {
+            if (key.toLowerCase().includes("recently watched")) {
+              const val = item[key];
+              if (typeof val === 'string') {
+                return val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+              } else if (Array.isArray(val)) {
+                return val.map(s => String(s).trim().toLowerCase());
+              }
+            }
+          }
+        }
+      }
+      return [];
+    }
+
+    /* ================= TOP HERO CAROUSEL ================= */
+    async function setupHeroCarousel(allowedMoviesCatalog, forYouPool) {
+      const container = document.getElementById('heroContainer');
+      const dotsRow = document.getElementById('heroDotsRow');
+      container.querySelectorAll('.hero-slide').forEach(s => s.remove());
+      dotsRow.innerHTML = '';
+
+      let heroMovies = [];
+
+      try {
+        const sysDoc = await getDoc(doc(contentDb, "Systems", "sys.carsoule.home"));
+        if (sysDoc.exists()) {
+          const data = sysDoc.data();
+          
+          const suggestions = (isKidsProfile && Array.isArray(data.Kids_suggest))
+            ? data.Kids_suggest
+            : (data.suggest || []);
+
+          for (const token of suggestions) {
+            const cleanToken = String(token).trim();
+
+            if (cleanToken === "{.rec/auto}") {
+              const rec = forYouPool.find(m => !heroMovies.some(hm => hm.id === m.id));
+              if (rec) {
+                heroMovies.push(rec);
+              } else {
+                const fallback = allowedMoviesCatalog.find(m => !heroMovies.some(hm => hm.id === m.id));
+                if (fallback) heroMovies.push(fallback);
+              }
+            } else {
+              const exactMovie = liveCatalogMap.get(cleanToken.toLowerCase());
+              if (exactMovie && isAllowedByAge(exactMovie.Age_Rating)) {
+                if (!heroMovies.some(hm => hm.id === exactMovie.id)) {
+                  heroMovies.push(exactMovie);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("sys.carsoule.home read skipped:", err);
+      }
+
+      if (heroMovies.length === 0) heroMovies = allowedMoviesCatalog.slice(0, 5);
+      heroMoviesLength = heroMovies.length;
+
+      if (heroMovies.length === 0) {
+        container.style.display = "none";
+        return;
+      } else {
+        container.style.display = "block";
+      }
+
+      heroMovies.forEach((movie, idx) => {
+        const slide = document.createElement('div');
+        slide.className = `hero-slide ${idx === 0 ? 'active' : ''}`;
+        slide.dataset.index = idx;
+        
+        const bannerUrl = safeUrl(movie.Banner || movie.banner || getPosterH(movie));
+        slide.style.backgroundImage = `url('${bannerUrl}')`;
+
+        const title = movie.Name || movie.Title || movie.id;
+        const logoUrl = safeUrl(movie.Logo || movie["Logo.png"] || movie.logo || '');
+        
+        const genres = parseGenres(movie.Genres).slice(0, 2).map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(', ');
+        const releaseDate = movie.Release_Date || movie.Year || '2024';
+        const language = movie.Language || 'Hindi';
+
+        const inWatchlist = Array.isArray(activeProfile?.Watchlist) && activeProfile.Watchlist.includes(movie.id);
+
+        slide.innerHTML = `
+          <div class="hero-content">
+            ${logoUrl ? `<img src="${logoUrl}" class="hero-title-logo" alt="${title}" />` : `<h1 class="hero-fallback-title">${title}</h1>`}
+            <div class="hero-meta-line">
+              <span>${releaseDate}</span>
+              <span>•</span>
+              <span>${language}</span>
+              ${genres ? `<span>•</span><span>${genres}</span>` : ''}
+            </div>
+            <div class="hero-buttons-row">
+              <a href="https://knox-app.github.io/netflix/1?watch=${encodeURIComponent(movie.id)}" class="btn-hero-watch">
+                <i class="fa-solid fa-play"></i> Watch Now
+              </a>
+              <button class="btn-hero-watchlist ${inWatchlist ? 'in-watchlist' : ''}" title="${inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}" data-movie-id="${movie.id}">
+                <i class="fa-solid ${inWatchlist ? 'fa-check' : 'fa-plus'}"></i>
+              </button>
+            </div>
+          </div>
+        `;
+
+        const watchlistBtn = slide.querySelector('.btn-hero-watchlist');
+        watchlistBtn.onclick = async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          resetHeroTimer();
+          await toggleWatchlist(movie.id, watchlistBtn);
+        };
+
+        container.insertBefore(slide, dotsRow);
+
+        const dot = document.createElement('div');
+        dot.className = `hero-dot ${idx === 0 ? 'active' : ''}`;
+        dot.onclick = () => {
+          showHeroIndex(idx);
+          resetHeroTimer();
+        };
+        dotsRow.appendChild(dot);
+      });
+
+      makeHeroSwipeable(container);
+      resetHeroTimer();
+    }
+
+    function showHeroIndex(idx) {
+      if (heroMoviesLength === 0) return;
+      currentHeroIdx = (idx + heroMoviesLength) % heroMoviesLength;
+      document.querySelectorAll('.hero-slide').forEach((s, i) => s.classList.toggle('active', i === currentHeroIdx));
+      document.querySelectorAll('.hero-dot').forEach((d, i) => d.classList.toggle('active', i === currentHeroIdx));
+    }
+
+    function resetHeroTimer() {
+      if (heroAutoTimer) clearInterval(heroAutoTimer);
+      if (heroMoviesLength <= 1) return;
+      heroAutoTimer = setInterval(() => {
+        showHeroIndex(currentHeroIdx + 1);
+      }, 5500);
+    }
+
+    function makeHeroSwipeable(heroEl) {
+      let touchStartX = 0;
+      let touchEndX = 0;
+      let isDragging = false;
+
+      heroEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        if (heroAutoTimer) clearInterval(heroAutoTimer);
+      }, { passive: true });
+
+      heroEl.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+        resetHeroTimer();
+      }, { passive: true });
+
+      heroEl.addEventListener('mousedown', (e) => {
+        if (e.target.closest('a') || e.target.closest('button')) return;
+        isDragging = true;
+        touchStartX = e.clientX;
+        if (heroAutoTimer) clearInterval(heroAutoTimer);
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        touchEndX = e.clientX;
+        handleSwipe();
+        resetHeroTimer();
+      });
+
+      function handleSwipe() {
+        const swipeDiff = touchEndX - touchStartX;
+        if (Math.abs(swipeDiff) > 40) {
+          if (swipeDiff < 0) {
+            showHeroIndex(currentHeroIdx + 1);
+          } else {
+            showHeroIndex(currentHeroIdx - 1);
+          }
+        }
+      }
+    }
+
+    async function toggleWatchlist(movieId, btn) {
+      if (!liveUserData) return;
+
+      if (!Array.isArray(activeProfile.Watchlist)) {
+        activeProfile.Watchlist = [];
+      }
+
+      const idx = activeProfile.Watchlist.indexOf(movieId);
+      if (idx > -1) {
+        activeProfile.Watchlist.splice(idx, 1);
+        btn.classList.remove('in-watchlist');
+        btn.innerHTML = `<i class="fa-solid fa-plus"></i>`;
+      } else {
+        activeProfile.Watchlist.push(movieId);
+        btn.classList.add('in-watchlist');
+        btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
+      }
+
+      if (Array.isArray(liveUserData.Profiles)) {
+        liveUserData.Profiles[activeProfileIndex].Watchlist = activeProfile.Watchlist;
+        await updateDoc(doc(uarmDb, "UARM", liveUserData.id), {
+          Profiles: liveUserData.Profiles
+        });
+      }
+    }
+
+    /* ================= STUDIOS SECTION ================= */
+    function renderStudiosSection() {
+      let studiosEl = document.getElementById('studiosSectionBox');
+      const container = document.getElementById('sectionsContainer');
+
+      if (!studiosEl) {
+        studiosEl = document.createElement('section');
+        studiosEl.id = 'studiosSectionBox';
+        studiosEl.className = 'studios-section';
+        if (container.firstChild) {
+          container.insertBefore(studiosEl, container.firstChild);
+        } else {
+          container.appendChild(studiosEl);
+        }
+      }
+
+      if (livePartnersList.length === 0) {
+        studiosEl.style.display = 'none';
+        return;
+      }
+
+      studiosEl.style.display = 'flex';
+      studiosEl.innerHTML = `
+        <div class="studios-heading" onclick="window.openStudiosModal()">
+          <span>Explore Studios</span>
+          <i class="fa-solid fa-chevron-right"></i>
+        </div>
+        <div class="studios-grid" id="studiosSwipeGrid">
+          ${livePartnersList.map(partner => {
+            const studioId = partner.id;
+            const studioName = partner.Name || partner.name || studioId;
+            const tileImg = safeUrl(partner.Tile || partner.tile || partner.Logo || partner.logo || partner.Banner);
+            const redirectUrl = `https://knox-app.github.io/netflix/studio/?studio=${encodeURIComponent(studioId)}`;
+
+            if (!tileImg) return '';
+
+            return `
+              <a href="${redirectUrl}" class="studio-card" title="${studioName}">
+                <img src="${tileImg}" alt="${studioName}" loading="lazy" />
+              </a>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      makeElementSwipeable(studiosEl.querySelector('#studiosSwipeGrid'));
+    }
+
+    /* ================= GENRES SECTION ================= */
+    function renderGenresSection() {
+      let genresEl = document.getElementById('genresSectionBox');
+      const container = document.getElementById('sectionsContainer');
+
+      if (!genresEl) {
+        genresEl = document.createElement('section');
+        genresEl.id = 'genresSectionBox';
+        genresEl.className = 'genres-section';
+
+        const studiosEl = document.getElementById('studiosSectionBox');
+        if (studiosEl && studiosEl.nextSibling) {
+          container.insertBefore(genresEl, studiosEl.nextSibling);
+        } else if (container.firstChild) {
+          container.insertBefore(genresEl, container.firstChild);
+        } else {
+          container.appendChild(genresEl);
+        }
+      }
+
+      const genresList = getGenresByTier(userAllowedMaxTier);
+
+      if (!genresList || genresList.length === 0) {
+        genresEl.style.display = 'none';
+        return;
+      }
+
+      genresEl.style.display = 'flex';
+      genresEl.innerHTML = `
+        <div class="genres-heading" onclick="window.openGenresModal()">
+          <span>Explore Genres</span>
+          <i class="fa-solid fa-chevron-right"></i>
+        </div>
+        <div class="genres-track" id="genresSwipeTrack">
+          ${genresList.map(g => `
+            <a href="${g.link}" class="genre-card" title="${g.name}">
+              <img src="${g.image}" alt="${g.name}" loading="lazy" />
+            </a>
+          `).join('')}
+        </div>
+      `;
+
+      makeElementSwipeable(genresEl.querySelector('#genresSwipeTrack'));
+    }
+
+    /* ================= CONTINUE WATCHING ================= */
+    function renderContinueWatchingSection() {
+      const container = document.getElementById('sectionsContainer');
+      const profileName = activeProfile?.Name || "User";
+
+      const playlistIds = Array.isArray(activeProfile?.Playlist) ? activeProfile.Playlist : [];
+
+      const continueMovies = [];
+      for (const rawId of playlistIds) {
+        const cleanId = String(rawId).trim().toLowerCase();
+        const movie = liveCatalogMap.get(cleanId);
+        if (movie && isAllowedByAge(movie.Age_Rating)) {
+          continueMovies.push(movie);
+        }
+      }
+
+      if (continueMovies.length === 0) return;
+
+      const sectionEl = document.createElement('section');
+      sectionEl.className = 'section-block';
+
+      sectionEl.innerHTML = `
+        <div class="section-header-row">
+          <h2 class="section-heading">Continue Watching for ${profileName}</h2>
+        </div>
+        <div class="carousel-wrapper">
+          <div class="carousel-track" id="cwTrack_${encodeURIComponent(profileName)}"></div>
+        </div>
+      `;
+
+      const track = sectionEl.querySelector('.carousel-track');
+
+      continueMovies.forEach(movie => {
+        const card = document.createElement('div');
+        card.className = 'continue-card';
+
+        const posterH = getPosterH(movie);
+        const title = movie.Name || movie.Title || movie.id;
+
+        card.innerHTML = `
+          <div class="continue-thumb-wrap">
+            <img src="${posterH}" alt="${title}" loading="lazy" />
+            <i class="fa-solid fa-play continue-play-icon"></i>
+          </div>
+          <div class="continue-details-row">
+            <div class="continue-name-title" title="${title}">${title}</div>
+            <button class="btn-continue-more" title="Options"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+          </div>
+        `;
+
+        card.querySelector('.continue-thumb-wrap').onclick = () => {
+          window.location.href = `https://knox-app.github.io/netflix/1?watch=${encodeURIComponent(movie.id)}`;
+        };
+
+        card.querySelector('.btn-continue-more').onclick = (e) => {
+          e.stopPropagation();
+          openContinueBottomSheet(movie);
+        };
+
+        track.appendChild(card);
+      });
+
+      makeElementSwipeable(track);
+      container.appendChild(sectionEl);
+    }
+
+    function openContinueBottomSheet(movie) {
+      sheetTargetMovie = movie;
+      document.getElementById('sheetMovieTitle').innerText = movie.Name || movie.Title || movie.id;
+      document.getElementById('continueBottomSheet').classList.add('active');
+    }
+
+    document.getElementById('closeBottomSheetBtn').onclick = () => {
+      document.getElementById('continueBottomSheet').classList.remove('active');
+    };
+
+    document.getElementById('sheetViewDetailsBtn').onclick = () => {
+      if (sheetTargetMovie) {
+        window.location.href = `https://knox-app.github.io/netflix/1?watch=${encodeURIComponent(sheetTargetMovie.id)}`;
+      }
+    };
+
+    document.getElementById('sheetRemoveBtn').onclick = async () => {
+      if (!sheetTargetMovie || !liveUserData) return;
+
+      const movieIdToRemove = sheetTargetMovie.id.toLowerCase();
+      document.getElementById('continueBottomSheet').classList.remove('active');
+
+      try {
+        if (Array.isArray(liveUserData.Profiles) && liveUserData.Profiles[activeProfileIndex]) {
+          const profile = liveUserData.Profiles[activeProfileIndex];
+          if (Array.isArray(profile.Playlist)) {
+            profile.Playlist = profile.Playlist.filter(id => String(id).toLowerCase() !== movieIdToRemove);
+          }
+        }
+
+        await updateDoc(doc(uarmDb, "UARM", liveUserData.id), {
+          Profiles: liveUserData.Profiles
+        });
+
+      } catch (err) {
+        console.error("Error removing from continue watching:", err);
+      }
+    };
+
+    /* ================= POPULAR SHOWS & MOVIES ================= */
+    function renderFilteredInteractiveSection(sectionTitle, candidates, defaultGenre = "All") {
+      const container = document.getElementById('sectionsContainer');
+      const sectionEl = document.createElement('section');
+      sectionEl.className = 'section-block';
+
+      const genreSet = new Set();
+      candidates.forEach(m => {
+        parseGenres(m.Genres).forEach(g => {
+          genreSet.add(g.charAt(0).toUpperCase() + g.slice(1));
+        });
+      });
+      const genresList = ["All", ...Array.from(genreSet).slice(0, 8)];
+
+      const sectionKey = `interactive_${encodeURIComponent(sectionTitle)}`;
+
+      sectionEl.innerHTML = `
+        <div class="section-header-row" onclick="window.openSectionModal('${encodeURIComponent(sectionTitle)}')">
+          <h2 class="section-heading">
+            <span>${sectionTitle}</span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </h2>
+        </div>
+        <div class="filter-chips-row" id="chips_${sectionKey}">
+          ${genresList.map(g => `
+            <div class="filter-chip ${g === defaultGenre ? 'active' : ''}" data-genre="${g.toLowerCase()}">
+              ${g}
+            </div>
+          `).join('')}
+        </div>
+        <div class="carousel-wrapper">
+          <div class="carousel-track" id="track_${sectionKey}"></div>
+        </div>
+      `;
+
+      const track = sectionEl.querySelector(`#track_${sectionKey}`);
+      const chipsRow = sectionEl.querySelector(`#chips_${sectionKey}`);
+
+      function populateTrack(selectedG) {
+        track.innerHTML = '';
+        const filtered = selectedG === 'all'
+          ? candidates
+          : candidates.filter(m => parseGenres(m.Genres).includes(selectedG));
+
+        filtered.slice(0, 20).forEach(m => {
+          track.appendChild(create16x9Card(m));
+        });
+      }
+
+      populateTrack(defaultGenre.toLowerCase());
+
+      chipsRow.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.onclick = () => {
+          chipsRow.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          populateTrack(chip.getAttribute('data-genre'));
+        };
+      });
+
+      makeElementSwipeable(chipsRow);
+      makeElementSwipeable(track);
+
+      window[`sec_cache_${encodeURIComponent(sectionTitle)}`] = candidates;
+      container.appendChild(sectionEl);
+    }
+
+    function buildLiveForYou(allowedCatalog, watchedIds) {
+      const effectiveWatched = watchedIds.filter(id => {
+        const m = liveCatalogMap.get(id);
+        return m && isAllowedByAge(m.Age_Rating);
+      });
+
+      const unwatched = allowedCatalog.filter(m => !effectiveWatched.includes(m.id.toLowerCase()));
+      if (effectiveWatched.length === 0) return mixupArray(unwatched).slice(0, 20);
+
+      const genreFreq = {};
+      const studioFreq = {};
+
+      effectiveWatched.forEach((id, idx) => {
+        const movie = liveCatalogMap.get(id);
+        if (!movie) return;
+        const decay = Math.max(1, 5 - idx);
+
+        parseGenres(movie.Genres).forEach(g => {
+          genreFreq[g] = (genreFreq[g] || 0) + (10 * decay);
+        });
+
+        const std = (movie.Studio || movie.Partner || '').toLowerCase().trim();
+        if (std) studioFreq[std] = (studioFreq[std] || 0) + (6 * decay);
+      });
+
+      const scored = unwatched.map(movie => {
+        let score = 0;
+        parseGenres(movie.Genres).forEach(g => {
+          if (genreFreq[g]) score += genreFreq[g];
+        });
+
+        const std = (movie.Studio || movie.Partner || '').toLowerCase().trim();
+        if (std && studioFreq[std]) score += studioFreq[std];
+
+        score += Math.random() * 8;
+        return { movie, score };
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+      return scored.slice(0, 20).map(s => s.movie);
+    }
+
+    /* ================= MAIN FEED BUILDER ================= */
+    async function buildLiveFeed() {
+      if (!liveUserData) return;
+
+      const defaultPage = isKidsProfile ? 'kids_home' : 'home';
+      const hashParam = window.location.hash.split('&')[0].replace('#', '').trim().toLowerCase();
+      const pageId = hashParam || defaultPage;
+
+      const homeLink = `#${defaultPage}`;
+      const mHome = document.getElementById('mNavHome');
+      if (mHome) mHome.setAttribute('href', `home.html${homeLink}`);
+
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.toggle('active', link.dataset.hash === pageId);
+      });
+
+      /* ==============================================================
+         1. FETCH PAGE DOC & RESOLVE "Content_Collection"
+         ============================================================== */
+      let pageDocData = null;
+      try {
+        const pageDoc = await getDoc(doc(contentDb, "Systems", pageId));
+        if (pageDoc.exists()) {
+          pageDocData = pageDoc.data();
+        } else {
+          // Fallback to default page if route doesn't exist
+          const defDoc = await getDoc(doc(contentDb, "Systems", defaultPage));
+          if (defDoc.exists()) pageDocData = defDoc.data();
+        }
+      } catch (err) {
+        console.warn("Could not fetch page doc:", err);
+      }
+
+      // Read Content_Collection array (e.g. ["Movies", "Shows", "Movies.New"])
+      const contentCollections = (pageDocData && Array.isArray(pageDocData.Content_Collection) && pageDocData.Content_Collection.length > 0)
+        ? pageDocData.Content_Collection
+        : ["Movies", "Shows"];
+
+      // Setup Real-time listeners for all collections in Content_Collection
+      contentCollections.forEach(colName => syncContentCollection(colName));
+
+      // Wait until content from Content_Collection has synced
+      if (liveCatalogList.length === 0) return;
+
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = "";
+
+      renderStudiosSection();
+      renderGenresSection();
+
+      // Filter full catalog by allowed Age_Rating tier
+      const allowedCatalog = liveCatalogList.filter(item => {
+        // Enforce that item comes from one of the page's Content_Collection
+        const matchesCol = contentCollections.some(c => c.toLowerCase() === (item._collection || '').toLowerCase());
+        return matchesCol && isAllowedByAge(item.Age_Rating);
+      });
+
+      const rawWatchedIds = getLiveRecentlyWatchedIds();
+      const forYouList = buildLiveForYou(allowedCatalog, rawWatchedIds);
+
+      // Hero Carousel
+      await setupHeroCarousel(allowedCatalog, forYouList);
+
+      // Continue Watching
+      renderContinueWatchingSection();
+
+      let sectionCounter = 0;
+      let popularShowsInjected = false;
+      let popularMoviesInjected = false;
+
+      // Watchlist
+      if (activeProfile && Array.isArray(activeProfile.Watchlist) && activeProfile.Watchlist.length > 0) {
+        const watchlistMovies = [];
+        for (const wId of activeProfile.Watchlist) {
+          const m = liveCatalogMap.get(String(wId).trim().toLowerCase());
+          if (m && isAllowedByAge(m.Age_Rating) && !watchlistMovies.some(wm => wm.id === m.id)) {
+            watchlistMovies.push(m);
+          }
+        }
+        if (watchlistMovies.length > 0) {
+          renderCarouselSection("Watchlist", watchlistMovies);
+          sectionCounter++;
+        }
+      }
+
+      // Because You Watched
+      let anchorMovie = null;
+      for (const wid of rawWatchedIds) {
+        const candidate = liveCatalogMap.get(wid);
+        if (candidate && isAllowedByAge(candidate.Age_Rating)) {
+          anchorMovie = candidate;
+          break;
+        }
+      }
+
+      if (anchorMovie) {
+        const anchorGenres = parseGenres(anchorMovie.Genres);
+        const similarSafeMovies = allowedCatalog
+          .filter(m => m.id.toLowerCase() !== anchorMovie.id.toLowerCase())
+          .filter(m => anchorGenres.some(g => parseGenres(m.Genres).includes(g)));
+
+        if (similarSafeMovies.length >= 2) {
+          renderCarouselSection(
+            `Because You Watched ${anchorMovie.Name || anchorMovie.Title || 'this'}`,
+            mixupArray(similarSafeMovies).slice(0, 15)
+          );
+          sectionCounter++;
+        }
+      }
+
+      // For You
+      if (forYouList.length > 0) {
+        renderCarouselSection("For You", forYouList);
+        sectionCounter++;
+      }
+
+      /* ==============================================================
+         2. RENDER SECTIONS CONFIGURED IN PAGE (with Content_Collection)
+         ============================================================== */
+      if (pageDocData && Array.isArray(pageDocData.Sections)) {
+        for (const sId of pageDocData.Sections) {
+          try {
+            const secSnap = await getDoc(doc(contentDb, "Systems", sId));
+            if (!secSnap.exists()) continue;
+
+            const secData = secSnap.data();
+
+            // Kids_E Rule
+            const isKidsOnly = String(secData.Kids_E).toLowerCase() === "true" || secData.Kids_E === true;
+            if (isKidsOnly && !isKidsProfile) continue;
+
+            // Age Rating Rule
+            if (!isAllowedByAge(secData.Age_Rating)) continue;
+
+            const isFixed = String(secData.Fixed).toLowerCase() === "true";
+            const maxLimit = parseInt(secData.Max_Limit || "50", 10);
+            const sectionGenres = parseGenres(secData.Genres);
+            const sectionFranchise = secData.Franchise ? String(secData.Franchise).trim().toLowerCase() : null;
+
+            // Check if section specifies its own Content_Type; otherwise fallback to Page's Content_Collection
+            const secContentTypes = Array.isArray(secData.Content_Type) && secData.Content_Type.length > 0
+              ? secData.Content_Type.map(c => String(c).toLowerCase())
+              : contentCollections.map(c => c.toLowerCase());
+
+            // Pool of items matching section content collection & age rating
+            const sectionCandidatePool = liveCatalogList.filter(m => {
+              const matchesType = secContentTypes.includes((m._collection || '').toLowerCase());
+              return matchesType && isAllowedByAge(m.Age_Rating);
+            });
+
+            let sectionMovies = [];
+
+            // A. Mandatory Titles
+            const explicitTitles = Array.isArray(secData.Titles) ? secData.Titles : [];
+            for (const tId of explicitTitles) {
+              const cleanTId = String(tId).trim().toLowerCase();
+              const movie = liveCatalogMap.get(cleanTId);
+              if (movie && isAllowedByAge(movie.Age_Rating) && !sectionMovies.some(m => m.id === movie.id)) {
+                sectionMovies.push(movie);
+              }
+            }
+
+            // B. If Fixed == False, populate similar content
+            if (!isFixed) {
+              const similarCandidates = sectionCandidatePool.filter(m => {
+                if (sectionMovies.some(sm => sm.id === m.id)) return false;
+
+                if (sectionFranchise) {
+                  const mFranchise = (m.Franchise || m.franchise || '').toLowerCase();
+                  const mName = (m.Name || m.Title || '').toLowerCase();
+                  if (mFranchise.includes(sectionFranchise) || mName.includes(sectionFranchise)) {
+                    return true;
+                  }
+                }
+
+                const mG = parseGenres(m.Genres);
+                return sectionGenres.some(sg => mG.includes(sg));
+              });
+
+              sectionMovies = mixupArray([...sectionMovies, ...similarCandidates]).slice(0, maxLimit);
+            }
+
+            if (sectionMovies.length > 0) {
+              renderCarouselSection(secData.Name || sId, sectionMovies);
+              sectionCounter++;
+
+              if (sectionCounter === 4 && !popularShowsInjected) {
+                renderFilteredInteractiveSection("Popular Shows", liveShowsCatalog.length > 0 ? liveShowsCatalog : allowedCatalog);
+                popularShowsInjected = true;
+              }
+
+              if (sectionCounter === 8 && !popularMoviesInjected) {
+                renderFilteredInteractiveSection("Popular Movies", mixupArray(liveMoviesCatalog.length > 0 ? liveMoviesCatalog : allowedCatalog));
+                popularMoviesInjected = true;
+              }
+            }
+          } catch (secErr) {
+            console.warn(`Section ${sId} load error:`, secErr);
+          }
+        }
+      }
+
+      if (!popularShowsInjected) {
+        renderFilteredInteractiveSection("Popular Shows", liveShowsCatalog.length > 0 ? liveShowsCatalog : allowedCatalog);
+      }
+      if (!popularMoviesInjected) {
+        renderFilteredInteractiveSection("Popular Movies", mixupArray(liveMoviesCatalog.length > 0 ? liveMoviesCatalog : allowedCatalog));
+      }
+    }
+
+    /* ================= RENDER CAROUSEL ================= */
+    function renderCarouselSection(sectionTitle, movies) {
+      const container = document.getElementById('sectionsContainer');
+      const sectionEl = document.createElement('section');
+      sectionEl.className = 'section-block';
+
+      sectionEl.innerHTML = `
+        <div class="section-header-row" onclick="window.openSectionModal('${encodeURIComponent(sectionTitle)}')">
+          <h2 class="section-heading">
+            <span>${sectionTitle}</span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </h2>
+        </div>
+        <div class="carousel-wrapper">
+          <button class="carousel-arrow left"><i class="fa-solid fa-chevron-left"></i></button>
+          <div class="carousel-track"></div>
+          <button class="carousel-arrow right"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      `;
+
+      window[`sec_cache_${encodeURIComponent(sectionTitle)}`] = movies;
+
+      const track = sectionEl.querySelector('.carousel-track');
+      const leftBtn = sectionEl.querySelector('.carousel-arrow.left');
+      const rightBtn = sectionEl.querySelector('.carousel-arrow.right');
+
+      movies.forEach(movie => {
+        track.appendChild(create16x9Card(movie));
+      });
+
+      leftBtn.onclick = () => track.scrollBy({ left: -480, behavior: 'smooth' });
+      rightBtn.onclick = () => track.scrollBy({ left: 480, behavior: 'smooth' });
+
+      makeElementSwipeable(track);
+      container.appendChild(sectionEl);
+    }
+
+    /* ================= 16:9 CARD ================= */
+    function create16x9Card(movie) {
+      const card = document.createElement('div');
+      card.className = 'card-16-9';
+
+      const title = movie.Name || movie.Title || movie.id;
+      const poster = getPosterH(movie);
+
+      card.onclick = () => {
+        window.location.href = `https://knox-app.github.io/netflix/1?watch=${encodeURIComponent(movie.id)}`;
+      };
+
+      card.innerHTML = `
+        <div class="card-thumb-wrap">
+          <img class="main-thumb" src="${poster}" alt="${title}" loading="lazy"/>
+          <div class="card-play-hover">
+            <div class="card-play-btn-circle"><i class="fa-solid fa-play"></i></div>
+          </div>
+        </div>
+        <div class="card-details">
+          <div class="card-title">${title}</div>
+        </div>
+      `;
+
+      return card;
+    }
+
+    /* ================= FULL PAGE 16:9 GRID MODAL (2 PER ROW) ================= */
+    window.openSectionModal = function(encodedKey) {
+      const movies = window[`sec_cache_${encodedKey}`] || [];
+      const title = decodeURIComponent(encodedKey);
+
+      document.getElementById('modalSectionTitle').innerText = title;
+      const bodyContainer = document.getElementById('modalBodyContainer');
+
+      bodyContainer.innerHTML = `<div class="modal-16-9-grid" id="modalGridMovies"></div>`;
+      const grid = document.getElementById('modalGridMovies');
+
+      movies.forEach(movie => {
+        const card = document.createElement('div');
+        card.className = 'grid-card-16-9';
+
+        const posterH = getPosterH(movie);
+        const movieTitle = movie.Name || movie.Title || movie.id;
+
+        card.innerHTML = `
+          <div class="grid-thumb-wrap">
+            <img src="${posterH}" alt="${movieTitle}" loading="lazy" />
+          </div>
+          <div class="grid-card-title">${movieTitle}</div>
+        `;
+
+        card.onclick = () => {
+          window.location.href = `https://knox-app.github.io/netflix/1?watch=${encodeURIComponent(movie.id)}`;
+        };
+
+        grid.appendChild(card);
+      });
+
+      document.getElementById('sectionViewModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    };
+
+    /* ================= STUDIOS MODAL ================= */
+    window.openStudiosModal = function() {
+      document.getElementById('modalSectionTitle').innerText = "Studios";
+      const bodyContainer = document.getElementById('modalBodyContainer');
+
+      bodyContainer.innerHTML = `<div class="modal-tiles-grid" id="modalStudiosGrid"></div>`;
+      const grid = document.getElementById('modalStudiosGrid');
+
+      livePartnersList.forEach(partner => {
+        const studioId = partner.id;
+        const studioName = partner.Name || partner.name || studioId;
+        const tileImg = safeUrl(partner.Tile || partner.tile || partner.Logo || partner.logo || partner.Banner);
+        const redirectUrl = `https://knox-app.github.io/netflix/studio/?studio=${encodeURIComponent(studioId)}`;
+
+        if (!tileImg) return;
+
+        const tile = document.createElement('div');
+        tile.className = 'modal-studio-tile';
+        tile.title = studioName;
+        tile.innerHTML = `<img src="${tileImg}" alt="${studioName}" loading="lazy" />`;
+        tile.onclick = () => { window.location.href = redirectUrl; };
+
+        grid.appendChild(tile);
+      });
+
+      document.getElementById('sectionViewModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    };
+
+    /* ================= GENRES MODAL ================= */
+    window.openGenresModal = function() {
+      document.getElementById('modalSectionTitle').innerText = "Genres";
+      const bodyContainer = document.getElementById('modalBodyContainer');
+
+      bodyContainer.innerHTML = `<div class="modal-tiles-grid" id="modalGenresGrid"></div>`;
+      const grid = document.getElementById('modalGenresGrid');
+
+      const genresList = getGenresByTier(userAllowedMaxTier);
+
+      genresList.forEach(g => {
+        const tile = document.createElement('div');
+        tile.className = 'modal-genre-tile';
+        tile.title = g.name;
+        tile.innerHTML = `<img src="${g.image}" alt="${g.name}" loading="lazy" />`;
+        tile.onclick = () => { window.location.href = g.link; };
+
+        grid.appendChild(tile);
+      });
+
+      document.getElementById('sectionViewModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    };
+
+    document.getElementById('closeSectionModalBtn').onclick = () => {
+      document.getElementById('sectionViewModal').classList.remove('active');
+      document.body.style.overflow = 'auto';
+    };
+
+    window.addEventListener('hashchange', () => {
+      updateActiveProfile();
+      renderNavAvatar();
+      buildLiveFeed();
+    });
+
+    // Boot Real-time streams
+    syncRealtimeLogo();
+    syncRealtimeUARM();
+    syncRealtimePartners();
+    // Default collections preload
+    syncContentCollection("Movies");
+    syncContentCollection("Shows");
   </script>
 </body>
 </html>
