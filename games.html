@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gamify — Play. Bold. Anywhere</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #05070c;
+      --surface: rgba(14, 19, 31, 0.82);
+      --surface-solid: #0e131f;
+      --surface-2: #151e32;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 229, 255, 0.45);
+      --text: #f4f7fb;
+      --muted: #94a3b8;
+      --accent: #00e5ff;
+      --accent-2: #7c3aed;
+      --accent-3: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ff3b6b;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Animated Ambient Background & Cyber Grid */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .ambient-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(circle at 50% 20%, black 30%, transparent 80%);
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(110px);
+      opacity: 0.36;
+      animation: floatOrb 18s ease-in-out infinite alternate;
+    }
+
+    .orb-1 { width: 520px; height: 520px; background: var(--accent-2); top: -160px; left: -120px; }
+    .orb-2 { width: 460px; height: 460px; background: var(--accent); top: 12%; right: -140px; animation-delay: -6s; }
+    .orb-3 { width: 380px; height: 380px; background: #2563eb; bottom: -140px; left: 35%; animation-delay: -11s; }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(40px, 30px) scale(1.08); }
+      100% { transform: translate(-30px, 50px) scale(0.95); }
+    }
+
+    h1, h2, h3, .brand-title {
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: -0.025em;
+    }
+
+    /* Top Personal-Use Notice Ribbon */
+    .notice-ribbon {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.14), rgba(255, 59, 107, 0.14), rgba(245, 158, 11, 0.14));
+      border-bottom: 1px solid rgba(245, 158, 11, 0.28);
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fde68a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .notice-ribbon .pulse-warn {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--warn);
+      box-shadow: 0 0 10px var(--warn);
+      animation: pulse 1.8s infinite;
+    }
+
+    /* Navbar */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(5, 7, 12, 0.78);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid;
+      place-items: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 800;
+      font-size: 1.3rem;
+      color: #04070d;
+      box-shadow: 0 0 28px rgba(0, 229, 255, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand-logo::after {
+      content: "";
+      position: absolute;
+      inset: -50%;
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.45), transparent);
+      transform: rotate(25deg) translateX(-120%);
+      animation: sheen 4.5s infinite;
+    }
+
+    @keyframes sheen {
+      0%, 65% { transform: rotate(25deg) translateX(-120%); }
+      100% { transform: rotate(25deg) translateX(120%); }
+    }
+
+    .brand-text .brand-title { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+    .brand-text .tagline {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--accent);
+      margin-top: 4px;
+      font-weight: 700;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      justify-content: flex-end;
+      min-width: 240px;
+    }
+
+    .search-box { position: relative; max-width: 320px; width: 100%; }
+    .search-box input {
+      width: 100%;
+      background: rgba(21, 30, 50, 0.65);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 14px 10px 38px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+    }
+    .search-box input:focus {
+      border-color: var(--accent);
+      background: rgba(21, 30, 50, 0.95);
+      box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.14);
+    }
+    .search-box svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      width: 16px;
+      height: 16px;
+    }
+
+    .btn {
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.875rem;
+      padding: 10px 18px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s, filter 0.22s;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #38bdf8);
+      color: #030711;
+      font-weight: 700;
+      box-shadow: 0 6px 24px rgba(0, 229, 255, 0.28);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 8px 32px rgba(0, 229, 255, 0.45);
+      filter: brightness(1.06);
+    }
+
+    .btn-ghost {
+      background: rgba(21, 30, 50, 0.72);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(30, 41, 68, 0.85);
+    }
+
+    /* Main Layout */
+    main {
+      max-width: 1320px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 20px 64px;
+      flex: 1;
+    }
+
+    /* Cloud Telemetry Strip */
+    .telemetry-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .telemetry-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      padding: 7px 13px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .status-pill strong { color: var(--text); }
+
+    .live-players-pill {
+      border-color: rgba(34, 197, 94, 0.35);
+      background: rgba(34, 197, 94, 0.08);
+    }
+
+    .live-players-pill strong {
+      color: #86efac;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.85rem;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-3);
+      box-shadow: 0 0 10px var(--accent-3);
+      animation: pulse 2s infinite;
+    }
+
+    .dot.loading { background: var(--warn); box-shadow: 0 0 10px var(--warn); }
+    .dot.error { background: var(--danger); box-shadow: 0 0 10px var(--danger); animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(1.25); }
+    }
+
+    /* Cloud Control Deck */
+    .control-deck {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 0.8fr;
+      gap: 16px;
+      margin-bottom: 26px;
+      animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @media (max-width: 1080px) { .control-deck { grid-template-columns: 1fr; } }
+
+    .deck-panel {
+      background: var(--surface);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px 18px;
+    }
+
+    .deck-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .deck-title {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .deck-sub { font-size: 0.74rem; color: var(--muted); }
+    .server-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .server-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 7px 11px;
+      border-radius: 11px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .server-btn:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.25); transform: translateY(-1px); }
+    .server-btn.active {
+      background: rgba(0, 229, 255, 0.14);
+      border-color: rgba(0, 229, 255, 0.5);
+      color: var(--text);
+      box-shadow: 0 0 18px rgba(0, 229, 255, 0.16);
+    }
+
+    .server-ping { font-size: 0.68rem; color: var(--accent-3); font-weight: 700; }
+
+    .gfx-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 520px) { .gfx-grid { grid-template-columns: 1fr; } }
+
+    .gfx-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 10px 11px;
+      border-radius: 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .gfx-btn:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.25); transform: translateY(-1px); }
+    .gfx-btn.active {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.24), rgba(0, 229, 255, 0.16));
+      border-color: rgba(0, 229, 255, 0.55);
+      color: var(--text);
+      box-shadow: 0 0 22px rgba(124, 58, 237, 0.22);
+    }
+
+    .gfx-name { font-family: "Space Grotesk", sans-serif; font-size: 0.84rem; font-weight: 700; color: var(--text); }
+    .gfx-btn.active .gfx-name { color: var(--accent); }
+    .gfx-desc { font-size: 0.68rem; color: var(--muted); }
+
+    .preset-grid { display: flex; flex-direction: column; gap: 8px; }
+    .preset-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .preset-pill {
+      flex: 1;
+      min-width: 90px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .preset-pill.active {
+      background: rgba(34, 197, 94, 0.14);
+      border-color: rgba(34, 197, 94, 0.45);
+      color: #86efac;
+    }
+
+    /* Hero Spotlight */
+    .hero {
+      position: relative;
+      border-radius: 26px;
+      overflow: hidden;
+      min-height: 410px;
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      margin-bottom: 34px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.72) saturate(1.1);
+      transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .hero:hover .hero-bg { transform: scale(1.04); }
+
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(5, 7, 12, 0.96) 0%, rgba(5, 7, 12, 0.72) 52%, rgba(5, 7, 12, 0.2) 100%),
+        linear-gradient(0deg, rgba(5, 7, 12, 0.96) 0%, transparent 65%);
+    }
+
+    .hero-content { position: relative; z-index: 2; padding: 40px; max-width: 740px; }
+    .cloud-specs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(0, 229, 255, 0.14);
+      color: var(--accent);
+      border: 1px solid rgba(0, 229, 255, 0.32);
+    }
+
+    .badge-purple {
+      background: rgba(124, 58, 237, 0.2);
+      color: #c4b5fd;
+      border-color: rgba(124, 58, 237, 0.4);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.1rem, 4.4vw, 3.5rem);
+      line-height: 1.04;
+      margin-bottom: 14px;
+      text-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 0.94rem;
+      margin-bottom: 24px;
+    }
+
+    .hero-meta span strong { color: var(--text); }
+    .hero-cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    /* Filter & Controls Bar */
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .filter-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-chip:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.25); }
+    .filter-chip.active {
+      background: rgba(0, 229, 255, 0.14);
+      color: var(--accent);
+      border-color: rgba(0, 229, 255, 0.45);
+    }
+
+    .view-toggle {
+      display: inline-flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px;
+      border-radius: 12px;
+      gap: 4px;
+    }
+
+    .view-toggle button {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .view-toggle button.active { background: var(--surface-2); color: var(--accent); }
+
+    /* Games Grid */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 22px;
+    }
+
+    .games-grid.horizontal { grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); }
+
+    .game-card {
+      position: relative;
+      background: var(--surface);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s ease, box-shadow 0.32s ease;
+      animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .game-card:hover {
+      transform: translateY(-7px) scale(1.01);
+      border-color: var(--border-glow);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.6), 0 0 28px rgba(0, 229, 255, 0.14);
+    }
+
+    .poster-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+
+    .games-grid.horizontal .poster-wrap { aspect-ratio: 16 / 9; }
+
+    .poster-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), filter 0.35s;
+    }
+
+    .game-card:hover .poster-wrap img { transform: scale(1.07); filter: brightness(0.72); }
+
+    .card-hover-play {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      opacity: 0;
+      transition: opacity 0.28s ease;
+      background: radial-gradient(circle, rgba(5, 7, 12, 0.45), rgba(5, 7, 12, 0.82));
+    }
+
+    .game-card:hover .card-hover-play { opacity: 1; }
+
+    .play-circle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #38bdf8);
+      color: #030711;
+      display: grid;
+      place-items: center;
+      font-size: 1.15rem;
+      box-shadow: 0 0 28px rgba(0, 229, 255, 0.55);
+      transform: scale(0.85);
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .game-card:hover .play-circle { transform: scale(1); }
+
+    .hover-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .year-chip {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      background: rgba(5, 7, 12, 0.82);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .fav-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 3;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: rgba(5, 7, 12, 0.8);
+      color: var(--muted);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .fav-btn.active { color: #ff3b6b; border-color: rgba(255, 59, 107, 0.5); }
+
+    .cloud-ready-chip {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2;
+      background: rgba(34, 197, 94, 0.16);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(34, 197, 94, 0.38);
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #86efac;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cloud-ready-chip.offline {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(245, 158, 11, 0.38);
+      color: #fde68a;
+    }
+
+    .card-body { padding: 15px 16px 16px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .card-title { font-family: "Space Grotesk", sans-serif; font-size: 1.08rem; font-weight: 700; color: var(--text); }
+    .card-partner { font-size: 0.82rem; color: var(--muted); }
+
+    /* Skeleton Loader */
+    .skeleton {
+      background: linear-gradient(90deg, #0e131f 25%, #192338 50%, #0e131f 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: var(--radius);
+      height: 330px;
+      border: 1px solid var(--border);
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .message-box {
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 44px 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .message-box h3 { color: var(--text); margin-bottom: 8px; }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 5, 10, 0.84);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-backdrop.open { display: flex; opacity: 1; }
+
+    .modal {
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      max-width: 780px;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.75);
+      transform: scale(0.95) translateY(10px);
+      animation: modalPop 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes modalPop { to { transform: scale(1) translateY(0); } }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 5;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: rgba(5, 7, 12, 0.85);
+      color: var(--text);
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .modal-close:hover { background: rgba(255, 59, 107, 0.25); transform: rotate(90deg); }
+
+    .modal-banner { width: 100%; height: 250px; object-fit: cover; background: var(--surface-2); display: block; }
+    .modal-content { padding: 26px; }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .detail-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .detail-item label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .detail-item span, .detail-item a {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+      word-break: break-word;
+    }
+
+    .detail-item a:hover { color: var(--accent); }
+
+    /* Cloud Stream Launch HUD */
+    .stream-hud { padding: 36px 28px; text-align: center; }
+
+    .rig-spinner {
+      width: 78px;
+      height: 78px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      border: 3px solid rgba(0, 229, 255, 0.14);
+      border-top-color: var(--accent);
+      border-right-color: var(--accent-2);
+      animation: spin 1s linear infinite;
+      display: grid;
+      place-items: center;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 20px 0 12px;
+      border: 1px solid var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent));
+      transition: width 0.35s ease;
+    }
+
+    .stream-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .stream-step {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .stream-step.done { border-color: rgba(34, 197, 94, 0.4); color: #86efac; }
+
+    /* FULLSCREEN REAL GAMEPLAY STAGE */
+    .gameplay-stage {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      z-index: 9999;
+      display: none;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .gameplay-stage.active { display: block; }
+
+    /* Overscan + pointer-events: none hides YouTube title bar, controls, and share overlays */
+    .yt-viewport {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .yt-viewport iframe,
+    .yt-viewport #ytPlayerMount {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 118vw;
+      height: 118vh;
+      min-width: 100%;
+      min-height: 100%;
+      transform: translate(-50%, -50%);
+      border: 0;
+      pointer-events: none;
+    }
+
+    .direct-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      display: none;
+    }
+
+    /* Custom Cloud Gaming HUD Overlays */
+    .hud-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 18px 22px;
+      transition: opacity 0.25s ease;
+    }
+
+    .hud-layer.hidden { opacity: 0; }
+
+    .hud-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hud-telemetry {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: rgba(5, 7, 12, 0.72);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-size: 0.78rem;
+      pointer-events: auto;
+    }
+
+    .hud-metric { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
+    .hud-metric strong { color: var(--accent); font-family: "Space Grotesk", sans-serif; }
+    .hud-metric.green strong { color: #86efac; }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      pointer-events: auto;
+    }
+
+    .hud-btn {
+      background: rgba(5, 7, 12, 0.76);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 11px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .hud-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .hud-btn.exit { background: rgba(255, 59, 107, 0.22); border-color: rgba(255, 59, 107, 0.55); color: #fecdd3; }
+    .hud-btn.exit:hover { background: rgba(255, 59, 107, 0.42); color: #fff; }
+
+    .hud-bottom {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .key-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      background: rgba(5, 7, 12, 0.65);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 14px;
+      pointer-events: auto;
+    }
+
+    .key-row { display: flex; gap: 5px; }
+    .v-key {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(21, 30, 50, 0.72);
+      color: var(--text);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .v-key.pressed {
+      background: var(--accent);
+      color: #030711;
+      border-color: var(--accent);
+      box-shadow: 0 0 14px rgba(0, 229, 255, 0.6);
+      transform: scale(0.94);
+    }
+
+    .hud-toast {
+      position: absolute;
+      top: 74px;
+      right: 22px;
+      background: rgba(5, 7, 12, 0.88);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 9px 15px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: all 0.25s;
+      pointer-events: none;
+    }
+
+    .hud-toast.show { opacity: 1; transform: translateY(0); }
+
+    /* Form inside Add Modal */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .hero-content { padding: 24px; }
+      .stream-steps { grid-template-columns: 1fr; }
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+    .field input {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .field input:focus { border-color: var(--accent); }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      background: rgba(5, 7, 12, 0.92);
+      backdrop-filter: blur(12px);
+      padding: 28px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .footer-brand { color: var(--text); font-weight: 700; font-size: 0.95rem; }
+    .footer-tagline {
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .footer-note {
+      margin: 14px auto 0;
+      max-width: 640px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      color: #fde68a;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Animated Ambient Background -->
+  <div class="ambient-bg" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="ambient-grid"></div>
+  </div>
+
+  <!-- Personal Use Notice Banner -->
+  <div class="notice-ribbon">
+    <span class="pulse-warn"></span>
+    <span>Note: ONLY FOR PERSONAL USE NO CORPORATE OR BUSINESS USE CASE</span>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="nav-inner">
+      <a href="#" class="brand">
+        <div class="brand-logo">G</div>
+        <div class="brand-text">
+          <div class="brand-title">Gamify</div>
+          <div class="tagline">Play. Bold. Anywhere</div>
+        </div>
+      </a>
+
+      <div class="nav-actions">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <input id="searchInput" type="search" placeholder="Search cloud titles, studios, year..." />
+        </div>
+        <button class="btn btn-primary" id="openAddBtn">+ Add Game</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main>
+    <!-- Cloud Telemetry Strip -->
+    <div class="telemetry-bar">
+      <div class="telemetry-group">
+        <div class="status-pill">
+          <span class="dot loading" id="statusDot"></span>
+          <span id="statusText">Connecting to Firestore Server...</span>
+        </div>
+        <div class="status-pill live-players-pill">
+          <span class="dot"></span>
+          <span>Real-Time Players: <strong id="livePlayers">74.82M</strong> (50M–100M)</span>
+        </div>
+        <div class="status-pill">
+          <span>Active Node: <strong id="activeNodeBadge">Mumbai (9 ms)</strong></span>
+        </div>
+        <div class="status-pill">
+          <span>Graphics: <strong id="activeGfxBadge">DLSS 5 CORE</strong></span>
+        </div>
+      </div>
+
+      <div class="status-pill" id="countPill">Loading Library...</div>
+    </div>
+
+    <!-- Cloud Rig Control Deck: Servers, Graphics & Stream Bitrate -->
+    <section class="control-deck">
+      <div class="deck-panel">
+        <div class="deck-header">
+          <span class="deck-title">Cloud Server Nodes</span>
+          <span class="deck-sub">7 Global Regions</span>
+        </div>
+        <div class="server-grid" id="serverGrid"></div>
+      </div>
+
+      <div class="deck-panel">
+        <div class="deck-header">
+          <span class="deck-title">Graphics Selection</span>
+          <span class="deck-sub">AI Neural Upscaler</span>
+        </div>
+        <div class="gfx-grid" id="gfxGrid"></div>
+      </div>
+
+      <div class="deck-panel">
+        <div class="deck-header">
+          <span class="deck-title">Stream & Input</span>
+          <span class="deck-sub">KB/M + Controller Ready</span>
+        </div>
+        <div class="preset-grid">
+          <div class="preset-row" id="bitrateGrid">
+            <button type="button" class="preset-pill active" data-rate="4K HDR • 85 Mbps">4K HDR</button>
+            <button type="button" class="preset-pill" data-rate="1440p 120Hz • 50 Mbps">1440p 120Hz</button>
+            <button type="button" class="preset-pill" data-rate="1080p Low-Lat • 25 Mbps">1080p Turbo</button>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--muted); display: flex; justify-content: space-between; padding-top: 2px;">
+            <span>Source: <strong style="color: var(--text);">Firestore Stream</strong></span>
+            <span>Input: <strong style="color: #86efac;">0.8ms Direct</strong></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Cloud Hero -->
+    <section class="hero" id="heroSection" style="display: none;">
+      <img class="hero-bg" id="heroBanner" alt="Featured Game Banner" />
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="cloud-specs">
+          <span class="badge">Cloud Ready • Featured</span>
+          <span class="badge badge-purple" id="heroGfxPill">DLSS 5 CORE</span>
+        </div>
+        <h1 id="heroTitle">Loading...</h1>
+        <div class="hero-meta">
+          <span>Studio: <strong id="heroPartner">—</strong></span>
+          <span>Release: <strong id="heroRelease">—</strong></span>
+          <span>Server: <strong id="heroServerText">Mumbai</strong></span>
+        </div>
+        <div class="hero-cta-row">
+          <button class="btn btn-primary" id="heroPlayBtn">▶ Play Cloud Gameplay</button>
+          <button class="btn btn-ghost" id="heroExploreBtn">Game Info & Assets</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Library Controls -->
+    <section>
+      <div class="section-head">
+        <h2>Cloud Library</h2>
+
+        <div class="filter-pills" id="partnerFilters">
+          <button class="filter-chip active" data-partner="ALL">All Titles</button>
+        </div>
+
+        <div class="view-toggle">
+          <button id="viewVertical" class="active" type="button">Poster (V)</button>
+          <button id="viewHorizontal" type="button">Wide (H)</button>
+        </div>
+      </div>
+
+      <div id="skeletonGrid" class="games-grid">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      </div>
+
+      <div id="gamesContainer" class="games-grid"></div>
+
+      <div id="emptyState" class="message-box" style="display: none;">
+        <h3>No cloud titles found</h3>
+        <p id="emptyDesc">Add documents to your Firestore <code>Games</code> collection or adjust your filters.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-brand">© MN Deep-Tech Research Labs</div>
+    <div class="footer-tagline">Gamify — Play. Bold. Anywhere</div>
+    <div class="footer-note">
+      Note: ONLY FOR PERSONAL USE NO CORPORATE OR BUSINESS USE CASE
+    </div>
+  </footer>
+
+  <!-- Cloud Stream Launch Modal -->
+  <div class="modal-backdrop" id="streamModal">
+    <div class="modal" style="max-width: 580px;">
+      <button class="modal-close" id="closeStreamModal">&times;</button>
+      <div class="stream-hud">
+        <div class="rig-spinner" id="rigSpinner">
+          <span style="font-size: 1.3rem;">⚡</span>
+        </div>
+        <div class="badge" id="streamBadge">Fetching Firestore Stream</div>
+        <h2 id="streamTitle" style="margin-top: 10px; font-size: 1.6rem;">Launching Game</h2>
+        <p id="streamSub" style="color: var(--muted); font-size: 0.9rem; margin-top: 6px;">
+          Connecting to Cloud Rig...
+        </p>
+
+        <div class="progress-track">
+          <div class="progress-fill" id="streamProgress"></div>
+        </div>
+
+        <div class="stream-steps">
+          <div class="stream-step" id="step1">1. Server Lock</div>
+          <div class="stream-step" id="step2">2. Stream Resolve</div>
+          <div class="stream-step" id="step3">3. 4K Stream Sync</div>
+        </div>
+
+        <div id="streamActions" style="margin-top: 22px; display: none; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn btn-primary" id="enterFullscreenBtn">⛶ Enter Fullscreen Gameplay</button>
+          <button class="btn btn-ghost" id="streamInspectBtn">View Metadata</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN REAL GAMEPLAY STAGE (YouTube controls & title hidden + Direct Video support) -->
+  <div class="gameplay-stage" id="gameplayStage">
+    <div class="yt-viewport" id="ytViewport">
+      <div id="ytPlayerMount"></div>
+    </div>
+
+    <video id="directVideoPlayer" class="direct-video" autoplay loop playsinline></video>
+
+    <div class="hud-toast" id="hudToast">Snapshot Saved!</div>
+
+    <div class="hud-layer" id="hudLayer">
+      <!-- Top HUD -->
+      <div class="hud-top">
+        <div class="hud-telemetry">
+          <span class="dot"></span>
+          <strong id="hudGameTitle" style="font-family: 'Space Grotesk', sans-serif; color: #fff;">GAMIFY LIVE</strong>
+          <span class="hud-metric green">FPS: <strong id="hudFps">120</strong></span>
+          <span class="hud-metric">Ping: <strong id="hudPing">9ms</strong></span>
+          <span class="hud-metric">Node: <strong id="hudServer">Mumbai</strong></span>
+          <span class="hud-metric">GPU: <strong id="hudGfx">DLSS 5 CORE</strong></span>
+          <span class="hud-metric">Bitrate: <strong id="hudRate">4K HDR</strong></span>
+        </div>
+
+        <div class="hud-controls">
+          <button class="hud-btn" id="hudAudioBtn">🔊 Sound On</button>
+          <button class="hud-btn" id="hudGfxCycleBtn">⚡ Switch Graphics</button>
+          <button class="hud-btn" id="hudClipBtn">📷 Capture Clip</button>
+          <button class="hud-btn" id="hudFsBtn">⛶ Fullscreen</button>
+          <button class="hud-btn" id="hudToggleBtn">👁 Hide HUD (H)</button>
+          <button class="hud-btn exit" id="hudExitBtn">✕ Exit Session</button>
+        </div>
+      </div>
+
+      <!-- Bottom Interactive Input Cluster -->
+      <div class="hud-bottom">
+        <div class="key-cluster" id="keyCluster">
+          <div class="key-row">
+            <div class="v-key" data-key="W">W</div>
+          </div>
+          <div class="key-row">
+            <div class="v-key" data-key="A">A</div>
+            <div class="v-key" data-key="S">S</div>
+            <div class="v-key" data-key="D">D</div>
+            <div class="v-key" data-key=" " style="width: 74px;">SPACE</div>
+          </div>
+        </div>
+
+        <div class="hud-telemetry" style="font-size: 0.72rem;">
+          <span>Press <strong style="color: var(--accent);">W A S D</strong> / <strong style="color: var(--accent);">SPACE</strong> • <strong style="color: var(--accent);">H</strong> Toggle HUD • <strong style="color: var(--accent);">ESC</strong> Exit</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Details Modal -->
+  <div class="modal-backdrop" id="detailModal">
+    <div class="modal">
+      <button class="modal-close" id="closeDetailModal">&times;</button>
+      <img class="modal-banner" id="modalBanner" alt="Game Banner" />
+      <div class="modal-content">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div>
+            <div class="badge" id="modalDocId">doc-id</div>
+            <h2 id="modalTitle" style="font-size: 1.9rem; margin-top: 6px;">Game Name</h2>
+          </div>
+          <button class="btn btn-primary" id="modalPlayBtn">▶ Play Cloud Gameplay</button>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Partner / Studio</label>
+            <span id="modalPartner">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Release Date</label>
+            <span id="modalRelease">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Support Email</label>
+            <a id="modalEmail" href="#">—</a>
+          </div>
+          <div class="detail-item">
+            <label>Firestore Stream Field</label>
+            <span id="modalStream">—</span>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Horizontal Poster (Poster.h)</label>
+            <img id="modalPosterH" style="width:100%; border-radius:10px; margin-top:6px; max-height:160px; object-fit:cover;" alt="Poster Horizontal" />
+          </div>
+          <div class="detail-item">
+            <label>Vertical Poster (Poster.v)</label>
+            <img id="modalPosterV" style="width:100%; border-radius:10px; margin-top:6px; max-height:160px; object-fit:cover;" alt="Poster Vertical" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Game Modal -->
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal" style="max-width: 580px;">
+      <button class="modal-close" id="closeAddModal">&times;</button>
+      <div class="modal-content">
+        <h2>Add Cloud Title to Firestore</h2>
+        <p style="color: var(--muted); font-size: 0.85rem; margin-top: 4px;">
+          Writes directly to the <code>Games</code> collection including the <code>Stream</code> field.
+        </p>
+
+        <form id="addGameForm" class="form-grid">
+          <div class="field">
+            <label>Document ID (slug)</label>
+            <input name="docId" required placeholder="e.g. gta-6" />
+          </div>
+          <div class="field">
+            <label>Name</label>
+            <input name="Name" required placeholder="Grand Theft Auto VI" />
+          </div>
+          <div class="field">
+            <label>Partner</label>
+            <input name="Partner" required placeholder="Rockstar Games" />
+          </div>
+          <div class="field">
+            <label>Release_Date</label>
+            <input name="Release_Date" required placeholder="2026" />
+          </div>
+          <div class="field full">
+            <label>Email</label>
+            <input name="Email" type="email" required placeholder="support@rockstargames.com" />
+          </div>
+          <div class="field full">
+            <label>Stream URL (YouTube or Direct MP4/WebM)</label>
+            <input name="Stream" type="url" required placeholder="https://youtu.be/... or https://.../gameplay.mp4" />
+          </div>
+          <div class="field full">
+            <label>Banner URL</label>
+            <input name="Banner" type="url" required placeholder="https://..." />
+          </div>
+          <div class="field">
+            <label>Poster.h URL (Landscape)</label>
+            <input name="Poster_h" type="url" required placeholder="https://..." />
+          </div>
+          <div class="field">
+            <label>Poster.v URL (Portrait)</label>
+            <input name="Poster_v" type="url" required placeholder="https://..." />
+          </div>
+          <div class="field full" style="margin-top: 8px; flex-direction: row; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn btn-ghost" id="cancelAddBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submitAddBtn">Save to Firestore</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- YouTube IFrame Player API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <!-- Firebase SDK & App Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      onSnapshot,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjeUSAmhtANyIPMTK2j-x-APGOYD3D-6g",
+      authDomain: "internal-systems-46728.firebaseapp.com",
+      projectId: "internal-systems-46728",
+      storageBucket: "internal-systems-46728.firebasestorage.app",
+      messagingSenderId: "172177452674",
+      appId: "1:172177452674:web:155a2417da5531dd7ece9b",
+      measurementId: "G-Y87B8VRQ1N"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const FALLBACK_IMG =
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="#0e131f"/>
+              <stop offset="100%" stop-color="#1e1b4b"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#g)"/>
+          <text x="50%" y="50%" fill="#00e5ff" font-family="sans-serif" font-size="30" font-weight="bold" text-anchor="middle" dominant-baseline="middle">GAMIFY CLOUD</text>
+        </svg>`
+      );
+
+    // Servers & Graphics
+    const SERVERS = [
+      { id: "mumbai", name: "Mumbai", basePing: 9 },
+      { id: "delhi", name: "Delhi", basePing: 14 },
+      { id: "singapore", name: "Singapore", basePing: 28 },
+      { id: "dubai", name: "Dubai", basePing: 34 },
+      { id: "japan", name: "Japan", basePing: 58 },
+      { id: "italy", name: "Italy", basePing: 92 },
+      { id: "united-states", name: "United States", basePing: 135 }
+    ];
+
+    const GRAPHICS_PROFILES = [
+      { id: "dlss-5-core", name: "DLSS 5 CORE", desc: "4K • Ray Reconstruction", targetFps: 120 },
+      { id: "dlss-2-1", name: "DLSS 2.1", desc: "1440p • High Frame Rate", targetFps: 90 },
+      { id: "micdimistry-2", name: "MICDIMISTRY .2", desc: "Ultra Neural Engine", targetFps: 144 }
+    ];
+
+    let selectedServer = SERVERS[0];
+    let selectedGfx = GRAPHICS_PROFILES[0];
+    let selectedBitrate = "4K HDR • 85 Mbps";
+    let currentPlayers = 74.82;
+
+    let allGames = [];
+    let favorites = new Set(JSON.parse(localStorage.getItem("gamify_favs") || "[]"));
+    let viewMode = "vertical";
+    let activePartner = "ALL";
+    let streamTimer = null;
+    let hudTelemetryTimer = null;
+    let activeStreamMode = "youtube"; // "youtube" | "direct"
+    let ytPlayer = null;
+    let ytApiReady = false;
+
+    window.onYouTubeIframeAPIReady = () => {
+      ytApiReady = true;
+    };
+
+    // Extract YouTube Video ID from any YouTube URL or raw ID
+    function extractYouTubeId(input) {
+      if (!input) return null;
+      const trimmed = String(input).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+      try {
+        const u = new URL(trimmed);
+        if (u.hostname.includes("youtu.be")) {
+          return u.pathname.replace("/", "").split("/")[0] || null;
+        }
+        if (u.hostname.includes("youtube.com")) {
+          if (u.searchParams.get("v")) return u.searchParams.get("v");
+          const parts = u.pathname.split("/").filter(Boolean);
+          const idx = parts.findIndex((p) => p === "embed" || p === "shorts" || p === "live");
+          if (idx !== -1 && parts[idx + 1]) return parts[idx + 1];
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    // DOM
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const countPill = document.getElementById("countPill");
+    const skeletonGrid = document.getElementById("skeletonGrid");
+    const gamesContainer = document.getElementById("gamesContainer");
+    const emptyState = document.getElementById("emptyState");
+    const emptyDesc = document.getElementById("emptyDesc");
+    const searchInput = document.getElementById("searchInput");
+    const partnerFilters = document.getElementById("partnerFilters");
+
+    const livePlayersEl = document.getElementById("livePlayers");
+    const activeNodeBadge = document.getElementById("activeNodeBadge");
+    const activeGfxBadge = document.getElementById("activeGfxBadge");
+    const serverGrid = document.getElementById("serverGrid");
+    const gfxGrid = document.getElementById("gfxGrid");
+
+    const heroSection = document.getElementById("heroSection");
+    const heroBanner = document.getElementById("heroBanner");
+    const heroTitle = document.getElementById("heroTitle");
+    const heroPartner = document.getElementById("heroPartner");
+    const heroRelease = document.getElementById("heroRelease");
+    const heroGfxPill = document.getElementById("heroGfxPill");
+    const heroServerText = document.getElementById("heroServerText");
+    const heroPlayBtn = document.getElementById("heroPlayBtn");
+    const heroExploreBtn = document.getElementById("heroExploreBtn");
+
+    // Gameplay Stage DOM
+    const gameplayStage = document.getElementById("gameplayStage");
+    const ytViewport = document.getElementById("ytViewport");
+    const directVideoPlayer = document.getElementById("directVideoPlayer");
+    const hudLayer = document.getElementById("hudLayer");
+    const hudToast = document.getElementById("hudToast");
+
+    function showToast(msg) {
+      hudToast.textContent = msg;
+      hudToast.classList.add("show");
+      setTimeout(() => hudToast.classList.remove("show"), 2000);
+    }
+
+    // Real-time Players Ticker (50M - 100M)
+    function updateLivePlayers() {
+      const delta = (Math.random() - 0.48) * 0.65;
+      currentPlayers = Math.min(99.8, Math.max(50.2, currentPlayers + delta));
+      livePlayersEl.textContent = `${currentPlayers.toFixed(2)}M`;
+    }
+    updateLivePlayers();
+    setInterval(updateLivePlayers, 2400);
+
+    // Servers
+    function renderServers() {
+      serverGrid.innerHTML = "";
+      SERVERS.forEach((srv) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `server-btn ${selectedServer.id === srv.id ? "active" : ""}`;
+        const liveMs = srv.basePing + Math.floor(Math.random() * 4);
+        btn.innerHTML = `<span>${srv.name}</span><span class="server-ping">${liveMs}ms</span>`;
+        btn.onclick = () => {
+          selectedServer = srv;
+          activeNodeBadge.textContent = `${srv.name} (${liveMs} ms)`;
+          heroServerText.textContent = `${srv.name} (${liveMs} ms)`;
+          renderServers();
+        };
+        serverGrid.appendChild(btn);
+      });
+    }
+
+    // Graphics
+    function renderGraphics() {
+      gfxGrid.innerHTML = "";
+      GRAPHICS_PROFILES.forEach((gfx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `gfx-btn ${selectedGfx.id === gfx.id ? "active" : ""}`;
+        btn.innerHTML = `<span class="gfx-name">${gfx.name}</span><span class="gfx-desc">${gfx.desc}</span>`;
+        btn.onclick = () => {
+          selectedGfx = gfx;
+          activeGfxBadge.textContent = gfx.name;
+          heroGfxPill.textContent = gfx.name;
+          renderGraphics();
+        };
+        gfxGrid.appendChild(btn);
+      });
+    }
+
+    // Bitrate Pills
+    document.querySelectorAll("#bitrateGrid .preset-pill").forEach((pill) => {
+      pill.onclick = () => {
+        document.querySelectorAll("#bitrateGrid .preset-pill").forEach((p) => p.classList.remove("active"));
+        pill.classList.add("active");
+        selectedBitrate = pill.dataset.rate;
+      };
+    });
+
+    renderServers();
+    renderGraphics();
+
+    function normalizeGame(id, data) {
+      return {
+        id,
+        Name: data.Name || id,
+        Partner: data.Partner || "Independent",
+        Release_Date: data.Release_Date || "TBA",
+        Email: data.Email || "",
+        Stream: (data.Stream || data.stream || "").trim(),
+        Banner: data.Banner || "",
+        PosterH: data["Poster.h"] || data.Poster?.h || data.Banner || "",
+        PosterV: data["Poster.v"] || data.Poster?.v || data.Banner || ""
+      };
+    }
+
+    function setStatus(type, text) {
+      statusDot.className = "dot" + (type ? ` ${type}` : "");
+      statusText.textContent = text;
+    }
+
+    function renderPartnerFilters() {
+      const partners = ["ALL", "FAVORITES", ...new Set(allGames.map((g) => g.Partner))];
+      partnerFilters.innerHTML = "";
+      partners.forEach((p) => {
+        const btn = document.createElement("button");
+        btn.className = `filter-chip ${activePartner === p ? "active" : ""}`;
+        btn.textContent = p === "ALL" ? "All Titles" : p === "FAVORITES" ? "♥ Favorites" : p;
+        btn.onclick = () => {
+          activePartner = p;
+          renderPartnerFilters();
+          renderGames();
+        };
+        partnerFilters.appendChild(btn);
+      });
+    }
+
+    function renderHero(game) {
+      if (!game) {
+        heroSection.style.display = "none";
+        return;
+      }
+      heroSection.style.display = "flex";
+      heroBanner.src = game.Banner || game.PosterH || FALLBACK_IMG;
+      heroBanner.onerror = () => (heroBanner.src = FALLBACK_IMG);
+      heroTitle.textContent = game.Name;
+      heroPartner.textContent = game.Partner;
+      heroRelease.textContent = game.Release_Date;
+      heroGfxPill.textContent = selectedGfx.name;
+      heroServerText.textContent = `${selectedServer.name} (${selectedServer.basePing} ms)`;
+      heroPlayBtn.onclick = () => launchCloudStream(game);
+      heroExploreBtn.onclick = () => openDetailModal(game);
+    }
+
+    function renderGames() {
+      const query = searchInput.value.trim().toLowerCase();
+      const filtered = allGames.filter((g) => {
+        const matchesPartner =
+          activePartner === "ALL" ||
+          (activePartner === "FAVORITES" ? favorites.has(g.id) : g.Partner === activePartner);
+        const matchesQuery =
+          g.Name.toLowerCase().includes(query) ||
+          g.Partner.toLowerCase().includes(query) ||
+          String(g.Release_Date).toLowerCase().includes(query) ||
+          g.id.toLowerCase().includes(query);
+        return matchesPartner && matchesQuery;
+      });
+
+      gamesContainer.className = viewMode === "horizontal" ? "games-grid horizontal" : "games-grid";
+      gamesContainer.innerHTML = "";
+
+      if (filtered.length === 0) {
+        emptyState.style.display = "block";
+        return;
+      }
+
+      emptyState.style.display = "none";
+
+      filtered.forEach((game, idx) => {
+        const card = document.createElement("article");
+        card.className = "game-card";
+        card.style.animationDelay = `${Math.min(idx * 60, 420)}ms`;
+        const imgSrc = viewMode === "horizontal" ? (game.PosterH || game.Banner) : (game.PosterV || game.Banner);
+        const isFav = favorites.has(game.id);
+        const hasStream = Boolean(game.Stream);
+
+        card.innerHTML = `
+          <div class="poster-wrap">
+            <span class="cloud-ready-chip ${hasStream ? "" : "offline"}">${hasStream ? "Stream Live" : "No Stream URL"}</span>
+            <span class="year-chip">${game.Release_Date}</span>
+            <button class="fav-btn ${isFav ? "active" : ""}" title="Favorite">${isFav ? "♥" : "♡"}</button>
+            <img src="${imgSrc || FALLBACK_IMG}" alt="${game.Name}" loading="lazy" />
+            <div class="card-hover-play">
+              <div class="play-circle">▶</div>
+              <div class="hover-label">${hasStream ? "Play Firestore Stream" : "View Details"}</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${game.Name}</div>
+            <div class="card-partner">${game.Partner}</div>
+          </div>
+        `;
+
+        const img = card.querySelector("img");
+        img.onerror = () => (img.src = FALLBACK_IMG);
+
+        card.querySelector(".fav-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (favorites.has(game.id)) favorites.delete(game.id);
+          else favorites.add(game.id);
+          localStorage.setItem("gamify_favs", JSON.stringify([...favorites]));
+          renderGames();
+        });
+
+        card.addEventListener("click", () => openDetailModal(game));
+        gamesContainer.appendChild(card);
+      });
+    }
+
+    // Launch Fullscreen Real Gameplay from Firestore 'Stream' field
+    function startFullscreenGameplay(game) {
+      if (!game.Stream) {
+        alert(`No 'Stream' URL found in Firestore document Games/${game.id}. Please add a 'Stream' field to this game in Cloud Firestore.`);
+        return;
+      }
+
+      streamModal.classList.remove("open");
+      detailModal.classList.remove("open");
+      gameplayStage.classList.add("active");
+
+      document.getElementById("hudGameTitle").textContent = game.Name.toUpperCase();
+      document.getElementById("hudServer").textContent = selectedServer.name;
+      document.getElementById("hudGfx").textContent = selectedGfx.name;
+      document.getElementById("hudRate").textContent = selectedBitrate.split("•")[0].trim();
+
+      // Request browser native fullscreen
+      try {
+        if (gameplayStage.requestFullscreen) {
+          gameplayStage.requestFullscreen().catch(() => {});
+        } else if (gameplayStage.webkitRequestFullscreen) {
+          gameplayStage.webkitRequestFullscreen();
+        }
+      } catch (_) {}
+
+      const ytId = extractYouTubeId(game.Stream);
+
+      if (ytId) {
+        // YouTube stream mode (controls & title hidden)
+        activeStreamMode = "youtube";
+        directVideoPlayer.style.display = "none";
+        directVideoPlayer.pause();
+        directVideoPlayer.removeAttribute("src");
+        ytViewport.style.display = "block";
+
+        if (ytApiReady && window.YT && window.YT.Player) {
+          if (!ytPlayer) {
+            ytPlayer = new YT.Player("ytPlayerMount", {
+              videoId: ytId,
+              playerVars: {
+                autoplay: 1,
+                controls: 0,
+                disablekb: 1,
+                fs: 0,
+                iv_load_policy: 3,
+                modestbranding: 1,
+                rel: 0,
+                showinfo: 0,
+                loop: 1,
+                playlist: ytId,
+                playsinline: 1
+              },
+              events: {
+                onReady: (ev) => {
+                  ev.target.playVideo();
+                  ev.target.unMute();
+                  document.getElementById("hudAudioBtn").textContent = "🔊 Sound On";
+                }
+              }
+            });
+          } else {
+            ytPlayer.loadVideoById({ videoId: ytId });
+            ytPlayer.unMute();
+            document.getElementById("hudAudioBtn").textContent = "🔊 Sound On";
+          }
+        } else {
+          document.getElementById("ytPlayerMount").innerHTML =
+            `<iframe src="https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&rel=0&loop=1&playlist=${ytId}&playsinline=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+        }
+      } else {
+        // Direct MP4 / WebM / Storage Video stream mode
+        activeStreamMode = "direct";
+        ytViewport.style.display = "none";
+        if (ytPlayer && typeof ytPlayer.pauseVideo === "function") {
+          ytPlayer.pauseVideo();
+        }
+        directVideoPlayer.style.display = "block";
+        directVideoPlayer.src = game.Stream;
+        directVideoPlayer.muted = false;
+        directVideoPlayer.play().catch(() => {});
+        document.getElementById("hudAudioBtn").textContent = "🔊 Sound On";
+      }
+
+      clearInterval(hudTelemetryTimer);
+      hudTelemetryTimer = setInterval(() => {
+        const fpsJitter = Math.floor(Math.random() * 4) - 2;
+        document.getElementById("hudFps").textContent = selectedGfx.targetFps + fpsJitter;
+        const pingJitter = selectedServer.basePing + Math.floor(Math.random() * 4);
+        document.getElementById("hudPing").textContent = `${pingJitter}ms`;
+      }, 1100);
+    }
+
+    function exitGameplaySession() {
+      clearInterval(hudTelemetryTimer);
+      gameplayStage.classList.remove("active");
+      if (ytPlayer && typeof ytPlayer.pauseVideo === "function") {
+        ytPlayer.pauseVideo();
+      }
+      directVideoPlayer.pause();
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Gameplay HUD Buttons
+    document.getElementById("hudExitBtn").onclick = exitGameplaySession;
+    document.getElementById("hudToggleBtn").onclick = () => hudLayer.classList.toggle("hidden");
+    document.getElementById("hudFsBtn").onclick = () => {
+      if (!document.fullscreenElement) gameplayStage.requestFullscreen?.().catch(() => {});
+      else document.exitFullscreen?.().catch(() => {});
+    };
+    document.getElementById("hudClipBtn").onclick = () => {
+      showToast(`Clip Saved • ${selectedGfx.name} @ ${selectedServer.name}`);
+    };
+    document.getElementById("hudAudioBtn").onclick = () => {
+      const btn = document.getElementById("hudAudioBtn");
+      if (activeStreamMode === "direct") {
+        directVideoPlayer.muted = !directVideoPlayer.muted;
+        btn.textContent = directVideoPlayer.muted ? "🔇 Muted" : "🔊 Sound On";
+      } else if (ytPlayer && typeof ytPlayer.isMuted === "function") {
+        if (ytPlayer.isMuted()) {
+          ytPlayer.unMute();
+          btn.textContent = "🔊 Sound On";
+        } else {
+          ytPlayer.mute();
+          btn.textContent = "🔇 Muted";
+        }
+      }
+    };
+    document.getElementById("hudGfxCycleBtn").onclick = () => {
+      const idx = GRAPHICS_PROFILES.findIndex((g) => g.id === selectedGfx.id);
+      selectedGfx = GRAPHICS_PROFILES[(idx + 1) % GRAPHICS_PROFILES.length];
+      document.getElementById("hudGfx").textContent = selectedGfx.name;
+      activeGfxBadge.textContent = selectedGfx.name;
+      heroGfxPill.textContent = selectedGfx.name;
+      renderGraphics();
+      showToast(`Switched Graphics: ${selectedGfx.name}`);
+    };
+
+    // Keyboard WASD + H + ESC reactivity during Gameplay
+    window.addEventListener("keydown", (e) => {
+      if (!gameplayStage.classList.contains("active")) return;
+      const k = e.key.toUpperCase();
+      if (k === "H") hudLayer.classList.toggle("hidden");
+      if (e.key === "Escape") exitGameplaySession();
+      const keyEl = document.querySelector(`.v-key[data-key="${k === " " ? " " : k}"]`);
+      if (keyEl) keyEl.classList.add("pressed");
+    });
+
+    window.addEventListener("keyup", (e) => {
+      const k = e.key.toUpperCase();
+      const keyEl = document.querySelector(`.v-key[data-key="${k === " " ? " " : k}"]`);
+      if (keyEl) keyEl.classList.remove("pressed");
+    });
+
+    document.querySelectorAll(".v-key").forEach((el) => {
+      el.addEventListener("mousedown", () => el.classList.add("pressed"));
+      el.addEventListener("mouseup", () => el.classList.remove("pressed"));
+      el.addEventListener("mouseleave", () => el.classList.remove("pressed"));
+    });
+
+    // Cloud Stream Rig Boot Modal
+    const streamModal = document.getElementById("streamModal");
+    function launchCloudStream(game) {
+      clearInterval(streamTimer);
+      detailModal.classList.remove("open");
+
+      const progress = document.getElementById("streamProgress");
+      const badge = document.getElementById("streamBadge");
+      const sub = document.getElementById("streamSub");
+      const actions = document.getElementById("streamActions");
+      const spinner = document.getElementById("rigSpinner");
+      const enterBtn = document.getElementById("enterFullscreenBtn");
+      const s1 = document.getElementById("step1");
+      const s2 = document.getElementById("step2");
+      const s3 = document.getElementById("step3");
+
+      document.getElementById("streamTitle").textContent = game.Name;
+      badge.textContent = `${selectedServer.name} • ${selectedGfx.name}`;
+      sub.textContent = `Fetching Firestore 'Stream' URL from ${selectedServer.name} node...`;
+      progress.style.width = "15%";
+      actions.style.display = "none";
+      spinner.style.animationPlayState = "running";
+      [s1, s2, s3].forEach((s) => s.classList.remove("done"));
+
+      streamModal.classList.add("open");
+
+      let pct = 15;
+      streamTimer = setInterval(() => {
+        pct += 22;
+        progress.style.width = `${Math.min(pct, 100)}%`;
+
+        if (pct >= 37) s1.classList.add("done");
+        if (pct >= 75) {
+          s2.classList.add("done");
+          sub.textContent = game.Stream
+            ? `Resolved Firestore Stream • Initializing ${selectedGfx.name}...`
+            : `Warning: 'Stream' field missing on Games/${game.id}`;
+        }
+        if (pct >= 100) {
+          clearInterval(streamTimer);
+          spinner.style.animationPlayState = "paused";
+          if (game.Stream) {
+            s3.classList.add("done");
+            badge.textContent = `Rig Ready • ${selectedServer.name}`;
+            sub.textContent = `Stream synced from Firestore. Enter fullscreen to play!`;
+            enterBtn.style.display = "inline-flex";
+          } else {
+            badge.textContent = `Stream Missing`;
+            sub.textContent = `Add a 'Stream' field to Games/${game.id} in Firestore to launch gameplay.`;
+            enterBtn.style.display = "none";
+          }
+          actions.style.display = "flex";
+        }
+      }, 260);
+
+      enterBtn.onclick = () => startFullscreenGameplay(game);
+      document.getElementById("streamInspectBtn").onclick = () => {
+        streamModal.classList.remove("open");
+        openDetailModal(game);
+      };
+    }
+
+    document.getElementById("closeStreamModal").onclick = () => {
+      clearInterval(streamTimer);
+      streamModal.classList.remove("open");
+    };
+
+    // Detail Modal
+    const detailModal = document.getElementById("detailModal");
+    function openDetailModal(game) {
+      document.getElementById("modalDocId").textContent = game.id;
+      document.getElementById("modalTitle").textContent = game.Name;
+      document.getElementById("modalPartner").textContent = game.Partner;
+      document.getElementById("modalRelease").textContent = game.Release_Date;
+
+      const emailEl = document.getElementById("modalEmail");
+      emailEl.textContent = game.Email || "Not provided";
+      emailEl.href = game.Email ? `mailto:${game.Email}` : "#";
+
+      const streamEl = document.getElementById("modalStream");
+      streamEl.textContent = game.Stream ? "Firestore Stream Connected ✓" : "Missing 'Stream' field";
+      streamEl.style.color = game.Stream ? "#86efac" : "#fde68a";
+
+      const mBanner = document.getElementById("modalBanner");
+      mBanner.src = game.Banner || game.PosterH || FALLBACK_IMG;
+      mBanner.onerror = () => (mBanner.src = FALLBACK_IMG);
+
+      const mPH = document.getElementById("modalPosterH");
+      mPH.src = game.PosterH || FALLBACK_IMG;
+      mPH.onerror = () => (mPH.src = FALLBACK_IMG);
+
+      const mPV = document.getElementById("modalPosterV");
+      mPV.src = game.PosterV || FALLBACK_IMG;
+      mPV.onerror = () => (mPV.src = FALLBACK_IMG);
+
+      document.getElementById("modalPlayBtn").onclick = () => launchCloudStream(game);
+      detailModal.classList.add("open");
+    }
+
+    document.getElementById("closeDetailModal").onclick = () => detailModal.classList.remove("open");
+    detailModal.addEventListener("click", (e) => {
+      if (e.target === detailModal) detailModal.classList.remove("open");
+    });
+
+    // Add Game Modal
+    const addModal = document.getElementById("addModal");
+    const addForm = document.getElementById("addGameForm");
+    document.getElementById("openAddBtn").onclick = () => addModal.classList.add("open");
+    document.getElementById("closeAddModal").onclick = () => addModal.classList.remove("open");
+    document.getElementById("cancelAddBtn").onclick = () => addModal.classList.remove("open");
+
+    addForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitAddBtn");
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      const fd = new FormData(addForm);
+      const docId = String(fd.get("docId")).trim().toLowerCase().replace(/\s+/g, "-");
+
+      try {
+        await setDoc(doc(db, "Games", docId), {
+          Name: String(fd.get("Name")).trim(),
+          Partner: String(fd.get("Partner")).trim(),
+          Release_Date: String(fd.get("Release_Date")).trim(),
+          Email: String(fd.get("Email")).trim(),
+          Stream: String(fd.get("Stream")).trim(),
+          Banner: String(fd.get("Banner")).trim(),
+          "Poster.h": String(fd.get("Poster_h")).trim(),
+          "Poster.v": String(fd.get("Poster_v")).trim()
+        });
+        addForm.reset();
+        addModal.classList.remove("open");
+      } catch (err) {
+        alert("Could not save to Firestore: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Save to Firestore";
+      }
+    });
+
+    // View Toggles & Search
+    const viewVerticalBtn = document.getElementById("viewVertical");
+    const viewHorizontalBtn = document.getElementById("viewHorizontal");
+
+    viewVerticalBtn.onclick = () => {
+      viewMode = "vertical";
+      viewVerticalBtn.classList.add("active");
+      viewHorizontalBtn.classList.remove("active");
+      renderGames();
+    };
+
+    viewHorizontalBtn.onclick = () => {
+      viewMode = "horizontal";
+      viewHorizontalBtn.classList.add("active");
+      viewVerticalBtn.classList.remove("active");
+      renderGames();
+    };
+
+    searchInput.addEventListener("input", renderGames);
+
+    // Real-time Firestore Listener
+    onSnapshot(
+      collection(db, "Games"),
+      (snapshot) => {
+        skeletonGrid.style.display = "none";
+        allGames = snapshot.docs.map((d) => normalizeGame(d.id, d.data()));
+        setStatus("", "Live • Firestore Server Connected");
+        countPill.textContent = `${allGames.length} ${allGames.length === 1 ? "Title" : "Titles"} Online`;
+        renderPartnerFilters();
+        renderHero(allGames[0] || null);
+        renderGames();
+      },
+      (error) => {
+        skeletonGrid.style.display = "none";
+        console.error("Firestore error:", error);
+        setStatus("error", `Firestore Error: ${error.code}`);
+        emptyState.style.display = "block";
+        emptyDesc.textContent =
+          "Unable to read the 'Games' collection. Check your Firestore Security Rules to ensure read access is enabled.";
+      }
+    );
+  </script>
+</body>
+</html>
