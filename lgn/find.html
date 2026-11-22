@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Account</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #555555;
+            --input-border: #dddddd;
+            --input-focus: #000000;
+            --input-bg: #ffffff;
+            --btn-bg: #111111;
+            --btn-text: #ffffff;
+            --btn-hover: #333333;
+            --badge-bg: #f0f0f0;
+            --badge-text: #333333;
+            --link-color: #0066cc;
+            --pill-bg: #f5f5f5;
+            --pill-active-bg: #111111;
+            --pill-active-text: #ffffff;
+            --error-color: #d93025;
+            --success-color: #188038;
+        }
+
+        body.dark {
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --input-border: #3a3a3a;
+            --input-focus: #ffffff;
+            --input-bg: #000000;
+            --btn-bg: #ffffff;
+            --btn-text: #000000;
+            --btn-hover: #e0e0e0;
+            --badge-bg: #222222;
+            --badge-text: #dddddd;
+            --link-color: #4da3ff;
+            --pill-bg: #1a1a1a;
+            --pill-active-bg: #ffffff;
+            --pill-active-text: #000000;
+            --error-color: #f28b82;
+            --success-color: #81c995;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .user-badge {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--badge-bg);
+            padding: 4px 14px 4px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--badge-text);
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .user-badge img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .method-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 22px;
+        }
+
+        .method-tab {
+            background: var(--pill-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            padding: 10px 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .method-tab.active {
+            background: var(--pill-active-bg);
+            color: var(--pill-active-text);
+            border-color: var(--pill-active-bg);
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .input-group label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-color);
+            padding: 0 5px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            box-sizing: border-box;
+            outline: none;
+            background-color: var(--input-bg);
+            color: var(--text-primary);
+            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--input-focus);
+        }
+
+        .btn {
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            padding: 16px;
+            width: 100%;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .btn:hover { background: var(--btn-hover); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--input-border);
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--pill-bg);
+        }
+
+        .status-msg {
+            font-size: 13px;
+            margin: 10px 0;
+            min-height: 18px;
+        }
+
+        .status-msg.error { color: var(--error-color); }
+        .status-msg.success { color: var(--success-color); }
+
+        .links {
+            margin-top: 20px;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .links a {
+            color: var(--link-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .links a:hover { text-decoration: underline; }
+
+        .account-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .account-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: left;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .account-item:hover {
+            border-color: var(--input-focus);
+        }
+
+        .account-item .acc-name { font-weight: 600; font-size: 14px; }
+        .account-item .acc-email { font-size: 13px; color: var(--text-secondary); }
+
+        .step { display: none; }
+        .step.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="pageTitle">Account Recovery</h1>
+    <p class="subtitle" id="pageSubtitle">Choose a recovery option to verify your account.</p>
+
+    <div class="user-badge" id="userBadge">
+        <img id="userAvatar" alt="Profile Picture" />
+        <span id="userEmailDisplay"></span>
+    </div>
+
+    <div class="status-msg" id="statusMsg"></div>
+
+    <!-- STEP 1: Choose Recovery Method & Enter Detail -->
+    <div class="step active" id="step1">
+        <div class="method-tabs">
+            <button type="button" class="method-tab active" data-method="phone">Phone Number</button>
+            <button type="button" class="method-tab" data-method="guardian">Guardian Email</button>
+            <button type="button" class="method-tab" data-method="recovery">Recovery Email</button>
+        </div>
+
+        <div class="input-group">
+            <label id="methodInputLabel">Phone Number</label>
+            <input type="text" id="recoveryInput" autocomplete="off">
+        </div>
+
+        <button class="btn" id="verifyMethodBtn">Continue</button>
+    </div>
+
+    <!-- STEP 1.5: Select Account (if multiple accounts share a Guardian/Recovery email) -->
+    <div class="step" id="stepSelectAccount">
+        <div class="account-list" id="accountList"></div>
+    </div>
+
+    <!-- STEP 2: Enter Email OTP -->
+    <div class="step" id="stepOtp">
+        <div class="input-group">
+            <label>6-Digit OTP</label>
+            <input type="text" id="otpInput" maxlength="6" autocomplete="off">
+        </div>
+
+        <button class="btn" id="verifyOtpBtn">Verify OTP</button>
+
+        <div class="links">
+            <a id="resendOtpLink">Resend OTP</a>
+            <a id="changeMethodLink">Try another method</a>
+        </div>
+    </div>
+
+    <!-- STEP 3A: Found Account (when get != password) -->
+    <div class="step" id="stepFound">
+        <button class="btn" id="goToLoginBtn">Continue to Sign In</button>
+        <button class="btn btn-secondary" id="switchToResetBtn">Reset Password</button>
+    </div>
+
+    <!-- STEP 3B: Reset Password -->
+    <div class="step" id="stepResetPassword">
+        <div class="input-group">
+            <label>New Password</label>
+            <input type="password" id="newPassword">
+        </div>
+
+        <div class="input-group">
+            <label>Confirm Password</label>
+            <input type="password" id="confirmPassword">
+        </div>
+
+        <button class="btn" id="savePasswordBtn">Change Password</button>
+    </div>
+
+    <!-- STEP 4: Success -->
+    <div class="step" id="stepSuccess">
+        <button class="btn" id="afterResetLoginBtn">Sign In Now</button>
+    </div>
+
+    <div class="links">
+        <a id="backToSignInLink" href="1.html">Back to Sign in</a>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        query,
+        where,
+        updateDoc,
+        doc,
+        addDoc,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 1. Primary DB (UARM)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "question-metabase",
+        storageBucket: "question-metabase.firebasestorage.app",
+        messagingSenderId: "770698198753",
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 2. Secondary DB (cloud-computer-4891a for Email OTPs)
+    const mailFirebaseConfig = {
+        apiKey: "AIzaSyAo8Uzs4XZHDHTSTfgx59w5h5NlYuGC8s0",
+        authDomain: "cloud-computer-4891a.firebaseapp.com",
+        projectId: "cloud-computer-4891a",
+        storageBucket: "cloud-computer-4891a.firebasestorage.app",
+        messagingSenderId: "744203234287",
+        appId: "1:744203234287:web:81d943ae9b75fd77dce41a",
+        measurementId: "G-QE17C33TMN"
+    };
+    const mailApp = initializeApp(mailFirebaseConfig, "mailApp");
+    const mailDb = getFirestore(mailApp);
+
+    /* ================= PARSE URL PARAMETERS ================= */
+    // Supports ?session=...&get=password, ?find=session=...&get=password, or #find-account&=...
+    function parseAllParams() {
+        let rawQuery = window.location.search.substring(1);
+        if (window.location.hash && window.location.hash.includes('find-account&=')) {
+            const hashQuery = window.location.hash.split('find-account&=')[1] || '';
+            rawQuery = rawQuery ? `${rawQuery}&${hashQuery}` : hashQuery;
+        }
+        return new URLSearchParams(rawQuery);
+    }
+
+    const urlParams = parseAllParams();
+    let session = urlParams.get('session') || '';
+    const findParam = urlParams.get('find');
+    if (!session && findParam) {
+        session = findParam.startsWith('session=') ? findParam.slice(8) : findParam;
+    }
+
+    const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus') || '';
+    const continueUrl = urlParams.get('continue') || '4.html';
+    const provider = urlParams.get('provider') || '';
+    const theme = urlParams.get('theme') ? urlParams.get('theme').toLowerCase() : null;
+    let getMode = (urlParams.get('get') || '').toLowerCase();
+    if (!getMode) {
+        getMode = lotusParam ? 'password' : 'email';
+    }
+
+    /* ================= LIVE THEME ================= */
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    function applyTheme() {
+        if (theme === "dark" || theme === "d") {
+            document.body.classList.add("dark");
+            return;
+        }
+        if (theme === "light" || theme === "l") {
+            document.body.classList.remove("dark");
+            return;
+        }
+        if (mediaQuery.matches) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    }
+    applyTheme();
+    mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
+
+    /* ================= STATE ================= */
+    let selectedMethod = 'phone'; // 'phone' | 'guardian' | 'recovery'
+    let targetDocId = null;
+    let targetUserData = null;
+    let targetOtpEmail = '';
+    let generatedOtp = '';
+    let otpExpiresAt = 0;
+
+    /* ================= UI HELPERS ================= */
+    function setStatus(message, type = '') {
+        const el = document.getElementById('statusMsg');
+        el.textContent = message;
+        el.className = 'status-msg' + (type ? ` ${type}` : '');
+    }
+
+    function showStep(stepId) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById(stepId).classList.add('active');
+    }
+
+    function showUserBadge(userData) {
+        const badge = document.getElementById('userBadge');
+        document.getElementById('userEmailDisplay').textContent = userData["Email"] || "";
+        const pic = userData["Profile_Picture"] || userData["Profile Picture"];
+        if (pic) {
+            const avatar = document.getElementById('userAvatar');
+            avatar.src = pic;
+            avatar.style.display = 'inline-block';
+        }
+        badge.style.display = 'inline-flex';
+    }
+
+    function buildRedirectUrl(page, lotusValue = '') {
+        const p = new URLSearchParams();
+        if (session) p.set('session', session);
+        if (lotusValue) p.set('Lotus', lotusValue);
+        if (continueUrl) p.set('continue', continueUrl);
+        if (provider) p.set('provider', provider);
+        if (theme) p.set('theme', theme);
+        const qs = p.toString();
+        return qs ? `${page}?${qs}` : page;
+    }
+
+    document.getElementById('backToSignInLink').href = buildRedirectUrl('1.html');
+
+    if (getMode === 'password') {
+        document.getElementById('pageTitle').textContent = 'Reset Password';
+        document.getElementById('pageSubtitle').textContent = 'Verify with your Phone Number, Guardian Email ID, or Recovery Email.';
+    } else {
+        document.getElementById('pageTitle').textContent = 'Find Account';
+        document.getElementById('pageSubtitle').textContent = 'Enter your Phone Number, Guardian Email ID, or Recovery Email.';
+    }
+
+    /* ================= PRELOAD USER IF LOTUS EXISTS ================= */
+    async function preloadUserByLotus() {
+        if (!lotusParam) return;
+        try {
+            const q = query(collection(db, "UARM"), where("Lotus", "==", lotusParam));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                targetDocId = snap.docs[0].id;
+                targetUserData = snap.docs[0].data();
+                showUserBadge(targetUserData);
+            } else {
+                setStatus('Security token invalid or expired. Please verify manually.', 'error');
+            }
+        } catch (err) {
+            console.error("Failed to fetch user by Lotus:", err);
+            setStatus('Database connection error.', 'error');
+        }
+    }
+    preloadUserByLotus();
+
+    /* ================= METHOD TABS ================= */
+    const methodLabels = {
+        phone: 'Phone Number',
+        guardian: 'Guardian Email ID',
+        recovery: 'Recovery Email'
+    };
+
+    function updateMethodTabUI() {
+        document.getElementById('methodInputLabel').textContent = methodLabels[selectedMethod];
+        document.getElementById('recoveryInput').value = '';
+        document.getElementById('verifyMethodBtn').textContent =
+            selectedMethod === 'phone' ? 'Verify Phone Number' : 'Send OTP';
+        setStatus('');
+    }
+
+    document.querySelectorAll('.method-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.method-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedMethod = btn.dataset.method;
+            updateMethodTabUI();
+        });
+    });
+    updateMethodTabUI();
+
+    /* ================= VALUE NORMALIZATION & LOOKUP ================= */
+    function normalizePhone(val) {
+        return (val || '').replace(/[\s\-()]/g, '').trim();
+    }
+
+    function normalizeEmail(val) {
+        return (val || '').trim().toLowerCase();
+    }
+
+    function getUserField(userData, method) {
+        if (method === 'phone') {
+            return userData["Phone Number"] || userData["Phone_Number"] || '';
+        }
+        if (method === 'guardian') {
+            return userData["Guardian"] || userData["guardian"] || '';
+        }
+        return userData["Recovery Email"] || userData["Recovery_Email"] || userData["recoveryEmail"] || '';
+    }
+
+    async function queryUarmByMethod(method, rawValue) {
+        const fieldSets = {
+            phone: ["Phone Number", "Phone_Number"],
+            guardian: ["Guardian", "guardian"],
+            recovery: ["Recovery Email", "Recovery_Email", "recoveryEmail"]
+        };
+
+        const valuesToTry = method === 'phone'
+            ? Array.from(new Set([rawValue.trim(), normalizePhone(rawValue)]))
+            : Array.from(new Set([rawValue.trim(), normalizeEmail(rawValue)]));
+
+        const matches = [];
+        const seenIds = new Set();
+
+        for (const field of fieldSets[method]) {
+            for (const val of valuesToTry) {
+                if (!val) continue;
+                const q = query(collection(db, "UARM"), where(field, "==", val));
+                const snap = await getDocs(q);
+                snap.forEach(docSnap => {
+                    if (!seenIds.has(docSnap.id)) {
+                        seenIds.add(docSnap.id);
+                        matches.push({ id: docSnap.id, data: docSnap.data() });
+                    }
+                });
+            }
+        }
+        return matches;
+    }
+
+    /* ================= SEND OTP EMAIL (via mailDb) ================= */
+    async function sendOtpEmail(toEmail, userData) {
+        generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        otpExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+        targetOtpEmail = toEmail;
+
+        const firstName = userData["First Name"] || "User";
+        const actionText = getMode === 'password' ? 'reset your password' : 'recover your account';
+
+        const body = `Hello ${firstName},
+
+Your verification code (OTP) to ${actionText} is: ${generatedOtp}
+
+This code is valid for 10 minutes.
+If you did not request this verification, you can safely ignore this email.`;
+
+        await addDoc(collection(mailDb, "Email"), {
+            subject: "Account Verification OTP",
+            body: body,
+            from: "systemplx.mail",
+            to: toEmail,
+            timestamp: serverTimestamp()
+        });
+    }
+
+    /* ================= STEP 1 SUBMIT ================= */
+    document.getElementById('verifyMethodBtn').addEventListener('click', async () => {
+        const inputVal = document.getElementById('recoveryInput').value.trim();
+        if (!inputVal) {
+            setStatus(`Please enter your ${methodLabels[selectedMethod]}.`, 'error');
+            return;
+        }
+
+        const btn = document.getElementById('verifyMethodBtn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Checking...';
+        setStatus('');
+
+        try {
+            // Case 1: User already loaded via Lotus
+            if (targetDocId && targetUserData) {
+                const storedVal = getUserField(targetUserData, selectedMethod);
+                if (!storedVal) {
+                    setStatus(`No ${methodLabels[selectedMethod]} is linked to this account.`, 'error');
+                    return;
+                }
+
+                const isMatch = selectedMethod === 'phone'
+                    ? normalizePhone(storedVal) === normalizePhone(inputVal)
+                    : normalizeEmail(storedVal) === normalizeEmail(inputVal);
+
+                if (!isMatch) {
+                    setStatus(`Entered ${methodLabels[selectedMethod]} does not match this account.`, 'error');
+                    return;
+                }
+
+                await proceedAfterAccountMatched(targetDocId, targetUserData, storedVal);
+                return;
+            }
+
+            // Case 2: No Lotus yet -> find account(s) in UARM
+            const matches = await queryUarmByMethod(selectedMethod, inputVal);
+            if (matches.length === 0) {
+                setStatus(`No account found with that ${methodLabels[selectedMethod]}.`, 'error');
+                return;
+            }
+
+            if (matches.length === 1) {
+                targetDocId = matches[0].id;
+                targetUserData = matches[0].data;
+                showUserBadge(targetUserData);
+                const verifiedVal = getUserField(targetUserData, selectedMethod) || inputVal;
+                await proceedAfterAccountMatched(targetDocId, targetUserData, verifiedVal);
+            } else {
+                // Multiple accounts share this Guardian/Recovery email -> let user pick
+                renderAccountChooser(matches, inputVal);
+            }
+        } catch (err) {
+            console.error("Verification error:", err);
+            setStatus('Database connection error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    });
+
+    function renderAccountChooser(matches, enteredVal) {
+        const list = document.getElementById('accountList');
+        list.innerHTML = '';
+        document.getElementById('pageSubtitle').textContent = 'Multiple accounts found. Select the account you want to recover.';
+
+        matches.forEach(item => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'account-item';
+            btn.innerHTML = `
+                <div>
+                    <div class="acc-name">${item.data["First Name"] || "Account"}</div>
+                    <div class="acc-email">${item.data["Email"] || ""}</div>
+                </div>
+            `;
+            btn.addEventListener('click', async () => {
+                targetDocId = item.id;
+                targetUserData = item.data;
+                showUserBadge(targetUserData);
+                const verifiedVal = getUserField(targetUserData, selectedMethod) || enteredVal;
+                await proceedAfterAccountMatched(targetDocId, targetUserData, verifiedVal);
+            });
+            list.appendChild(btn);
+        });
+
+        showStep('stepSelectAccount');
+    }
+
+    async function proceedAfterAccountMatched(docId, userData, verifiedValue) {
+        if (selectedMethod === 'phone') {
+            // Phone verified against UARM
+            goToActionStep();
+            return;
+        }
+
+        // Guardian Email or Recovery Email -> send OTP via mailDb
+        setStatus('Sending OTP email...', '');
+        await sendOtpEmail(verifiedValue, userData);
+        document.getElementById('pageSubtitle').textContent = `We sent a 6-digit OTP to ${verifiedValue}.`;
+        document.getElementById('otpInput').value = '';
+        setStatus('OTP sent! Check your inbox.', 'success');
+        showStep('stepOtp');
+    }
+
+    /* ================= STEP 2: OTP VERIFICATION ================= */
+    document.getElementById('verifyOtpBtn').addEventListener('click', () => {
+        const enteredOtp = document.getElementById('otpInput').value.trim();
+        if (!enteredOtp) {
+            setStatus('Please enter the 6-digit OTP.', 'error');
+            return;
+        }
+        if (Date.now() > otpExpiresAt) {
+            setStatus('OTP has expired. Please resend a new OTP.', 'error');
+            return;
+        }
+        if (enteredOtp !== generatedOtp) {
+            setStatus('Incorrect OTP. Please try again.', 'error');
+            return;
+        }
+
+        setStatus('OTP verified!', 'success');
+        goToActionStep();
+    });
+
+    document.getElementById('resendOtpLink').addEventListener('click', async () => {
+        if (!targetOtpEmail || !targetUserData) return;
+        try {
+            setStatus('Resending OTP...', '');
+            await sendOtpEmail(targetOtpEmail, targetUserData);
+            setStatus(`A new OTP has been sent to ${targetOtpEmail}.`, 'success');
+        } catch (err) {
+            console.error("Resend OTP failed:", err);
+            setStatus('Failed to resend OTP. Please try again.', 'error');
+        }
+    });
+
+    document.getElementById('changeMethodLink').addEventListener('click', () => {
+        setStatus('');
+        document.getElementById('pageSubtitle').textContent =
+            getMode === 'password'
+                ? 'Verify with your Phone Number, Guardian Email ID, or Recovery Email.'
+                : 'Enter your Phone Number, Guardian Email ID, or Recovery Email.';
+        showStep('step1');
+    });
+
+    /* ================= STEP 3: FOUND ACCOUNT OR RESET PASSWORD ================= */
+    function goToActionStep() {
+        if (getMode === 'password') {
+            document.getElementById('pageTitle').textContent = 'Create New Password';
+            document.getElementById('pageSubtitle').textContent = `Enter a new password for ${targetUserData["Email"] || 'your account'}.`;
+            showStep('stepResetPassword');
+        } else {
+            document.getElementById('pageTitle').textContent = 'Account Found';
+            document.getElementById('pageSubtitle').textContent = `Your account email is ${targetUserData["Email"] || ''}`;
+            showStep('stepFound');
+        }
+    }
+
+    document.getElementById('goToLoginBtn').addEventListener('click', () => {
+        window.location.href = buildRedirectUrl('2.html', targetUserData["Lotus"] || '');
+    });
+
+    document.getElementById('switchToResetBtn').addEventListener('click', () => {
+        getMode = 'password';
+        setStatus('');
+        goToActionStep();
+    });
+
+    /* ================= SAVE NEW PASSWORD ================= */
+    function generateNewLotus() {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    document.getElementById('savePasswordBtn').addEventListener('click', async () => {
+        const newPass = document.getElementById('newPassword').value;
+        const confirmPass = document.getElementById('confirmPassword').value;
+
+        if (!newPass || !confirmPass) {
+            setStatus('Please enter and confirm your new password.', 'error');
+            return;
+        }
+        if (newPass !== confirmPass) {
+            setStatus('Passwords do not match.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('savePasswordBtn');
+        btn.disabled = true;
+        btn.textContent = 'Updating...';
+        setStatus('');
+
+        try {
+            const newLotus = generateNewLotus();
+            await updateDoc(doc(db, "UARM", targetDocId), {
+                "Password": newPass,
+                "Lotus": newLotus
+            });
+            targetUserData["Lotus"] = newLotus;
+
+            // Send security notification email to user (and guardian if applicable)
+            try {
+                const userEmail = targetUserData["Email"] || "";
+                const firstName = targetUserData["First Name"] || "User";
+                if (userEmail) {
+                    await addDoc(collection(mailDb, "Email"), {
+                        subject: "Your Account Password Was Changed",
+                        body: `Hello ${firstName},\n\nThe password for your account (${userEmail}) was recently changed.\nIf this was you, no further action is needed.\nIf you did not make this change, please review your account security immediately.`,
+                        from: "systemplx.mail",
+                        to: userEmail,
+                        timestamp: serverTimestamp()
+                    });
+                }
+            } catch (mailErr) {
+                console.warn("Password change alert email failed:", mailErr);
+            }
+
+            document.getElementById('pageTitle').textContent = 'Password Updated';
+            document.getElementById('pageSubtitle').textContent = 'Your password has been changed successfully.';
+            setStatus('You can now sign in with your new password.', 'success');
+            showStep('stepSuccess');
+        } catch (err) {
+            console.error("Password update failed:", err);
+            setStatus('Failed to update password. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Change Password';
+        }
+    });
+
+    document.getElementById('afterResetLoginBtn').addEventListener('click', () => {
+        window.location.href = buildRedirectUrl('2.html', targetUserData["Lotus"] || '');
+    });
+</script>
+</body>
+</html>
