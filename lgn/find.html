@@ -177,20 +177,9 @@
         .btn:hover { background: var(--btn-hover); }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-primary);
-            border: 1px solid var(--input-border);
-            margin-top: 12px;
-        }
-
-        .btn-secondary:hover {
-            background: var(--pill-bg);
-        }
-
         .status-msg {
             font-size: 13px;
-            margin: 10px 0;
+            margin: 10px 0 14px;
             min-height: 18px;
         }
 
@@ -231,15 +220,57 @@
             text-align: left;
             background: var(--input-bg);
             color: var(--text-primary);
-            transition: border-color 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s, background-color 0.2s;
         }
 
         .account-item:hover {
             border-color: var(--input-focus);
+            background: var(--pill-bg);
         }
 
-        .account-item .acc-name { font-weight: 600; font-size: 14px; }
-        .account-item .acc-email { font-size: 13px; color: var(--text-secondary); }
+        .acc-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .acc-initial {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--badge-bg);
+            color: var(--badge-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .acc-info {
+            overflow: hidden;
+        }
+
+        .account-item .acc-name {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .account-item .acc-email {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
         .step { display: none; }
         .step.active { display: block; }
@@ -249,7 +280,7 @@
 
 <div class="container">
     <h1 id="pageTitle">Account Recovery</h1>
-    <p class="subtitle" id="pageSubtitle">Choose a recovery option to verify your account.</p>
+    <p class="subtitle" id="pageSubtitle">Please verify your details to continue.</p>
 
     <div class="user-badge" id="userBadge">
         <img id="userAvatar" alt="Profile Picture" />
@@ -258,8 +289,44 @@
 
     <div class="status-msg" id="statusMsg"></div>
 
-    <!-- STEP 1: Choose Recovery Method & Enter Detail -->
-    <div class="step active" id="step1">
+    <!-- ================= FORGOT EMAIL FLOW ================= -->
+    <!-- EMAIL STEP 1: Ask Mobile Number -->
+    <div class="step" id="stepEmailPhone">
+        <div class="input-group">
+            <label>Mobile Number</label>
+            <input type="text" id="emailFindMobileInput" autocomplete="off">
+        </div>
+
+        <button class="btn" id="checkMobileBtn">Continue</button>
+    </div>
+
+    <!-- EMAIL STEP 2: Ask First Name & Last Name -->
+    <div class="step" id="stepEmailName">
+        <div class="input-group">
+            <label>First Name</label>
+            <input type="text" id="firstNameInput" autocomplete="off">
+        </div>
+
+        <div class="input-group">
+            <label>Last Name</label>
+            <input type="text" id="lastNameInput" autocomplete="off">
+        </div>
+
+        <button class="btn" id="verifyNameBtn">Continue</button>
+
+        <div class="links">
+            <a id="changeMobileLink">Use a different mobile number</a>
+        </div>
+    </div>
+
+    <!-- EMAIL STEP 3: Show All Accounts Linked with Mobile Number -->
+    <div class="step" id="stepEmailResults">
+        <div class="account-list" id="linkedAccountsList"></div>
+    </div>
+
+    <!-- ================= FORGOT PASSWORD FLOW ================= -->
+    <!-- PASSWORD STEP 1: Choose Recovery Method & Enter Detail -->
+    <div class="step" id="stepPasswordMethod">
         <div class="method-tabs">
             <button type="button" class="method-tab active" data-method="phone">Phone Number</button>
             <button type="button" class="method-tab" data-method="guardian">Guardian Email</button>
@@ -274,12 +341,12 @@
         <button class="btn" id="verifyMethodBtn">Continue</button>
     </div>
 
-    <!-- STEP 1.5: Select Account (if multiple accounts share a Guardian/Recovery email) -->
+    <!-- PASSWORD STEP 1.5: Select Account (if multiple accounts share a Guardian/Recovery email) -->
     <div class="step" id="stepSelectAccount">
         <div class="account-list" id="accountList"></div>
     </div>
 
-    <!-- STEP 2: Enter Email OTP -->
+    <!-- PASSWORD STEP 2: Enter Email OTP -->
     <div class="step" id="stepOtp">
         <div class="input-group">
             <label>6-Digit OTP</label>
@@ -294,13 +361,7 @@
         </div>
     </div>
 
-    <!-- STEP 3A: Found Account (when get != password) -->
-    <div class="step" id="stepFound">
-        <button class="btn" id="goToLoginBtn">Continue to Sign In</button>
-        <button class="btn btn-secondary" id="switchToResetBtn">Reset Password</button>
-    </div>
-
-    <!-- STEP 3B: Reset Password -->
+    <!-- PASSWORD STEP 3: Reset Password -->
     <div class="step" id="stepResetPassword">
         <div class="input-group">
             <label>New Password</label>
@@ -315,7 +376,7 @@
         <button class="btn" id="savePasswordBtn">Change Password</button>
     </div>
 
-    <!-- STEP 4: Success -->
+    <!-- PASSWORD STEP 4: Success -->
     <div class="step" id="stepSuccess">
         <button class="btn" id="afterResetLoginBtn">Sign In Now</button>
     </div>
@@ -366,7 +427,6 @@
     const mailDb = getFirestore(mailApp);
 
     /* ================= PARSE URL PARAMETERS ================= */
-    // Supports ?session=...&get=password, ?find=session=...&get=password, or #find-account&=...
     function parseAllParams() {
         let rawQuery = window.location.search.substring(1);
         if (window.location.hash && window.location.hash.includes('find-account&=')) {
@@ -387,6 +447,7 @@
     const continueUrl = urlParams.get('continue') || '4.html';
     const provider = urlParams.get('provider') || '';
     const theme = urlParams.get('theme') ? urlParams.get('theme').toLowerCase() : null;
+
     let getMode = (urlParams.get('get') || '').toLowerCase();
     if (!getMode) {
         getMode = lotusParam ? 'password' : 'email';
@@ -413,6 +474,11 @@
     mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
     /* ================= STATE ================= */
+    // Email recovery state
+    let mobileMatchedAccounts = [];
+    let verifiedMobileDisplay = '';
+
+    // Password recovery state
     let selectedMethod = 'phone'; // 'phone' | 'guardian' | 'recovery'
     let targetDocId = null;
     let targetUserData = null;
@@ -457,65 +523,16 @@
 
     document.getElementById('backToSignInLink').href = buildRedirectUrl('1.html');
 
-    if (getMode === 'password') {
-        document.getElementById('pageTitle').textContent = 'Reset Password';
-        document.getElementById('pageSubtitle').textContent = 'Verify with your Phone Number, Guardian Email ID, or Recovery Email.';
-    } else {
-        document.getElementById('pageTitle').textContent = 'Find Account';
-        document.getElementById('pageSubtitle').textContent = 'Enter your Phone Number, Guardian Email ID, or Recovery Email.';
-    }
-
-    /* ================= PRELOAD USER IF LOTUS EXISTS ================= */
-    async function preloadUserByLotus() {
-        if (!lotusParam) return;
-        try {
-            const q = query(collection(db, "UARM"), where("Lotus", "==", lotusParam));
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-                targetDocId = snap.docs[0].id;
-                targetUserData = snap.docs[0].data();
-                showUserBadge(targetUserData);
-            } else {
-                setStatus('Security token invalid or expired. Please verify manually.', 'error');
-            }
-        } catch (err) {
-            console.error("Failed to fetch user by Lotus:", err);
-            setStatus('Database connection error.', 'error');
-        }
-    }
-    preloadUserByLotus();
-
-    /* ================= METHOD TABS ================= */
-    const methodLabels = {
-        phone: 'Phone Number',
-        guardian: 'Guardian Email ID',
-        recovery: 'Recovery Email'
-    };
-
-    function updateMethodTabUI() {
-        document.getElementById('methodInputLabel').textContent = methodLabels[selectedMethod];
-        document.getElementById('recoveryInput').value = '';
-        document.getElementById('verifyMethodBtn').textContent =
-            selectedMethod === 'phone' ? 'Verify Phone Number' : 'Send OTP';
-        setStatus('');
-    }
-
-    document.querySelectorAll('.method-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.method-tab').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedMethod = btn.dataset.method;
-            updateMethodTabUI();
-        });
-    });
-    updateMethodTabUI();
-
     /* ================= VALUE NORMALIZATION & LOOKUP ================= */
     function normalizePhone(val) {
         return (val || '').replace(/[\s\-()]/g, '').trim();
     }
 
     function normalizeEmail(val) {
+        return (val || '').trim().toLowerCase();
+    }
+
+    function normalizeName(val) {
         return (val || '').trim().toLowerCase();
     }
 
@@ -559,18 +576,192 @@
         return matches;
     }
 
-    /* ================= SEND OTP EMAIL (via mailDb) ================= */
+    /* ================= INITIALIZE MODE ================= */
+    if (getMode === 'password') {
+        document.getElementById('pageTitle').textContent = 'Reset Password';
+        document.getElementById('pageSubtitle').textContent = 'Verify with your Phone Number, Guardian Email ID, or Recovery Email.';
+        showStep('stepPasswordMethod');
+    } else {
+        document.getElementById('pageTitle').textContent = 'Find your email';
+        document.getElementById('pageSubtitle').textContent = 'Enter your registered mobile number.';
+        showStep('stepEmailPhone');
+    }
+
+    /* ================================================================
+       FLOW A: FORGOT EMAIL (Mobile Number -> First & Last Name -> Show All)
+       ================================================================ */
+    document.getElementById('emailFindMobileInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('checkMobileBtn').click();
+    });
+
+    document.getElementById('checkMobileBtn').addEventListener('click', async () => {
+        const mobileVal = document.getElementById('emailFindMobileInput').value.trim();
+        if (!mobileVal) {
+            setStatus('Please enter your mobile number.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('checkMobileBtn');
+        btn.disabled = true;
+        btn.textContent = 'Checking...';
+        setStatus('');
+
+        try {
+            const matches = await queryUarmByMethod('phone', mobileVal);
+            if (matches.length === 0) {
+                setStatus('This mobile number is not registered.', 'error');
+                return;
+            }
+
+            mobileMatchedAccounts = matches;
+            verifiedMobileDisplay = mobileVal;
+            document.getElementById('firstNameInput').value = '';
+            document.getElementById('lastNameInput').value = '';
+            document.getElementById('pageTitle').textContent = "What's your name?";
+            document.getElementById('pageSubtitle').textContent = 'Enter the First Name and Last Name on your account.';
+            showStep('stepEmailName');
+        } catch (err) {
+            console.error("Mobile lookup error:", err);
+            setStatus('Database connection error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Continue';
+        }
+    });
+
+    document.getElementById('lastNameInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('verifyNameBtn').click();
+    });
+
+    document.getElementById('verifyNameBtn').addEventListener('click', () => {
+        const firstInput = normalizeName(document.getElementById('firstNameInput').value);
+        const lastInput = normalizeName(document.getElementById('lastNameInput').value);
+
+        if (!firstInput || !lastInput) {
+            setStatus('Please enter both First Name and Last Name.', 'error');
+            return;
+        }
+
+        const hasNameMatch = mobileMatchedAccounts.some(item => {
+            const d = item.data;
+            const dbFirst = normalizeName(d["First Name"] || d["First_Name"] || d["firstName"] || '');
+            const dbLast = normalizeName(d["Last Name"] || d["Last_Name"] || d["lastName"] || '');
+            return dbFirst === firstInput && dbLast === lastInput;
+        });
+
+        if (!hasNameMatch) {
+            setStatus('First Name and Last Name do not match any account linked with this mobile number.', 'error');
+            return;
+        }
+
+        setStatus('');
+        renderAllLinkedAccounts();
+    });
+
+    document.getElementById('changeMobileLink').addEventListener('click', () => {
+        setStatus('');
+        document.getElementById('pageTitle').textContent = 'Find your email';
+        document.getElementById('pageSubtitle').textContent = 'Enter your registered mobile number.';
+        showStep('stepEmailPhone');
+    });
+
+    function renderAllLinkedAccounts() {
+        const list = document.getElementById('linkedAccountsList');
+        list.innerHTML = '';
+
+        document.getElementById('pageTitle').textContent = 'Choose an account';
+        document.getElementById('pageSubtitle').textContent =
+            `Accounts linked with ${verifiedMobileDisplay}. Click an account to sign in.`;
+
+        mobileMatchedAccounts.forEach(item => {
+            const d = item.data;
+            const firstName = d["First Name"] || d["First_Name"] || '';
+            const lastName = d["Last Name"] || d["Last_Name"] || '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'Account';
+            const email = d["Email"] || '';
+            const pic = d["Profile_Picture"] || d["Profile Picture"];
+
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'account-item';
+
+            const avatarHtml = pic
+                ? `<img class="acc-avatar" src="${pic}" alt="${fullName}">`
+                : `<div class="acc-initial">${(fullName[0] || email[0] || 'A').toUpperCase()}</div>`;
+
+            card.innerHTML = `
+                ${avatarHtml}
+                <div class="acc-info">
+                    <div class="acc-name">${fullName}</div>
+                    <div class="acc-email">${email}</div>
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                window.location.href = buildRedirectUrl('2.html', d["Lotus"] || '');
+            });
+
+            list.appendChild(card);
+        });
+
+        showStep('stepEmailResults');
+    }
+
+    /* ================================================================
+       FLOW B: FORGOT PASSWORD (Phone / Guardian Email / Recovery Email)
+       ================================================================ */
+    async function preloadUserByLotus() {
+        if (!lotusParam || getMode !== 'password') return;
+        try {
+            const q = query(collection(db, "UARM"), where("Lotus", "==", lotusParam));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                targetDocId = snap.docs[0].id;
+                targetUserData = snap.docs[0].data();
+                showUserBadge(targetUserData);
+            } else {
+                setStatus('Security token invalid or expired. Please verify manually.', 'error');
+            }
+        } catch (err) {
+            console.error("Failed to fetch user by Lotus:", err);
+            setStatus('Database connection error.', 'error');
+        }
+    }
+    preloadUserByLotus();
+
+    const methodLabels = {
+        phone: 'Phone Number',
+        guardian: 'Guardian Email ID',
+        recovery: 'Recovery Email'
+    };
+
+    function updateMethodTabUI() {
+        document.getElementById('methodInputLabel').textContent = methodLabels[selectedMethod];
+        document.getElementById('recoveryInput').value = '';
+        document.getElementById('verifyMethodBtn').textContent =
+            selectedMethod === 'phone' ? 'Verify Phone Number' : 'Send OTP';
+        setStatus('');
+    }
+
+    document.querySelectorAll('.method-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.method-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedMethod = btn.dataset.method;
+            updateMethodTabUI();
+        });
+    });
+    updateMethodTabUI();
+
     async function sendOtpEmail(toEmail, userData) {
         generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+        otpExpiresAt = Date.now() + 10 * 60 * 1000;
         targetOtpEmail = toEmail;
 
         const firstName = userData["First Name"] || "User";
-        const actionText = getMode === 'password' ? 'reset your password' : 'recover your account';
-
         const body = `Hello ${firstName},
 
-Your verification code (OTP) to ${actionText} is: ${generatedOtp}
+Your verification code (OTP) to reset your password is: ${generatedOtp}
 
 This code is valid for 10 minutes.
 If you did not request this verification, you can safely ignore this email.`;
@@ -584,7 +775,10 @@ If you did not request this verification, you can safely ignore this email.`;
         });
     }
 
-    /* ================= STEP 1 SUBMIT ================= */
+    document.getElementById('recoveryInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('verifyMethodBtn').click();
+    });
+
     document.getElementById('verifyMethodBtn').addEventListener('click', async () => {
         const inputVal = document.getElementById('recoveryInput').value.trim();
         if (!inputVal) {
@@ -599,7 +793,6 @@ If you did not request this verification, you can safely ignore this email.`;
         setStatus('');
 
         try {
-            // Case 1: User already loaded via Lotus
             if (targetDocId && targetUserData) {
                 const storedVal = getUserField(targetUserData, selectedMethod);
                 if (!storedVal) {
@@ -620,7 +813,6 @@ If you did not request this verification, you can safely ignore this email.`;
                 return;
             }
 
-            // Case 2: No Lotus yet -> find account(s) in UARM
             const matches = await queryUarmByMethod(selectedMethod, inputVal);
             if (matches.length === 0) {
                 setStatus(`No account found with that ${methodLabels[selectedMethod]}.`, 'error');
@@ -634,7 +826,6 @@ If you did not request this verification, you can safely ignore this email.`;
                 const verifiedVal = getUserField(targetUserData, selectedMethod) || inputVal;
                 await proceedAfterAccountMatched(targetDocId, targetUserData, verifiedVal);
             } else {
-                // Multiple accounts share this Guardian/Recovery email -> let user pick
                 renderAccountChooser(matches, inputVal);
             }
         } catch (err) {
@@ -656,7 +847,7 @@ If you did not request this verification, you can safely ignore this email.`;
             btn.type = 'button';
             btn.className = 'account-item';
             btn.innerHTML = `
-                <div>
+                <div class="acc-info">
                     <div class="acc-name">${item.data["First Name"] || "Account"}</div>
                     <div class="acc-email">${item.data["Email"] || ""}</div>
                 </div>
@@ -676,12 +867,10 @@ If you did not request this verification, you can safely ignore this email.`;
 
     async function proceedAfterAccountMatched(docId, userData, verifiedValue) {
         if (selectedMethod === 'phone') {
-            // Phone verified against UARM
-            goToActionStep();
+            goToResetPasswordStep();
             return;
         }
 
-        // Guardian Email or Recovery Email -> send OTP via mailDb
         setStatus('Sending OTP email...', '');
         await sendOtpEmail(verifiedValue, userData);
         document.getElementById('pageSubtitle').textContent = `We sent a 6-digit OTP to ${verifiedValue}.`;
@@ -690,7 +879,10 @@ If you did not request this verification, you can safely ignore this email.`;
         showStep('stepOtp');
     }
 
-    /* ================= STEP 2: OTP VERIFICATION ================= */
+    document.getElementById('otpInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('verifyOtpBtn').click();
+    });
+
     document.getElementById('verifyOtpBtn').addEventListener('click', () => {
         const enteredOtp = document.getElementById('otpInput').value.trim();
         if (!enteredOtp) {
@@ -707,7 +899,7 @@ If you did not request this verification, you can safely ignore this email.`;
         }
 
         setStatus('OTP verified!', 'success');
-        goToActionStep();
+        goToResetPasswordStep();
     });
 
     document.getElementById('resendOtpLink').addEventListener('click', async () => {
@@ -724,40 +916,23 @@ If you did not request this verification, you can safely ignore this email.`;
 
     document.getElementById('changeMethodLink').addEventListener('click', () => {
         setStatus('');
-        document.getElementById('pageSubtitle').textContent =
-            getMode === 'password'
-                ? 'Verify with your Phone Number, Guardian Email ID, or Recovery Email.'
-                : 'Enter your Phone Number, Guardian Email ID, or Recovery Email.';
-        showStep('step1');
+        document.getElementById('pageSubtitle').textContent = 'Verify with your Phone Number, Guardian Email ID, or Recovery Email.';
+        showStep('stepPasswordMethod');
     });
 
-    /* ================= STEP 3: FOUND ACCOUNT OR RESET PASSWORD ================= */
-    function goToActionStep() {
-        if (getMode === 'password') {
-            document.getElementById('pageTitle').textContent = 'Create New Password';
-            document.getElementById('pageSubtitle').textContent = `Enter a new password for ${targetUserData["Email"] || 'your account'}.`;
-            showStep('stepResetPassword');
-        } else {
-            document.getElementById('pageTitle').textContent = 'Account Found';
-            document.getElementById('pageSubtitle').textContent = `Your account email is ${targetUserData["Email"] || ''}`;
-            showStep('stepFound');
-        }
+    function goToResetPasswordStep() {
+        document.getElementById('pageTitle').textContent = 'Create New Password';
+        document.getElementById('pageSubtitle').textContent = `Enter a new password for ${targetUserData["Email"] || 'your account'}.`;
+        showStep('stepResetPassword');
     }
 
-    document.getElementById('goToLoginBtn').addEventListener('click', () => {
-        window.location.href = buildRedirectUrl('2.html', targetUserData["Lotus"] || '');
-    });
-
-    document.getElementById('switchToResetBtn').addEventListener('click', () => {
-        getMode = 'password';
-        setStatus('');
-        goToActionStep();
-    });
-
-    /* ================= SAVE NEW PASSWORD ================= */
     function generateNewLotus() {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
+
+    document.getElementById('confirmPassword').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('savePasswordBtn').click();
+    });
 
     document.getElementById('savePasswordBtn').addEventListener('click', async () => {
         const newPass = document.getElementById('newPassword').value;
@@ -785,7 +960,6 @@ If you did not request this verification, you can safely ignore this email.`;
             });
             targetUserData["Lotus"] = newLotus;
 
-            // Send security notification email to user (and guardian if applicable)
             try {
                 const userEmail = targetUserData["Email"] || "";
                 const firstName = targetUserData["First Name"] || "User";
