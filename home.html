@@ -51,10 +51,15 @@
       padding: 0 4%;
       display: flex;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: space-between;
       z-index: 1000;
       background: transparent;
       border-bottom: none;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
     }
 
     .brand-logo-slot {
@@ -100,6 +105,44 @@
       height: 2.5px;
       background: var(--accent);
       border-radius: 2px;
+    }
+
+    /* ================= HOTSTAR STYLE UPGRADE CAPSULE ================= */
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-left: auto;
+    }
+
+    .upgrade-capsule {
+      display: none; /* Controlled dynamically by subscription checker */
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(255, 183, 3, 0.16) 0%, rgba(251, 133, 0, 0.24) 100%);
+      border: 1px solid rgba(255, 183, 3, 0.5);
+      color: #ffb703;
+      padding: 7px 16px;
+      border-radius: 22px;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      backdrop-filter: blur(8px);
+    }
+    .upgrade-capsule:hover {
+      background: linear-gradient(135deg, rgba(255, 183, 3, 0.3) 0%, rgba(251, 133, 0, 0.4) 100%);
+      border-color: rgba(255, 183, 3, 0.9);
+      box-shadow: 0 0 16px rgba(255, 183, 3, 0.45);
+      transform: scale(1.05);
+      color: #ffffff;
+    }
+    .upgrade-capsule i.fa-crown {
+      color: #ffb703;
+      font-size: 12px;
     }
 
     /* ================= TOP HERO CAROUSEL ================= */
@@ -870,6 +913,10 @@
         max-height: 46px;
         max-width: 170px;
       }
+      .upgrade-capsule {
+        padding: 5px 12px;
+        font-size: 12px;
+      }
       .hero-title-logo {
         max-width: 240px;
         max-height: 90px;
@@ -891,17 +938,27 @@
 </head>
 <body>
 
-  <!-- TOP HEADER -->
+  <!-- TOP HEADER WITH LOGO, NAV LINKS AND UPGRADE CAPSULE -->
   <header class="navbar">
-    <div class="brand-logo-slot" id="brandLogoSlot" onclick="window.location.href='home.html#home'">
-      <img src="https://images.seeklogo.com/logo-png/42/2/disney-hotstar-logo-png_seeklogo-427118.png" alt="Logo" id="defaultBrandLogo" />
+    <div class="nav-left">
+      <div class="brand-logo-slot" id="brandLogoSlot" onclick="window.location.href='home.html#home'">
+        <img src="https://images.seeklogo.com/logo-png/42/2/disney-hotstar-logo-png_seeklogo-427118.png" alt="Logo" id="defaultBrandLogo" />
+      </div>
+      <ul class="nav-links">
+        <li><a class="nav-link" data-hash="movies" href="#movies">Movies</a></li>
+        <li><a class="nav-link" data-hash="shows" href="#shows">Shows</a></li>
+        <li><a class="nav-link" data-hash="tvshows" href="#tvshows">TV Shows</a></li>
+        <li><a class="nav-link" data-hash="livetv" href="#livetv">Live TV</a></li>
+      </ul>
     </div>
-    <ul class="nav-links">
-      <li><a class="nav-link" data-hash="movies" href="#movies">Movies</a></li>
-      <li><a class="nav-link" data-hash="shows" href="#shows">Shows</a></li>
-      <li><a class="nav-link" data-hash="tvshows" href="#tvshows">TV Shows</a></li>
-      <li><a class="nav-link" data-hash="livetv" href="#livetv">Live TV</a></li>
-    </ul>
+    <div class="nav-right">
+      <!-- Hotstar Style Upgrade Pill (Controlled dynamically by checkUserSubscription) -->
+      <a href="https://knox-app.github.io/netflix/upgrade" class="upgrade-capsule" id="upgradeCapsuleBtn">
+        <i class="fa-solid fa-crown"></i>
+        <span>Upgrade</span>
+        <i class="fa-solid fa-chevron-right" style="font-size: 10px; opacity: 0.8;"></i>
+      </a>
+    </div>
   </header>
 
   <!-- TOP HERO CAROUSEL -->
@@ -974,7 +1031,6 @@
       onSnapshot, 
       collection, 
       getDoc, 
-      getDocs, 
       updateDoc 
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -1004,9 +1060,7 @@
     let livePartnersList = [];
     
     // Unified Multi-Collection Storage
-    // Map of collectionName -> Array of documents
     const collectionDataStore = new Map();
-    // Unified fast lookup map: documentId.toLowerCase() -> item
     const unifiedContentMap = new Map();
 
     // Hero Slider Controller
@@ -1147,8 +1201,46 @@
       slot.innerHTML = `<img src="${safeUrl(raw)}" alt="Brand Logo" loading="eager" />`;
     }
 
+    /* ================= REAL-TIME UPGRADE / SUBSCRIPTION CHECKER ================= */
+    // Checks if the user has no plan OR does not have any plan with Max == "True"
+    async function checkUserSubscription() {
+      const upgradeBtn = document.getElementById('upgradeCapsuleBtn');
+      if (!upgradeBtn) return;
+
+      // 1. If user is not logged in or has no Plans array/empty array
+      if (!liveUserData || !Array.isArray(liveUserData.Plans) || liveUserData.Plans.length === 0) {
+        upgradeBtn.style.display = 'inline-flex';
+        return;
+      }
+
+      // 2. Iterate through user's subscribed plan IDs and inspect the document in Plans & Subscriptions
+      let hasMaxPlan = false;
+      for (const planId of liveUserData.Plans) {
+        const cleanPlanId = String(planId).trim();
+        try {
+          const planSnap = await getDoc(doc(uarmDb, "Plans & Subscriptions", cleanPlanId));
+          if (planSnap.exists()) {
+            const pData = planSnap.data();
+            const isMax = String(pData.Max).toLowerCase() === "true" || pData.Max === true;
+            if (isMax) {
+              hasMaxPlan = true;
+              break;
+            }
+          }
+        } catch (err) {
+          console.warn("Error reading plan document:", cleanPlanId, err);
+        }
+      }
+
+      // 3. If user has a plan with Max: "True", hide upgrade. Otherwise, show it.
+      if (hasMaxPlan) {
+        upgradeBtn.style.display = 'none';
+      } else {
+        upgradeBtn.style.display = 'inline-flex';
+      }
+    }
+
     /* ================= DEBOUNCED FEED DISPATCHER ================= */
-    // Completely eliminates duplicate section rendering across multiple async snapshots
     function requestBuildLiveFeed() {
       if (buildDebounceTimer) clearTimeout(buildDebounceTimer);
       buildDebounceTimer = setTimeout(() => {
@@ -1173,12 +1265,12 @@
 
         updateActiveProfile();
         renderNavAvatar();
+        checkUserSubscription(); // Real-time check for Upgrade button
         requestBuildLiveFeed();
       });
     }
 
     /* ================= DYNAMIC MULTI-COLLECTION SYNC ================= */
-    // Dynamically subscribes to whatever collections are required (Movies, Shows, Movies.New, Shows.1, etc.)
     function ensureCollectionSync(colName) {
       if (!colName || activeCollectionUnsubs.has(colName)) return;
 
@@ -1797,7 +1889,6 @@
     async function buildLiveFeed() {
       if (!liveUserData) return;
 
-      // Concurrency lock: Generate new Build ID
       const buildId = ++currentBuildId;
 
       const defaultPage = isKidsProfile ? 'kids_home' : 'home';
@@ -1812,7 +1903,6 @@
         link.classList.toggle('active', link.dataset.hash === pageId);
       });
 
-      // 1. Fetch Page Document from Systems (e.g. Systems/home or Systems/kids_home)
       let pageDocSnap = null;
       try {
         pageDocSnap = await getDoc(doc(contentDb, "Systems", pageId));
@@ -1820,38 +1910,32 @@
         console.error("Error reading page doc:", err);
       }
 
-      if (buildId !== currentBuildId) return; // Stale build, abort
+      if (buildId !== currentBuildId) return;
 
       const pageData = pageDocSnap && pageDocSnap.exists() ? pageDocSnap.data() : {};
       
-      // 2. Resolve "Content_Collection" from Firestore
-      // e.g. ["Movies"], ["Shows"], ["Movies", "Shows"], etc.
+      // Resolve Content_Collection from Firestore
       let pageCollections = [];
       if (Array.isArray(pageData.Content_Collection) && pageData.Content_Collection.length > 0) {
         pageCollections = pageData.Content_Collection;
       } else {
-        // Fallback default collections if not specified
         pageCollections = ["Movies", "Shows"];
       }
 
-      // Ensure realtime listeners are active for each collection specified in Content_Collection
       pageCollections.forEach(colName => ensureCollectionSync(colName));
 
-      // Gather content from all collections declared in Content_Collection
       let pooledContent = [];
       pageCollections.forEach(colName => {
         const items = collectionDataStore.get(colName) || [];
         pooledContent = pooledContent.concat(items);
       });
 
-      // If collections haven't loaded yet, wait for snapshots
       if (pooledContent.length === 0 && unifiedContentMap.size > 0) {
         pooledContent = Array.from(unifiedContentMap.values());
       }
 
-      if (pooledContent.length === 0) return; // Wait for Firestore data
+      if (pooledContent.length === 0) return;
 
-      // Clear main container cleanly before building DOM
       const container = document.getElementById('sectionsContainer');
       container.innerHTML = "";
 
@@ -1865,11 +1949,10 @@
 
       await setupHeroCarousel(allowedCatalog, forYouList);
 
-      if (buildId !== currentBuildId) return; // Stale check
+      if (buildId !== currentBuildId) return;
 
       renderContinueWatchingSection();
 
-      // Guard Set: strictly guarantees NO section is ever rendered more than once
       const renderedSectionIds = new Set();
       let sectionCounter = 0;
       let popularShowsInjected = false;
@@ -1921,12 +2004,12 @@
         sectionCounter++;
       }
 
-      /* ================= 3. SECTIONS DEFINED IN PAGE ================= */
+      /* ================= SECTIONS DEFINED IN PAGE ================= */
       const sectionIds = pageData.Sections || [];
 
       for (const sId of sectionIds) {
-        if (buildId !== currentBuildId) return; // Stale check
-        if (renderedSectionIds.has(sId)) continue; // Never render duplicate section!
+        if (buildId !== currentBuildId) return;
+        if (renderedSectionIds.has(sId)) continue;
 
         let secSnap = null;
         try {
@@ -1938,10 +2021,10 @@
         if (!secSnap || !secSnap.exists()) continue;
         const secData = secSnap.data();
 
-        // 1. Kids_E check: If Kids_E == "True", show ONLY in Kids profile
+        // 1. Kids_E check
         const isKidsOnly = String(secData.Kids_E).toLowerCase() === "true" || secData.Kids_E === true;
         if (isKidsOnly && !isKidsProfile) {
-          continue; // Skip section for non-kids profile
+          continue;
         }
 
         // 2. Standard Age Rating check
@@ -1952,7 +2035,6 @@
         const sectionGenres = parseGenres(secData.Genres);
         const sectionFranchise = secData.Franchise ? String(secData.Franchise).trim().toLowerCase() : null;
 
-        // Content_Type filter (e.g. Content_Type: ["Movies"] or ["Shows"])
         const contentTypes = Array.isArray(secData.Content_Type)
           ? secData.Content_Type.map(c => String(c).toLowerCase())
           : [];
@@ -1969,11 +2051,10 @@
           }
         }
 
-        // B. If Fixed == False, pull similar content from allowed collection pool
+        // B. If Fixed == False, pull similar content
         if (!isFixed) {
           let candidatePool = allowedCatalog;
 
-          // If section explicitly specifies Content_Type, narrow down candidate pool
           if (contentTypes.length > 0) {
             candidatePool = allowedCatalog.filter(m => {
               const itemCol = (m._collection || '').toLowerCase();
@@ -2018,7 +2099,6 @@
         }
       }
 
-      // End fallback: ensure Popular rows are injected only once
       if (!popularShowsInjected) {
         const showsPool = (collectionDataStore.get("Shows") || []).filter(s => isAllowedByAge(s.Age_Rating));
         renderFilteredInteractiveSection("Popular Shows", showsPool.length > 0 ? showsPool : allowedCatalog);
@@ -2199,7 +2279,7 @@
     syncRealtimeUARM();
     syncRealtimePartners();
 
-    // Default primary collections to ensure instant cache population
+    // Initialize base collections
     ensureCollectionSync("Movies");
     ensureCollectionSync("Shows");
   </script>
