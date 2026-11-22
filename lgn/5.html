@@ -3,211 +3,1180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile Component</title>
+    <title>Parental Controls</title>
     <style>
         :root {
             --bg-color: #ffffff;
-            --text-color: #000000;
-            --font-size: 15px;
-            --border-color: rgba(128, 128, 128, 0.15);
+            --surface-color: #f7f7f8;
+            --modal-bg: #ffffff;
+            --text-primary: #0d0d0d;
+            --text-secondary: #5d5d5d;
+            --border-color: #e5e5e5;
+            --input-bg: #ffffff;
+            --input-border: #d0d0d0;
+            --input-focus: #0d0d0d;
+            --btn-primary-bg: #111111;
+            --btn-primary-text: #ffffff;
+            --btn-primary-hover: #333333;
+            --btn-secondary-bg: #f0f0f0;
+            --btn-secondary-text: #111111;
+            --btn-danger-bg: #d93025;
+            --btn-danger-text: #ffffff;
+            --pill-bg: #f2f2f2;
+            --pill-border: #dedede;
+            --link-color: #0066cc;
+            --error-color: #d93025;
+            --success-color: #188038;
+            --overlay-bg: rgba(0, 0, 0, 0.5);
         }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background-color: transparent; 
-            display: flex; 
-            justify-content: center; 
+
+        body.dark {
+            --bg-color: #000000;
+            --surface-color: #141414;
+            --modal-bg: #212121;
+            --text-primary: #ececec;
+            --text-secondary: #9b9b9b;
+            --border-color: #2f2f2f;
+            --input-bg: #212121;
+            --input-border: #424242;
+            --input-focus: #ffffff;
+            --btn-primary-bg: #ffffff;
+            --btn-primary-text: #0d0d0d;
+            --btn-primary-hover: #dcdcdc;
+            --btn-secondary-bg: #2f2f2f;
+            --btn-secondary-text: #ececec;
+            --btn-danger-bg: #e04338;
+            --btn-danger-text: #ffffff;
+            --pill-bg: #171717;
+            --pill-border: #323232;
+            --link-color: #4da3ff;
+            --error-color: #f28b82;
+            --success-color: #81c995;
+            --overlay-bg: rgba(0, 0, 0, 0.72);
         }
-        .profile-card { 
-            width: 100%; 
-            max-width: 500px; 
-            background: var(--bg-color); 
-            color: var(--text-color);
-            font-size: var(--font-size);
-            padding: 30px; 
-            border-radius: 16px; 
-            box-sizing: border-box; 
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background-color 0.25s ease, color 0.25s ease;
         }
-        .avatar-container { 
-            width: 80px; 
-            height: 80px; 
-            margin: 0 auto 15px; 
-            border-radius: 50%; 
-            background-color: var(--text-color); 
-            color: var(--bg-color); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            font-size: 2em; 
-            font-weight: 600; 
-            overflow: hidden; 
-            background-size: cover; 
-            background-position: center; 
+
+        .page-wrap {
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 28px 20px 60px;
         }
-        h1 { margin: 0 0 5px 0; font-size: 1.6em; text-align: center; }
-        p.subtitle { margin: 0 0 25px 0; text-align: center; opacity: 0.7; font-size: 0.9em; text-transform: capitalize; }
-        .info-grid { border: 1px solid var(--border-color); border-radius: 12px; padding: 0 20px; background: rgba(0,0,0,0.02); }
-        .info-row { padding: 15px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { font-weight: 600; opacity: 0.8; }
-        .info-value { opacity: 0.9; text-align: right; }
-        .loader { text-align: center; padding: 50px 0; opacity: 0.7; font-weight: 600; }
-        #content { display: none; }
-        .error-state { text-align: center; padding: 40px 0; color: #d32f2f; display: none; font-weight: 500;}
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-link:hover { color: var(--text-primary); }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+
+        .lead {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin: 0 0 18px;
+            line-height: 1.45;
+        }
+
+        .desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0 0 32px;
+            line-height: 1.55;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            margin: 0;
+        }
+
+        .member-list {
+            margin-bottom: 24px;
+        }
+
+        .member-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 4px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .member-row.static { cursor: default; }
+
+        .member-row:not(.static):hover {
+            background-color: var(--surface-color);
+        }
+
+        .member-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .avatar-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: #ffffff;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .member-meta {
+            min-width: 0;
+        }
+
+        .member-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .member-sub {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .member-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+
+        .empty-state {
+            padding: 20px 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .add-child-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--pill-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--pill-border);
+            padding: 11px 18px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 36px;
+            transition: background-color 0.2s ease;
+        }
+
+        .add-child-btn:hover {
+            background: var(--surface-color);
+        }
+
+        .safety-box {
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .safety-box h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+
+        .safety-box p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay-bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 100;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+
+        .close-btn:hover { color: var(--text-primary); }
+
+        .field-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .field-label-row span { font-weight: 500; }
+
+        .toggle-link {
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .toggle-link:hover {
+            color: var(--text-primary);
+            text-decoration: underline;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            width: 100%;
+            padding: 13px 14px;
+            font-size: 15px;
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--input-focus);
+        }
+
+        .helper-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            margin: 12px 0 18px;
+        }
+
+        .modal-status {
+            font-size: 13px;
+            min-height: 18px;
+            margin: 10px 0;
+        }
+
+        .modal-status.error { color: var(--error-color); }
+        .modal-status.success { color: var(--success-color); }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 24px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--btn-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-text);
+        }
+
+        .btn-danger {
+            background: var(--btn-danger-bg);
+            color: var(--btn-danger-text);
+        }
+
+        .resend-wrap {
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        .resend-btn {
+            background: none;
+            border: none;
+            color: var(--link-color);
+            font-size: 13px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .resend-btn:hover { text-decoration: underline; }
+
+        .auth-gate {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .modal-step { display: none; }
+        .modal-step.active { display: block; }
     </style>
 </head>
 <body>
 
-<div class="profile-card" id="card">
-    <div class="loader" id="loader">Loading Profile...</div>
-    <div class="error-state" id="errorState">Account not found or not logged in.</div>
+<div class="page-wrap" id="authGate" style="display: none;">
+    <div class="auth-gate">
+        <h1>Sign in required</h1>
+        <p class="desc">Please sign in to manage Parental controls and family members.</p>
+        <button class="btn btn-primary" id="signInRedirectBtn">Sign in</button>
+    </div>
+</div>
 
-    <div id="content">
-        <div class="avatar-container" id="profAvatar"></div>
-        <h1 id="profName">-</h1>
-        <p class="subtitle" id="profType">-</p>
+<div class="page-wrap" id="mainContent" style="display: none;">
+    <div class="top-bar">
+        <a class="back-link" id="backLink" href="4.html">&#8592; Back</a>
+        <span style="font-size: 13px; color: var(--text-secondary);" id="loggedInEmailLabel"></span>
+    </div>
 
-        <div class="info-grid">
-            <div class="info-row"><span class="info-label">Email</span><span class="info-value" id="profEmail">-</span></div>
-            <div class="info-row"><span class="info-label">Mobile</span><span class="info-value" id="profMobile">-</span></div>
-            <div class="info-row"><span class="info-label">Date of Birth</span><span class="info-value" id="profDob">-</span></div>
+    <h1>Parental controls</h1>
+    <p class="lead">Manage the family accounts linked through parental controls</p>
+    <p class="desc">Parents can link child accounts after verifying with a one-time passcode (OTP) sent to the child account's email. Removing a child also requires OTP verification from the child account.</p>
+
+    <h2 class="section-title">Family members</h2>
+
+    <div class="member-list" id="memberList">
+        <div class="empty-state">Loading family members...</div>
+    </div>
+
+    <button class="add-child-btn" id="openAddChildBtn">+ Add child</button>
+
+    <div class="safety-box">
+        <h2>Safety notifications</h2>
+        <p>When a child account is linked, sign-in alerts and account security notifications are automatically sent to the Guardian email address.</p>
+    </div>
+</div>
+
+<!-- ADD CHILD MODAL -->
+<div class="modal-overlay" id="addChildModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="addModalTitle">Invite family member</h3>
+            <button class="close-btn" id="closeAddModal">&times;</button>
+        </div>
+
+        <!-- Step 1: Enter Child Email or Phone -->
+        <div class="modal-step active" id="addStepInput">
+            <div class="field-label-row">
+                <span id="addInputLabel">Email address</span>
+                <button type="button" class="toggle-link" id="toggleAddModeBtn">Use phone</button>
+            </div>
+            <input type="email" id="childIdentifierInput" placeholder="name@email.com" autocomplete="off">
+
+            <p class="helper-text">
+                Role: <strong>My child</strong><br>
+                We will send a 6-digit OTP to your child's account email to confirm linking under your parental controls.
+            </p>
+
+            <div class="modal-status" id="addStatusMsg"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendAddOtpBtn">Send</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Enter OTP sent to Child Account -->
+        <div class="modal-step" id="addStepOtp">
+            <p class="helper-text" id="addOtpPromptText">Enter the 6-digit OTP sent to the child account.</p>
+            <div class="field-label-row">
+                <span>6-digit OTP</span>
+            </div>
+            <input type="text" id="addOtpInput" maxlength="6" placeholder="123456" autocomplete="off">
+
+            <div class="resend-wrap">
+                <button type="button" class="resend-btn" id="resendAddOtpBtn">Resend OTP</button>
+            </div>
+
+            <div class="modal-status" id="addOtpStatusMsg"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="backAddStepBtn">Back</button>
+                <button type="button" class="btn btn-primary" id="verifyAddOtpBtn">Verify &amp; Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REMOVE CHILD MODAL -->
+<div class="modal-overlay" id="removeChildModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="removeModalTitle">Child account</h3>
+            <button class="close-btn" id="closeRemoveModal">&times;</button>
+        </div>
+
+        <!-- Step 1: Confirm & Send OTP -->
+        <div class="modal-step active" id="removeStepConfirm">
+            <p class="helper-text" id="removeChildSummary"></p>
+            <p class="helper-text">
+                To remove this child from parental controls, we need to verify with a 6-digit OTP sent to the child's email address.
+            </p>
+
+            <div class="modal-status" id="removeStatusMsg"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelRemoveBtn">Cancel</button>
+                <button type="button" class="btn btn-danger" id="sendRemoveOtpBtn">Remove child</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Verify OTP to Remove -->
+        <div class="modal-step" id="removeStepOtp">
+            <p class="helper-text" id="removeOtpPromptText">Enter the 6-digit OTP sent to the child account.</p>
+            <div class="field-label-row">
+                <span>6-digit OTP</span>
+            </div>
+            <input type="text" id="removeOtpInput" maxlength="6" placeholder="123456" autocomplete="off">
+
+            <div class="resend-wrap">
+                <button type="button" class="resend-btn" id="resendRemoveOtpBtn">Resend OTP</button>
+            </div>
+
+            <div class="modal-status" id="removeOtpStatusMsg"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelRemoveOtpBtn">Cancel</button>
+                <button type="button" class="btn btn-danger" id="verifyRemoveOtpBtn">Verify &amp; Remove</button>
+            </div>
         </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        query,
+        where,
+        updateDoc,
+        doc,
+        deleteField,
+        addDoc,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+    // 1. Primary DB (UARM)
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
         authDomain: "question-metabase.firebaseapp.com",
         databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "question-metabase"
+        projectId: "question-metabase",
+        storageBucket: "question-metabase.firebasestorage.app",
+        messagingSenderId: "770698198753",
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 1. Sniff URL Parameters (Supports Framer Dynamic Theme Styling)
+    // 2. Secondary DB (cloud-computer-4891a for Email OTPs)
+    const mailFirebaseConfig = {
+        apiKey: "AIzaSyAo8Uzs4XZHDHTSTfgx59w5h5NlYuGC8s0",
+        authDomain: "cloud-computer-4891a.firebaseapp.com",
+        projectId: "cloud-computer-4891a",
+        storageBucket: "cloud-computer-4891a.firebasestorage.app",
+        messagingSenderId: "744203234287",
+        appId: "1:744203234287:web:81d943ae9b75fd77dce41a",
+        measurementId: "G-QE17C33TMN"
+    };
+    const mailApp = initializeApp(mailFirebaseConfig, "mailApp");
+    const mailDb = getFirestore(mailApp);
+
+    /* ================= URL PARAMS & LIVE THEME ================= */
     const urlParams = new URLSearchParams(window.location.search);
-    const formatColor = (val) => val && /^([0-9A-Fa-f]{3}){1,2}$/.test(val) ? `#${val}` : val;
+    const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus') || '';
+    const continueUrl = urlParams.get('continue') || '4.html';
+    const theme = urlParams.get('theme') ? urlParams.get('theme').toLowerCase() : null;
 
-    const bg = formatColor(urlParams.get('bg'));
-    const text = formatColor(urlParams.get('text'));
-    const font = urlParams.get('font');
-
-    if (bg) document.documentElement.style.setProperty('--bg-color', bg);
-    if (text) document.documentElement.style.setProperty('--text-color', text);
-    if (font) document.documentElement.style.setProperty('--font-size', font);
-
-    // Firebase Query helper
-    async function fetchFromFirebase(userId) {
-        let q = query(collection(db, "UARM"), where("Lotus", "==", userId));
-        let snap = await getDocs(q);
-        
-        if (snap.empty) {
-            q = query(collection(db, "UARM"), where("lotus", "==", userId));
-            snap = await getDocs(q);
-        }
-        if (snap.empty) {
-            q = query(collection(db, "UARM"), where("uarmId", "==", userId));
-            snap = await getDocs(q);
-        }
-        return snap.empty ? null : snap.docs[0].data();
-    }
-
-    // 2. Load User Data with Framer Parent Sniffing Fallback
-    async function loadUserData() {
-        let uParam = urlParams.get('u');
-
-        // [FRAMER COGNITIVE SNIFFER]
-        // If the Framer Embed didn't pass the query down to the iframe src,
-        // we securely sniff the parameter directly from the browser's address bar.
-        if (uParam === null) {
-            try {
-                if (window.parent && window.parent.location) {
-                    const parentParams = new URLSearchParams(window.parent.location.search);
-                    uParam = parentParams.get('u');
-                }
-            } catch (e) {
-                // Cross-origin restriction (expected if hosted on different domain), fallback silently
-            }
-        }
-
-        let userData = null;
-
-        document.getElementById('loader').style.display = 'block';
-        document.getElementById('content').style.display = 'none';
-        document.getElementById('errorState').style.display = 'none';
-
-        try {
-            // [ROBUST INDEX VALIDATION FIX]
-            // Ensure uParam is strictly a valid index number (not null, not empty, not NaN)
-            const isIndex = uParam !== null && uParam.trim() !== "" && !isNaN(uParam) && Number.isInteger(parseFloat(uParam));
-
-            if (isIndex) {
-                const index = parseInt(uParam, 10);
-                const savedAccounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                
-                if (savedAccounts[index]) {
-                    const targetId = savedAccounts[index].Lotus || savedAccounts[index].lotus || savedAccounts[index].uarmId;
-                    if (targetId) {
-                        userData = await fetchFromFirebase(targetId);
-                    }
-                    
-                    // Offline fallback if Firebase fetch returned nothing
-                    if (!userData) userData = savedAccounts[index];
-                }
-            } else if (uParam !== null && uParam.trim() !== "") {
-                // Not an index (e.g. standard ID like ?u=vfbdF7...)
-                userData = await fetchFromFirebase(uParam);
-            } else {
-                // Default fallback: No parameter at all, fetch active user session
-                const activeSession = localStorage.getItem('active_user');
-                if (activeSession) userData = JSON.parse(activeSession);
-            }
-        } catch (error) {
-            console.error("Error loading user data:", error);
-        }
-
-        renderUI(userData);
-    }
-
-    function renderUI(user) {
-        document.getElementById('loader').style.display = 'none';
-        if (!user) {
-            document.getElementById('errorState').style.display = 'block';
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    function applyTheme() {
+        if (theme === "dark" || theme === "d") {
+            document.body.classList.add("dark");
             return;
         }
-
-        document.getElementById('content').style.display = 'block';
-        document.getElementById('profName').innerText = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
-        document.getElementById('profType').innerText = user.type ? `${user.type} Account` : 'User Account';
-        document.getElementById('profEmail').innerText = user.email || 'N/A';
-        document.getElementById('profMobile').innerText = user.mobile || 'N/A';
-        document.getElementById('profDob').innerText = user.dob || 'N/A';
-
-        const avatarEl = document.getElementById('profAvatar');
-        if (user.Picture) {
-            avatarEl.style.backgroundImage = `url('${user.Picture}')`;
-            avatarEl.innerText = '';
+        if (theme === "light" || theme === "l") {
+            document.body.classList.remove("dark");
+            return;
+        }
+        if (mediaQuery.matches) {
+            document.body.classList.add("dark");
         } else {
-            const initial = user.firstName ? user.firstName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U');
-            avatarEl.innerText = initial;
-            avatarEl.style.backgroundImage = 'none';
+            document.body.classList.remove("dark");
+        }
+    }
+    applyTheme();
+    mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
+
+    document.getElementById('backLink').href = continueUrl;
+    document.getElementById('signInRedirectBtn').addEventListener('click', () => {
+        let target = `1.html?continue=${encodeURIComponent(window.location.href)}`;
+        if (theme) target += `&theme=${theme}`;
+        window.location.href = target;
+    });
+
+    /* ================= STATE ================= */
+    let currentUserData = null;
+    let currentUserDocId = null;
+    let linkedChildren = [];
+
+    // Add Child OTP State
+    let addInputMode = 'email'; // 'email' | 'phone'
+    let pendingAddChild = null; // { id, data }
+    let addOtp = '';
+    let addOtpExpiresAt = 0;
+
+    // Remove Child OTP State
+    let pendingRemoveChild = null; // { id, data }
+    let removeOtp = '';
+    let removeOtpExpiresAt = 0;
+
+    /* ================= HELPERS ================= */
+    const avatarColors = ['#0066cc', '#d97706', '#059669', '#7c3aed', '#db2777', '#2563eb'];
+
+    function getInitials(data) {
+        const first = (data["First Name"] || '').trim();
+        const last = (data["Last Name"] || '').trim();
+        if (first && last) return (first[0] + last[0]).toUpperCase();
+        if (first) return first[0].toUpperCase();
+        const email = (data["Email"] || 'U').trim();
+        return email[0].toUpperCase();
+    }
+
+    function getFullName(data) {
+        const full = `${data["First Name"] || ''} ${data["Last Name"] || ''}`.trim();
+        return full || data["Email"] || 'User';
+    }
+
+    function getColorForString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return avatarColors[Math.abs(hash) % avatarColors.length];
+    }
+
+    function setModalStatus(elId, msg, type = '') {
+        const el = document.getElementById(elId);
+        el.textContent = msg;
+        el.className = 'modal-status' + (type ? ` ${type}` : '');
+    }
+
+    function normalizePhone(val) {
+        return (val || '').replace(/[\s\-()]/g, '').trim();
+    }
+
+    function normalizeEmail(val) {
+        return (val || '').trim().toLowerCase();
+    }
+
+    async function sendChildOtpEmail(childData, actionLabel) {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const childEmail = childData["Email"];
+        const childFirst = childData["First Name"] || "User";
+        const parentName = getFullName(currentUserData);
+        const parentEmail = currentUserData["Email"] || "";
+
+        const body = `Hello ${childFirst},
+
+${parentName} (${parentEmail}) requested to ${actionLabel} on Parental Controls.
+
+Your verification OTP is: ${otp}
+
+This code is valid for 10 minutes.
+Share this code only if you approve this change.`;
+
+        await addDoc(collection(mailDb, "Email"), {
+            subject: `Parental Controls Verification OTP`,
+            body: body,
+            from: "systemplx.mail",
+            to: childEmail,
+            timestamp: serverTimestamp()
+        });
+
+        return otp;
+    }
+
+    /* ================= LOAD CURRENT USER & FAMILY ================= */
+    async function initPage() {
+        let storedUser = null;
+        try {
+            if (localStorage.getItem('active_user')) {
+                storedUser = JSON.parse(localStorage.getItem('active_user'));
+            }
+        } catch (e) {
+            console.error("LocalStorage read error:", e);
+        }
+
+        try {
+            let snap = null;
+            if (lotusParam) {
+                snap = await getDocs(query(collection(db, "UARM"), where("Lotus", "==", lotusParam)));
+            } else if (storedUser && storedUser["Email"]) {
+                snap = await getDocs(query(collection(db, "UARM"), where("Email", "==", storedUser["Email"])));
+            }
+
+            if (!snap || snap.empty) {
+                document.getElementById('authGate').style.display = 'block';
+                return;
+            }
+
+            currentUserDocId = snap.docs[0].id;
+            currentUserData = snap.docs[0].data();
+            localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+            document.getElementById('loggedInEmailLabel').textContent = currentUserData["Email"] || "";
+            document.getElementById('mainContent').style.display = 'block';
+
+            await loadFamilyMembers();
+        } catch (err) {
+            console.error("Init error:", err);
+            document.getElementById('authGate').style.display = 'block';
         }
     }
 
-    // Storage update event listener
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'active_user' || event.key === 'saved_accounts') {
-            loadUserData();
+    async function loadFamilyMembers() {
+        const listEl = document.getElementById('memberList');
+        listEl.innerHTML = '<div class="empty-state">Loading family members...</div>';
+
+        const myEmail = currentUserData["Email"] || "";
+        const myEmailLower = normalizeEmail(myEmail);
+
+        // 1. Check if current user has a Guardian
+        const myGuardianEmail = currentUserData["Guardian"] || currentUserData["guardian"] || "";
+        let guardianData = null;
+
+        if (myGuardianEmail) {
+            const gSnap = await getDocs(query(collection(db, "UARM"), where("Email", "==", myGuardianEmail)));
+            if (!gSnap.empty) {
+                guardianData = gSnap.docs[0].data();
+            } else {
+                guardianData = { "Email": myGuardianEmail };
+            }
+        }
+
+        // 2. Find all children linked to current user's Email
+        const childMatches = [];
+        const seenIds = new Set();
+        const emailVariants = Array.from(new Set([myEmail, myEmailLower])).filter(Boolean);
+
+        for (const field of ["Guardian", "guardian"]) {
+            for (const em of emailVariants) {
+                const q = query(collection(db, "UARM"), where(field, "==", em));
+                const snap = await getDocs(q);
+                snap.forEach(d => {
+                    if (!seenIds.has(d.id)) {
+                        seenIds.add(d.id);
+                        childMatches.push({ id: d.id, data: d.data() });
+                    }
+                });
+            }
+        }
+
+        linkedChildren = childMatches;
+        renderMemberList(guardianData, linkedChildren);
+    }
+
+    function createAvatarHtml(data) {
+        const pic = data["Profile_Picture"] || data["Profile Picture"];
+        const name = getFullName(data);
+        if (pic) {
+            return `<div class="avatar-circle"><img src="${pic}" alt="${name}"></div>`;
+        }
+        const color = getColorForString(data["Email"] || name);
+        return `<div class="avatar-circle" style="background:${color};">${getInitials(data)}</div>`;
+    }
+
+    function renderMemberList(guardianData, children) {
+        const listEl = document.getElementById('memberList');
+        listEl.innerHTML = '';
+
+        // If current user has a Parent/Guardian, show them
+        if (guardianData) {
+            const row = document.createElement('div');
+            row.className = 'member-row static';
+            row.innerHTML = `
+                <div class="member-left">
+                    ${createAvatarHtml(guardianData)}
+                    <div class="member-meta">
+                        <div class="member-name">${getFullName(guardianData)}</div>
+                        <div class="member-sub">${guardianData["Email"] || ""}</div>
+                    </div>
+                </div>
+                <div class="member-right">
+                    <span>Parent</span>
+                </div>
+            `;
+            listEl.appendChild(row);
+        }
+
+        // Show current user as Parent (if they have children or are not a kids account)
+        const isKids = currentUserData["Type"] === "kids" || Boolean(guardianData);
+        const selfRow = document.createElement('div');
+        selfRow.className = 'member-row static';
+        selfRow.innerHTML = `
+            <div class="member-left">
+                ${createAvatarHtml(currentUserData)}
+                <div class="member-meta">
+                    <div class="member-name">${getFullName(currentUserData)} (You)</div>
+                    <div class="member-sub">${currentUserData["Email"] || ""}</div>
+                </div>
+            </div>
+            <div class="member-right">
+                <span>${isKids ? 'Child' : 'Parent'}</span>
+            </div>
+        `;
+        listEl.appendChild(selfRow);
+
+        // Show linked Children (clickable to remove with OTP)
+        children.forEach(child => {
+            const d = child.data;
+            const row = document.createElement('div');
+            row.className = 'member-row';
+            row.innerHTML = `
+                <div class="member-left">
+                    ${createAvatarHtml(d)}
+                    <div class="member-meta">
+                        <div class="member-name">${getFullName(d)}</div>
+                        <div class="member-sub">${d["Email"] || ""}</div>
+                    </div>
+                </div>
+                <div class="member-right">
+                    <span>Child</span>
+                    <span>&#8250;</span>
+                </div>
+            `;
+            row.addEventListener('click', () => openRemoveModal(child));
+            listEl.appendChild(row);
+        });
+
+        if (children.length === 0) {
+            const note = document.createElement('div');
+            note.className = 'empty-state';
+            note.textContent = 'No child accounts linked yet.';
+            listEl.appendChild(note);
+        }
+    }
+
+    /* ================= ADD CHILD MODAL FLOW ================= */
+    const addChildModal = document.getElementById('addChildModal');
+
+    function showAddStep(stepId) {
+        addChildModal.querySelectorAll('.modal-step').forEach(s => s.classList.remove('active'));
+        document.getElementById(stepId).classList.add('active');
+    }
+
+    function resetAddModal() {
+        addInputMode = 'email';
+        pendingAddChild = null;
+        addOtp = '';
+        document.getElementById('addInputLabel').textContent = 'Email address';
+        document.getElementById('toggleAddModeBtn').textContent = 'Use phone';
+        const inp = document.getElementById('childIdentifierInput');
+        inp.type = 'email';
+        inp.placeholder = 'name@email.com';
+        inp.value = '';
+        document.getElementById('addOtpInput').value = '';
+        setModalStatus('addStatusMsg', '');
+        setModalStatus('addOtpStatusMsg', '');
+        showAddStep('addStepInput');
+    }
+
+    document.getElementById('openAddChildBtn').addEventListener('click', () => {
+        resetAddModal();
+        addChildModal.classList.add('open');
+    });
+
+    document.getElementById('closeAddModal').addEventListener('click', () => addChildModal.classList.remove('open'));
+    document.getElementById('cancelAddBtn').addEventListener('click', () => addChildModal.classList.remove('open'));
+
+    document.getElementById('toggleAddModeBtn').addEventListener('click', () => {
+        const inp = document.getElementById('childIdentifierInput');
+        inp.value = '';
+        setModalStatus('addStatusMsg', '');
+
+        if (addInputMode === 'email') {
+            addInputMode = 'phone';
+            document.getElementById('addInputLabel').textContent = 'Phone number';
+            document.getElementById('toggleAddModeBtn').textContent = 'Use email';
+            inp.type = 'text';
+            inp.placeholder = '+919876543210';
+        } else {
+            addInputMode = 'email';
+            document.getElementById('addInputLabel').textContent = 'Email address';
+            document.getElementById('toggleAddModeBtn').textContent = 'Use phone';
+            inp.type = 'email';
+            inp.placeholder = 'name@email.com';
         }
     });
 
-    loadUserData();
+    async function findChildAccount(rawVal) {
+        if (addInputMode === 'email') {
+            const variants = Array.from(new Set([rawVal.trim(), normalizeEmail(rawVal)]));
+            for (const em of variants) {
+                const snap = await getDocs(query(collection(db, "UARM"), where("Email", "==", em)));
+                if (!snap.empty) return { id: snap.docs[0].id, data: snap.docs[0].data() };
+            }
+            return null;
+        } else {
+            const variants = Array.from(new Set([rawVal.trim(), normalizePhone(rawVal)]));
+            for (const field of ["Phone Number", "Phone_Number"]) {
+                for (const ph of variants) {
+                    const snap = await getDocs(query(collection(db, "UARM"), where(field, "==", ph)));
+                    if (!snap.empty) return { id: snap.docs[0].id, data: snap.docs[0].data() };
+                }
+            }
+            return null;
+        }
+    }
+
+    document.getElementById('sendAddOtpBtn').addEventListener('click', async () => {
+        const val = document.getElementById('childIdentifierInput').value.trim();
+        if (!val) {
+            setModalStatus('addStatusMsg', `Please enter your child's ${addInputMode}.`, 'error');
+            return;
+        }
+
+        const btn = document.getElementById('sendAddOtpBtn');
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        setModalStatus('addStatusMsg', '');
+
+        try {
+            const found = await findChildAccount(val);
+            if (!found) {
+                setModalStatus('addStatusMsg', 'No account found with that ' + addInputMode + '.', 'error');
+                return;
+            }
+
+            const childEmail = found.data["Email"] || "";
+            const myEmail = currentUserData["Email"] || "";
+
+            if (normalizeEmail(childEmail) === normalizeEmail(myEmail)) {
+                setModalStatus('addStatusMsg', 'You cannot add your own account as a child.', 'error');
+                return;
+            }
+
+            const existingGuardian = found.data["Guardian"] || found.data["guardian"] || "";
+            if (existingGuardian) {
+                if (normalizeEmail(existingGuardian) === normalizeEmail(myEmail)) {
+                    setModalStatus('addStatusMsg', 'This child is already linked to your account.', 'error');
+                } else {
+                    setModalStatus('addStatusMsg', 'This account is already linked to another guardian.', 'error');
+                }
+                return;
+            }
+
+            if (!childEmail) {
+                setModalStatus('addStatusMsg', 'Child account does not have an email to send OTP.', 'error');
+                return;
+            }
+
+            pendingAddChild = found;
+            addOtp = await sendChildOtpEmail(found.data, 'link this account as a Child');
+            addOtpExpiresAt = Date.now() + 10 * 60 * 1000;
+
+            document.getElementById('addOtpPromptText').textContent =
+                `Enter the 6-digit OTP sent to ${childEmail}.`;
+            document.getElementById('addOtpInput').value = '';
+            setModalStatus('addOtpStatusMsg', 'OTP sent to child account!', 'success');
+            showAddStep('addStepOtp');
+        } catch (err) {
+            console.error("Add child OTP send error:", err);
+            setModalStatus('addStatusMsg', 'Failed to send OTP. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Send';
+        }
+    });
+
+    document.getElementById('backAddStepBtn').addEventListener('click', () => {
+        setModalStatus('addStatusMsg', '');
+        showAddStep('addStepInput');
+    });
+
+    document.getElementById('resendAddOtpBtn').addEventListener('click', async () => {
+        if (!pendingAddChild) return;
+        try {
+            setModalStatus('addOtpStatusMsg', 'Resending OTP...', '');
+            addOtp = await sendChildOtpEmail(pendingAddChild.data, 'link this account as a Child');
+            addOtpExpiresAt = Date.now() + 10 * 60 * 1000;
+            setModalStatus('addOtpStatusMsg', 'New OTP sent to child account!', 'success');
+        } catch (err) {
+            console.error("Resend add OTP error:", err);
+            setModalStatus('addOtpStatusMsg', 'Failed to resend OTP.', 'error');
+        }
+    });
+
+    document.getElementById('verifyAddOtpBtn').addEventListener('click', async () => {
+        const entered = document.getElementById('addOtpInput').value.trim();
+        if (!entered) {
+            setModalStatus('addOtpStatusMsg', 'Please enter the 6-digit OTP.', 'error');
+            return;
+        }
+        if (Date.now() > addOtpExpiresAt) {
+            setModalStatus('addOtpStatusMsg', 'OTP expired. Please click Resend OTP.', 'error');
+            return;
+        }
+        if (entered !== addOtp) {
+            setModalStatus('addOtpStatusMsg', 'Incorrect OTP. Please check and try again.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('verifyAddOtpBtn');
+        btn.disabled = true;
+        btn.textContent = 'Adding...';
+
+        try {
+            const parentEmail = currentUserData["Email"];
+            await updateDoc(doc(db, "UARM", pendingAddChild.id), {
+                "Guardian": parentEmail,
+                "Type": "kids",
+                "Family": "commited"
+            });
+
+            // Confirmation email to child
+            try {
+                await addDoc(collection(mailDb, "Email"), {
+                    subject: "Parental Controls Linked",
+                    body: `Hello ${pendingAddChild.data["First Name"] || "User"},\n\nYour account is now linked under ${getFullName(currentUserData)} (${parentEmail})'s Parental Controls.`,
+                    from: "systemplx.mail",
+                    to: pendingAddChild.data["Email"],
+                    timestamp: serverTimestamp()
+                });
+            } catch (e) { /* non-blocking */ }
+
+            addChildModal.classList.remove('open');
+            await loadFamilyMembers();
+        } catch (err) {
+            console.error("Error linking child:", err);
+            setModalStatus('addOtpStatusMsg', 'Failed to link child account.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Verify & Add';
+        }
+    });
+
+    /* ================= REMOVE CHILD MODAL FLOW ================= */
+    const removeChildModal = document.getElementById('removeChildModal');
+
+    function showRemoveStep(stepId) {
+        removeChildModal.querySelectorAll('.modal-step').forEach(s => s.classList.remove('active'));
+        document.getElementById(stepId).classList.add('active');
+    }
+
+    function openRemoveModal(child) {
+        pendingRemoveChild = child;
+        removeOtp = '';
+        document.getElementById('removeModalTitle').textContent = getFullName(child.data);
+        document.getElementById('removeChildSummary').innerHTML =
+            `<strong>Email:</strong> ${child.data["Email"] || ""}<br><strong>Role:</strong> Child`;
+        document.getElementById('removeOtpInput').value = '';
+        setModalStatus('removeStatusMsg', '');
+        setModalStatus('removeOtpStatusMsg', '');
+        showRemoveStep('removeStepConfirm');
+        removeChildModal.classList.add('open');
+    }
+
+    document.getElementById('closeRemoveModal').addEventListener('click', () => removeChildModal.classList.remove('open'));
+    document.getElementById('cancelRemoveBtn').addEventListener('click', () => removeChildModal.classList.remove('open'));
+    document.getElementById('cancelRemoveOtpBtn').addEventListener('click', () => removeChildModal.classList.remove('open'));
+
+    document.getElementById('sendRemoveOtpBtn').addEventListener('click', async () => {
+        if (!pendingRemoveChild) return;
+        const childEmail = pendingRemoveChild.data["Email"] || "";
+        if (!childEmail) {
+            setModalStatus('removeStatusMsg', 'Child account has no email address.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('sendRemoveOtpBtn');
+        btn.disabled = true;
+        btn.textContent = 'Sending OTP...';
+        setModalStatus('removeStatusMsg', '');
+
+        try {
+            removeOtp = await sendChildOtpEmail(pendingRemoveChild.data, 'remove this account from Parental Controls');
+            removeOtpExpiresAt = Date.now() + 10 * 60 * 1000;
+
+            document.getElementById('removeOtpPromptText').textContent =
+                `Enter the 6-digit OTP sent to ${childEmail} to remove this child.`;
+            setModalStatus('removeOtpStatusMsg', 'OTP sent to child account!', 'success');
+            showRemoveStep('removeStepOtp');
+        } catch (err) {
+            console.error("Remove OTP send error:", err);
+            setModalStatus('removeStatusMsg', 'Failed to send OTP. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Remove child';
+        }
+    });
+
+    document.getElementById('resendRemoveOtpBtn').addEventListener('click', async () => {
+        if (!pendingRemoveChild) return;
+        try {
+            setModalStatus('removeOtpStatusMsg', 'Resending OTP...', '');
+            removeOtp = await sendChildOtpEmail(pendingRemoveChild.data, 'remove this account from Parental Controls');
+            removeOtpExpiresAt = Date.now() + 10 * 60 * 1000;
+            setModalStatus('removeOtpStatusMsg', 'New OTP sent to child account!', 'success');
+        } catch (err) {
+            console.error("Resend remove OTP error:", err);
+            setModalStatus('removeOtpStatusMsg', 'Failed to resend OTP.', 'error');
+        }
+    });
+
+    document.getElementById('verifyRemoveOtpBtn').addEventListener('click', async () => {
+        const entered = document.getElementById('removeOtpInput').value.trim();
+        if (!entered) {
+            setModalStatus('removeOtpStatusMsg', 'Please enter the 6-digit OTP.', 'error');
+            return;
+        }
+        if (Date.now() > removeOtpExpiresAt) {
+            setModalStatus('removeOtpStatusMsg', 'OTP expired. Please click Resend OTP.', 'error');
+            return;
+        }
+        if (entered !== removeOtp) {
+            setModalStatus('removeOtpStatusMsg', 'Incorrect OTP. Please try again.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('verifyRemoveOtpBtn');
+        btn.disabled = true;
+        btn.textContent = 'Removing...';
+
+        try {
+            await updateDoc(doc(db, "UARM", pendingRemoveChild.id), {
+                "Guardian": deleteField(),
+                "guardian": deleteField(),
+                "Family": deleteField(),
+                "Type": "personal"
+            });
+
+            // Confirmation email to child
+            try {
+                await addDoc(collection(mailDb, "Email"), {
+                    subject: "Parental Controls Unlinked",
+                    body: `Hello ${pendingRemoveChild.data["First Name"] || "User"},\n\nYour account has been removed from ${getFullName(currentUserData)} (${currentUserData["Email"]})'s Parental Controls.`,
+                    from: "systemplx.mail",
+                    to: pendingRemoveChild.data["Email"],
+                    timestamp: serverTimestamp()
+                });
+            } catch (e) { /* non-blocking */ }
+
+            removeChildModal.classList.remove('open');
+            await loadFamilyMembers();
+        } catch (err) {
+            console.error("Error removing child:", err);
+            setModalStatus('removeOtpStatusMsg', 'Failed to remove child account.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Verify & Remove';
+        }
+    });
+
+    initPage();
 </script>
 </body>
 </html>
