@@ -16,6 +16,7 @@
             --btn-bg: #111111;
             --btn-text: #ffffff;
             --btn-hover: #333333;
+            --link-color: #0066cc;
         }
 
         body.dark {
@@ -28,6 +29,7 @@
             --btn-bg: #ffffff;
             --btn-text: #000000;
             --btn-hover: #e0e0e0;
+            --link-color: #4da3ff;
         }
 
         body {
@@ -83,12 +85,14 @@
         }
 
         .forgot-link a {
-            color: #0066cc;
+            color: var(--link-color);
             text-decoration: none;
             cursor: pointer;
         }
 
-        .forgot-link a:hover { text-decoration: underline; }
+        .forgot-link a:hover {
+            text-decoration: underline;
+        }
 
         .btn {
             background: var(--btn-bg);
@@ -104,8 +108,14 @@
         }
 
         .btn:hover { background: var(--btn-hover); }
-        .links { margin-top: 20px; font-size: 14px; }
-        .links a { color: #0066cc; text-decoration: none; cursor: pointer; }
+        .links {
+            margin-top: 20px;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .links a { color: var(--link-color); text-decoration: none; cursor: pointer; }
         .links a:hover { text-decoration: underline; }
     </style>
 </head>
@@ -121,17 +131,16 @@
     </div>
 
     <div class="forgot-link">
-        <a href="http://knox-app.github.io/cloud/links/task#find-account" id="forgotEmailLink">Forgot Email?</a>
+        <a id="forgotEmailLink" href="http://knox-app.github.io/cloud/links/task#find-account&=">Forgot Email?</a>
     </div>
 
     <button class="btn" id="continueBtn">Continue</button>
-
+    
     <div class="links">
         <a href="http://knox-app.github.io/cloud/links/task#new-account">Create a New Account</a>
-    </div>
-    
-    <div class="links" id="accountChooserLink" style="display: none;">
-        <a href="3.html">Choose an existing account</a>
+        <div id="accountChooserLink" style="display: none;">
+            <a href="3.html">Choose an existing account</a>
+        </div>
     </div>
 </div>
 
@@ -169,6 +178,19 @@
     let continueUrl = urlParams.get('continue') || '4.html';
     const provider = urlParams.get('provider'); // Reads the ?provider=<sulg> parameter
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
+
+    function updateForgotEmailHref() {
+        const forgotLink = document.getElementById('forgotEmailLink');
+        if (forgotLink) {
+            const queryStr = window.location.search.startsWith('?')
+                ? window.location.search.slice(1)
+                : window.location.search;
+            forgotLink.href = `http://knox-app.github.io/cloud/links/task#find-account&=${queryStr}`;
+        }
+    }
+
+    updateForgotEmailHref();
+    document.getElementById('forgotEmailLink').addEventListener('click', updateForgotEmailHref);
 
     /* ================= LIVE THEME ================= */
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -235,6 +257,7 @@
             if (theme) newUrl += `&theme=${theme}`;
             
             window.history.replaceState({}, '', newUrl);
+            updateForgotEmailHref();
         }
     }
 
@@ -301,12 +324,6 @@
     resolveProvider()
         .then(initSession)
         .then(checkAutoLogins);
-
-    // Forgot Email Redirect (preserving everything from ? onwards)
-    document.getElementById('forgotEmailLink').addEventListener('click', (e) => {
-        e.preventDefault();
-        window.location.href = `http://knox-app.github.io/cloud/links/task#find-account${window.location.search}`;
-    });
 
     // 4. Handle Manual Form Submit
     document.getElementById('continueBtn').addEventListener('click', async () => {
