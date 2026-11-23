@@ -224,6 +224,17 @@
             background: var(--surface-color);
         }
 
+        .kids-notice {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 36px;
+            line-height: 1.45;
+        }
+
         .safety-box {
             padding-top: 16px;
             border-top: 1px solid var(--border-color);
@@ -441,6 +452,9 @@
     </div>
 
     <button class="add-child-btn" id="openAddChildBtn">+ Add child</button>
+    <div class="kids-notice" id="kidsNotice" style="display: none;">
+        Child profiles cannot add or manage other family accounts.
+    </div>
 
     <div class="safety-box">
         <h2>Safety notifications</h2>
@@ -636,6 +650,14 @@
     /* ================= HELPERS ================= */
     const avatarColors = ['#0066cc', '#d97706', '#059669', '#7c3aed', '#db2777', '#2563eb'];
 
+    function isKidsAccount(userData) {
+        if (!userData) return false;
+        return userData["Type"] === "kids" ||
+               userData["Family"] === "commited" ||
+               userData["Family"] === "commit" ||
+               Boolean(userData["Guardian"] || userData["guardian"]);
+    }
+
     function getInitials(data) {
         const first = (data["First Name"] || '').trim();
         const last = (data["Last Name"] || '').trim();
@@ -728,6 +750,12 @@ Share this code only if you approve this change.`;
             localStorage.setItem('active_user', JSON.stringify(currentUserData));
 
             document.getElementById('loggedInEmailLabel').textContent = currentUserData["Email"] || "";
+
+            // Block Kids Profile from adding or managing others
+            const isKids = isKidsAccount(currentUserData);
+            document.getElementById('openAddChildBtn').style.display = isKids ? 'none' : 'inline-flex';
+            document.getElementById('kidsNotice').style.display = isKids ? 'block' : 'none';
+
             document.getElementById('mainContent').style.display = 'block';
 
             await loadFamilyMembers();
@@ -743,6 +771,7 @@ Share this code only if you approve this change.`;
 
         const myEmail = currentUserData["Email"] || "";
         const myEmailLower = normalizeEmail(myEmail);
+        const isKids = isKidsAccount(currentUserData);
 
         // 1. Check if current user has a Guardian
         const myGuardianEmail = currentUserData["Guardian"] || currentUserData["guardian"] || "";
@@ -757,26 +786,28 @@ Share this code only if you approve this change.`;
             }
         }
 
-        // 2. Find all children linked to current user's Email
+        // 2. Only load linked children if current user is NOT a kids account
         const childMatches = [];
-        const seenIds = new Set();
-        const emailVariants = Array.from(new Set([myEmail, myEmailLower])).filter(Boolean);
+        if (!isKids) {
+            const seenIds = new Set();
+            const emailVariants = Array.from(new Set([myEmail, myEmailLower])).filter(Boolean);
 
-        for (const field of ["Guardian", "guardian"]) {
-            for (const em of emailVariants) {
-                const q = query(collection(db, "UARM"), where(field, "==", em));
-                const snap = await getDocs(q);
-                snap.forEach(d => {
-                    if (!seenIds.has(d.id)) {
-                        seenIds.add(d.id);
-                        childMatches.push({ id: d.id, data: d.data() });
-                    }
-                });
+            for (const field of ["Guardian", "guardian"]) {
+                for (const em of emailVariants) {
+                    const q = query(collection(db, "UARM"), where(field, "==", em));
+                    const snap = await getDocs(q);
+                    snap.forEach(d => {
+                        if (!seenIds.has(d.id)) {
+                            seenIds.add(d.id);
+                            childMatches.push({ id: d.id, data: d.data() });
+                        }
+                    });
+                }
             }
         }
 
         linkedChildren = childMatches;
-        renderMemberList(guardianData, linkedChildren);
+        renderMemberList(guardianData, linkedChildren, isKids);
     }
 
     function createAvatarHtml(data) {
@@ -789,7 +820,7 @@ Share this code only if you approve this change.`;
         return `<div class="avatar-circle" style="background:${color};">${getInitials(data)}</div>`;
     }
 
-    function renderMemberList(guardianData, children) {
+    function renderMemberList(guardianData, children, isKids) {
         const listEl = document.getElementById('memberList');
         listEl.innerHTML = '';
 
@@ -812,8 +843,7 @@ Share this code only if you approve this change.`;
             listEl.appendChild(row);
         }
 
-        // Show current user as Parent (if they have children or are not a kids account)
-        const isKids = currentUserData["Type"] === "kids" || Boolean(guardianData);
+        // Show current user
         const selfRow = document.createElement('div');
         selfRow.className = 'member-row static';
         selfRow.innerHTML = `
@@ -830,33 +860,35 @@ Share this code only if you approve this change.`;
         `;
         listEl.appendChild(selfRow);
 
-        // Show linked Children (clickable to remove with OTP)
-        children.forEach(child => {
-            const d = child.data;
-            const row = document.createElement('div');
-            row.className = 'member-row';
-            row.innerHTML = `
-                <div class="member-left">
-                    ${createAvatarHtml(d)}
-                    <div class="member-meta">
-                        <div class="member-name">${getFullName(d)}</div>
-                        <div class="member-sub">${d["Email"] || ""}</div>
+        if (!isKids) {
+            // Show linked Children (clickable to remove with OTP)
+            children.forEach(child => {
+                const d = child.data;
+                const row = document.createElement('div');
+                row.className = 'member-row';
+                row.innerHTML = `
+                    <div class="member-left">
+                        ${createAvatarHtml(d)}
+                        <div class="member-meta">
+                            <div class="member-name">${getFullName(d)}</div>
+                            <div class="member-sub">${d["Email"] || ""}</div>
+                        </div>
                     </div>
-                </div>
-                <div class="member-right">
-                    <span>Child</span>
-                    <span>&#8250;</span>
-                </div>
-            `;
-            row.addEventListener('click', () => openRemoveModal(child));
-            listEl.appendChild(row);
-        });
+                    <div class="member-right">
+                        <span>Child</span>
+                        <span>&#8250;</span>
+                    </div>
+                `;
+                row.addEventListener('click', () => openRemoveModal(child));
+                listEl.appendChild(row);
+            });
 
-        if (children.length === 0) {
-            const note = document.createElement('div');
-            note.className = 'empty-state';
-            note.textContent = 'No child accounts linked yet.';
-            listEl.appendChild(note);
+            if (children.length === 0) {
+                const note = document.createElement('div');
+                note.className = 'empty-state';
+                note.textContent = 'No child accounts linked yet.';
+                listEl.appendChild(note);
+            }
         }
     }
 
@@ -885,6 +917,7 @@ Share this code only if you approve this change.`;
     }
 
     document.getElementById('openAddChildBtn').addEventListener('click', () => {
+        if (isKidsAccount(currentUserData)) return;
         resetAddModal();
         addChildModal.classList.add('open');
     });
@@ -933,6 +966,8 @@ Share this code only if you approve this change.`;
     }
 
     document.getElementById('sendAddOtpBtn').addEventListener('click', async () => {
+        if (isKidsAccount(currentUserData)) return;
+
         const val = document.getElementById('childIdentifierInput').value.trim();
         if (!val) {
             setModalStatus('addStatusMsg', `Please enter your child's ${addInputMode}.`, 'error');
@@ -998,7 +1033,7 @@ Share this code only if you approve this change.`;
     });
 
     document.getElementById('resendAddOtpBtn').addEventListener('click', async () => {
-        if (!pendingAddChild) return;
+        if (isKidsAccount(currentUserData) || !pendingAddChild) return;
         try {
             setModalStatus('addOtpStatusMsg', 'Resending OTP...', '');
             addOtp = await sendChildOtpEmail(pendingAddChild.data, 'link this account as a Child');
@@ -1011,6 +1046,8 @@ Share this code only if you approve this change.`;
     });
 
     document.getElementById('verifyAddOtpBtn').addEventListener('click', async () => {
+        if (isKidsAccount(currentUserData)) return;
+
         const entered = document.getElementById('addOtpInput').value.trim();
         if (!entered) {
             setModalStatus('addOtpStatusMsg', 'Please enter the 6-digit OTP.', 'error');
@@ -1068,6 +1105,7 @@ Share this code only if you approve this change.`;
     }
 
     function openRemoveModal(child) {
+        if (isKidsAccount(currentUserData)) return;
         pendingRemoveChild = child;
         removeOtp = '';
         document.getElementById('removeModalTitle').textContent = getFullName(child.data);
@@ -1085,7 +1123,7 @@ Share this code only if you approve this change.`;
     document.getElementById('cancelRemoveOtpBtn').addEventListener('click', () => removeChildModal.classList.remove('open'));
 
     document.getElementById('sendRemoveOtpBtn').addEventListener('click', async () => {
-        if (!pendingRemoveChild) return;
+        if (isKidsAccount(currentUserData) || !pendingRemoveChild) return;
         const childEmail = pendingRemoveChild.data["Email"] || "";
         if (!childEmail) {
             setModalStatus('removeStatusMsg', 'Child account has no email address.', 'error');
@@ -1115,7 +1153,7 @@ Share this code only if you approve this change.`;
     });
 
     document.getElementById('resendRemoveOtpBtn').addEventListener('click', async () => {
-        if (!pendingRemoveChild) return;
+        if (isKidsAccount(currentUserData) || !pendingRemoveChild) return;
         try {
             setModalStatus('removeOtpStatusMsg', 'Resending OTP...', '');
             removeOtp = await sendChildOtpEmail(pendingRemoveChild.data, 'remove this account from Parental Controls');
@@ -1128,6 +1166,8 @@ Share this code only if you approve this change.`;
     });
 
     document.getElementById('verifyRemoveOtpBtn').addEventListener('click', async () => {
+        if (isKidsAccount(currentUserData)) return;
+
         const entered = document.getElementById('removeOtpInput').value.trim();
         if (!entered) {
             setModalStatus('removeOtpStatusMsg', 'Please enter the 6-digit OTP.', 'error');
