@@ -250,20 +250,9 @@
             border-radius: 12px;
         }
 
-        .passkey-meta {
-            min-width: 0;
-        }
-
-        .passkey-name {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .passkey-sub {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
+        .passkey-meta { min-width: 0; }
+        .passkey-name { font-size: 14px; font-weight: 600; }
+        .passkey-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
         .passkey-actions {
             display: flex;
@@ -275,6 +264,7 @@
             font-size: 13px;
             margin-top: 10px;
             min-height: 16px;
+            line-height: 1.45;
         }
 
         .inline-msg.error { color: var(--error-color); }
@@ -292,9 +282,7 @@
             z-index: 100;
         }
 
-        .modal-overlay.open {
-            display: flex;
-        }
+        .modal-overlay.open { display: flex; }
 
         .modal {
             background: var(--modal-bg);
@@ -331,9 +319,7 @@
 
         .close-btn:hover { color: var(--text-primary); }
 
-        .input-group {
-            margin-bottom: 14px;
-        }
+        .input-group { margin-bottom: 14px; }
 
         .input-group label {
             display: block;
@@ -355,9 +341,7 @@
             outline: none;
         }
 
-        input:focus {
-            border-color: var(--input-focus);
-        }
+        input:focus { border-color: var(--input-focus); }
 
         .helper-text {
             font-size: 13px;
@@ -818,7 +802,6 @@
     }
 
     function renderAllSections() {
-        // 1. Auth Manager
         document.getElementById('currentDeviceText').textContent = detectDeviceType();
         const lotus = currentUserData["Lotus"] || "";
         document.getElementById('lotusTokenPreview').textContent =
@@ -831,7 +814,6 @@
             document.getElementById('savedAccountsCount').textContent = '0';
         }
 
-        // 2. 2 Way Security
         const twoWayOn = Boolean(currentUserData["Two_Way_Security"]);
         const twoWayBadge = document.getElementById('twoWayBadge');
         twoWayBadge.textContent = twoWayOn ? 'Enabled' : 'Disabled';
@@ -841,7 +823,6 @@
         document.getElementById('twoWayChannelText').textContent =
             currentUserData["Recovery_Email"] || currentUserData["Email"] || 'Primary Email';
 
-        // 3. Recovery_Number
         const recNum = currentUserData["Recovery_Number"] || currentUserData["Phone Number"] || "";
         const recNumBadge = document.getElementById('recoveryNumBadge');
         document.getElementById('recoveryNumText').textContent = recNum || 'Not configured';
@@ -852,7 +833,6 @@
         document.getElementById('removeRecoveryNumBtn').style.display =
             currentUserData["Recovery_Number"] ? 'inline-flex' : 'none';
 
-        // 4. Recovery_Email
         const recEmail = currentUserData["Recovery_Email"] || currentUserData["Recovery Email"] || "";
         const recEmailBadge = document.getElementById('recoveryEmailBadge');
         document.getElementById('recoveryEmailText').textContent = recEmail || 'Not configured';
@@ -863,7 +843,6 @@
         document.getElementById('removeRecoveryEmailBtn').style.display =
             (currentUserData["Recovery_Email"] || currentUserData["Recovery Email"]) ? 'inline-flex' : 'none';
 
-        // 5. Passkeys
         renderPasskeys();
     }
 
@@ -1183,6 +1162,19 @@
         return buffer.buffer;
     }
 
+    function getPasskeyEnvIssue() {
+        if (!window.isSecureContext) {
+            return `Passkeys require HTTPS or http://localhost (current origin: ${window.location.origin || window.location.protocol}).`;
+        }
+        if (/^\d{1,3}(\.\d{1,3}){3}$/.test(window.location.hostname)) {
+            return `Passkeys do not work on numeric IP addresses (${window.location.hostname}). Use https://yourdomain or http://localhost.`;
+        }
+        if (!window.PublicKeyCredential || !navigator.credentials) {
+            return 'WebAuthn/Passkeys are not supported in this browser or WebView. Please open in Chrome.';
+        }
+        return null;
+    }
+
     function renderPasskeys() {
         const list = document.getElementById('passkeyList');
         const passkeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
@@ -1220,8 +1212,9 @@
     }
 
     document.getElementById('createPasskeyBtn').addEventListener('click', () => {
-        if (!window.PublicKeyCredential || !navigator.credentials) {
-            setMsg('passkeyMsg', 'Passkeys (WebAuthn) require a modern browser over HTTPS or localhost.', 'error');
+        const issue = getPasskeyEnvIssue();
+        if (issue) {
+            setMsg('passkeyMsg', issue, 'error');
             return;
         }
         document.getElementById('passkeyLabelInput').value = `${detectDeviceType()} Passkey`;
@@ -1230,6 +1223,12 @@
     });
 
     document.getElementById('confirmCreatePasskeyBtn').addEventListener('click', async () => {
+        const issue = getPasskeyEnvIssue();
+        if (issue) {
+            setMsg('passkeyModalMsg', issue, 'error');
+            return;
+        }
+
         const label = document.getElementById('passkeyLabelInput').value.trim() || 'Google Password Manager Passkey';
         const btn = document.getElementById('confirmCreatePasskeyBtn');
         btn.disabled = true;
@@ -1244,18 +1243,23 @@
             const userIdBytes = new TextEncoder().encode(userIdentifier).slice(0, 64);
 
             const existingPasskeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
-            const excludeCredentials = existingPasskeys
-                .filter(pk => pk.rawId)
-                .map(pk => ({
-                    id: base64UrlToBuffer(pk.rawId),
-                    type: 'public-key'
-                }));
+            const excludeCredentials = [];
+            for (const pk of existingPasskeys) {
+                try {
+                    if (pk.rawId) {
+                        excludeCredentials.push({
+                            id: base64UrlToBuffer(pk.rawId),
+                            type: 'public-key'
+                        });
+                    }
+                } catch (e) { /* skip invalid rawId */ }
+            }
 
+            // Omit rp.id so browser automatically derives exact RP ID for current domain/localhost
             const publicKeyOptions = {
                 challenge,
                 rp: {
-                    name: "Perplexity Account",
-                    id: window.location.hostname || undefined
+                    name: "Perplexity Account"
                 },
                 user: {
                     id: userIdBytes,
@@ -1263,16 +1267,15 @@
                     displayName: `${currentUserData["First Name"] || ""} ${currentUserData["Last Name"] || ""}`.trim() || currentUserData["Email"] || "User"
                 },
                 pubKeyCredParams: [
-                    { alg: -7, type: "public-key" },   // ES256 (Google Password Manager standard)
-                    { alg: -257, type: "public-key" }  // RS256
+                    { alg: -7, type: "public-key" },
+                    { alg: -257, type: "public-key" }
                 ],
                 authenticatorSelection: {
-                    residentKey: "required",
-                    requireResidentKey: true,
+                    residentKey: "preferred",
                     userVerification: "preferred"
                 },
                 excludeCredentials,
-                timeout: 60000,
+                timeout: 300000,
                 attestation: "none"
             };
 
@@ -1306,14 +1309,19 @@
             setMsg('passkeyMsg', 'Passkey created and saved!', 'success');
         } catch (err) {
             console.error("Passkey create error:", err);
+            const inIframe = window.self !== window.top;
             if (err.name === 'NotAllowedError') {
-                setMsg('passkeyModalMsg', 'Passkey prompt cancelled or timed out.', 'error');
+                if (inIframe) {
+                    setMsg('passkeyModalMsg', 'Blocked inside iframe/preview. Open security.html directly in Chrome over HTTPS.', 'error');
+                } else {
+                    setMsg('passkeyModalMsg', `NotAllowedError: Prompt dismissed, or blocked because device lock / Google Password Manager / WebView is unavailable. (${err.message})`, 'error');
+                }
             } else if (err.name === 'SecurityError') {
-                setMsg('passkeyModalMsg', 'Passkeys require HTTPS or localhost (cannot run on file://).', 'error');
+                setMsg('passkeyModalMsg', `SecurityError: Must run on HTTPS or http://localhost. (${err.message})`, 'error');
             } else if (err.name === 'InvalidStateError') {
                 setMsg('passkeyModalMsg', 'A passkey for this account already exists on this password manager.', 'error');
             } else {
-                setMsg('passkeyModalMsg', `Passkey error: ${err.message}`, 'error');
+                setMsg('passkeyModalMsg', `${err.name}: ${err.message}`, 'error');
             }
         } finally {
             btn.disabled = false;
@@ -1322,8 +1330,9 @@
     });
 
     async function testPasskey(pk) {
-        if (!window.PublicKeyCredential || !navigator.credentials) {
-            setMsg('passkeyMsg', 'WebAuthn not supported in this browser/context.', 'error');
+        const issue = getPasskeyEnvIssue();
+        if (issue) {
+            setMsg('passkeyMsg', issue, 'error');
             return;
         }
         try {
@@ -1334,13 +1343,12 @@
             const assertion = await navigator.credentials.get({
                 publicKey: {
                     challenge,
-                    rpId: window.location.hostname || undefined,
                     allowCredentials: [{
                         id: base64UrlToBuffer(pk.rawId),
                         type: 'public-key'
                     }],
                     userVerification: "preferred",
-                    timeout: 60000
+                    timeout: 300000
                 }
             });
 
@@ -1349,7 +1357,7 @@
             }
         } catch (err) {
             console.error("Passkey test error:", err);
-            setMsg('passkeyMsg', `Passkey test cancelled or failed (${err.name}).`, 'error');
+            setMsg('passkeyMsg', `${err.name}: ${err.message}`, 'error');
         }
     }
 
