@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security</title>
+    <title>Passkeys</title>
     <style>
         :root {
             --bg-color: #ffffff;
@@ -26,6 +26,7 @@
             --badge-on-text: #137333;
             --badge-off-bg: #f1f3f4;
             --badge-off-text: #5f6368;
+            --pill-bg: #f2f2f2;
             --link-color: #0066cc;
             --error-color: #d93025;
             --success-color: #188038;
@@ -53,6 +54,7 @@
             --badge-on-text: #81c995;
             --badge-off-bg: #262626;
             --badge-off-text: #aaaaaa;
+            --pill-bg: #1a1a1a;
             --link-color: #4da3ff;
             --error-color: #f28b82;
             --success-color: #81c995;
@@ -71,7 +73,7 @@
         }
 
         .page-wrap {
-            max-width: 600px;
+            max-width: 580px;
             margin: 0 auto;
             padding: 28px 20px 64px;
         }
@@ -80,7 +82,6 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
             margin-bottom: 24px;
         }
 
@@ -95,47 +96,6 @@
 
         .back-link:hover { color: var(--text-primary); }
 
-        .user-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            padding: 4px 12px 4px 6px;
-            border-radius: 20px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            max-width: 260px;
-        }
-
-        .user-pill img {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            object-fit: cover;
-            display: none;
-        }
-
-        .user-pill .avatar-fallback {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: var(--btn-secondary-bg);
-            color: var(--text-primary);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .user-pill span.email-txt {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
         h1 {
             font-size: 28px;
             font-weight: 600;
@@ -145,8 +105,36 @@
         .lead {
             font-size: 15px;
             color: var(--text-secondary);
-            margin: 0 0 28px;
+            margin: 0 0 22px;
             line-height: 1.5;
+        }
+
+        .mode-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            background: var(--pill-bg);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .mode-tab {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 10px 8px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-tab.active {
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
         }
 
         .card {
@@ -196,45 +184,80 @@
             color: var(--badge-off-text);
         }
 
-        .info-grid {
-            display: grid;
+        .passkey-list {
+            display: flex;
+            flex-direction: column;
             gap: 10px;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
 
-        .info-row {
+        .passkey-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             gap: 12px;
-            padding: 10px 12px;
+            padding: 13px 14px;
             background: var(--bg-color);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 14px;
+            flex-wrap: wrap;
+        }
+
+        .passkey-item.clickable {
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+            flex-wrap: nowrap;
+        }
+
+        .passkey-item.clickable:hover {
+            border-color: var(--input-focus);
+        }
+
+        .passkey-meta { min-width: 0; flex: 1; }
+
+        .passkey-name {
             font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
-        .info-label {
+        .passkey-sub {
+            font-size: 12px;
             color: var(--text-secondary);
-            font-size: 13px;
-        }
-
-        .info-value {
-            font-weight: 500;
-            text-align: right;
+            margin-top: 3px;
             word-break: break-all;
         }
 
-        .btn-row {
+        .tag {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: var(--badge-off-bg);
+            color: var(--badge-off-text);
+        }
+
+        .tag.local {
+            background: var(--badge-on-bg);
+            color: var(--badge-on-text);
+        }
+
+        .passkey-actions {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         .btn {
             border: none;
             border-radius: 24px;
-            padding: 10px 18px;
+            padding: 11px 18px;
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
@@ -269,81 +292,71 @@
             color: var(--btn-danger-text);
         }
 
-        .passkey-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 14px;
+        .btn-sm {
+            padding: 7px 12px;
+            font-size: 12px;
         }
 
-        .passkey-item {
+        .provider-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            padding: 12px;
+            padding: 12px 14px;
             background: var(--bg-color);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-        }
-
-        .passkey-meta { min-width: 0; }
-
-        .passkey-name {
+            margin-bottom: 8px;
             font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
         }
 
-        .passkey-sub {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-
-        .tag {
-            font-size: 11px;
-            font-weight: 500;
-            padding: 2px 7px;
-            border-radius: 10px;
-            background: var(--badge-off-bg);
-            color: var(--badge-off-text);
-        }
-
-        .tag.local {
-            background: var(--badge-on-bg);
-            color: var(--badge-on-text);
-        }
+        .provider-row:last-child { margin-bottom: 0; }
 
         .inline-msg {
             font-size: 13px;
             margin-top: 10px;
-            min-height: 16px;
+            min-height: 18px;
             line-height: 1.45;
         }
 
         .inline-msg.error { color: var(--error-color); }
         .inline-msg.success { color: var(--success-color); }
 
-        .resend-wrap {
-            text-align: right;
-            margin-top: -6px;
-            margin-bottom: 10px;
-        }
-
-        .text-link {
-            background: none;
-            border: none;
-            color: var(--link-color);
+        .empty-box {
+            padding: 16px;
+            text-align: center;
             font-size: 13px;
-            cursor: pointer;
-            padding: 0;
+            color: var(--text-secondary);
+            background: var(--bg-color);
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 14px;
         }
 
-        .text-link:hover { text-decoration: underline; }
+        .transfer-code-box {
+            text-align: center;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 18px;
+            margin: 14px 0;
+        }
+
+        .transfer-code-digits {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 6px;
+            margin: 6px 0 10px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 12px 0;
+            cursor: pointer;
+        }
 
         /* Modal */
         .modal-overlay {
@@ -404,7 +417,6 @@
         }
 
         input[type="text"],
-        input[type="email"],
         input[type="password"] {
             width: 100%;
             padding: 13px 14px;
@@ -432,256 +444,213 @@
             margin-top: 16px;
         }
 
-        .auth-gate {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
+        .section-panel,
         .modal-step { display: none; }
+        .section-panel.active,
         .modal-step.active { display: block; }
     </style>
 </head>
 <body>
 
-<div class="page-wrap" id="authGate" style="display: none;">
-    <div class="auth-gate">
-        <h1>Sign in required</h1>
-        <p class="lead">Please sign in to manage your account security settings.</p>
-        <button class="btn btn-primary" id="signInRedirectBtn">Sign in</button>
-    </div>
-</div>
-
-<div class="page-wrap" id="mainContent" style="display: none;">
+<div class="page-wrap">
     <div class="top-bar">
-        <a class="back-link" id="backLink" href="4.html">&#8592; Back</a>
-        <div class="user-pill">
-            <img id="userAvatarImg" alt="Profile">
-            <span class="avatar-fallback" id="userAvatarFallback">U</span>
-            <span class="email-txt" id="loggedInEmailLabel"></span>
-        </div>
+        <a class="back-link" id="backLink" href="security.html">&#8592; Back to Security</a>
+        <span style="font-size: 13px; color: var(--text-secondary);" id="loggedInEmailLabel">Not signed in</span>
     </div>
 
-    <h1>Security</h1>
-    <p class="lead">Manage your authentication manager, 2-way security, recovery contacts, and device passkeys.</p>
+    <h1>Passkeys</h1>
+    <p class="lead">Passwordless sign-in powered by our own device-bound Passkey system.</p>
 
-    <!-- 1. AUTHENTICATION MANAGER -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">Authentication Manager</h2>
-            <span class="status-pill on">Active</span>
-        </div>
-        <p class="card-desc">Control active sessions, rotate your Lotus security token, update your password, or log out.</p>
-
-        <div class="info-grid">
-            <div class="info-row">
-                <span class="info-label">Current Device</span>
-                <span class="info-value" id="currentDeviceText">Detecting...</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Session Token (Lotus)</span>
-                <span class="info-value" id="lotusTokenPreview">••••</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Saved Device Accounts</span>
-                <span class="info-value" id="savedAccountsCount">0</span>
-            </div>
-        </div>
-
-        <div class="btn-row">
-            <button type="button" class="btn btn-primary" id="openChangePassBtn">Change Password</button>
-            <button type="button" class="btn btn-secondary" id="rotateSessionBtn">Sign out other sessions</button>
-            <a class="btn btn-secondary" id="manageAccountsLink" href="3.html">Switch account</a>
-            <a class="btn btn-secondary" id="logoutPageLink" href="logout.html">Log out</a>
-        </div>
-        <div class="inline-msg" id="authMgrMsg"></div>
+    <div class="mode-tabs">
+        <button type="button" class="mode-tab active" data-panel="managePanel">My Passkeys</button>
+        <button type="button" class="mode-tab" data-panel="signInPanel">Sign In</button>
+        <button type="button" class="mode-tab" data-panel="transferPanel">Transfer</button>
     </div>
 
-    <!-- 2. 2 WAY SECURITY -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">2 Way Security</h2>
-            <span class="status-pill off" id="twoWayBadge">Disabled</span>
+    <!-- PANEL 1: MANAGE / CREATE PASSKEYS -->
+    <div class="section-panel active" id="managePanel">
+        <div class="card" id="notSignedInManageCard" style="display: none;">
+            <h2 class="card-title" style="margin-bottom: 8px;">Sign in to create a passkey</h2>
+            <p class="card-desc">Sign in to your account first to generate a device passkey for it.</p>
+            <button type="button" class="btn btn-primary" id="goToSignInBtn">Sign in</button>
         </div>
-        <p class="card-desc">Add an extra layer of protection with email one-time verification codes (OTP).</p>
 
-        <div class="info-grid">
-            <div class="info-row">
-                <span class="info-label">Verification Email</span>
-                <span class="info-value" id="twoWayChannelText">Primary Email</span>
+        <div id="signedInManageContent" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Your Passkeys</h2>
+                    <span class="status-pill off" id="passkeyCountBadge">0 active</span>
+                </div>
+                <p class="card-desc">A unique cryptographic secret stays on this device while its verification hash is stored securely in your account.</p>
+
+                <div class="passkey-list" id="managePasskeyList"></div>
+
+                <button type="button" class="btn btn-primary" id="openCreatePasskeyBtn">+ Create Passkey</button>
+                <div class="inline-msg" id="manageMsg"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">External Providers</h2>
+                    <span class="status-pill off">Future</span>
+                </div>
+                <p class="card-desc">Additional third-party passkey managers will be integrated here later.</p>
+                <div class="provider-row">
+                    <span>Perplexity Custom Passkey</span>
+                    <span class="status-pill on">Active</span>
+                </div>
+                <div class="provider-row">
+                    <span>Google Password Manager</span>
+                    <span class="status-pill off">Coming soon</span>
+                </div>
+                <div class="provider-row">
+                    <span>Apple iCloud Keychain</span>
+                    <span class="status-pill off">Coming soon</span>
+                </div>
             </div>
         </div>
-
-        <div class="btn-row">
-            <button type="button" class="btn btn-primary" id="toggleTwoWayBtn">Enable 2 Way Security</button>
-        </div>
-        <div class="inline-msg" id="twoWayMsg"></div>
     </div>
 
-    <!-- 3. RECOVERY_NUMBER -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">Recovery Number</h2>
-            <span class="status-pill off" id="recoveryNumBadge">Not set</span>
-        </div>
-        <p class="card-desc">Used to verify your identity or help you recover access if you forget your password or email.</p>
-
-        <div class="info-grid">
-            <div class="info-row">
-                <span class="info-label">Recovery_Number</span>
-                <span class="info-value" id="recoveryNumText">Not configured</span>
+    <!-- PANEL 2: SIGN IN WITH PASSKEY -->
+    <div class="section-panel" id="signInPanel">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Saved Device Passkeys</h2>
+                <span class="status-pill off" id="devicePasskeyBadge">0 on device</span>
             </div>
-        </div>
+            <p class="card-desc">Choose a passkey stored on this device to verify and sign in immediately.</p>
 
-        <div class="btn-row">
-            <button type="button" class="btn btn-primary" id="editRecoveryNumBtn">Add Recovery Number</button>
-            <button type="button" class="btn btn-secondary" id="removeRecoveryNumBtn" style="display: none;">Remove</button>
+            <div class="passkey-list" id="signInPasskeyList"></div>
+            <div class="inline-msg" id="signInMsg"></div>
         </div>
-        <div class="inline-msg" id="recoveryNumMsg"></div>
     </div>
 
-    <!-- 4. RECOVERY_EMAIL -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">Recovery Email</h2>
-            <span class="status-pill off" id="recoveryEmailBadge">Not set</span>
-        </div>
-        <p class="card-desc">Receives a 6-digit OTP when resetting your password or recovering your account.</p>
-
-        <div class="info-grid">
-            <div class="info-row">
-                <span class="info-label">Recovery_Email</span>
-                <span class="info-value" id="recoveryEmailText">Not configured</span>
+    <!-- PANEL 3: TRANSFER PASSKEY (SEND FROM THIS DEVICE + RECEIVE ON NEW DEVICE) -->
+    <div class="section-panel" id="transferPanel">
+        <!-- SEND FROM THIS DEVICE -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Send Passkey from This Device</h2>
+                <span class="status-pill off" id="transferSendBadge">0 ready</span>
             </div>
+            <p class="card-desc">Select a passkey stored on this device to generate a 6-digit Transfer Code using your Passkey PIN or Device Screen Lock.</p>
+
+            <div class="passkey-list" id="transferSendList"></div>
+            <div class="inline-msg" id="transferSendMsg"></div>
         </div>
 
-        <div class="btn-row">
-            <button type="button" class="btn btn-primary" id="editRecoveryEmailBtn">Add Recovery Email</button>
-            <button type="button" class="btn btn-secondary" id="removeRecoveryEmailBtn" style="display: none;">Remove</button>
-        </div>
-        <div class="inline-msg" id="recoveryEmailMsg"></div>
-    </div>
+        <!-- RECEIVE ON THIS DEVICE -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Receive Passkey on This Device</h2>
+                <span class="status-pill on">Receive</span>
+            </div>
+            <p class="card-desc">Enter the 6-digit Transfer Code shown on the device where the passkey is currently stored.</p>
 
-    <!-- 5. PASSKEYS (CONNECTED TO passkey.html) -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">Passkeys</h2>
-            <span class="status-pill off" id="passkeyBadge">0 saved</span>
-        </div>
-        <p class="card-desc">Create, test, revoke, or transfer device passkeys in the Passkey Manager.</p>
-
-        <div class="passkey-list" id="passkeyList"></div>
-
-        <div class="btn-row">
-            <a class="btn btn-primary" id="createPasskeyLink" href="passkey.html">+ Create Passkey</a>
-            <a class="btn btn-secondary" id="managePasskeysLink" href="passkey.html">Manage Passkeys</a>
-            <a class="btn btn-secondary" id="transferPasskeyLink" href="passkey.html">Transfer Passkey</a>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: CHANGE PASSWORD -->
-<div class="modal-overlay" id="passwordModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Change Password</h3>
-            <button class="close-btn" data-close="passwordModal">&times;</button>
-        </div>
-        <div class="input-group">
-            <label>Current Password</label>
-            <input type="password" id="curPassInput">
-        </div>
-        <div class="input-group">
-            <label>New Password</label>
-            <input type="password" id="newPassInput">
-        </div>
-        <div class="input-group">
-            <label>Confirm New Password</label>
-            <input type="password" id="confirmPassInput">
-        </div>
-        <div class="inline-msg" id="passModalMsg"></div>
-        <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" data-close="passwordModal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="savePassBtn">Update Password</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: 2 WAY SECURITY OTP -->
-<div class="modal-overlay" id="twoWayModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3 id="twoWayModalTitle">Verify 2 Way Security</h3>
-            <button class="close-btn" data-close="twoWayModal">&times;</button>
-        </div>
-        <p class="helper-text" id="twoWayOtpDesc">Enter the 6-digit OTP sent to your email.</p>
-        <div class="input-group">
-            <label>6-Digit OTP</label>
-            <input type="text" id="twoWayOtpInput" maxlength="6" autocomplete="off">
-        </div>
-        <div class="resend-wrap">
-            <button type="button" class="text-link" id="resendTwoWayOtpBtn">Resend OTP</button>
-        </div>
-        <div class="inline-msg" id="twoWayModalMsg"></div>
-        <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" data-close="twoWayModal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="confirmTwoWayOtpBtn">Verify</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: RECOVERY_NUMBER -->
-<div class="modal-overlay" id="recoveryNumModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Recovery Number</h3>
-            <button class="close-btn" data-close="recoveryNumModal">&times;</button>
-        </div>
-        <div class="input-group">
-            <label>Phone Number</label>
-            <input type="text" id="recoveryNumInput" placeholder="+919876543210" autocomplete="off">
-        </div>
-        <div class="inline-msg" id="recoveryNumModalMsg"></div>
-        <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" data-close="recoveryNumModal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="saveRecoveryNumBtn">Save</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: RECOVERY_EMAIL (with OTP) -->
-<div class="modal-overlay" id="recoveryEmailModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Recovery Email</h3>
-            <button class="close-btn" data-close="recoveryEmailModal">&times;</button>
-        </div>
-
-        <div class="modal-step active" id="recEmailStep1">
-            <p class="helper-text">We will send a 6-digit OTP to verify this recovery email address.</p>
             <div class="input-group">
-                <label>Recovery Email Address</label>
-                <input type="email" id="recoveryEmailInput" placeholder="recovery@email.com" autocomplete="off">
+                <label>6-Digit Transfer Code</label>
+                <input type="text" id="receiveCodeInput" maxlength="6" placeholder="e.g. 482910" autocomplete="off">
             </div>
-            <div class="inline-msg" id="recEmailStep1Msg"></div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" data-close="recoveryEmailModal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="sendRecEmailOtpBtn">Send OTP</button>
+
+            <div class="input-group">
+                <label>Passkey PIN (if set on that passkey)</label>
+                <input type="password" id="receivePinInput" maxlength="6" placeholder="Leave blank if 1-tap passkey" autocomplete="off">
+            </div>
+
+            <button type="button" class="btn btn-primary" id="receivePasskeyBtn">Receive Passkey</button>
+            <div class="inline-msg" id="receiveMsg"></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CREATE PASSKEY -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Create Passkey</h3>
+            <button class="close-btn" data-close="createModal">&times;</button>
+        </div>
+        <p class="helper-text">This device will save a private passkey secret for instant verification.</p>
+        <div class="input-group">
+            <label>Passkey Name</label>
+            <input type="text" id="passkeyNameInput" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label>Passkey PIN (Optional, 4-6 digits)</label>
+            <input type="password" id="passkeyPinInput" maxlength="6" placeholder="Leave blank for 1-tap passkey" autocomplete="off">
+        </div>
+        <div class="inline-msg" id="createModalMsg"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close="createModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="confirmCreateBtn">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ENTER PASSKEY PIN -->
+<div class="modal-overlay" id="pinModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="pinModalTitle">Verify Passkey PIN</h3>
+            <button class="close-btn" data-close="pinModal">&times;</button>
+        </div>
+        <p class="helper-text" id="pinModalDesc">Enter your Passkey PIN to continue.</p>
+        <div class="input-group">
+            <label>Passkey PIN</label>
+            <input type="password" id="verifyPinInput" maxlength="6" autocomplete="off">
+        </div>
+        <div class="inline-msg" id="pinModalMsg"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close="pinModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="confirmPinBtn">Verify</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: TRANSFER PASSKEY FROM SOURCE DEVICE -->
+<div class="modal-overlay" id="transferModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="transferModalTitle">Transfer Passkey</h3>
+            <button class="close-btn" data-close="transferModal">&times;</button>
+        </div>
+
+        <!-- Step 1: Unlock source device via Passkey PIN, Screen Lock, or Account Password -->
+        <div class="modal-step active" id="transferStepAuth">
+            <p class="helper-text" id="transferAuthDesc">Verify your Passkey PIN or Device Screen Lock to export this passkey.</p>
+
+            <div class="input-group" id="transferSecretInputGroup">
+                <label id="transferSecretLabel">Passkey PIN</label>
+                <input type="password" id="transferSecretInput" autocomplete="off">
+            </div>
+
+            <label class="checkbox-row">
+                <input type="checkbox" id="movePasskeyCheck" checked>
+                <span>Remove passkey from this device after transfer (Move)</span>
+            </label>
+
+            <div class="inline-msg" id="transferAuthMsg"></div>
+
+            <div class="modal-actions" style="flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary" data-close="transferModal">Cancel</button>
+                <button type="button" class="btn btn-secondary" id="useScreenLockBtn">Use Screen Lock</button>
+                <button type="button" class="btn btn-primary" id="generateTransferCodeBtn">Verify &amp; Generate Code</button>
             </div>
         </div>
 
-        <div class="modal-step" id="recEmailStep2">
-            <p class="helper-text" id="recEmailOtpPrompt"></p>
-            <div class="input-group">
-                <label>6-Digit OTP</label>
-                <input type="text" id="recEmailOtpInput" maxlength="6" autocomplete="off">
+        <!-- Step 2: Show 6-digit Transfer Code & wait for target device -->
+        <div class="modal-step" id="transferStepCode">
+            <p class="helper-text">On your new device, open <strong>Passkeys &rarr; Transfer &rarr; Receive Passkey</strong> and enter this 6-digit code. Expires in 5 minutes.</p>
+
+            <div class="transfer-code-box">
+                <div style="font-size: 12px; color: var(--text-secondary);">Transfer Code</div>
+                <div class="transfer-code-digits" id="transferCodeDisplay">000000</div>
+                <button type="button" class="btn btn-secondary btn-sm" id="copyTransferCodeBtn" style="margin-bottom: 10px;">Copy Code</button>
+                <div style="font-size: 12px; color: var(--text-secondary);" id="transferWaitStatus">Waiting for new device...</div>
             </div>
-            <div class="resend-wrap">
-                <button type="button" class="text-link" id="resendRecEmailOtpBtn">Resend OTP</button>
-            </div>
-            <div class="inline-msg" id="recEmailStep2Msg"></div>
+
             <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" id="backRecEmailBtn">Back</button>
-                <button type="button" class="btn btn-primary" id="verifyRecEmailOtpBtn">Verify &amp; Save</button>
+                <button type="button" class="btn btn-secondary" data-close="transferModal">Close</button>
             </div>
         </div>
     </div>
@@ -693,16 +662,18 @@
         getFirestore,
         collection,
         getDocs,
+        getDoc,
         query,
         where,
         updateDoc,
         doc,
-        deleteField,
+        setDoc,
         addDoc,
+        onSnapshot,
         serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // 1. Primary DB (UARM)
+    // 1. Primary DB (UARM, ASPX Keys, Passkey_Transfers)
     const firebaseConfig = {
         apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
         authDomain: "question-metabase.firebaseapp.com",
@@ -715,7 +686,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 2. Secondary DB (cloud-computer-4891a for Email)
+    // 2. Secondary DB (cloud-computer-4891a for Email alerts)
     const mailFirebaseConfig = {
         apiKey: "AIzaSyAo8Uzs4XZHDHTSTfgx59w5h5NlYuGC8s0",
         authDomain: "cloud-computer-4891a.firebaseapp.com",
@@ -734,6 +705,9 @@
     const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus') || '';
     const continueUrl = urlParams.get('continue') || '4.html';
     const provider = urlParams.get('provider') || '';
+    const modeParam = (urlParams.get('mode') || '').toLowerCase();
+    const createParam = urlParams.get('create') === '1';
+    const fromParam = (urlParams.get('from') || '').toLowerCase();
     const theme = urlParams.get('theme') ? urlParams.get('theme').toLowerCase() : null;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -758,41 +732,16 @@
     /* ================= STATE ================= */
     let currentUserDocId = null;
     let currentUserData = null;
+    let pendingPinCallback = null;
 
-    let pendingTwoWayTarget = false;
-    let twoWayOtp = '';
-    let twoWayOtpExpires = 0;
+    let transferContext = null; // { pk, localEntry, ownerDocId, ownerData }
+    let transferUnsub = null;
 
-    let pendingRecEmail = '';
-    let recEmailOtp = '';
-    let recEmailOtpExpires = 0;
-
-    /* ================= HELPERS ================= */
-    function setMsg(id, text, type = '') {
-        const el = document.getElementById(id);
-        el.textContent = text;
-        el.className = 'inline-msg' + (type ? ` ${type}` : '');
-    }
-
-    function openModal(id) {
-        document.getElementById(id).classList.add('open');
-    }
-
-    function closeModal(id) {
-        document.getElementById(id).classList.remove('open');
-    }
-
-    document.querySelectorAll('[data-close]').forEach(btn => {
-        btn.addEventListener('click', () => closeModal(btn.dataset.close));
-    });
-
-    function buildUrl(page, extra = {}, includeLotus = true) {
+    function buildUrl(page, extra = {}) {
         const p = new URLSearchParams();
         if (session) p.set('session', session);
-        if (includeLotus) {
-            const activeLotus = (currentUserData && currentUserData["Lotus"]) || lotusParam;
-            if (activeLotus) p.set('Lotus', activeLotus);
-        }
+        const activeLotus = (currentUserData && currentUserData["Lotus"]) || lotusParam;
+        if (activeLotus) p.set('Lotus', activeLotus);
         if (continueUrl) p.set('continue', continueUrl);
         if (provider) p.set('provider', provider);
         if (theme) p.set('theme', theme);
@@ -803,10 +752,129 @@
         return qs ? `${page}?${qs}` : page;
     }
 
-    document.getElementById('backLink').href = continueUrl;
-    document.getElementById('signInRedirectBtn').addEventListener('click', () => {
-        window.location.href = buildUrl('1.html', { continue: window.location.href }, false);
+    function updateBackLink() {
+        const backEl = document.getElementById('backLink');
+        if (fromParam === 'login') {
+            backEl.innerHTML = '&#8592; Back to Login';
+            backEl.href = buildUrl('2.html');
+        } else if (modeParam === 'signin' && fromParam !== 'security') {
+            backEl.innerHTML = '&#8592; Back to Sign in';
+            backEl.href = buildUrl('1.html');
+        } else {
+            backEl.innerHTML = '&#8592; Back to Security';
+            backEl.href = buildUrl('security.html');
+        }
+    }
+    updateBackLink();
+
+    document.getElementById('goToSignInBtn').addEventListener('click', () => {
+        window.location.href = buildUrl('1.html', { continue: window.location.href });
     });
+
+    /* ================= CRYPTO & STORAGE HELPERS ================= */
+    function randomHex(byteLength = 24) {
+        if (window.crypto && window.crypto.getRandomValues) {
+            const bytes = new Uint8Array(byteLength);
+            window.crypto.getRandomValues(bytes);
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        let out = '';
+        for (let i = 0; i < byteLength * 2; i++) {
+            out += Math.floor(Math.random() * 16).toString(16);
+        }
+        return out;
+    }
+
+    async function sha256Hex(message) {
+        if (window.crypto && window.crypto.subtle) {
+            const msgUint8 = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+            return Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+        let ascii = unescape(encodeURIComponent(message));
+        const rightRotate = (v, a) => (v >>> a) | (v << (32 - a));
+        const mathPow = Math.pow;
+        const maxWord = mathPow(2, 32);
+        let result = '';
+        const words = [];
+        const asciiBitLength = ascii.length * 8;
+        const hash = [];
+        const k = [];
+        let primeCounter = 0;
+        const isComposite = {};
+        for (let candidate = 2; primeCounter < 64; candidate++) {
+            if (!isComposite[candidate]) {
+                for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+                hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+                k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+            }
+        }
+        ascii += '\x80';
+        while (ascii.length % 64 - 56) ascii += '\x00';
+        for (let i = 0; i < ascii.length; i++) {
+            const j = ascii.charCodeAt(i);
+            words[i >> 2] |= j << (((3 - i) % 4) * 8);
+        }
+        words[words.length] = (asciiBitLength / maxWord) | 0;
+        words[words.length] = asciiBitLength;
+        const H = hash.slice(0, 8);
+        for (let j = 0; j < words.length;) {
+            const w = words.slice(j, (j += 16));
+            const oldHash = H.slice(0);
+            for (let i = 0; i < 64; i++) {
+                const w15 = w[i - 15], w2 = w[i - 2];
+                const a = H[0], e = H[4];
+                const temp1 = H[7]
+                    + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+                    + ((e & H[5]) ^ ((~e) & H[6]))
+                    + k[i]
+                    + (w[i] = i < 16 ? w[i] : (
+                        w[i - 16]
+                        + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+                        + w[i - 7]
+                        + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+                    ) | 0);
+                const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+                    + ((a & H[1]) ^ (a & H[2]) ^ (H[1] & H[2]));
+                H.unshift((temp1 + temp2) | 0);
+                H.pop();
+                H[4] = (H[4] + temp1) | 0;
+            }
+            for (let i = 0; i < 8; i++) H[i] = (H[i] + oldHash[i]) | 0;
+        }
+        for (let i = 0; i < 8; i++) {
+            for (let j = 3; j + 1; j--) {
+                const b = (H[i] >> (j * 8)) & 255;
+                result += ((b < 16) ? 0 : '') + b.toString(16);
+            }
+        }
+        return result;
+    }
+
+    function xorHex(hexStr, padHex) {
+        let out = '';
+        for (let i = 0; i < hexStr.length; i++) {
+            const a = parseInt(hexStr[i], 16);
+            const b = parseInt(padHex[i % padHex.length], 16);
+            out += (a ^ b).toString(16);
+        }
+        return out;
+    }
+
+    function getLocalPasskeys() {
+        try {
+            const data = JSON.parse(localStorage.getItem('custom_passkeys') || '[]');
+            return Array.isArray(data) ? data : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveLocalPasskeys(list) {
+        localStorage.setItem('custom_passkeys', JSON.stringify(list));
+    }
 
     function detectDeviceType() {
         const ua = navigator.userAgent;
@@ -823,40 +891,73 @@
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
-    function syncLocalStorageUser() {
-        localStorage.setItem('active_user', JSON.stringify(currentUserData));
+    /* ================= FIRESTORE TRANSFER HELPERS (Passkey_Transfers + ASPX Keys fallback) ================= */
+    async function writeTransferDoc(code, payload) {
         try {
-            let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-            const email = currentUserData["Email"];
-            const idx = accounts.findIndex(acc => acc.email === email);
-            if (idx !== -1) {
-                accounts[idx].lotus = currentUserData["Lotus"] || accounts[idx].lotus;
-                accounts[idx].firstName = currentUserData["First Name"] || accounts[idx].firstName;
-                localStorage.setItem('saved_accounts', JSON.stringify(accounts));
-            }
-        } catch (e) { /* ignore */ }
+            await setDoc(doc(db, "Passkey_Transfers", code), payload);
+            return { col: "Passkey_Transfers", docId: code };
+        } catch (err) {
+            // Fallback to ASPX Keys if rules restrict collection names
+            const fallbackId = `pk_transfer_${code}`;
+            await setDoc(doc(db, "ASPX Keys", fallbackId), payload);
+            return { col: "ASPX Keys", docId: fallbackId };
+        }
     }
 
-    async function sendEmail(toEmail, subject, body) {
-        await addDoc(collection(mailDb, "Email"), {
-            subject,
-            body,
-            from: "systemplx.mail",
-            to: toEmail,
-            timestamp: serverTimestamp()
+    async function readTransferDoc(code) {
+        try {
+            const snap = await getDoc(doc(db, "Passkey_Transfers", code));
+            if (snap.exists()) return { ref: doc(db, "Passkey_Transfers", code), data: snap.data() };
+        } catch (e) { /* try fallback */ }
+
+        const fallbackRef = doc(db, "ASPX Keys", `pk_transfer_${code}`);
+        const fallbackSnap = await getDoc(fallbackRef);
+        if (fallbackSnap.exists()) return { ref: fallbackRef, data: fallbackSnap.data() };
+
+        return null;
+    }
+
+    /* ================= UI & MODAL HELPERS ================= */
+    function setMsg(id, text, type = '') {
+        const el = document.getElementById(id);
+        el.textContent = text;
+        el.className = 'inline-msg' + (type ? ` ${type}` : '');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('open');
+        if (id === 'transferModal' && transferUnsub) {
+            transferUnsub();
+            transferUnsub = null;
+        }
+    }
+
+    document.querySelectorAll('[data-close]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.dataset.close));
+    });
+
+    function switchPanel(panelId) {
+        document.querySelectorAll('.mode-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.panel === panelId);
+        });
+        document.querySelectorAll('.section-panel').forEach(p => {
+            p.classList.toggle('active', p.id === panelId);
         });
     }
 
-    /* ================= INIT & RENDER ================= */
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchPanel(tab.dataset.panel));
+    });
+
+    /* ================= INIT ================= */
     async function initPage() {
         let storedUser = null;
         try {
             if (localStorage.getItem('active_user')) {
                 storedUser = JSON.parse(localStorage.getItem('active_user'));
             }
-        } catch (e) {
-            console.error("LocalStorage error:", e);
-        }
+        } catch (e) { /* ignore */ }
 
         try {
             let snap = null;
@@ -866,473 +967,60 @@
                 snap = await getDocs(query(collection(db, "UARM"), where("Email", "==", storedUser["Email"])));
             }
 
-            if (!snap || snap.empty) {
-                document.getElementById('authGate').style.display = 'block';
-                return;
-            }
+            if (snap && !snap.empty) {
+                currentUserDocId = snap.docs[0].id;
+                currentUserData = snap.docs[0].data();
+                localStorage.setItem('active_user', JSON.stringify(currentUserData));
 
-            currentUserDocId = snap.docs[0].id;
-            currentUserData = snap.docs[0].data();
-            syncLocalStorageUser();
+                document.getElementById('loggedInEmailLabel').textContent = currentUserData["Email"] || "";
+                document.getElementById('notSignedInManageCard').style.display = 'none';
+                document.getElementById('signedInManageContent').style.display = 'block';
+                updateBackLink();
+                renderManageList();
 
-            const email = currentUserData["Email"] || "";
-            const firstName = currentUserData["First Name"] || email || "U";
-            document.getElementById('loggedInEmailLabel').textContent = email;
-
-            const pic = currentUserData["Profile_Picture"] || currentUserData["Profile Picture"];
-            if (pic) {
-                const img = document.getElementById('userAvatarImg');
-                img.src = pic;
-                img.style.display = 'inline-block';
-                document.getElementById('userAvatarFallback').style.display = 'none';
+                if (createParam && modeParam !== 'signin' && modeParam !== 'transfer') {
+                    openCreateModal();
+                }
             } else {
-                document.getElementById('userAvatarFallback').textContent = firstName[0].toUpperCase();
+                document.getElementById('notSignedInManageCard').style.display = 'block';
+                document.getElementById('signedInManageContent').style.display = 'none';
             }
-
-            document.getElementById('mainContent').style.display = 'block';
-            renderAllSections();
         } catch (err) {
-            console.error("Security init error:", err);
-            document.getElementById('authGate').style.display = 'block';
+            console.error("Init error:", err);
+            document.getElementById('notSignedInManageCard').style.display = 'block';
+        }
+
+        renderSignInList();
+        renderTransferSendList();
+
+        if (modeParam === 'transfer') {
+            switchPanel('transferPanel');
+        } else if (modeParam === 'signin' || (!currentUserData && getLocalPasskeys().length > 0 && modeParam !== 'manage')) {
+            switchPanel('signInPanel');
+        } else {
+            switchPanel('managePanel');
         }
     }
 
-    function renderAllSections() {
-        // 1. Auth Manager
-        document.getElementById('currentDeviceText').textContent = detectDeviceType();
-        const lotus = currentUserData["Lotus"] || "";
-        document.getElementById('lotusTokenPreview').textContent =
-            lotus.length > 6 ? `${lotus.slice(0, 4)}••••${lotus.slice(-4)}` : 'Active';
-
-        try {
-            const saved = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-            document.getElementById('savedAccountsCount').textContent = String(saved.length);
-        } catch (e) {
-            document.getElementById('savedAccountsCount').textContent = '0';
-        }
-
-        document.getElementById('manageAccountsLink').href = buildUrl('3.html', {}, false);
-        document.getElementById('logoutPageLink').href = buildUrl('logout.html', {}, false);
-
-        // 2. 2 Way Security
-        const twoWayOn = Boolean(currentUserData["Two_Way_Security"]);
-        const twoWayBadge = document.getElementById('twoWayBadge');
-        twoWayBadge.textContent = twoWayOn ? 'Enabled' : 'Disabled';
-        twoWayBadge.className = 'status-pill ' + (twoWayOn ? 'on' : 'off');
-        document.getElementById('toggleTwoWayBtn').textContent =
-            twoWayOn ? 'Disable 2 Way Security' : 'Enable 2 Way Security';
-        document.getElementById('twoWayChannelText').textContent =
-            currentUserData["Email"] || 'Primary Email';
-
-        // 3. Recovery_Number
-        const recNum = currentUserData["Recovery_Number"] || currentUserData["Phone Number"] || "";
-        const recNumBadge = document.getElementById('recoveryNumBadge');
-        document.getElementById('recoveryNumText').textContent = recNum || 'Not configured';
-        recNumBadge.textContent = recNum ? 'Configured' : 'Not set';
-        recNumBadge.className = 'status-pill ' + (recNum ? 'on' : 'off');
-        document.getElementById('editRecoveryNumBtn').textContent =
-            recNum ? 'Edit Recovery Number' : 'Add Recovery Number';
-        document.getElementById('removeRecoveryNumBtn').style.display =
-            currentUserData["Recovery_Number"] ? 'inline-flex' : 'none';
-
-        // 4. Recovery_Email
-        const recEmail = currentUserData["Recovery_Email"] || currentUserData["Recovery Email"] || "";
-        const recEmailBadge = document.getElementById('recoveryEmailBadge');
-        document.getElementById('recoveryEmailText').textContent = recEmail || 'Not configured';
-        recEmailBadge.textContent = recEmail ? 'Verified' : 'Not set';
-        recEmailBadge.className = 'status-pill ' + (recEmail ? 'on' : 'off');
-        document.getElementById('editRecoveryEmailBtn').textContent =
-            recEmail ? 'Edit Recovery Email' : 'Add Recovery Email';
-        document.getElementById('removeRecoveryEmailBtn').style.display =
-            (currentUserData["Recovery_Email"] || currentUserData["Recovery Email"]) ? 'inline-flex' : 'none';
-
-        // 5. Passkeys (connected to passkey.html)
-        renderPasskeySummary();
-    }
-
-    /* ================= 1. AUTHENTICATION MANAGER ================= */
-    document.getElementById('rotateSessionBtn').addEventListener('click', async () => {
-        const btn = document.getElementById('rotateSessionBtn');
-        btn.disabled = true;
-        setMsg('authMgrMsg', 'Refreshing security token...', '');
-        try {
-            const newLotus = generateNewLotus();
-            await updateDoc(doc(db, "UARM", currentUserDocId), { "Lotus": newLotus });
-            currentUserData["Lotus"] = newLotus;
-            syncLocalStorageUser();
-            renderAllSections();
-            setMsg('authMgrMsg', 'Security token rotated. Other sessions signed out.', 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('authMgrMsg', 'Failed to rotate session token.', 'error');
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    document.getElementById('openChangePassBtn').addEventListener('click', () => {
-        document.getElementById('curPassInput').value = '';
-        document.getElementById('newPassInput').value = '';
-        document.getElementById('confirmPassInput').value = '';
-        setMsg('passModalMsg', '');
-        openModal('passwordModal');
-    });
-
-    document.getElementById('confirmPassInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('savePassBtn').click();
-    });
-
-    document.getElementById('savePassBtn').addEventListener('click', async () => {
-        const cur = document.getElementById('curPassInput').value;
-        const np = document.getElementById('newPassInput').value;
-        const cp = document.getElementById('confirmPassInput').value;
-
-        if (!cur || !np || !cp) {
-            setMsg('passModalMsg', 'Please fill in all fields.', 'error');
-            return;
-        }
-        if (cur !== currentUserData["Password"]) {
-            setMsg('passModalMsg', 'Current password is incorrect.', 'error');
-            return;
-        }
-        if (np !== cp) {
-            setMsg('passModalMsg', 'New passwords do not match.', 'error');
-            return;
-        }
-
-        const btn = document.getElementById('savePassBtn');
-        btn.disabled = true;
-        btn.textContent = 'Updating...';
-
-        try {
-            const newLotus = generateNewLotus();
-            await updateDoc(doc(db, "UARM", currentUserDocId), {
-                "Password": np,
-                "Lotus": newLotus
-            });
-            currentUserData["Password"] = np;
-            currentUserData["Lotus"] = newLotus;
-            syncLocalStorageUser();
-
-            try {
-                await sendEmail(
-                    currentUserData["Email"],
-                    "Password Changed",
-                    `Hello ${currentUserData["First Name"] || "User"},\n\nYour account password was changed from Security Manager on ${detectDeviceType()}.`
-                );
-            } catch (e) { /* non-blocking */ }
-
-            closeModal('passwordModal');
-            renderAllSections();
-            setMsg('authMgrMsg', 'Password updated successfully.', 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('passModalMsg', 'Failed to update password.', 'error');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Update Password';
-        }
-    });
-
-    /* ================= 2. 2 WAY SECURITY ================= */
-    async function sendTwoWayOtpEmail() {
-        const targetEmail = currentUserData["Email"];
-        twoWayOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        twoWayOtpExpires = Date.now() + 10 * 60 * 1000;
-
-        await sendEmail(
-            targetEmail,
-            "2 Way Security Verification OTP",
-            `Hello ${currentUserData["First Name"] || "User"},\n\nYour OTP to ${pendingTwoWayTarget ? 'enable' : 'disable'} 2 Way Security is: ${twoWayOtp}\n\nThis code expires in 10 minutes.`
-        );
-    }
-
-    document.getElementById('toggleTwoWayBtn').addEventListener('click', async () => {
-        const currentlyOn = Boolean(currentUserData["Two_Way_Security"]);
-        pendingTwoWayTarget = !currentlyOn;
-
-        const targetEmail = currentUserData["Email"];
-        if (!targetEmail) {
-            setMsg('twoWayMsg', 'No primary email found for OTP verification.', 'error');
-            return;
-        }
-
-        const btn = document.getElementById('toggleTwoWayBtn');
-        btn.disabled = true;
-        setMsg('twoWayMsg', 'Sending verification OTP...', '');
-
-        try {
-            await sendTwoWayOtpEmail();
-            document.getElementById('twoWayModalTitle').textContent =
-                pendingTwoWayTarget ? 'Enable 2 Way Security' : 'Disable 2 Way Security';
-            document.getElementById('twoWayOtpDesc').textContent =
-                `Enter the 6-digit OTP sent to ${targetEmail}.`;
-            document.getElementById('twoWayOtpInput').value = '';
-            setMsg('twoWayModalMsg', '');
-            setMsg('twoWayMsg', '');
-            openModal('twoWayModal');
-        } catch (err) {
-            console.error(err);
-            setMsg('twoWayMsg', 'Failed to send verification OTP.', 'error');
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    document.getElementById('resendTwoWayOtpBtn').addEventListener('click', async () => {
-        try {
-            setMsg('twoWayModalMsg', 'Resending OTP...', '');
-            await sendTwoWayOtpEmail();
-            setMsg('twoWayModalMsg', 'New OTP sent!', 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('twoWayModalMsg', 'Failed to resend OTP.', 'error');
-        }
-    });
-
-    document.getElementById('twoWayOtpInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('confirmTwoWayOtpBtn').click();
-    });
-
-    document.getElementById('confirmTwoWayOtpBtn').addEventListener('click', async () => {
-        const code = document.getElementById('twoWayOtpInput').value.trim();
-        if (!code) return setMsg('twoWayModalMsg', 'Enter the 6-digit OTP.', 'error');
-        if (Date.now() > twoWayOtpExpires) return setMsg('twoWayModalMsg', 'OTP expired.', 'error');
-        if (code !== twoWayOtp) return setMsg('twoWayModalMsg', 'Incorrect OTP.', 'error');
-
-        const btn = document.getElementById('confirmTwoWayOtpBtn');
-        btn.disabled = true;
-
-        try {
-            await updateDoc(doc(db, "UARM", currentUserDocId), {
-                "Two_Way_Security": pendingTwoWayTarget
-            });
-            currentUserData["Two_Way_Security"] = pendingTwoWayTarget;
-            syncLocalStorageUser();
-            closeModal('twoWayModal');
-            renderAllSections();
-            setMsg('twoWayMsg', `2 Way Security ${pendingTwoWayTarget ? 'enabled' : 'disabled'}.`, 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('twoWayModalMsg', 'Failed to update 2 Way Security.', 'error');
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    /* ================= 3. RECOVERY_NUMBER ================= */
-    document.getElementById('editRecoveryNumBtn').addEventListener('click', () => {
-        document.getElementById('recoveryNumInput').value =
-            currentUserData["Recovery_Number"] || currentUserData["Phone Number"] || '';
-        setMsg('recoveryNumModalMsg', '');
-        openModal('recoveryNumModal');
-    });
-
-    document.getElementById('recoveryNumInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('saveRecoveryNumBtn').click();
-    });
-
-    document.getElementById('saveRecoveryNumBtn').addEventListener('click', async () => {
-        const num = document.getElementById('recoveryNumInput').value.trim();
-        if (!num || !/^\+?\d[\d\s\-()]{5,}$/.test(num)) {
-            setMsg('recoveryNumModalMsg', 'Please enter a valid phone number.', 'error');
-            return;
-        }
-
-        const cleanNum = num.replace(/[\s\-()]/g, '');
-        const btn = document.getElementById('saveRecoveryNumBtn');
-        btn.disabled = true;
-
-        try {
-            await updateDoc(doc(db, "UARM", currentUserDocId), {
-                "Recovery_Number": cleanNum
-            });
-            currentUserData["Recovery_Number"] = cleanNum;
-            syncLocalStorageUser();
-            closeModal('recoveryNumModal');
-            renderAllSections();
-            setMsg('recoveryNumMsg', 'Recovery_Number updated.', 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('recoveryNumModalMsg', 'Failed to save Recovery_Number.', 'error');
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    document.getElementById('removeRecoveryNumBtn').addEventListener('click', async () => {
-        try {
-            await updateDoc(doc(db, "UARM", currentUserDocId), {
-                "Recovery_Number": deleteField()
-            });
-            delete currentUserData["Recovery_Number"];
-            syncLocalStorageUser();
-            renderAllSections();
-            setMsg('recoveryNumMsg', 'Recovery_Number removed.', 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('recoveryNumMsg', 'Failed to remove Recovery_Number.', 'error');
-        }
-    });
-
-    /* ================= 4. RECOVERY_EMAIL (WITH OTP) ================= */
-    function showRecEmailStep(stepId) {
-        document.querySelectorAll('#recoveryEmailModal .modal-step').forEach(s => s.classList.remove('active'));
-        document.getElementById(stepId).classList.add('active');
-    }
-
-    async function sendRecEmailOtp() {
-        recEmailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        recEmailOtpExpires = Date.now() + 10 * 60 * 1000;
-
-        await sendEmail(
-            pendingRecEmail,
-            "Verify Your Recovery Email",
-            `Hello ${currentUserData["First Name"] || "User"},\n\nYour OTP to verify ${pendingRecEmail} as your Recovery Email is: ${recEmailOtp}\n\nThis code is valid for 10 minutes.`
-        );
-    }
-
-    document.getElementById('editRecoveryEmailBtn').addEventListener('click', () => {
-        document.getElementById('recoveryEmailInput').value =
-            currentUserData["Recovery_Email"] || currentUserData["Recovery Email"] || '';
-        document.getElementById('recEmailOtpInput').value = '';
-        setMsg('recEmailStep1Msg', '');
-        setMsg('recEmailStep2Msg', '');
-        showRecEmailStep('recEmailStep1');
-        openModal('recoveryEmailModal');
-    });
-
-    document.getElementById('recoveryEmailInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('sendRecEmailOtpBtn').click();
-    });
-
-    document.getElementById('sendRecEmailOtpBtn').addEventListener('click', async () => {
-        const email = document.getElementById('recoveryEmailInput').value.trim();
-        if (!email || !email.includes('@')) {
-            setMsg('recEmailStep1Msg', 'Please enter a valid email address.', 'error');
-            return;
-        }
-
-        const btn = document.getElementById('sendRecEmailOtpBtn');
-        btn.disabled = true;
-        btn.textContent = 'Sending...';
-
-        try {
-            pendingRecEmail = email;
-            await sendRecEmailOtp();
-            document.getElementById('recEmailOtpPrompt').textContent = `Enter the 6-digit OTP sent to ${email}.`;
-            showRecEmailStep('recEmailStep2');
-        } catch (err) {
-            console.error(err);
-            setMsg('recEmailStep1Msg', 'Failed to send OTP.', 'error');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Send OTP';
-        }
-    });
-
-    document.getElementById('resendRecEmailOtpBtn').addEventListener('click', async () => {
-        if (!pendingRecEmail) return;
-        try {
-            setMsg('recEmailStep2Msg', 'Resending OTP...', '');
-            await sendRecEmailOtp();
-            setMsg('recEmailStep2Msg', 'New OTP sent!', 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('recEmailStep2Msg', 'Failed to resend OTP.', 'error');
-        }
-    });
-
-    document.getElementById('backRecEmailBtn').addEventListener('click', () => showRecEmailStep('recEmailStep1'));
-
-    document.getElementById('recEmailOtpInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('verifyRecEmailOtpBtn').click();
-    });
-
-    document.getElementById('verifyRecEmailOtpBtn').addEventListener('click', async () => {
-        const code = document.getElementById('recEmailOtpInput').value.trim();
-        if (!code) return setMsg('recEmailStep2Msg', 'Enter the 6-digit OTP.', 'error');
-        if (Date.now() > recEmailOtpExpires) return setMsg('recEmailStep2Msg', 'OTP expired.', 'error');
-        if (code !== recEmailOtp) return setMsg('recEmailStep2Msg', 'Incorrect OTP.', 'error');
-
-        const btn = document.getElementById('verifyRecEmailOtpBtn');
-        btn.disabled = true;
-
-        try {
-            await updateDoc(doc(db, "UARM", currentUserDocId), {
-                "Recovery_Email": pendingRecEmail,
-                "Recovery Email": pendingRecEmail
-            });
-            currentUserData["Recovery_Email"] = pendingRecEmail;
-            currentUserData["Recovery Email"] = pendingRecEmail;
-            syncLocalStorageUser();
-
-            closeModal('recoveryEmailModal');
-            renderAllSections();
-            setMsg('recoveryEmailMsg', 'Recovery_Email verified and saved.', 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('recEmailStep2Msg', 'Failed to save Recovery_Email.', 'error');
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    document.getElementById('removeRecoveryEmailBtn').addEventListener('click', async () => {
-        try {
-            await updateDoc(doc(db, "UARM", currentUserDocId), {
-                "Recovery_Email": deleteField(),
-                "Recovery Email": deleteField()
-            });
-            delete currentUserData["Recovery_Email"];
-            delete currentUserData["Recovery Email"];
-            syncLocalStorageUser();
-            renderAllSections();
-            setMsg('recoveryEmailMsg', 'Recovery_Email removed.', 'success');
-        } catch (err) {
-            console.error(err);
-            setMsg('recoveryEmailMsg', 'Failed to remove Recovery_Email.', 'error');
-        }
-    });
-
-    /* ================= 5. PASSKEYS SUMMARY & CONNECTION TO passkey.html ================= */
-    function renderPasskeySummary() {
-        const list = document.getElementById('passkeyList');
+    /* ================= MANAGE PASSKEYS ================= */
+    function renderManageList() {
+        const list = document.getElementById('managePasskeyList');
+        const badge = document.getElementById('passkeyCountBadge');
         const passkeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
-        const badge = document.getElementById('passkeyBadge');
+        const customPasskeys = passkeys.filter(pk => pk.provider === 'Perplexity Passkey' || pk.secretHash);
+        const localPasskeys = getLocalPasskeys();
 
-        let localPasskeys = [];
-        try {
-            localPasskeys = JSON.parse(localStorage.getItem('custom_passkeys') || '[]');
-        } catch (e) {
-            localPasskeys = [];
-        }
-
-        document.getElementById('createPasskeyLink').href = buildUrl('passkey.html', {
-            mode: 'manage',
-            create: '1',
-            from: 'security'
-        });
-        document.getElementById('managePasskeysLink').href = buildUrl('passkey.html', {
-            mode: 'manage',
-            from: 'security'
-        });
-        document.getElementById('transferPasskeyLink').href = buildUrl('passkey.html', {
-            mode: 'transfer',
-            from: 'security'
-        });
-
-        badge.textContent = `${passkeys.length} saved`;
-        badge.className = 'status-pill ' + (passkeys.length > 0 ? 'on' : 'off');
+        badge.textContent = `${customPasskeys.length} active`;
+        badge.className = 'status-pill ' + (customPasskeys.length > 0 ? 'on' : 'off');
         list.innerHTML = '';
 
-        if (passkeys.length === 0) {
-            list.innerHTML = `<div class="info-row"><span class="info-label">No passkeys created yet</span></div>`;
+        if (customPasskeys.length === 0) {
+            list.innerHTML = `<div class="empty-box">No passkeys created for this account yet.</div>`;
             return;
         }
 
-        passkeys.forEach(pk => {
-            const hasLocal = localPasskeys.some(lp => lp.id === pk.id);
+        customPasskeys.forEach(pk => {
+            const localEntry = localPasskeys.find(lp => lp.id === pk.id);
             const dateText = pk.createdAt ? new Date(pk.createdAt).toLocaleDateString() : '';
 
             const row = document.createElement('div');
@@ -1341,14 +1029,723 @@
                 <div class="passkey-meta">
                     <div class="passkey-name">
                         <span>${pk.name || 'Passkey'}</span>
-                        ${hasLocal ? '<span class="tag local">This device</span>' : '<span class="tag">Other device</span>'}
+                        ${localEntry ? '<span class="tag local">This device</span>' : '<span class="tag">Other device</span>'}
                         ${pk.hasPin ? '<span class="tag">PIN</span>' : ''}
                     </div>
                     <div class="passkey-sub">${pk.device || 'Device'}${dateText ? ' · ' + dateText : ''}</div>
                 </div>
+                <div class="passkey-actions">
+                    ${localEntry ? '<button type="button" class="btn btn-secondary btn-sm transfer-btn">Transfer</button>' : ''}
+                    <button type="button" class="btn btn-secondary btn-sm test-btn">Test</button>
+                    <button type="button" class="btn btn-danger btn-sm del-btn">Delete</button>
+                </div>
             `;
+
+            if (localEntry) {
+                row.querySelector('.transfer-btn').addEventListener('click', () => {
+                    openTransferModal(pk, localEntry, currentUserDocId, currentUserData);
+                });
+            }
+            row.querySelector('.test-btn').addEventListener('click', () => testCustomPasskey(pk));
+            row.querySelector('.del-btn').addEventListener('click', () => deleteCustomPasskey(pk.id));
             list.appendChild(row);
         });
+    }
+
+    function openCreateModal() {
+        document.getElementById('passkeyNameInput').value = `${detectDeviceType()} Passkey`;
+        document.getElementById('passkeyPinInput').value = '';
+        setMsg('createModalMsg', '');
+        openModal('createModal');
+    }
+
+    document.getElementById('openCreatePasskeyBtn').addEventListener('click', openCreateModal);
+
+    document.getElementById('confirmCreateBtn').addEventListener('click', async () => {
+        const name = document.getElementById('passkeyNameInput').value.trim() || `${detectDeviceType()} Passkey`;
+        const pin = document.getElementById('passkeyPinInput').value.trim();
+
+        if (pin && !/^\d{4,6}$/.test(pin)) {
+            setMsg('createModalMsg', 'PIN must be 4 to 6 digits (or leave blank).', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('confirmCreateBtn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+        setMsg('createModalMsg', '');
+
+        try {
+            const passkeyId = 'pk_' + randomHex(10);
+            const deviceSecret = randomHex(24);
+            const secretHash = await sha256Hex(deviceSecret);
+            const pinHash = pin ? await sha256Hex(`${pin}:${passkeyId}`) : null;
+            const nowIso = new Date().toISOString();
+            const deviceName = detectDeviceType();
+
+            const serverRecord = {
+                id: passkeyId,
+                name,
+                device: deviceName,
+                provider: "Perplexity Passkey",
+                secretHash,
+                hasPin: Boolean(pin),
+                pinHash,
+                createdAt: nowIso,
+                lastUsedAt: null
+            };
+
+            const existing = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+            const updatedServerPasskeys = [...existing, serverRecord];
+
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Passkeys": updatedServerPasskeys
+            });
+
+            currentUserData["Passkeys"] = updatedServerPasskeys;
+            localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+            const localList = getLocalPasskeys();
+            localList.push({
+                id: passkeyId,
+                email: currentUserData["Email"],
+                name,
+                device: deviceName,
+                secret: deviceSecret,
+                hasPin: Boolean(pin),
+                createdAt: nowIso
+            });
+            saveLocalPasskeys(localList);
+
+            closeModal('createModal');
+            renderManageList();
+            renderSignInList();
+            renderTransferSendList();
+            setMsg('manageMsg', `Passkey "${name}" created on this device!`, 'success');
+        } catch (err) {
+            console.error("Create passkey error:", err);
+            setMsg('createModalMsg', 'Failed to create passkey. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Create';
+        }
+    });
+
+    async function testCustomPasskey(pk) {
+        const localEntry = getLocalPasskeys().find(lp => lp.id === pk.id);
+        if (!localEntry) {
+            setMsg('manageMsg', `"${pk.name}" belongs to another device (secret not stored here).`, 'error');
+            return;
+        }
+
+        const verifyAction = async (enteredPin) => {
+            if (pk.hasPin) {
+                const pinHash = await sha256Hex(`${enteredPin}:${pk.id}`);
+                if (pinHash !== pk.pinHash) {
+                    return 'Incorrect Passkey PIN.';
+                }
+            }
+            const secretHash = await sha256Hex(localEntry.secret);
+            if (secretHash !== pk.secretHash) {
+                return 'Device passkey secret mismatch.';
+            }
+            setMsg('manageMsg', `Passkey "${pk.name}" verified successfully!`, 'success');
+            return null;
+        };
+
+        if (pk.hasPin) {
+            promptForPin(`Verify "${pk.name}"`, 'Enter your Passkey PIN to test this passkey.', verifyAction);
+        } else {
+            const err = await verifyAction('');
+            if (err) setMsg('manageMsg', err, 'error');
+        }
+    }
+
+    async function deleteCustomPasskey(passkeyId) {
+        try {
+            const existing = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+            const updated = existing.filter(pk => pk.id !== passkeyId);
+
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Passkeys": updated
+            });
+            currentUserData["Passkeys"] = updated;
+            localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+            const localFiltered = getLocalPasskeys().filter(lp => lp.id !== passkeyId);
+            saveLocalPasskeys(localFiltered);
+
+            renderManageList();
+            renderSignInList();
+            renderTransferSendList();
+            setMsg('manageMsg', 'Passkey deleted.', 'success');
+        } catch (err) {
+            console.error("Delete passkey error:", err);
+            setMsg('manageMsg', 'Failed to delete passkey.', 'error');
+        }
+    }
+
+    /* ================= TRANSFER PANEL: SEND FROM THIS DEVICE ================= */
+    function renderTransferSendList() {
+        const list = document.getElementById('transferSendList');
+        const badge = document.getElementById('transferSendBadge');
+        const localPasskeys = getLocalPasskeys();
+
+        badge.textContent = `${localPasskeys.length} ready`;
+        badge.className = 'status-pill ' + (localPasskeys.length > 0 ? 'on' : 'off');
+        list.innerHTML = '';
+
+        if (localPasskeys.length === 0) {
+            list.innerHTML = `<div class="empty-box">No passkeys stored on this device to send.</div>`;
+            return;
+        }
+
+        localPasskeys.forEach(lp => {
+            const row = document.createElement('div');
+            row.className = 'passkey-item';
+            row.innerHTML = `
+                <div class="passkey-meta">
+                    <div class="passkey-name">
+                        <span>${lp.name || 'Passkey'}</span>
+                        ${lp.hasPin ? '<span class="tag">PIN</span>' : '<span class="tag local">1-tap</span>'}
+                    </div>
+                    <div class="passkey-sub">${lp.email || ''} · ${lp.device || 'Device'}</div>
+                </div>
+                <div class="passkey-actions">
+                    <button type="button" class="btn btn-primary btn-sm send-pk-btn">Transfer</button>
+                </div>
+            `;
+
+            row.querySelector('.send-pk-btn').addEventListener('click', () => startTransferFromLocalEntry(lp));
+            list.appendChild(row);
+        });
+    }
+
+    async function startTransferFromLocalEntry(localEntry) {
+        setMsg('transferSendMsg', 'Loading passkey details...', '');
+        try {
+            let ownerDocId = currentUserDocId;
+            let ownerData = currentUserData;
+
+            if (!ownerData || (ownerData["Email"] || '').toLowerCase() !== (localEntry.email || '').toLowerCase()) {
+                const snap = await getDocs(query(collection(db, "UARM"), where("Email", "==", localEntry.email)));
+                if (snap.empty) {
+                    setMsg('transferSendMsg', 'Account for this passkey was not found.', 'error');
+                    return;
+                }
+                ownerDocId = snap.docs[0].id;
+                ownerData = snap.docs[0].data();
+            }
+
+            const serverPk = (Array.isArray(ownerData["Passkeys"]) ? ownerData["Passkeys"] : [])
+                .find(pk => pk.id === localEntry.id);
+
+            if (!serverPk) {
+                setMsg('transferSendMsg', 'This passkey was already revoked from the account.', 'error');
+                return;
+            }
+
+            setMsg('transferSendMsg', '');
+            openTransferModal(serverPk, localEntry, ownerDocId, ownerData);
+        } catch (err) {
+            console.error("Load transfer passkey error:", err);
+            setMsg('transferSendMsg', 'Database error loading passkey.', 'error');
+        }
+    }
+
+    /* ================= TRANSFER MODAL (SOURCE DEVICE) ================= */
+    function showTransferStep(stepId) {
+        document.querySelectorAll('#transferModal .modal-step').forEach(s => s.classList.remove('active'));
+        document.getElementById(stepId).classList.add('active');
+    }
+
+    function openTransferModal(pk, localEntry, ownerDocId, ownerData) {
+        transferContext = { pk, localEntry, ownerDocId, ownerData };
+        document.getElementById('transferModalTitle').textContent = `Transfer "${pk.name}"`;
+        document.getElementById('transferSecretInput').value = '';
+        document.getElementById('movePasskeyCheck').checked = true;
+        setMsg('transferAuthMsg', '');
+
+        if (pk.hasPin) {
+            document.getElementById('transferAuthDesc').textContent =
+                'Enter your Passkey PIN (or use this device’s Screen Lock) to generate a Transfer Code.';
+            document.getElementById('transferSecretLabel').textContent = 'Passkey PIN';
+            document.getElementById('transferSecretInput').placeholder = 'Enter 4-6 digit Passkey PIN';
+        } else {
+            document.getElementById('transferAuthDesc').textContent =
+                'Verify with your Device Screen Lock or Account Password to generate a Transfer Code.';
+            document.getElementById('transferSecretLabel').textContent = 'Account Password';
+            document.getElementById('transferSecretInput').placeholder = 'Enter your account password';
+        }
+
+        showTransferStep('transferStepAuth');
+        openModal('transferModal');
+    }
+
+    async function tryDeviceScreenLock() {
+        if (!window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) {
+            throw new Error('Device Screen Lock requires HTTPS or localhost. Use your Passkey PIN / Account Password instead.');
+        }
+        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (!available) {
+            throw new Error('No biometric/screen lock authenticator found on this device. Use your Passkey PIN / Account Password instead.');
+        }
+
+        const ownerData = transferContext.ownerData;
+        const challenge = new Uint8Array(32);
+        crypto.getRandomValues(challenge);
+
+        const cred = await navigator.credentials.create({
+            publicKey: {
+                challenge,
+                rp: { name: "Passkey Device Lock Verification" },
+                user: {
+                    id: new TextEncoder().encode(ownerData["Email"] || "user").slice(0, 64),
+                    name: ownerData["Email"] || "user",
+                    displayName: ownerData["First Name"] || "User"
+                },
+                pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform",
+                    userVerification: "required"
+                },
+                timeout: 60000,
+                attestation: "none"
+            }
+        });
+        if (!cred) throw new Error('Screen lock verification cancelled.');
+        return true;
+    }
+
+    async function createTransferSession() {
+        const { pk, localEntry, ownerDocId, ownerData } = transferContext;
+        const removeFromSource = document.getElementById('movePasskeyCheck').checked;
+        const transferCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const email = ownerData["Email"];
+
+        const pad = await sha256Hex(`${transferCode}:${pk.id}:${email.toLowerCase()}`);
+        const encryptedSecret = xorHex(localEntry.secret, pad);
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+
+        const storedRefInfo = await writeTransferDoc(transferCode, {
+            code: transferCode,
+            email,
+            passkeyId: pk.id,
+            passkeyName: pk.name || 'Passkey',
+            hasPin: Boolean(pk.hasPin),
+            encryptedSecret,
+            sourceDevice: detectDeviceType(),
+            claimed: false,
+            expiresAt,
+            createdAt: new Date().toISOString()
+        });
+
+        document.getElementById('transferCodeDisplay').textContent = transferCode;
+        document.getElementById('transferWaitStatus').textContent = 'Waiting for new device...';
+        showTransferStep('transferStepCode');
+
+        if (transferUnsub) transferUnsub();
+        transferUnsub = onSnapshot(doc(db, storedRefInfo.col, storedRefInfo.docId), async (snap) => {
+            if (!snap.exists()) return;
+            const d = snap.data();
+            if (d.claimed) {
+                document.getElementById('transferWaitStatus').textContent =
+                    `Transferred to ${d.targetDevice || 'new device'}!`;
+
+                if (removeFromSource) {
+                    const updatedLocal = getLocalPasskeys().filter(lp => lp.id !== pk.id);
+                    saveLocalPasskeys(updatedLocal);
+                }
+
+                try {
+                    const updatedServer = (ownerData["Passkeys"] || []).map(item =>
+                        item.id === pk.id
+                            ? { ...item, device: removeFromSource ? (d.targetDevice || item.device) : `${item.device} + ${d.targetDevice || 'New Device'}` }
+                            : item
+                    );
+                    await updateDoc(doc(db, "UARM", ownerDocId), { "Passkeys": updatedServer });
+                    if (currentUserData && currentUserDocId === ownerDocId) {
+                        currentUserData["Passkeys"] = updatedServer;
+                        localStorage.setItem('active_user', JSON.stringify(currentUserData));
+                        renderManageList();
+                    }
+                } catch (e) { /* non-blocking */ }
+
+                renderSignInList();
+                renderTransferSendList();
+            }
+        });
+    }
+
+    document.getElementById('copyTransferCodeBtn').addEventListener('click', async () => {
+        const code = document.getElementById('transferCodeDisplay').textContent.trim();
+        try {
+            await navigator.clipboard.writeText(code);
+            document.getElementById('copyTransferCodeBtn').textContent = 'Copied!';
+            setTimeout(() => {
+                document.getElementById('copyTransferCodeBtn').textContent = 'Copy Code';
+            }, 1500);
+        } catch (e) { /* ignore if clipboard denied */ }
+    });
+
+    document.getElementById('useScreenLockBtn').addEventListener('click', async () => {
+        if (!transferContext) return;
+        const btn = document.getElementById('useScreenLockBtn');
+        btn.disabled = true;
+        setMsg('transferAuthMsg', 'Waiting for device screen lock...', '');
+        try {
+            await tryDeviceScreenLock();
+            setMsg('transferAuthMsg', '', '');
+            await createTransferSession();
+        } catch (err) {
+            console.error("Screen lock error:", err);
+            setMsg('transferAuthMsg', err.message || 'Device screen lock failed.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('transferSecretInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('generateTransferCodeBtn').click();
+    });
+
+    document.getElementById('generateTransferCodeBtn').addEventListener('click', async () => {
+        if (!transferContext) return;
+        const { pk, ownerData } = transferContext;
+        const entered = document.getElementById('transferSecretInput').value;
+
+        if (!entered) {
+            setMsg('transferAuthMsg', pk.hasPin ? 'Please enter your Passkey PIN.' : 'Please enter your account password.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('generateTransferCodeBtn');
+        btn.disabled = true;
+        setMsg('transferAuthMsg', 'Verifying...', '');
+
+        try {
+            if (pk.hasPin) {
+                const pinHash = await sha256Hex(`${entered.trim()}:${pk.id}`);
+                if (pinHash !== pk.pinHash) {
+                    setMsg('transferAuthMsg', 'Incorrect Passkey PIN.', 'error');
+                    return;
+                }
+            } else {
+                if (entered !== ownerData["Password"]) {
+                    setMsg('transferAuthMsg', 'Incorrect account password.', 'error');
+                    return;
+                }
+            }
+
+            await createTransferSession();
+        } catch (err) {
+            console.error("Transfer generate error:", err);
+            setMsg('transferAuthMsg', 'Failed to generate transfer code.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    /* ================= RECEIVE TRANSFERRED PASSKEY (NEW DEVICE) ================= */
+    document.getElementById('receivePinInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('receivePasskeyBtn').click();
+    });
+
+    document.getElementById('receivePasskeyBtn').addEventListener('click', async () => {
+        const code = document.getElementById('receiveCodeInput').value.trim();
+        const enteredPin = document.getElementById('receivePinInput').value.trim();
+
+        if (!/^\d{6}$/.test(code)) {
+            setMsg('receiveMsg', 'Please enter a valid 6-digit Transfer Code.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('receivePasskeyBtn');
+        btn.disabled = true;
+        btn.textContent = 'Receiving...';
+        setMsg('receiveMsg', '');
+
+        try {
+            const transferRecord = await readTransferDoc(code);
+            if (!transferRecord) {
+                setMsg('receiveMsg', 'Invalid Transfer Code.', 'error');
+                return;
+            }
+
+            const transferRef = transferRecord.ref;
+            const tData = transferRecord.data;
+
+            if (tData.claimed) {
+                setMsg('receiveMsg', 'This Transfer Code has already been used.', 'error');
+                return;
+            }
+            if (Date.now() > tData.expiresAt) {
+                setMsg('receiveMsg', 'This Transfer Code has expired. Generate a new one on the source device.', 'error');
+                return;
+            }
+
+            const uSnap = await getDocs(query(collection(db, "UARM"), where("Email", "==", tData.email)));
+            if (uSnap.empty) {
+                setMsg('receiveMsg', 'Account not found.', 'error');
+                return;
+            }
+
+            const userData = uSnap.docs[0].data();
+            const serverPasskeys = Array.isArray(userData["Passkeys"]) ? userData["Passkeys"] : [];
+            const matchedPk = serverPasskeys.find(pk => pk.id === tData.passkeyId);
+
+            if (!matchedPk) {
+                setMsg('receiveMsg', 'Passkey no longer exists on this account.', 'error');
+                return;
+            }
+
+            if (matchedPk.hasPin) {
+                if (!enteredPin) {
+                    setMsg('receiveMsg', 'This passkey requires its Passkey PIN.', 'error');
+                    return;
+                }
+                const pinHash = await sha256Hex(`${enteredPin}:${matchedPk.id}`);
+                if (pinHash !== matchedPk.pinHash) {
+                    setMsg('receiveMsg', 'Incorrect Passkey PIN.', 'error');
+                    return;
+                }
+            }
+
+            const pad = await sha256Hex(`${code}:${tData.passkeyId}:${tData.email.toLowerCase()}`);
+            const decryptedSecret = xorHex(tData.encryptedSecret, pad);
+            const verifyHash = await sha256Hex(decryptedSecret);
+
+            if (verifyHash !== matchedPk.secretHash) {
+                setMsg('receiveMsg', 'Cryptographic verification failed for this passkey.', 'error');
+                return;
+            }
+
+            // Save passkey onto THIS device
+            const newDeviceName = detectDeviceType();
+            const localList = getLocalPasskeys().filter(lp => lp.id !== matchedPk.id);
+            localList.push({
+                id: matchedPk.id,
+                email: tData.email,
+                name: matchedPk.name || tData.passkeyName,
+                device: newDeviceName,
+                secret: decryptedSecret,
+                hasPin: Boolean(matchedPk.hasPin),
+                createdAt: matchedPk.createdAt || new Date().toISOString()
+            });
+            saveLocalPasskeys(localList);
+
+            await updateDoc(transferRef, {
+                claimed: true,
+                encryptedSecret: "",
+                targetDevice: newDeviceName,
+                claimedAt: new Date().toISOString()
+            });
+
+            try {
+                await addDoc(collection(mailDb, "Email"), {
+                    subject: "Passkey Transferred to New Device",
+                    body: `Hello ${userData["First Name"] || "User"},\n\nYour passkey "${matchedPk.name}" for ${tData.email} was transferred from ${tData.sourceDevice || "another device"} to ${newDeviceName}.`,
+                    from: "systemplx.mail",
+                    to: tData.email,
+                    timestamp: serverTimestamp()
+                });
+            } catch (e) { /* non-blocking */ }
+
+            document.getElementById('receiveCodeInput').value = '';
+            document.getElementById('receivePinInput').value = '';
+            renderSignInList();
+            renderTransferSendList();
+            if (currentUserData) renderManageList();
+
+            setMsg('receiveMsg', `Passkey "${matchedPk.name}" received on this device!`, 'success');
+            setTimeout(() => {
+                if (fromParam === 'login') {
+                    window.location.href = buildUrl('2.html');
+                } else {
+                    switchPanel('signInPanel');
+                }
+            }, 1200);
+        } catch (err) {
+            console.error("Receive passkey error:", err);
+            setMsg('receiveMsg', 'Failed to receive passkey. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Receive Passkey';
+        }
+    });
+
+    /* ================= PIN MODAL ================= */
+    function promptForPin(title, desc, callback) {
+        document.getElementById('pinModalTitle').textContent = title;
+        document.getElementById('pinModalDesc').textContent = desc;
+        document.getElementById('verifyPinInput').value = '';
+        setMsg('pinModalMsg', '');
+        pendingPinCallback = callback;
+        openModal('pinModal');
+        setTimeout(() => document.getElementById('verifyPinInput').focus(), 50);
+    }
+
+    document.getElementById('verifyPinInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('confirmPinBtn').click();
+    });
+
+    document.getElementById('confirmPinBtn').addEventListener('click', async () => {
+        if (!pendingPinCallback) return;
+        const pin = document.getElementById('verifyPinInput').value.trim();
+        if (!pin) {
+            setMsg('pinModalMsg', 'Please enter your Passkey PIN.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('confirmPinBtn');
+        btn.disabled = true;
+        btn.textContent = 'Verifying...';
+        try {
+            const errorMsg = await pendingPinCallback(pin);
+            if (errorMsg) {
+                setMsg('pinModalMsg', errorMsg, 'error');
+            } else {
+                closeModal('pinModal');
+            }
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Verify';
+        }
+    });
+
+    /* ================= SIGN IN WITH PASSKEY ================= */
+    function renderSignInList() {
+        const list = document.getElementById('signInPasskeyList');
+        const badge = document.getElementById('devicePasskeyBadge');
+        const localPasskeys = getLocalPasskeys();
+
+        badge.textContent = `${localPasskeys.length} on device`;
+        badge.className = 'status-pill ' + (localPasskeys.length > 0 ? 'on' : 'off');
+        list.innerHTML = '';
+
+        if (localPasskeys.length === 0) {
+            list.innerHTML = `<div class="empty-box">No passkeys saved on this device yet. Create one or use the Transfer tab to move one from another device.</div>`;
+            return;
+        }
+
+        localPasskeys.forEach(lp => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'passkey-item clickable';
+            btn.innerHTML = `
+                <div class="passkey-meta">
+                    <div class="passkey-name">
+                        <span>${lp.name || 'Passkey'}</span>
+                        ${lp.hasPin ? '<span class="tag">PIN required</span>' : '<span class="tag local">1-tap</span>'}
+                    </div>
+                    <div class="passkey-sub">${lp.email || ''} · ${lp.device || 'Device'}</div>
+                </div>
+                <div style="font-size: 16px; color: var(--text-secondary);">&#8250;</div>
+            `;
+            btn.addEventListener('click', () => handlePasskeySignIn(lp));
+            list.appendChild(btn);
+        });
+    }
+
+    async function handlePasskeySignIn(localEntry) {
+        setMsg('signInMsg', 'Checking passkey...', '');
+
+        try {
+            const snap = await getDocs(query(collection(db, "UARM"), where("Email", "==", localEntry.email)));
+            if (snap.empty) {
+                setMsg('signInMsg', 'Account not found in database.', 'error');
+                return;
+            }
+
+            const userDocId = snap.docs[0].id;
+            const userData = snap.docs[0].data();
+            const serverPasskeys = Array.isArray(userData["Passkeys"]) ? userData["Passkeys"] : [];
+            const matchedPk = serverPasskeys.find(pk => pk.id === localEntry.id);
+
+            if (!matchedPk) {
+                setMsg('signInMsg', 'This passkey was revoked from the account.', 'error');
+                return;
+            }
+
+            const completeLogin = async (enteredPin) => {
+                if (matchedPk.hasPin) {
+                    const pinHash = await sha256Hex(`${enteredPin}:${matchedPk.id}`);
+                    if (pinHash !== matchedPk.pinHash) {
+                        return 'Incorrect Passkey PIN.';
+                    }
+                }
+
+                const secretHash = await sha256Hex(localEntry.secret);
+                if (secretHash !== matchedPk.secretHash) {
+                    return 'Device passkey verification failed.';
+                }
+
+                const newLotus = generateNewLotus();
+                const updatedPasskeys = serverPasskeys.map(pk =>
+                    pk.id === matchedPk.id ? { ...pk, lastUsedAt: new Date().toISOString() } : pk
+                );
+
+                await updateDoc(doc(db, "UARM", userDocId), {
+                    "Lotus": newLotus,
+                    "Passkeys": updatedPasskeys
+                });
+
+                userData["Lotus"] = newLotus;
+                userData["Passkeys"] = updatedPasskeys;
+
+                if (session) {
+                    try {
+                        await setDoc(doc(db, "ASPX Keys", session), {
+                            status: "authenticated",
+                            userData: {
+                                "Email": userData["Email"] || "",
+                                "First Name": userData["First Name"] || "",
+                                "Lotus": newLotus
+                            },
+                            authenticatedAt: new Date().toISOString()
+                        });
+                    } catch (e) { /* non-blocking */ }
+                }
+
+                try {
+                    await addDoc(collection(mailDb, "Email"), {
+                        subject: "New sign-in with Passkey",
+                        body: `Hello ${userData["First Name"] || "User"},\n\nA new sign-in to your account (${userData["Email"]}) was completed using passkey "${matchedPk.name}" on ${detectDeviceType()}.`,
+                        from: "systemplx.mail",
+                        to: userData["Email"],
+                        timestamp: serverTimestamp()
+                    });
+                } catch (e) { /* non-blocking */ }
+
+                let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+                accounts = accounts.filter(acc => acc.email !== userData["Email"]);
+                accounts.push({
+                    email: userData["Email"],
+                    firstName: userData["First Name"] || "",
+                    lotus: newLotus
+                });
+                localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+                localStorage.setItem('active_user', JSON.stringify(userData));
+
+                setMsg('signInMsg', 'Passkey verified! Redirecting...', 'success');
+                window.location.href = continueUrl;
+                return null;
+            };
+
+            if (matchedPk.hasPin) {
+                promptForPin(
+                    'Enter Passkey PIN',
+                    `Sign in to ${localEntry.email} with "${localEntry.name}".`,
+                    completeLogin
+                );
+            } else {
+                const err = await completeLogin('');
+                if (err) setMsg('signInMsg', err, 'error');
+            }
+        } catch (err) {
+            console.error("Passkey sign-in error:", err);
+            setMsg('signInMsg', 'Database error while verifying passkey.', 'error');
+        }
     }
 
     initPage();
