@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passkeys</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --surface-color: #f7f7f8;
+            --modal-bg: #ffffff;
+            --text-primary: #0d0d0d;
+            --text-secondary: #5d5d5d;
+            --border-color: #e5e5e5;
+            --input-bg: #ffffff;
+            --input-border: #d0d0d0;
+            --input-focus: #0d0d0d;
+            --btn-primary-bg: #111111;
+            --btn-primary-text: #ffffff;
+            --btn-primary-hover: #333333;
+            --btn-secondary-bg: #f0f0f0;
+            --btn-secondary-text: #111111;
+            --btn-danger-bg: #d93025;
+            --btn-danger-text: #ffffff;
+            --badge-on-bg: #e6f4ea;
+            --badge-on-text: #137333;
+            --badge-off-bg: #f1f3f4;
+            --badge-off-text: #5f6368;
+            --pill-bg: #f2f2f2;
+            --link-color: #0066cc;
+            --error-color: #d93025;
+            --success-color: #188038;
+            --overlay-bg: rgba(0, 0, 0, 0.5);
+        }
+
+        body.dark {
+            --bg-color: #000000;
+            --surface-color: #141414;
+            --modal-bg: #212121;
+            --text-primary: #ececec;
+            --text-secondary: #9b9b9b;
+            --border-color: #2f2f2f;
+            --input-bg: #212121;
+            --input-border: #424242;
+            --input-focus: #ffffff;
+            --btn-primary-bg: #ffffff;
+            --btn-primary-text: #0d0d0d;
+            --btn-primary-hover: #dcdcdc;
+            --btn-secondary-bg: #2f2f2f;
+            --btn-secondary-text: #ececec;
+            --btn-danger-bg: #e04338;
+            --btn-danger-text: #ffffff;
+            --badge-on-bg: #143620;
+            --badge-on-text: #81c995;
+            --badge-off-bg: #262626;
+            --badge-off-text: #aaaaaa;
+            --pill-bg: #1a1a1a;
+            --link-color: #4da3ff;
+            --error-color: #f28b82;
+            --success-color: #81c995;
+            --overlay-bg: rgba(0, 0, 0, 0.72);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .page-wrap {
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 28px 20px 64px;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-link:hover { color: var(--text-primary); }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+
+        .lead {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin: 0 0 22px;
+            line-height: 1.5;
+        }
+
+        .mode-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: var(--pill-bg);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .mode-tab {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-tab.active {
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+        }
+
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0 0 14px;
+            line-height: 1.45;
+        }
+
+        .status-pill {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            flex-shrink: 0;
+        }
+
+        .status-pill.on {
+            background: var(--badge-on-bg);
+            color: var(--badge-on-text);
+        }
+
+        .status-pill.off {
+            background: var(--badge-off-bg);
+            color: var(--badge-off-text);
+        }
+
+        .passkey-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .passkey-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 13px 14px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+        }
+
+        .passkey-item.clickable {
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .passkey-item.clickable:hover {
+            border-color: var(--input-focus);
+        }
+
+        .passkey-meta { min-width: 0; }
+
+        .passkey-name {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .passkey-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 3px;
+            word-break: break-all;
+        }
+
+        .tag {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: var(--badge-off-bg);
+            color: var(--badge-off-text);
+        }
+
+        .tag.local {
+            background: var(--badge-on-bg);
+            color: var(--badge-on-text);
+        }
+
+        .passkey-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 24px;
+            padding: 11px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--btn-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-text);
+        }
+
+        .btn-danger {
+            background: var(--btn-danger-bg);
+            color: var(--btn-danger-text);
+        }
+
+        .btn-sm {
+            padding: 7px 12px;
+            font-size: 12px;
+        }
+
+        .provider-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .provider-row:last-child { margin-bottom: 0; }
+
+        .inline-msg {
+            font-size: 13px;
+            margin-top: 10px;
+            min-height: 18px;
+            line-height: 1.45;
+        }
+
+        .inline-msg.error { color: var(--error-color); }
+        .inline-msg.success { color: var(--success-color); }
+
+        .empty-box {
+            padding: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--bg-color);
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 14px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay-bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 100;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 19px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+
+        .close-btn:hover { color: var(--text-primary); }
+
+        .input-group { margin-bottom: 14px; }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 13px 14px;
+            font-size: 15px;
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        input:focus { border-color: var(--input-focus); }
+
+        .helper-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            margin: 0 0 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .section-panel { display: none; }
+        .section-panel.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="page-wrap">
+    <div class="top-bar">
+        <a class="back-link" id="backLink" href="security.html">&#8592; Back to Security</a>
+        <span style="font-size: 13px; color: var(--text-secondary);" id="loggedInEmailLabel">Not signed in</span>
+    </div>
+
+    <h1>Passkeys</h1>
+    <p class="lead">Passwordless sign-in powered by our own device-bound Passkey system.</p>
+
+    <div class="mode-tabs">
+        <button type="button" class="mode-tab active" id="tabManage" data-panel="managePanel">My Passkeys</button>
+        <button type="button" class="mode-tab" id="tabSignIn" data-panel="signInPanel">Sign In with Passkey</button>
+    </div>
+
+    <!-- PANEL 1: MANAGE / CREATE PASSKEYS -->
+    <div class="section-panel active" id="managePanel">
+        <div class="card" id="notSignedInManageCard" style="display: none;">
+            <h2 class="card-title" style="margin-bottom: 8px;">Sign in to create a passkey</h2>
+            <p class="card-desc">Sign in to your account first to generate a device passkey for it.</p>
+            <button type="button" class="btn btn-primary" id="goToSignInBtn">Sign in</button>
+        </div>
+
+        <div id="signedInManageContent" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Your Passkeys</h2>
+                    <span class="status-pill off" id="passkeyCountBadge">0 active</span>
+                </div>
+                <p class="card-desc">A unique cryptographic secret stays on this device while its verification hash is stored securely in your account.</p>
+
+                <div class="passkey-list" id="managePasskeyList"></div>
+
+                <button type="button" class="btn btn-primary" id="openCreatePasskeyBtn">+ Create Passkey</button>
+                <div class="inline-msg" id="manageMsg"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">External Providers</h2>
+                    <span class="status-pill off">Future</span>
+                </div>
+                <p class="card-desc">Additional third-party passkey managers will be integrated here later.</p>
+                <div class="provider-row">
+                    <span>Perplexity Custom Passkey</span>
+                    <span class="status-pill on">Active</span>
+                </div>
+                <div class="provider-row">
+                    <span>Google Password Manager</span>
+                    <span class="status-pill off">Coming soon</span>
+                </div>
+                <div class="provider-row">
+                    <span>Apple iCloud Keychain</span>
+                    <span class="status-pill off">Coming soon</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL 2: SIGN IN WITH PASSKEY -->
+    <div class="section-panel" id="signInPanel">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Saved Device Passkeys</h2>
+                <span class="status-pill off" id="devicePasskeyBadge">0 on device</span>
+            </div>
+            <p class="card-desc">Choose a passkey stored on this device to verify and sign in immediately.</p>
+
+            <div class="passkey-list" id="signInPasskeyList"></div>
+            <div class="inline-msg" id="signInMsg"></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CREATE PASSKEY -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Create Passkey</h3>
+            <button class="close-btn" data-close="createModal">&times;</button>
+        </div>
+        <p class="helper-text">This device will save a private passkey secret for instant verification.</p>
+        <div class="input-group">
+            <label>Passkey Name</label>
+            <input type="text" id="passkeyNameInput" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label>Passkey PIN (Optional, 4-6 digits)</label>
+            <input type="password" id="passkeyPinInput" maxlength="6" placeholder="Leave blank for 1-tap passkey" autocomplete="off">
+        </div>
+        <div class="inline-msg" id="createModalMsg"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close="createModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="confirmCreateBtn">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ENTER PASSKEY PIN -->
+<div class="modal-overlay" id="pinModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="pinModalTitle">Verify Passkey PIN</h3>
+            <button class="close-btn" data-close="pinModal">&times;</button>
+        </div>
+        <p class="helper-text" id="pinModalDesc">Enter your Passkey PIN to continue.</p>
+        <div class="input-group">
+            <label>Passkey PIN</label>
+            <input type="password" id="verifyPinInput" maxlength="6" autocomplete="off">
+        </div>
+        <div class="inline-msg" id="pinModalMsg"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close="pinModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="confirmPinBtn">Verify</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        query,
+        where,
+        updateDoc,
+        doc,
+        setDoc,
+        addDoc,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 1. Primary DB (UARM & ASPX Keys)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "question-metabase",
+        storageBucket: "question-metabase.firebasestorage.app",
+        messagingSenderId: "770698198753",
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 2. Secondary DB (cloud-computer-4891a for Email alerts)
+    const mailFirebaseConfig = {
+        apiKey: "AIzaSyAo8Uzs4XZHDHTSTfgx59w5h5NlYuGC8s0",
+        authDomain: "cloud-computer-4891a.firebaseapp.com",
+        projectId: "cloud-computer-4891a",
+        storageBucket: "cloud-computer-4891a.firebasestorage.app",
+        messagingSenderId: "744203234287",
+        appId: "1:744203234287:web:81d943ae9b75fd77dce41a",
+        measurementId: "G-QE17C33TMN"
+    };
+    const mailApp = initializeApp(mailFirebaseConfig, "mailApp");
+    const mailDb = getFirestore(mailApp);
+
+    /* ================= URL PARAMS & THEME ================= */
+    const urlParams = new URLSearchParams(window.location.search);
+    const session = urlParams.get('session') || '';
+    const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus') || '';
+    const continueUrl = urlParams.get('continue') || '4.html';
+    const provider = urlParams.get('provider') || '';
+    const modeParam = (urlParams.get('mode') || '').toLowerCase();
+    const createParam = urlParams.get('create') === '1';
+    const fromParam = (urlParams.get('from') || '').toLowerCase();
+    const theme = urlParams.get('theme') ? urlParams.get('theme').toLowerCase() : null;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    function applyTheme() {
+        if (theme === "dark" || theme === "d") {
+            document.body.classList.add("dark");
+            return;
+        }
+        if (theme === "light" || theme === "l") {
+            document.body.classList.remove("dark");
+            return;
+        }
+        if (mediaQuery.matches) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    }
+    applyTheme();
+    mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
+
+    /* ================= STATE ================= */
+    let currentUserDocId = null;
+    let currentUserData = null;
+    let pendingPinCallback = null;
+
+    function buildUrl(page, extra = {}) {
+        const p = new URLSearchParams();
+        if (session) p.set('session', session);
+        const activeLotus = (currentUserData && currentUserData["Lotus"]) || lotusParam;
+        if (activeLotus) p.set('Lotus', activeLotus);
+        if (continueUrl) p.set('continue', continueUrl);
+        if (provider) p.set('provider', provider);
+        if (theme) p.set('theme', theme);
+        Object.entries(extra).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') p.set(k, v);
+        });
+        const qs = p.toString();
+        return qs ? `${page}?${qs}` : page;
+    }
+
+    function updateBackLink() {
+        const backEl = document.getElementById('backLink');
+        if (modeParam === 'signin' && fromParam !== 'security') {
+            backEl.innerHTML = '&#8592; Back to Sign in';
+            backEl.href = buildUrl('1.html');
+        } else {
+            backEl.innerHTML = '&#8592; Back to Security';
+            backEl.href = buildUrl('security.html');
+        }
+    }
+    updateBackLink();
+
+    document.getElementById('goToSignInBtn').addEventListener('click', () => {
+        window.location.href = buildUrl('1.html', { continue: window.location.href });
+    });
+
+    /* ================= CRYPTO & STORAGE HELPERS ================= */
+    function randomHex(byteLength = 24) {
+        if (window.crypto && window.crypto.getRandomValues) {
+            const bytes = new Uint8Array(byteLength);
+            window.crypto.getRandomValues(bytes);
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        let out = '';
+        for (let i = 0; i < byteLength * 2; i++) {
+            out += Math.floor(Math.random() * 16).toString(16);
+        }
+        return out;
+    }
+
+    async function sha256Hex(message) {
+        if (window.crypto && window.crypto.subtle) {
+            const msgUint8 = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+            return Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+        let ascii = unescape(encodeURIComponent(message));
+        const rightRotate = (v, a) => (v >>> a) | (v << (32 - a));
+        const mathPow = Math.pow;
+        const maxWord = mathPow(2, 32);
+        let result = '';
+        const words = [];
+        const asciiBitLength = ascii.length * 8;
+        const hash = [];
+        const k = [];
+        let primeCounter = 0;
+        const isComposite = {};
+        for (let candidate = 2; primeCounter < 64; candidate++) {
+            if (!isComposite[candidate]) {
+                for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+                hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+                k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+            }
+        }
+        ascii += '\x80';
+        while (ascii.length % 64 - 56) ascii += '\x00';
+        for (let i = 0; i < ascii.length; i++) {
+            const j = ascii.charCodeAt(i);
+            words[i >> 2] |= j << (((3 - i) % 4) * 8);
+        }
+        words[words.length] = (asciiBitLength / maxWord) | 0;
+        words[words.length] = asciiBitLength;
+        const H = hash.slice(0, 8);
+        for (let j = 0; j < words.length;) {
+            const w = words.slice(j, (j += 16));
+            const oldHash = H.slice(0);
+            for (let i = 0; i < 64; i++) {
+                const w15 = w[i - 15], w2 = w[i - 2];
+                const a = H[0], e = H[4];
+                const temp1 = H[7]
+                    + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+                    + ((e & H[5]) ^ ((~e) & H[6]))
+                    + k[i]
+                    + (w[i] = i < 16 ? w[i] : (
+                        w[i - 16]
+                        + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+                        + w[i - 7]
+                        + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+                    ) | 0);
+                const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+                    + ((a & H[1]) ^ (a & H[2]) ^ (H[1] & H[2]));
+                H.unshift((temp1 + temp2) | 0);
+                H.pop();
+                H[4] = (H[4] + temp1) | 0;
+            }
+            for (let i = 0; i < 8; i++) H[i] = (H[i] + oldHash[i]) | 0;
+        }
+        for (let i = 0; i < 8; i++) {
+            for (let j = 3; j + 1; j--) {
+                const b = (H[i] >> (j * 8)) & 255;
+                result += ((b < 16) ? 0 : '') + b.toString(16);
+            }
+        }
+        return result;
+    }
+
+    function getLocalPasskeys() {
+        try {
+            const data = JSON.parse(localStorage.getItem('custom_passkeys') || '[]');
+            return Array.isArray(data) ? data : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveLocalPasskeys(list) {
+        localStorage.setItem('custom_passkeys', JSON.stringify(list));
+    }
+
+    function detectDeviceType() {
+        const ua = navigator.userAgent;
+        if (/iPad|tablet|PlayBook|Silk/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return "Tablet";
+        if (/Macintosh|Mac OS X/i.test(ua)) return "Macbook";
+        if (/Windows NT/i.test(ua)) return "Windows PC";
+        if (/Android/i.test(ua)) return "Android";
+        if (/iPhone|iPod/i.test(ua)) return "iPhone";
+        if (/Linux/i.test(ua)) return "Linux PC";
+        return "Web Browser";
+    }
+
+    function generateNewLotus() {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    /* ================= UI & MODAL HELPERS ================= */
+    function setMsg(id, text, type = '') {
+        const el = document.getElementById(id);
+        el.textContent = text;
+        el.className = 'inline-msg' + (type ? ` ${type}` : '');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    document.querySelectorAll('[data-close]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.dataset.close));
+    });
+
+    function switchPanel(panelId) {
+        document.querySelectorAll('.mode-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.panel === panelId);
+        });
+        document.querySelectorAll('.section-panel').forEach(p => {
+            p.classList.toggle('active', p.id === panelId);
+        });
+    }
+
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchPanel(tab.dataset.panel));
+    });
+
+    /* ================= INIT ================= */
+    async function initPage() {
+        let storedUser = null;
+        try {
+            if (localStorage.getItem('active_user')) {
+                storedUser = JSON.parse(localStorage.getItem('active_user'));
+            }
+        } catch (e) { /* ignore */ }
+
+        try {
+            let snap = null;
+            if (lotusParam) {
+                snap = await getDocs(query(collection(db, "UARM"), where("Lotus", "==", lotusParam)));
+            } else if (storedUser && storedUser["Email"]) {
+                snap = await getDocs(query(collection(db, "UARM"), where("Email", "==", storedUser["Email"])));
+            }
+
+            if (snap && !snap.empty) {
+                currentUserDocId = snap.docs[0].id;
+                currentUserData = snap.docs[0].data();
+                localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+                document.getElementById('loggedInEmailLabel').textContent = currentUserData["Email"] || "";
+                document.getElementById('notSignedInManageCard').style.display = 'none';
+                document.getElementById('signedInManageContent').style.display = 'block';
+                updateBackLink();
+                renderManageList();
+
+                if (createParam && modeParam !== 'signin') {
+                    openCreateModal();
+                }
+            } else {
+                document.getElementById('notSignedInManageCard').style.display = 'block';
+                document.getElementById('signedInManageContent').style.display = 'none';
+            }
+        } catch (err) {
+            console.error("Init error:", err);
+            document.getElementById('notSignedInManageCard').style.display = 'block';
+        }
+
+        renderSignInList();
+
+        if (modeParam === 'signin' || (!currentUserData && getLocalPasskeys().length > 0 && modeParam !== 'manage')) {
+            switchPanel('signInPanel');
+        } else {
+            switchPanel('managePanel');
+        }
+    }
+
+    /* ================= MANAGE PASSKEYS ================= */
+    function renderManageList() {
+        const list = document.getElementById('managePasskeyList');
+        const badge = document.getElementById('passkeyCountBadge');
+        const passkeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+        const customPasskeys = passkeys.filter(pk => pk.provider === 'Perplexity Passkey' || pk.secretHash);
+        const localPasskeys = getLocalPasskeys();
+
+        badge.textContent = `${customPasskeys.length} active`;
+        badge.className = 'status-pill ' + (customPasskeys.length > 0 ? 'on' : 'off');
+        list.innerHTML = '';
+
+        if (customPasskeys.length === 0) {
+            list.innerHTML = `<div class="empty-box">No passkeys created for this account yet.</div>`;
+            return;
+        }
+
+        customPasskeys.forEach(pk => {
+            const hasLocalSecret = localPasskeys.some(lp => lp.id === pk.id);
+            const dateText = pk.createdAt ? new Date(pk.createdAt).toLocaleDateString() : '';
+
+            const row = document.createElement('div');
+            row.className = 'passkey-item';
+            row.innerHTML = `
+                <div class="passkey-meta">
+                    <div class="passkey-name">
+                        <span>${pk.name || 'Passkey'}</span>
+                        ${hasLocalSecret ? '<span class="tag local">This device</span>' : '<span class="tag">Other device</span>'}
+                        ${pk.hasPin ? '<span class="tag">PIN</span>' : ''}
+                    </div>
+                    <div class="passkey-sub">${pk.device || 'Device'}${dateText ? ' · ' + dateText : ''}</div>
+                </div>
+                <div class="passkey-actions">
+                    <button type="button" class="btn btn-secondary btn-sm test-btn">Test</button>
+                    <button type="button" class="btn btn-danger btn-sm del-btn">Delete</button>
+                </div>
+            `;
+
+            row.querySelector('.test-btn').addEventListener('click', () => testCustomPasskey(pk));
+            row.querySelector('.del-btn').addEventListener('click', () => deleteCustomPasskey(pk.id));
+            list.appendChild(row);
+        });
+    }
+
+    function openCreateModal() {
+        document.getElementById('passkeyNameInput').value = `${detectDeviceType()} Passkey`;
+        document.getElementById('passkeyPinInput').value = '';
+        setMsg('createModalMsg', '');
+        openModal('createModal');
+    }
+
+    document.getElementById('openCreatePasskeyBtn').addEventListener('click', openCreateModal);
+
+    document.getElementById('confirmCreateBtn').addEventListener('click', async () => {
+        const name = document.getElementById('passkeyNameInput').value.trim() || `${detectDeviceType()} Passkey`;
+        const pin = document.getElementById('passkeyPinInput').value.trim();
+
+        if (pin && !/^\d{4,6}$/.test(pin)) {
+            setMsg('createModalMsg', 'PIN must be 4 to 6 digits (or leave blank).', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('confirmCreateBtn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+        setMsg('createModalMsg', '');
+
+        try {
+            const passkeyId = 'pk_' + randomHex(10);
+            const deviceSecret = randomHex(24);
+            const secretHash = await sha256Hex(deviceSecret);
+            const pinHash = pin ? await sha256Hex(`${pin}:${passkeyId}`) : null;
+            const nowIso = new Date().toISOString();
+            const deviceName = detectDeviceType();
+
+            const serverRecord = {
+                id: passkeyId,
+                name,
+                device: deviceName,
+                provider: "Perplexity Passkey",
+                secretHash,
+                hasPin: Boolean(pin),
+                pinHash,
+                createdAt: nowIso,
+                lastUsedAt: null
+            };
+
+            const existing = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+            const updatedServerPasskeys = [...existing, serverRecord];
+
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Passkeys": updatedServerPasskeys
+            });
+
+            currentUserData["Passkeys"] = updatedServerPasskeys;
+            localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+            const localList = getLocalPasskeys();
+            localList.push({
+                id: passkeyId,
+                email: currentUserData["Email"],
+                name,
+                device: deviceName,
+                secret: deviceSecret,
+                hasPin: Boolean(pin),
+                createdAt: nowIso
+            });
+            saveLocalPasskeys(localList);
+
+            closeModal('createModal');
+            renderManageList();
+            renderSignInList();
+            setMsg('manageMsg', `Passkey "${name}" created on this device!`, 'success');
+        } catch (err) {
+            console.error("Create passkey error:", err);
+            setMsg('createModalMsg', 'Failed to create passkey. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Create';
+        }
+    });
+
+    async function testCustomPasskey(pk) {
+        const localEntry = getLocalPasskeys().find(lp => lp.id === pk.id);
+        if (!localEntry) {
+            setMsg('manageMsg', `"${pk.name}" belongs to another device (secret not stored here).`, 'error');
+            return;
+        }
+
+        const verifyAction = async (enteredPin) => {
+            if (pk.hasPin) {
+                const pinHash = await sha256Hex(`${enteredPin}:${pk.id}`);
+                if (pinHash !== pk.pinHash) {
+                    return 'Incorrect Passkey PIN.';
+                }
+            }
+            const secretHash = await sha256Hex(localEntry.secret);
+            if (secretHash !== pk.secretHash) {
+                return 'Device passkey secret mismatch.';
+            }
+            setMsg('manageMsg', `Passkey "${pk.name}" verified successfully!`, 'success');
+            return null;
+        };
+
+        if (pk.hasPin) {
+            promptForPin(`Verify "${pk.name}"`, 'Enter your Passkey PIN to test this passkey.', verifyAction);
+        } else {
+            const err = await verifyAction('');
+            if (err) setMsg('manageMsg', err, 'error');
+        }
+    }
+
+    async function deleteCustomPasskey(passkeyId) {
+        try {
+            const existing = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+            const updated = existing.filter(pk => pk.id !== passkeyId);
+
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Passkeys": updated
+            });
+            currentUserData["Passkeys"] = updated;
+            localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+            const localFiltered = getLocalPasskeys().filter(lp => lp.id !== passkeyId);
+            saveLocalPasskeys(localFiltered);
+
+            renderManageList();
+            renderSignInList();
+            setMsg('manageMsg', 'Passkey deleted.', 'success');
+        } catch (err) {
+            console.error("Delete passkey error:", err);
+            setMsg('manageMsg', 'Failed to delete passkey.', 'error');
+        }
+    }
+
+    /* ================= PIN MODAL ================= */
+    function promptForPin(title, desc, callback) {
+        document.getElementById('pinModalTitle').textContent = title;
+        document.getElementById('pinModalDesc').textContent = desc;
+        document.getElementById('verifyPinInput').value = '';
+        setMsg('pinModalMsg', '');
+        pendingPinCallback = callback;
+        openModal('pinModal');
+        setTimeout(() => document.getElementById('verifyPinInput').focus(), 50);
+    }
+
+    document.getElementById('verifyPinInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('confirmPinBtn').click();
+    });
+
+    document.getElementById('confirmPinBtn').addEventListener('click', async () => {
+        if (!pendingPinCallback) return;
+        const pin = document.getElementById('verifyPinInput').value.trim();
+        if (!pin) {
+            setMsg('pinModalMsg', 'Please enter your Passkey PIN.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('confirmPinBtn');
+        btn.disabled = true;
+        btn.textContent = 'Verifying...';
+        try {
+            const errorMsg = await pendingPinCallback(pin);
+            if (errorMsg) {
+                setMsg('pinModalMsg', errorMsg, 'error');
+            } else {
+                closeModal('pinModal');
+            }
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Verify';
+        }
+    });
+
+    /* ================= SIGN IN WITH PASSKEY ================= */
+    function renderSignInList() {
+        const list = document.getElementById('signInPasskeyList');
+        const badge = document.getElementById('devicePasskeyBadge');
+        const localPasskeys = getLocalPasskeys();
+
+        badge.textContent = `${localPasskeys.length} on device`;
+        badge.className = 'status-pill ' + (localPasskeys.length > 0 ? 'on' : 'off');
+        list.innerHTML = '';
+
+        if (localPasskeys.length === 0) {
+            list.innerHTML = `<div class="empty-box">No passkeys saved on this device yet. Sign in to an account and create one under "My Passkeys".</div>`;
+            return;
+        }
+
+        localPasskeys.forEach(lp => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'passkey-item clickable';
+            btn.innerHTML = `
+                <div class="passkey-meta">
+                    <div class="passkey-name">
+                        <span>${lp.name || 'Passkey'}</span>
+                        ${lp.hasPin ? '<span class="tag">PIN required</span>' : '<span class="tag local">1-tap</span>'}
+                    </div>
+                    <div class="passkey-sub">${lp.email || ''} · ${lp.device || 'Device'}</div>
+                </div>
+                <div style="font-size: 16px; color: var(--text-secondary);">&#8250;</div>
+            `;
+            btn.addEventListener('click', () => handlePasskeySignIn(lp));
+            list.appendChild(btn);
+        });
+    }
+
+    async function handlePasskeySignIn(localEntry) {
+        setMsg('signInMsg', 'Checking passkey...', '');
+
+        try {
+            const snap = await getDocs(query(collection(db, "UARM"), where("Email", "==", localEntry.email)));
+            if (snap.empty) {
+                setMsg('signInMsg', 'Account not found in database.', 'error');
+                return;
+            }
+
+            const userDocId = snap.docs[0].id;
+            const userData = snap.docs[0].data();
+            const serverPasskeys = Array.isArray(userData["Passkeys"]) ? userData["Passkeys"] : [];
+            const matchedPk = serverPasskeys.find(pk => pk.id === localEntry.id);
+
+            if (!matchedPk) {
+                setMsg('signInMsg', 'This passkey was revoked from the account.', 'error');
+                return;
+            }
+
+            const completeLogin = async (enteredPin) => {
+                if (matchedPk.hasPin) {
+                    const pinHash = await sha256Hex(`${enteredPin}:${matchedPk.id}`);
+                    if (pinHash !== matchedPk.pinHash) {
+                        return 'Incorrect Passkey PIN.';
+                    }
+                }
+
+                const secretHash = await sha256Hex(localEntry.secret);
+                if (secretHash !== matchedPk.secretHash) {
+                    return 'Device passkey verification failed.';
+                }
+
+                const newLotus = generateNewLotus();
+                const updatedPasskeys = serverPasskeys.map(pk =>
+                    pk.id === matchedPk.id ? { ...pk, lastUsedAt: new Date().toISOString() } : pk
+                );
+
+                await updateDoc(doc(db, "UARM", userDocId), {
+                    "Lotus": newLotus,
+                    "Passkeys": updatedPasskeys
+                });
+
+                userData["Lotus"] = newLotus;
+                userData["Passkeys"] = updatedPasskeys;
+
+                if (session) {
+                    try {
+                        await setDoc(doc(db, "ASPX Keys", session), {
+                            status: "authenticated",
+                            userData: {
+                                "Email": userData["Email"] || "",
+                                "First Name": userData["First Name"] || "",
+                                "Lotus": newLotus
+                            },
+                            authenticatedAt: new Date().toISOString()
+                        });
+                    } catch (e) { /* non-blocking */ }
+                }
+
+                try {
+                    await addDoc(collection(mailDb, "Email"), {
+                        subject: "New sign-in with Passkey",
+                        body: `Hello ${userData["First Name"] || "User"},\n\nA new sign-in to your account (${userData["Email"]}) was completed using passkey "${matchedPk.name}" on ${detectDeviceType()}.`,
+                        from: "systemplx.mail",
+                        to: userData["Email"],
+                        timestamp: serverTimestamp()
+                    });
+                } catch (e) { /* non-blocking */ }
+
+                let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+                accounts = accounts.filter(acc => acc.email !== userData["Email"]);
+                accounts.push({
+                    email: userData["Email"],
+                    firstName: userData["First Name"] || "",
+                    lotus: newLotus
+                });
+                localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+                localStorage.setItem('active_user', JSON.stringify(userData));
+
+                setMsg('signInMsg', 'Passkey verified! Redirecting...', 'success');
+                window.location.href = continueUrl;
+                return null;
+            };
+
+            if (matchedPk.hasPin) {
+                promptForPin(
+                    'Enter Passkey PIN',
+                    `Sign in to ${localEntry.email} with "${localEntry.name}".`,
+                    completeLogin
+                );
+            } else {
+                const err = await completeLogin('');
+                if (err) setMsg('signInMsg', err, 'error');
+            }
+        } catch (err) {
+            console.error("Passkey sign-in error:", err);
+            setMsg('signInMsg', 'Database error while verifying passkey.', 'error');
+        }
+    }
+
+    initPage();
+</script>
+</body>
+</html>

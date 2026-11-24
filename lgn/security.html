@@ -222,16 +222,6 @@
             color: var(--btn-secondary-text);
         }
 
-        .btn-danger {
-            background: var(--btn-danger-bg);
-            color: var(--btn-danger-text);
-        }
-
-        .btn-sm {
-            padding: 7px 13px;
-            font-size: 13px;
-        }
-
         .passkey-list {
             display: flex;
             flex-direction: column;
@@ -251,13 +241,34 @@
         }
 
         .passkey-meta { min-width: 0; }
-        .passkey-name { font-size: 14px; font-weight: 600; }
-        .passkey-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
-        .passkey-actions {
+        .passkey-name {
+            font-size: 14px;
+            font-weight: 600;
             display: flex;
-            gap: 6px;
-            flex-shrink: 0;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .passkey-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .tag {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: var(--badge-off-bg);
+            color: var(--badge-off-text);
+        }
+
+        .tag.local {
+            background: var(--badge-on-bg);
+            color: var(--badge-on-text);
         }
 
         .inline-msg {
@@ -383,7 +394,7 @@
     </div>
 
     <h1>Security</h1>
-    <p class="lead">Manage your authentication manager, 2-way security, recovery contacts, and Google Password Manager passkeys.</p>
+    <p class="lead">Manage your authentication manager, 2-way security, recovery contacts, and passkeys.</p>
 
     <!-- 1. AUTHENTICATION MANAGER -->
     <div class="card">
@@ -481,20 +492,20 @@
         <div class="inline-msg" id="recoveryEmailMsg"></div>
     </div>
 
-    <!-- 5. CREATE PASSKEY (GOOGLE PASSWORD MANAGER) -->
+    <!-- 5. PASSKEYS (CONNECTED TO passkey.html) -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">Passkeys</h2>
             <span class="status-pill off" id="passkeyBadge">0 saved</span>
         </div>
-        <p class="card-desc">Create a passkey saved in Google Password Manager for fast, passwordless sign-in using your fingerprint, face, or screen lock.</p>
+        <p class="card-desc">Manage passwordless device passkeys in our dedicated Passkey Manager.</p>
 
         <div class="passkey-list" id="passkeyList"></div>
 
         <div class="btn-row">
-            <button class="btn btn-primary" id="createPasskeyBtn">+ Create Passkey</button>
+            <a class="btn btn-primary" id="createPasskeyLink" href="passkey.html">+ Create Passkey</a>
+            <a class="btn btn-secondary" id="managePasskeysLink" href="passkey.html">Manage Passkeys</a>
         </div>
-        <div class="inline-msg" id="passkeyMsg"></div>
     </div>
 </div>
 
@@ -600,26 +611,6 @@
     </div>
 </div>
 
-<!-- MODAL: CREATE PASSKEY NAME -->
-<div class="modal-overlay" id="passkeyModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Create Passkey</h3>
-            <button class="close-btn" data-close="passkeyModal">&times;</button>
-        </div>
-        <p class="helper-text">Your browser will prompt <strong>Google Password Manager</strong> (or your device passkey provider) to save a synced passkey for this account.</p>
-        <div class="input-group">
-            <label>Passkey Label</label>
-            <input type="text" id="passkeyLabelInput" placeholder="My Google Password Manager" autocomplete="off">
-        </div>
-        <div class="inline-msg" id="passkeyModalMsg"></div>
-        <div class="modal-actions">
-            <button class="btn btn-secondary" data-close="passkeyModal">Cancel</button>
-            <button class="btn btn-primary" id="confirmCreatePasskeyBtn">Continue</button>
-        </div>
-    </div>
-</div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import {
@@ -663,8 +654,10 @@
 
     /* ================= URL PARAMS & THEME ================= */
     const urlParams = new URLSearchParams(window.location.search);
+    const session = urlParams.get('session') || '';
     const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus') || '';
     const continueUrl = urlParams.get('continue') || '4.html';
+    const provider = urlParams.get('provider') || '';
     const theme = urlParams.get('theme') ? urlParams.get('theme').toLowerCase() : null;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -724,6 +717,21 @@
     document.querySelectorAll('[data-close]').forEach(btn => {
         btn.addEventListener('click', () => closeModal(btn.dataset.close));
     });
+
+    function buildUrl(page, extra = {}) {
+        const p = new URLSearchParams();
+        if (session) p.set('session', session);
+        const activeLotus = (currentUserData && currentUserData["Lotus"]) || lotusParam;
+        if (activeLotus) p.set('Lotus', activeLotus);
+        if (continueUrl) p.set('continue', continueUrl);
+        if (provider) p.set('provider', provider);
+        if (theme) p.set('theme', theme);
+        Object.entries(extra).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') p.set(k, v);
+        });
+        const qs = p.toString();
+        return qs ? `${page}?${qs}` : page;
+    }
 
     function detectDeviceType() {
         const ua = navigator.userAgent;
@@ -843,7 +851,7 @@
         document.getElementById('removeRecoveryEmailBtn').style.display =
             (currentUserData["Recovery_Email"] || currentUserData["Recovery Email"]) ? 'inline-flex' : 'none';
 
-        renderPasskeys();
+        renderPasskeySummary();
     }
 
     /* ================= 1. AUTHENTICATION MANAGER ================= */
@@ -1141,44 +1149,29 @@
         }
     });
 
-    /* ================= 5. PASSKEYS (GOOGLE PASSWORD MANAGER / WEBAUTHN) ================= */
-    function bufferToBase64Url(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-
-    function base64UrlToBuffer(base64url) {
-        const padding = '='.repeat((4 - (base64url.length % 4)) % 4);
-        const base64 = (base64url + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const raw = atob(base64);
-        const buffer = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) {
-            buffer[i] = raw.charCodeAt(i);
-        }
-        return buffer.buffer;
-    }
-
-    function getPasskeyEnvIssue() {
-        if (!window.isSecureContext) {
-            return `Passkeys require HTTPS or http://localhost (current origin: ${window.location.origin || window.location.protocol}).`;
-        }
-        if (/^\d{1,3}(\.\d{1,3}){3}$/.test(window.location.hostname)) {
-            return `Passkeys do not work on numeric IP addresses (${window.location.hostname}). Use https://yourdomain or http://localhost.`;
-        }
-        if (!window.PublicKeyCredential || !navigator.credentials) {
-            return 'WebAuthn/Passkeys are not supported in this browser or WebView. Please open in Chrome.';
-        }
-        return null;
-    }
-
-    function renderPasskeys() {
+    /* ================= 5. PASSKEYS SUMMARY & CONNECTION TO passkey.html ================= */
+    function renderPasskeySummary() {
         const list = document.getElementById('passkeyList');
         const passkeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
         const badge = document.getElementById('passkeyBadge');
+
+        let localPasskeys = [];
+        try {
+            localPasskeys = JSON.parse(localStorage.getItem('custom_passkeys') || '[]');
+        } catch (e) {
+            localPasskeys = [];
+        }
+
+        // Update connected links with the latest Lotus & params
+        document.getElementById('createPasskeyLink').href = buildUrl('passkey.html', {
+            mode: 'manage',
+            create: '1',
+            from: 'security'
+        });
+        document.getElementById('managePasskeysLink').href = buildUrl('passkey.html', {
+            mode: 'manage',
+            from: 'security'
+        });
 
         badge.textContent = `${passkeys.length} saved`;
         badge.className = 'status-pill ' + (passkeys.length > 0 ? 'on' : 'off');
@@ -1189,194 +1182,24 @@
             return;
         }
 
-        passkeys.forEach((pk, index) => {
-            const row = document.createElement('div');
-            row.className = 'passkey-item';
+        passkeys.forEach(pk => {
+            const hasLocal = localPasskeys.some(lp => lp.id === pk.id);
             const dateText = pk.createdAt ? new Date(pk.createdAt).toLocaleDateString() : '';
 
+            const row = document.createElement('div');
+            row.className = 'passkey-item';
             row.innerHTML = `
                 <div class="passkey-meta">
-                    <div class="passkey-name">${pk.name || 'Passkey'}</div>
-                    <div class="passkey-sub">${pk.device || 'Google Password Manager'}${dateText ? ' · ' + dateText : ''}</div>
-                </div>
-                <div class="passkey-actions">
-                    <button type="button" class="btn btn-secondary btn-sm test-pk-btn">Test</button>
-                    <button type="button" class="btn btn-danger btn-sm del-pk-btn">Delete</button>
+                    <div class="passkey-name">
+                        <span>${pk.name || 'Passkey'}</span>
+                        ${hasLocal ? '<span class="tag local">This device</span>' : '<span class="tag">Other device</span>'}
+                        ${pk.hasPin ? '<span class="tag">PIN</span>' : ''}
+                    </div>
+                    <div class="passkey-sub">${pk.device || 'Device'}${dateText ? ' · ' + dateText : ''}</div>
                 </div>
             `;
-
-            row.querySelector('.test-pk-btn').addEventListener('click', () => testPasskey(pk));
-            row.querySelector('.del-pk-btn').addEventListener('click', () => deletePasskey(index));
             list.appendChild(row);
         });
-    }
-
-    document.getElementById('createPasskeyBtn').addEventListener('click', () => {
-        const issue = getPasskeyEnvIssue();
-        if (issue) {
-            setMsg('passkeyMsg', issue, 'error');
-            return;
-        }
-        document.getElementById('passkeyLabelInput').value = `${detectDeviceType()} Passkey`;
-        setMsg('passkeyModalMsg', '');
-        openModal('passkeyModal');
-    });
-
-    document.getElementById('confirmCreatePasskeyBtn').addEventListener('click', async () => {
-        const issue = getPasskeyEnvIssue();
-        if (issue) {
-            setMsg('passkeyModalMsg', issue, 'error');
-            return;
-        }
-
-        const label = document.getElementById('passkeyLabelInput').value.trim() || 'Google Password Manager Passkey';
-        const btn = document.getElementById('confirmCreatePasskeyBtn');
-        btn.disabled = true;
-        btn.textContent = 'Waiting for prompt...';
-        setMsg('passkeyModalMsg', '');
-
-        try {
-            const challenge = new Uint8Array(32);
-            crypto.getRandomValues(challenge);
-
-            const userIdentifier = currentUserData["Lotus"] || currentUserData["Email"] || currentUserDocId;
-            const userIdBytes = new TextEncoder().encode(userIdentifier).slice(0, 64);
-
-            const existingPasskeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
-            const excludeCredentials = [];
-            for (const pk of existingPasskeys) {
-                try {
-                    if (pk.rawId) {
-                        excludeCredentials.push({
-                            id: base64UrlToBuffer(pk.rawId),
-                            type: 'public-key'
-                        });
-                    }
-                } catch (e) { /* skip invalid rawId */ }
-            }
-
-            // Omit rp.id so browser automatically derives exact RP ID for current domain/localhost
-            const publicKeyOptions = {
-                challenge,
-                rp: {
-                    name: "Perplexity Account"
-                },
-                user: {
-                    id: userIdBytes,
-                    name: currentUserData["Email"] || "user",
-                    displayName: `${currentUserData["First Name"] || ""} ${currentUserData["Last Name"] || ""}`.trim() || currentUserData["Email"] || "User"
-                },
-                pubKeyCredParams: [
-                    { alg: -7, type: "public-key" },
-                    { alg: -257, type: "public-key" }
-                ],
-                authenticatorSelection: {
-                    residentKey: "preferred",
-                    userVerification: "preferred"
-                },
-                excludeCredentials,
-                timeout: 300000,
-                attestation: "none"
-            };
-
-            const credential = await navigator.credentials.create({ publicKey: publicKeyOptions });
-            if (!credential) {
-                setMsg('passkeyModalMsg', 'Passkey creation was cancelled.', 'error');
-                return;
-            }
-
-            const newPasskey = {
-                id: credential.id,
-                rawId: bufferToBase64Url(credential.rawId),
-                name: label,
-                device: detectDeviceType(),
-                provider: "Google Password Manager",
-                transports: credential.response && credential.response.getTransports
-                    ? credential.response.getTransports()
-                    : ["internal", "hybrid"],
-                createdAt: new Date().toISOString()
-            };
-
-            const updatedPasskeys = [...existingPasskeys, newPasskey];
-            await updateDoc(doc(db, "UARM", currentUserDocId), {
-                "Passkeys": updatedPasskeys
-            });
-
-            currentUserData["Passkeys"] = updatedPasskeys;
-            syncLocalStorageUser();
-            closeModal('passkeyModal');
-            renderAllSections();
-            setMsg('passkeyMsg', 'Passkey created and saved!', 'success');
-        } catch (err) {
-            console.error("Passkey create error:", err);
-            const inIframe = window.self !== window.top;
-            if (err.name === 'NotAllowedError') {
-                if (inIframe) {
-                    setMsg('passkeyModalMsg', 'Blocked inside iframe/preview. Open security.html directly in Chrome over HTTPS.', 'error');
-                } else {
-                    setMsg('passkeyModalMsg', `NotAllowedError: Prompt dismissed, or blocked because device lock / Google Password Manager / WebView is unavailable. (${err.message})`, 'error');
-                }
-            } else if (err.name === 'SecurityError') {
-                setMsg('passkeyModalMsg', `SecurityError: Must run on HTTPS or http://localhost. (${err.message})`, 'error');
-            } else if (err.name === 'InvalidStateError') {
-                setMsg('passkeyModalMsg', 'A passkey for this account already exists on this password manager.', 'error');
-            } else {
-                setMsg('passkeyModalMsg', `${err.name}: ${err.message}`, 'error');
-            }
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Continue';
-        }
-    });
-
-    async function testPasskey(pk) {
-        const issue = getPasskeyEnvIssue();
-        if (issue) {
-            setMsg('passkeyMsg', issue, 'error');
-            return;
-        }
-        try {
-            setMsg('passkeyMsg', 'Verifying passkey...', '');
-            const challenge = new Uint8Array(32);
-            crypto.getRandomValues(challenge);
-
-            const assertion = await navigator.credentials.get({
-                publicKey: {
-                    challenge,
-                    allowCredentials: [{
-                        id: base64UrlToBuffer(pk.rawId),
-                        type: 'public-key'
-                    }],
-                    userVerification: "preferred",
-                    timeout: 300000
-                }
-            });
-
-            if (assertion) {
-                setMsg('passkeyMsg', `Passkey "${pk.name}" verified successfully!`, 'success');
-            }
-        } catch (err) {
-            console.error("Passkey test error:", err);
-            setMsg('passkeyMsg', `${err.name}: ${err.message}`, 'error');
-        }
-    }
-
-    async function deletePasskey(index) {
-        const existingPasskeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
-        const updatedPasskeys = existingPasskeys.filter((_, i) => i !== index);
-
-        try {
-            await updateDoc(doc(db, "UARM", currentUserDocId), {
-                "Passkeys": updatedPasskeys
-            });
-            currentUserData["Passkeys"] = updatedPasskeys;
-            syncLocalStorageUser();
-            renderAllSections();
-            setMsg('passkeyMsg', 'Passkey removed.', 'success');
-        } catch (err) {
-            console.error("Delete passkey error:", err);
-            setMsg('passkeyMsg', 'Failed to remove passkey.', 'error');
-        }
     }
 
     initPage();
