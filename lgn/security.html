@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --surface-color: #f7f7f8;
+            --modal-bg: #ffffff;
+            --text-primary: #0d0d0d;
+            --text-secondary: #5d5d5d;
+            --border-color: #e5e5e5;
+            --input-bg: #ffffff;
+            --input-border: #d0d0d0;
+            --input-focus: #0d0d0d;
+            --btn-primary-bg: #111111;
+            --btn-primary-text: #ffffff;
+            --btn-primary-hover: #333333;
+            --btn-secondary-bg: #f0f0f0;
+            --btn-secondary-text: #111111;
+            --btn-danger-bg: #d93025;
+            --btn-danger-text: #ffffff;
+            --badge-on-bg: #e6f4ea;
+            --badge-on-text: #137333;
+            --badge-off-bg: #f1f3f4;
+            --badge-off-text: #5f6368;
+            --link-color: #0066cc;
+            --error-color: #d93025;
+            --success-color: #188038;
+            --overlay-bg: rgba(0, 0, 0, 0.5);
+        }
+
+        body.dark {
+            --bg-color: #000000;
+            --surface-color: #141414;
+            --modal-bg: #212121;
+            --text-primary: #ececec;
+            --text-secondary: #9b9b9b;
+            --border-color: #2f2f2f;
+            --input-bg: #212121;
+            --input-border: #424242;
+            --input-focus: #ffffff;
+            --btn-primary-bg: #ffffff;
+            --btn-primary-text: #0d0d0d;
+            --btn-primary-hover: #dcdcdc;
+            --btn-secondary-bg: #2f2f2f;
+            --btn-secondary-text: #ececec;
+            --btn-danger-bg: #e04338;
+            --btn-danger-text: #ffffff;
+            --badge-on-bg: #143620;
+            --badge-on-text: #81c995;
+            --badge-off-bg: #262626;
+            --badge-off-text: #aaaaaa;
+            --link-color: #4da3ff;
+            --error-color: #f28b82;
+            --success-color: #81c995;
+            --overlay-bg: rgba(0, 0, 0, 0.72);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .page-wrap {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 28px 20px 64px;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-link:hover { color: var(--text-primary); }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+
+        .lead {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin: 0 0 28px;
+            line-height: 1.5;
+        }
+
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0 0 14px;
+            line-height: 1.45;
+        }
+
+        .status-pill {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            flex-shrink: 0;
+        }
+
+        .status-pill.on {
+            background: var(--badge-on-bg);
+            color: var(--badge-on-text);
+        }
+
+        .status-pill.off {
+            background: var(--badge-off-bg);
+            color: var(--badge-off-text);
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .info-value {
+            font-weight: 500;
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 24px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--btn-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-text);
+        }
+
+        .btn-danger {
+            background: var(--btn-danger-bg);
+            color: var(--btn-danger-text);
+        }
+
+        .btn-sm {
+            padding: 7px 13px;
+            font-size: 13px;
+        }
+
+        .passkey-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .passkey-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .passkey-meta {
+            min-width: 0;
+        }
+
+        .passkey-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .passkey-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .passkey-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .inline-msg {
+            font-size: 13px;
+            margin-top: 10px;
+            min-height: 16px;
+        }
+
+        .inline-msg.error { color: var(--error-color); }
+        .inline-msg.success { color: var(--success-color); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay-bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 100;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 19px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+
+        .close-btn:hover { color: var(--text-primary); }
+
+        .input-group {
+            margin-bottom: 14px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 13px 14px;
+            font-size: 15px;
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--input-focus);
+        }
+
+        .helper-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            margin: 0 0 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .auth-gate {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .modal-step { display: none; }
+        .modal-step.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="page-wrap" id="authGate" style="display: none;">
+    <div class="auth-gate">
+        <h1>Sign in required</h1>
+        <p class="lead">Please sign in to manage your account security settings.</p>
+        <button class="btn btn-primary" id="signInRedirectBtn">Sign in</button>
+    </div>
+</div>
+
+<div class="page-wrap" id="mainContent" style="display: none;">
+    <div class="top-bar">
+        <a class="back-link" id="backLink" href="4.html">&#8592; Back</a>
+        <span style="font-size: 13px; color: var(--text-secondary);" id="loggedInEmailLabel"></span>
+    </div>
+
+    <h1>Security</h1>
+    <p class="lead">Manage your authentication manager, 2-way security, recovery contacts, and Google Password Manager passkeys.</p>
+
+    <!-- 1. AUTHENTICATION MANAGER -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Authentication Manager</h2>
+            <span class="status-pill on">Active</span>
+        </div>
+        <p class="card-desc">Control active sessions, rotate your Lotus security token, or update your password.</p>
+
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Current Device</span>
+                <span class="info-value" id="currentDeviceText">Detecting...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Session Token (Lotus)</span>
+                <span class="info-value" id="lotusTokenPreview">••••</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Saved Device Accounts</span>
+                <span class="info-value" id="savedAccountsCount">0</span>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" id="openChangePassBtn">Change Password</button>
+            <button class="btn btn-secondary" id="rotateSessionBtn">Sign out other sessions</button>
+            <a class="btn btn-secondary" id="manageAccountsLink" href="3.html">Switch account</a>
+        </div>
+        <div class="inline-msg" id="authMgrMsg"></div>
+    </div>
+
+    <!-- 2. 2 WAY SECURITY -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">2 Way Security</h2>
+            <span class="status-pill off" id="twoWayBadge">Disabled</span>
+        </div>
+        <p class="card-desc">Add an extra layer of protection with email one-time verification codes (OTP) during sign-in.</p>
+
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Verification Channel</span>
+                <span class="info-value" id="twoWayChannelText">Primary Email</span>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" id="toggleTwoWayBtn">Enable 2 Way Security</button>
+        </div>
+        <div class="inline-msg" id="twoWayMsg"></div>
+    </div>
+
+    <!-- 3. RECOVERY_NUMBER -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Recovery Number</h2>
+            <span class="status-pill off" id="recoveryNumBadge">Not set</span>
+        </div>
+        <p class="card-desc">Used to verify your identity or help you recover access if you forget your password or email.</p>
+
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Recovery_Number</span>
+                <span class="info-value" id="recoveryNumText">Not configured</span>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" id="editRecoveryNumBtn">Add Recovery Number</button>
+            <button class="btn btn-secondary" id="removeRecoveryNumBtn" style="display: none;">Remove</button>
+        </div>
+        <div class="inline-msg" id="recoveryNumMsg"></div>
+    </div>
+
+    <!-- 4. RECOVERY_EMAIL -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Recovery Email</h2>
+            <span class="status-pill off" id="recoveryEmailBadge">Not set</span>
+        </div>
+        <p class="card-desc">Receives a 6-digit OTP when resetting your password or recovering your account.</p>
+
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Recovery_Email</span>
+                <span class="info-value" id="recoveryEmailText">Not configured</span>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" id="editRecoveryEmailBtn">Add Recovery Email</button>
+            <button class="btn btn-secondary" id="removeRecoveryEmailBtn" style="display: none;">Remove</button>
+        </div>
+        <div class="inline-msg" id="recoveryEmailMsg"></div>
+    </div>
+
+    <!-- 5. CREATE PASSKEY (GOOGLE PASSWORD MANAGER) -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Passkeys</h2>
+            <span class="status-pill off" id="passkeyBadge">0 saved</span>
+        </div>
+        <p class="card-desc">Create a passkey saved in Google Password Manager for fast, passwordless sign-in using your fingerprint, face, or screen lock.</p>
+
+        <div class="passkey-list" id="passkeyList"></div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" id="createPasskeyBtn">+ Create Passkey</button>
+        </div>
+        <div class="inline-msg" id="passkeyMsg"></div>
+    </div>
+</div>
+
+<!-- MODAL: CHANGE PASSWORD -->
+<div class="modal-overlay" id="passwordModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Change Password</h3>
+            <button class="close-btn" data-close="passwordModal">&times;</button>
+        </div>
+        <div class="input-group">
+            <label>Current Password</label>
+            <input type="password" id="curPassInput">
+        </div>
+        <div class="input-group">
+            <label>New Password</label>
+            <input type="password" id="newPassInput">
+        </div>
+        <div class="input-group">
+            <label>Confirm New Password</label>
+            <input type="password" id="confirmPassInput">
+        </div>
+        <div class="inline-msg" id="passModalMsg"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" data-close="passwordModal">Cancel</button>
+            <button class="btn btn-primary" id="savePassBtn">Update Password</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: 2 WAY SECURITY OTP -->
+<div class="modal-overlay" id="twoWayModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="twoWayModalTitle">Verify 2 Way Security</h3>
+            <button class="close-btn" data-close="twoWayModal">&times;</button>
+        </div>
+        <p class="helper-text" id="twoWayOtpDesc">Enter the 6-digit OTP sent to your email.</p>
+        <div class="input-group">
+            <label>6-Digit OTP</label>
+            <input type="text" id="twoWayOtpInput" maxlength="6" autocomplete="off">
+        </div>
+        <div class="inline-msg" id="twoWayModalMsg"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" data-close="twoWayModal">Cancel</button>
+            <button class="btn btn-primary" id="confirmTwoWayOtpBtn">Verify</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: RECOVERY_NUMBER -->
+<div class="modal-overlay" id="recoveryNumModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Recovery Number</h3>
+            <button class="close-btn" data-close="recoveryNumModal">&times;</button>
+        </div>
+        <div class="input-group">
+            <label>Phone Number</label>
+            <input type="text" id="recoveryNumInput" placeholder="+919876543210" autocomplete="off">
+        </div>
+        <div class="inline-msg" id="recoveryNumModalMsg"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" data-close="recoveryNumModal">Cancel</button>
+            <button class="btn btn-primary" id="saveRecoveryNumBtn">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: RECOVERY_EMAIL (with OTP) -->
+<div class="modal-overlay" id="recoveryEmailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Recovery Email</h3>
+            <button class="close-btn" data-close="recoveryEmailModal">&times;</button>
+        </div>
+
+        <div class="modal-step active" id="recEmailStep1">
+            <p class="helper-text">We will send a 6-digit OTP to verify this recovery email address.</p>
+            <div class="input-group">
+                <label>Recovery Email Address</label>
+                <input type="email" id="recoveryEmailInput" placeholder="recovery@email.com" autocomplete="off">
+            </div>
+            <div class="inline-msg" id="recEmailStep1Msg"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" data-close="recoveryEmailModal">Cancel</button>
+                <button class="btn btn-primary" id="sendRecEmailOtpBtn">Send OTP</button>
+            </div>
+        </div>
+
+        <div class="modal-step" id="recEmailStep2">
+            <p class="helper-text" id="recEmailOtpPrompt"></p>
+            <div class="input-group">
+                <label>6-Digit OTP</label>
+                <input type="text" id="recEmailOtpInput" maxlength="6" autocomplete="off">
+            </div>
+            <div class="inline-msg" id="recEmailStep2Msg"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="backRecEmailBtn">Back</button>
+                <button class="btn btn-primary" id="verifyRecEmailOtpBtn">Verify &amp; Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CREATE PASSKEY NAME -->
+<div class="modal-overlay" id="passkeyModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Create Passkey</h3>
+            <button class="close-btn" data-close="passkeyModal">&times;</button>
+        </div>
+        <p class="helper-text">Your browser will prompt <strong>Google Password Manager</strong> (or your device passkey provider) to save a synced passkey for this account.</p>
+        <div class="input-group">
+            <label>Passkey Label</label>
+            <input type="text" id="passkeyLabelInput" placeholder="My Google Password Manager" autocomplete="off">
+        </div>
+        <div class="inline-msg" id="passkeyModalMsg"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" data-close="passkeyModal">Cancel</button>
+            <button class="btn btn-primary" id="confirmCreatePasskeyBtn">Continue</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        query,
+        where,
+        updateDoc,
+        doc,
+        deleteField,
+        addDoc,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 1. Primary DB (UARM)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPm2za3Ho0Hd8Henuhq0KxAHyUQh-Hi-U",
+        authDomain: "question-metabase.firebaseapp.com",
+        databaseURL: "https://question-metabase-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "question-metabase",
+        storageBucket: "question-metabase.firebasestorage.app",
+        messagingSenderId: "770698198753",
+        appId: "1:770698198753:web:59ae49d78b6013bab5c1a0"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 2. Secondary DB (cloud-computer-4891a for Email)
+    const mailFirebaseConfig = {
+        apiKey: "AIzaSyAo8Uzs4XZHDHTSTfgx59w5h5NlYuGC8s0",
+        authDomain: "cloud-computer-4891a.firebaseapp.com",
+        projectId: "cloud-computer-4891a",
+        storageBucket: "cloud-computer-4891a.firebasestorage.app",
+        messagingSenderId: "744203234287",
+        appId: "1:744203234287:web:81d943ae9b75fd77dce41a",
+        measurementId: "G-QE17C33TMN"
+    };
+    const mailApp = initializeApp(mailFirebaseConfig, "mailApp");
+    const mailDb = getFirestore(mailApp);
+
+    /* ================= URL PARAMS & THEME ================= */
+    const urlParams = new URLSearchParams(window.location.search);
+    const lotusParam = urlParams.get('lotus') || urlParams.get('Lotus') || '';
+    const continueUrl = urlParams.get('continue') || '4.html';
+    const theme = urlParams.get('theme') ? urlParams.get('theme').toLowerCase() : null;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    function applyTheme() {
+        if (theme === "dark" || theme === "d") {
+            document.body.classList.add("dark");
+            return;
+        }
+        if (theme === "light" || theme === "l") {
+            document.body.classList.remove("dark");
+            return;
+        }
+        if (mediaQuery.matches) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    }
+    applyTheme();
+    mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
+
+    document.getElementById('backLink').href = continueUrl;
+    document.getElementById('manageAccountsLink').href = theme ? `3.html?theme=${theme}` : '3.html';
+    document.getElementById('signInRedirectBtn').addEventListener('click', () => {
+        let target = `1.html?continue=${encodeURIComponent(window.location.href)}`;
+        if (theme) target += `&theme=${theme}`;
+        window.location.href = target;
+    });
+
+    /* ================= STATE ================= */
+    let currentUserDocId = null;
+    let currentUserData = null;
+
+    let pendingTwoWayTarget = false;
+    let twoWayOtp = '';
+    let twoWayOtpExpires = 0;
+
+    let pendingRecEmail = '';
+    let recEmailOtp = '';
+    let recEmailOtpExpires = 0;
+
+    /* ================= HELPERS ================= */
+    function setMsg(id, text, type = '') {
+        const el = document.getElementById(id);
+        el.textContent = text;
+        el.className = 'inline-msg' + (type ? ` ${type}` : '');
+    }
+
+    function openModal(id) {
+        document.getElementById(id).classList.add('open');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('open');
+    }
+
+    document.querySelectorAll('[data-close]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.dataset.close));
+    });
+
+    function detectDeviceType() {
+        const ua = navigator.userAgent;
+        if (/iPad|tablet|PlayBook|Silk/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return "Tablet";
+        if (/Macintosh|Mac OS X/i.test(ua)) return "Macbook";
+        if (/Windows NT/i.test(ua)) return "Windows PC";
+        if (/Android/i.test(ua)) return "Android";
+        if (/iPhone|iPod/i.test(ua)) return "iPhone";
+        if (/Linux/i.test(ua)) return "Linux PC";
+        return "Web Browser";
+    }
+
+    function generateNewLotus() {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    function syncLocalStorageUser() {
+        localStorage.setItem('active_user', JSON.stringify(currentUserData));
+        try {
+            let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            const email = currentUserData["Email"];
+            const idx = accounts.findIndex(acc => acc.email === email);
+            if (idx !== -1) {
+                accounts[idx].lotus = currentUserData["Lotus"] || accounts[idx].lotus;
+                accounts[idx].firstName = currentUserData["First Name"] || accounts[idx].firstName;
+                localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    async function sendEmail(toEmail, subject, body) {
+        await addDoc(collection(mailDb, "Email"), {
+            subject,
+            body,
+            from: "systemplx.mail",
+            to: toEmail,
+            timestamp: serverTimestamp()
+        });
+    }
+
+    /* ================= INIT & RENDER ================= */
+    async function initPage() {
+        let storedUser = null;
+        try {
+            if (localStorage.getItem('active_user')) {
+                storedUser = JSON.parse(localStorage.getItem('active_user'));
+            }
+        } catch (e) {
+            console.error("LocalStorage error:", e);
+        }
+
+        try {
+            let snap = null;
+            if (lotusParam) {
+                snap = await getDocs(query(collection(db, "UARM"), where("Lotus", "==", lotusParam)));
+            } else if (storedUser && storedUser["Email"]) {
+                snap = await getDocs(query(collection(db, "UARM"), where("Email", "==", storedUser["Email"])));
+            }
+
+            if (!snap || snap.empty) {
+                document.getElementById('authGate').style.display = 'block';
+                return;
+            }
+
+            currentUserDocId = snap.docs[0].id;
+            currentUserData = snap.docs[0].data();
+            syncLocalStorageUser();
+
+            document.getElementById('loggedInEmailLabel').textContent = currentUserData["Email"] || "";
+            document.getElementById('mainContent').style.display = 'block';
+            renderAllSections();
+        } catch (err) {
+            console.error("Security init error:", err);
+            document.getElementById('authGate').style.display = 'block';
+        }
+    }
+
+    function renderAllSections() {
+        // 1. Auth Manager
+        document.getElementById('currentDeviceText').textContent = detectDeviceType();
+        const lotus = currentUserData["Lotus"] || "";
+        document.getElementById('lotusTokenPreview').textContent =
+            lotus.length > 6 ? `${lotus.slice(0, 4)}••••${lotus.slice(-4)}` : 'Active';
+
+        try {
+            const saved = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+            document.getElementById('savedAccountsCount').textContent = String(saved.length);
+        } catch (e) {
+            document.getElementById('savedAccountsCount').textContent = '0';
+        }
+
+        // 2. 2 Way Security
+        const twoWayOn = Boolean(currentUserData["Two_Way_Security"]);
+        const twoWayBadge = document.getElementById('twoWayBadge');
+        twoWayBadge.textContent = twoWayOn ? 'Enabled' : 'Disabled';
+        twoWayBadge.className = 'status-pill ' + (twoWayOn ? 'on' : 'off');
+        document.getElementById('toggleTwoWayBtn').textContent =
+            twoWayOn ? 'Disable 2 Way Security' : 'Enable 2 Way Security';
+        document.getElementById('twoWayChannelText').textContent =
+            currentUserData["Recovery_Email"] || currentUserData["Email"] || 'Primary Email';
+
+        // 3. Recovery_Number
+        const recNum = currentUserData["Recovery_Number"] || currentUserData["Phone Number"] || "";
+        const recNumBadge = document.getElementById('recoveryNumBadge');
+        document.getElementById('recoveryNumText').textContent = recNum || 'Not configured';
+        recNumBadge.textContent = recNum ? 'Configured' : 'Not set';
+        recNumBadge.className = 'status-pill ' + (recNum ? 'on' : 'off');
+        document.getElementById('editRecoveryNumBtn').textContent =
+            recNum ? 'Edit Recovery Number' : 'Add Recovery Number';
+        document.getElementById('removeRecoveryNumBtn').style.display =
+            currentUserData["Recovery_Number"] ? 'inline-flex' : 'none';
+
+        // 4. Recovery_Email
+        const recEmail = currentUserData["Recovery_Email"] || currentUserData["Recovery Email"] || "";
+        const recEmailBadge = document.getElementById('recoveryEmailBadge');
+        document.getElementById('recoveryEmailText').textContent = recEmail || 'Not configured';
+        recEmailBadge.textContent = recEmail ? 'Verified' : 'Not set';
+        recEmailBadge.className = 'status-pill ' + (recEmail ? 'on' : 'off');
+        document.getElementById('editRecoveryEmailBtn').textContent =
+            recEmail ? 'Edit Recovery Email' : 'Add Recovery Email';
+        document.getElementById('removeRecoveryEmailBtn').style.display =
+            (currentUserData["Recovery_Email"] || currentUserData["Recovery Email"]) ? 'inline-flex' : 'none';
+
+        // 5. Passkeys
+        renderPasskeys();
+    }
+
+    /* ================= 1. AUTHENTICATION MANAGER ================= */
+    document.getElementById('rotateSessionBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('rotateSessionBtn');
+        btn.disabled = true;
+        setMsg('authMgrMsg', 'Refreshing security token...', '');
+        try {
+            const newLotus = generateNewLotus();
+            await updateDoc(doc(db, "UARM", currentUserDocId), { "Lotus": newLotus });
+            currentUserData["Lotus"] = newLotus;
+            syncLocalStorageUser();
+            renderAllSections();
+            setMsg('authMgrMsg', 'Security token rotated. Other sessions signed out.', 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('authMgrMsg', 'Failed to rotate session token.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('openChangePassBtn').addEventListener('click', () => {
+        document.getElementById('curPassInput').value = '';
+        document.getElementById('newPassInput').value = '';
+        document.getElementById('confirmPassInput').value = '';
+        setMsg('passModalMsg', '');
+        openModal('passwordModal');
+    });
+
+    document.getElementById('savePassBtn').addEventListener('click', async () => {
+        const cur = document.getElementById('curPassInput').value;
+        const np = document.getElementById('newPassInput').value;
+        const cp = document.getElementById('confirmPassInput').value;
+
+        if (!cur || !np || !cp) {
+            setMsg('passModalMsg', 'Please fill in all fields.', 'error');
+            return;
+        }
+        if (cur !== currentUserData["Password"]) {
+            setMsg('passModalMsg', 'Current password is incorrect.', 'error');
+            return;
+        }
+        if (np !== cp) {
+            setMsg('passModalMsg', 'New passwords do not match.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('savePassBtn');
+        btn.disabled = true;
+        btn.textContent = 'Updating...';
+
+        try {
+            const newLotus = generateNewLotus();
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Password": np,
+                "Lotus": newLotus
+            });
+            currentUserData["Password"] = np;
+            currentUserData["Lotus"] = newLotus;
+            syncLocalStorageUser();
+
+            try {
+                await sendEmail(
+                    currentUserData["Email"],
+                    "Password Changed",
+                    `Hello ${currentUserData["First Name"] || "User"},\n\nYour account password was changed from Security Manager on ${detectDeviceType()}.`
+                );
+            } catch (e) { /* non-blocking */ }
+
+            closeModal('passwordModal');
+            renderAllSections();
+            setMsg('authMgrMsg', 'Password updated successfully.', 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('passModalMsg', 'Failed to update password.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Update Password';
+        }
+    });
+
+    /* ================= 2. 2 WAY SECURITY ================= */
+    document.getElementById('toggleTwoWayBtn').addEventListener('click', async () => {
+        const currentlyOn = Boolean(currentUserData["Two_Way_Security"]);
+        pendingTwoWayTarget = !currentlyOn;
+
+        const targetEmail = currentUserData["Email"];
+        if (!targetEmail) {
+            setMsg('twoWayMsg', 'No primary email found for OTP verification.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('toggleTwoWayBtn');
+        btn.disabled = true;
+        setMsg('twoWayMsg', 'Sending verification OTP...', '');
+
+        try {
+            twoWayOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            twoWayOtpExpires = Date.now() + 10 * 60 * 1000;
+
+            await sendEmail(
+                targetEmail,
+                "2 Way Security Verification OTP",
+                `Hello ${currentUserData["First Name"] || "User"},\n\nYour OTP to ${pendingTwoWayTarget ? 'enable' : 'disable'} 2 Way Security is: ${twoWayOtp}\n\nThis code expires in 10 minutes.`
+            );
+
+            document.getElementById('twoWayModalTitle').textContent =
+                pendingTwoWayTarget ? 'Enable 2 Way Security' : 'Disable 2 Way Security';
+            document.getElementById('twoWayOtpDesc').textContent =
+                `Enter the 6-digit OTP sent to ${targetEmail}.`;
+            document.getElementById('twoWayOtpInput').value = '';
+            setMsg('twoWayModalMsg', '');
+            setMsg('twoWayMsg', '');
+            openModal('twoWayModal');
+        } catch (err) {
+            console.error(err);
+            setMsg('twoWayMsg', 'Failed to send verification OTP.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('confirmTwoWayOtpBtn').addEventListener('click', async () => {
+        const code = document.getElementById('twoWayOtpInput').value.trim();
+        if (!code) return setMsg('twoWayModalMsg', 'Enter the 6-digit OTP.', 'error');
+        if (Date.now() > twoWayOtpExpires) return setMsg('twoWayModalMsg', 'OTP expired.', 'error');
+        if (code !== twoWayOtp) return setMsg('twoWayModalMsg', 'Incorrect OTP.', 'error');
+
+        const btn = document.getElementById('confirmTwoWayOtpBtn');
+        btn.disabled = true;
+
+        try {
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Two_Way_Security": pendingTwoWayTarget
+            });
+            currentUserData["Two_Way_Security"] = pendingTwoWayTarget;
+            syncLocalStorageUser();
+            closeModal('twoWayModal');
+            renderAllSections();
+            setMsg('twoWayMsg', `2 Way Security ${pendingTwoWayTarget ? 'enabled' : 'disabled'}.`, 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('twoWayModalMsg', 'Failed to update 2 Way Security.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    /* ================= 3. RECOVERY_NUMBER ================= */
+    document.getElementById('editRecoveryNumBtn').addEventListener('click', () => {
+        document.getElementById('recoveryNumInput').value =
+            currentUserData["Recovery_Number"] || currentUserData["Phone Number"] || '';
+        setMsg('recoveryNumModalMsg', '');
+        openModal('recoveryNumModal');
+    });
+
+    document.getElementById('saveRecoveryNumBtn').addEventListener('click', async () => {
+        const num = document.getElementById('recoveryNumInput').value.trim();
+        if (!num || !/^\+?\d[\d\s\-()]{5,}$/.test(num)) {
+            setMsg('recoveryNumModalMsg', 'Please enter a valid phone number.', 'error');
+            return;
+        }
+
+        const cleanNum = num.replace(/[\s\-()]/g, '');
+        const btn = document.getElementById('saveRecoveryNumBtn');
+        btn.disabled = true;
+
+        try {
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Recovery_Number": cleanNum
+            });
+            currentUserData["Recovery_Number"] = cleanNum;
+            syncLocalStorageUser();
+            closeModal('recoveryNumModal');
+            renderAllSections();
+            setMsg('recoveryNumMsg', 'Recovery_Number updated.', 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('recoveryNumModalMsg', 'Failed to save Recovery_Number.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('removeRecoveryNumBtn').addEventListener('click', async () => {
+        try {
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Recovery_Number": deleteField()
+            });
+            delete currentUserData["Recovery_Number"];
+            syncLocalStorageUser();
+            renderAllSections();
+            setMsg('recoveryNumMsg', 'Recovery_Number removed.', 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('recoveryNumMsg', 'Failed to remove Recovery_Number.', 'error');
+        }
+    });
+
+    /* ================= 4. RECOVERY_EMAIL (WITH OTP) ================= */
+    function showRecEmailStep(stepId) {
+        document.querySelectorAll('#recoveryEmailModal .modal-step').forEach(s => s.classList.remove('active'));
+        document.getElementById(stepId).classList.add('active');
+    }
+
+    document.getElementById('editRecoveryEmailBtn').addEventListener('click', () => {
+        document.getElementById('recoveryEmailInput').value =
+            currentUserData["Recovery_Email"] || currentUserData["Recovery Email"] || '';
+        document.getElementById('recEmailOtpInput').value = '';
+        setMsg('recEmailStep1Msg', '');
+        setMsg('recEmailStep2Msg', '');
+        showRecEmailStep('recEmailStep1');
+        openModal('recoveryEmailModal');
+    });
+
+    document.getElementById('sendRecEmailOtpBtn').addEventListener('click', async () => {
+        const email = document.getElementById('recoveryEmailInput').value.trim();
+        if (!email || !email.includes('@')) {
+            setMsg('recEmailStep1Msg', 'Please enter a valid email address.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('sendRecEmailOtpBtn');
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+
+        try {
+            pendingRecEmail = email;
+            recEmailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            recEmailOtpExpires = Date.now() + 10 * 60 * 1000;
+
+            await sendEmail(
+                email,
+                "Verify Your Recovery Email",
+                `Hello ${currentUserData["First Name"] || "User"},\n\nYour OTP to verify ${email} as your Recovery Email is: ${recEmailOtp}\n\nThis code is valid for 10 minutes.`
+            );
+
+            document.getElementById('recEmailOtpPrompt').textContent = `Enter the 6-digit OTP sent to ${email}.`;
+            showRecEmailStep('recEmailStep2');
+        } catch (err) {
+            console.error(err);
+            setMsg('recEmailStep1Msg', 'Failed to send OTP.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Send OTP';
+        }
+    });
+
+    document.getElementById('backRecEmailBtn').addEventListener('click', () => showRecEmailStep('recEmailStep1'));
+
+    document.getElementById('verifyRecEmailOtpBtn').addEventListener('click', async () => {
+        const code = document.getElementById('recEmailOtpInput').value.trim();
+        if (!code) return setMsg('recEmailStep2Msg', 'Enter the 6-digit OTP.', 'error');
+        if (Date.now() > recEmailOtpExpires) return setMsg('recEmailStep2Msg', 'OTP expired.', 'error');
+        if (code !== recEmailOtp) return setMsg('recEmailStep2Msg', 'Incorrect OTP.', 'error');
+
+        const btn = document.getElementById('verifyRecEmailOtpBtn');
+        btn.disabled = true;
+
+        try {
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Recovery_Email": pendingRecEmail,
+                "Recovery Email": pendingRecEmail
+            });
+            currentUserData["Recovery_Email"] = pendingRecEmail;
+            currentUserData["Recovery Email"] = pendingRecEmail;
+            syncLocalStorageUser();
+
+            closeModal('recoveryEmailModal');
+            renderAllSections();
+            setMsg('recoveryEmailMsg', 'Recovery_Email verified and saved.', 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('recEmailStep2Msg', 'Failed to save Recovery_Email.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('removeRecoveryEmailBtn').addEventListener('click', async () => {
+        try {
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Recovery_Email": deleteField(),
+                "Recovery Email": deleteField()
+            });
+            delete currentUserData["Recovery_Email"];
+            delete currentUserData["Recovery Email"];
+            syncLocalStorageUser();
+            renderAllSections();
+            setMsg('recoveryEmailMsg', 'Recovery_Email removed.', 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('recoveryEmailMsg', 'Failed to remove Recovery_Email.', 'error');
+        }
+    });
+
+    /* ================= 5. PASSKEYS (GOOGLE PASSWORD MANAGER / WEBAUTHN) ================= */
+    function bufferToBase64Url(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function base64UrlToBuffer(base64url) {
+        const padding = '='.repeat((4 - (base64url.length % 4)) % 4);
+        const base64 = (base64url + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        const buffer = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) {
+            buffer[i] = raw.charCodeAt(i);
+        }
+        return buffer.buffer;
+    }
+
+    function renderPasskeys() {
+        const list = document.getElementById('passkeyList');
+        const passkeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+        const badge = document.getElementById('passkeyBadge');
+
+        badge.textContent = `${passkeys.length} saved`;
+        badge.className = 'status-pill ' + (passkeys.length > 0 ? 'on' : 'off');
+        list.innerHTML = '';
+
+        if (passkeys.length === 0) {
+            list.innerHTML = `<div class="info-row"><span class="info-label">No passkeys created yet</span></div>`;
+            return;
+        }
+
+        passkeys.forEach((pk, index) => {
+            const row = document.createElement('div');
+            row.className = 'passkey-item';
+            const dateText = pk.createdAt ? new Date(pk.createdAt).toLocaleDateString() : '';
+
+            row.innerHTML = `
+                <div class="passkey-meta">
+                    <div class="passkey-name">${pk.name || 'Passkey'}</div>
+                    <div class="passkey-sub">${pk.device || 'Google Password Manager'}${dateText ? ' · ' + dateText : ''}</div>
+                </div>
+                <div class="passkey-actions">
+                    <button type="button" class="btn btn-secondary btn-sm test-pk-btn">Test</button>
+                    <button type="button" class="btn btn-danger btn-sm del-pk-btn">Delete</button>
+                </div>
+            `;
+
+            row.querySelector('.test-pk-btn').addEventListener('click', () => testPasskey(pk));
+            row.querySelector('.del-pk-btn').addEventListener('click', () => deletePasskey(index));
+            list.appendChild(row);
+        });
+    }
+
+    document.getElementById('createPasskeyBtn').addEventListener('click', () => {
+        if (!window.PublicKeyCredential || !navigator.credentials) {
+            setMsg('passkeyMsg', 'Passkeys (WebAuthn) require a modern browser over HTTPS or localhost.', 'error');
+            return;
+        }
+        document.getElementById('passkeyLabelInput').value = `${detectDeviceType()} Passkey`;
+        setMsg('passkeyModalMsg', '');
+        openModal('passkeyModal');
+    });
+
+    document.getElementById('confirmCreatePasskeyBtn').addEventListener('click', async () => {
+        const label = document.getElementById('passkeyLabelInput').value.trim() || 'Google Password Manager Passkey';
+        const btn = document.getElementById('confirmCreatePasskeyBtn');
+        btn.disabled = true;
+        btn.textContent = 'Waiting for prompt...';
+        setMsg('passkeyModalMsg', '');
+
+        try {
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
+
+            const userIdentifier = currentUserData["Lotus"] || currentUserData["Email"] || currentUserDocId;
+            const userIdBytes = new TextEncoder().encode(userIdentifier).slice(0, 64);
+
+            const existingPasskeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+            const excludeCredentials = existingPasskeys
+                .filter(pk => pk.rawId)
+                .map(pk => ({
+                    id: base64UrlToBuffer(pk.rawId),
+                    type: 'public-key'
+                }));
+
+            const publicKeyOptions = {
+                challenge,
+                rp: {
+                    name: "Perplexity Account",
+                    id: window.location.hostname || undefined
+                },
+                user: {
+                    id: userIdBytes,
+                    name: currentUserData["Email"] || "user",
+                    displayName: `${currentUserData["First Name"] || ""} ${currentUserData["Last Name"] || ""}`.trim() || currentUserData["Email"] || "User"
+                },
+                pubKeyCredParams: [
+                    { alg: -7, type: "public-key" },   // ES256 (Google Password Manager standard)
+                    { alg: -257, type: "public-key" }  // RS256
+                ],
+                authenticatorSelection: {
+                    residentKey: "required",
+                    requireResidentKey: true,
+                    userVerification: "preferred"
+                },
+                excludeCredentials,
+                timeout: 60000,
+                attestation: "none"
+            };
+
+            const credential = await navigator.credentials.create({ publicKey: publicKeyOptions });
+            if (!credential) {
+                setMsg('passkeyModalMsg', 'Passkey creation was cancelled.', 'error');
+                return;
+            }
+
+            const newPasskey = {
+                id: credential.id,
+                rawId: bufferToBase64Url(credential.rawId),
+                name: label,
+                device: detectDeviceType(),
+                provider: "Google Password Manager",
+                transports: credential.response && credential.response.getTransports
+                    ? credential.response.getTransports()
+                    : ["internal", "hybrid"],
+                createdAt: new Date().toISOString()
+            };
+
+            const updatedPasskeys = [...existingPasskeys, newPasskey];
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Passkeys": updatedPasskeys
+            });
+
+            currentUserData["Passkeys"] = updatedPasskeys;
+            syncLocalStorageUser();
+            closeModal('passkeyModal');
+            renderAllSections();
+            setMsg('passkeyMsg', 'Passkey created and saved!', 'success');
+        } catch (err) {
+            console.error("Passkey create error:", err);
+            if (err.name === 'NotAllowedError') {
+                setMsg('passkeyModalMsg', 'Passkey prompt cancelled or timed out.', 'error');
+            } else if (err.name === 'SecurityError') {
+                setMsg('passkeyModalMsg', 'Passkeys require HTTPS or localhost (cannot run on file://).', 'error');
+            } else if (err.name === 'InvalidStateError') {
+                setMsg('passkeyModalMsg', 'A passkey for this account already exists on this password manager.', 'error');
+            } else {
+                setMsg('passkeyModalMsg', `Passkey error: ${err.message}`, 'error');
+            }
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Continue';
+        }
+    });
+
+    async function testPasskey(pk) {
+        if (!window.PublicKeyCredential || !navigator.credentials) {
+            setMsg('passkeyMsg', 'WebAuthn not supported in this browser/context.', 'error');
+            return;
+        }
+        try {
+            setMsg('passkeyMsg', 'Verifying passkey...', '');
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
+
+            const assertion = await navigator.credentials.get({
+                publicKey: {
+                    challenge,
+                    rpId: window.location.hostname || undefined,
+                    allowCredentials: [{
+                        id: base64UrlToBuffer(pk.rawId),
+                        type: 'public-key'
+                    }],
+                    userVerification: "preferred",
+                    timeout: 60000
+                }
+            });
+
+            if (assertion) {
+                setMsg('passkeyMsg', `Passkey "${pk.name}" verified successfully!`, 'success');
+            }
+        } catch (err) {
+            console.error("Passkey test error:", err);
+            setMsg('passkeyMsg', `Passkey test cancelled or failed (${err.name}).`, 'error');
+        }
+    }
+
+    async function deletePasskey(index) {
+        const existingPasskeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+        const updatedPasskeys = existingPasskeys.filter((_, i) => i !== index);
+
+        try {
+            await updateDoc(doc(db, "UARM", currentUserDocId), {
+                "Passkeys": updatedPasskeys
+            });
+            currentUserData["Passkeys"] = updatedPasskeys;
+            syncLocalStorageUser();
+            renderAllSections();
+            setMsg('passkeyMsg', 'Passkey removed.', 'success');
+        } catch (err) {
+            console.error("Delete passkey error:", err);
+            setMsg('passkeyMsg', 'Failed to remove passkey.', 'error');
+        }
+    }
+
+    initPage();
+</script>
+</body>
+</html>
