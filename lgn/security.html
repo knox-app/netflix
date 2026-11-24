@@ -80,6 +80,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
             margin-bottom: 24px;
         }
 
@@ -93,6 +94,47 @@
         }
 
         .back-link:hover { color: var(--text-primary); }
+
+        .user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 4px 12px 4px 6px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            max-width: 260px;
+        }
+
+        .user-pill img {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .user-pill .avatar-fallback {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--btn-secondary-bg);
+            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .user-pill span.email-txt {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
         h1 {
             font-size: 28px;
@@ -222,6 +264,11 @@
             color: var(--btn-secondary-text);
         }
 
+        .btn-danger {
+            background: var(--btn-danger-bg);
+            color: var(--btn-danger-text);
+        }
+
         .passkey-list {
             display: flex;
             flex-direction: column;
@@ -280,6 +327,23 @@
 
         .inline-msg.error { color: var(--error-color); }
         .inline-msg.success { color: var(--success-color); }
+
+        .resend-wrap {
+            text-align: right;
+            margin-top: -6px;
+            margin-bottom: 10px;
+        }
+
+        .text-link {
+            background: none;
+            border: none;
+            color: var(--link-color);
+            font-size: 13px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .text-link:hover { text-decoration: underline; }
 
         /* Modal */
         .modal-overlay {
@@ -390,11 +454,15 @@
 <div class="page-wrap" id="mainContent" style="display: none;">
     <div class="top-bar">
         <a class="back-link" id="backLink" href="4.html">&#8592; Back</a>
-        <span style="font-size: 13px; color: var(--text-secondary);" id="loggedInEmailLabel"></span>
+        <div class="user-pill">
+            <img id="userAvatarImg" alt="Profile">
+            <span class="avatar-fallback" id="userAvatarFallback">U</span>
+            <span class="email-txt" id="loggedInEmailLabel"></span>
+        </div>
     </div>
 
     <h1>Security</h1>
-    <p class="lead">Manage your authentication manager, 2-way security, recovery contacts, and passkeys.</p>
+    <p class="lead">Manage your authentication manager, 2-way security, recovery contacts, and device passkeys.</p>
 
     <!-- 1. AUTHENTICATION MANAGER -->
     <div class="card">
@@ -402,7 +470,7 @@
             <h2 class="card-title">Authentication Manager</h2>
             <span class="status-pill on">Active</span>
         </div>
-        <p class="card-desc">Control active sessions, rotate your Lotus security token, or update your password.</p>
+        <p class="card-desc">Control active sessions, rotate your Lotus security token, update your password, or log out.</p>
 
         <div class="info-grid">
             <div class="info-row">
@@ -420,9 +488,10 @@
         </div>
 
         <div class="btn-row">
-            <button class="btn btn-primary" id="openChangePassBtn">Change Password</button>
-            <button class="btn btn-secondary" id="rotateSessionBtn">Sign out other sessions</button>
+            <button type="button" class="btn btn-primary" id="openChangePassBtn">Change Password</button>
+            <button type="button" class="btn btn-secondary" id="rotateSessionBtn">Sign out other sessions</button>
             <a class="btn btn-secondary" id="manageAccountsLink" href="3.html">Switch account</a>
+            <a class="btn btn-secondary" id="logoutPageLink" href="logout.html">Log out</a>
         </div>
         <div class="inline-msg" id="authMgrMsg"></div>
     </div>
@@ -433,17 +502,17 @@
             <h2 class="card-title">2 Way Security</h2>
             <span class="status-pill off" id="twoWayBadge">Disabled</span>
         </div>
-        <p class="card-desc">Add an extra layer of protection with email one-time verification codes (OTP) during sign-in.</p>
+        <p class="card-desc">Add an extra layer of protection with email one-time verification codes (OTP).</p>
 
         <div class="info-grid">
             <div class="info-row">
-                <span class="info-label">Verification Channel</span>
+                <span class="info-label">Verification Email</span>
                 <span class="info-value" id="twoWayChannelText">Primary Email</span>
             </div>
         </div>
 
         <div class="btn-row">
-            <button class="btn btn-primary" id="toggleTwoWayBtn">Enable 2 Way Security</button>
+            <button type="button" class="btn btn-primary" id="toggleTwoWayBtn">Enable 2 Way Security</button>
         </div>
         <div class="inline-msg" id="twoWayMsg"></div>
     </div>
@@ -464,8 +533,8 @@
         </div>
 
         <div class="btn-row">
-            <button class="btn btn-primary" id="editRecoveryNumBtn">Add Recovery Number</button>
-            <button class="btn btn-secondary" id="removeRecoveryNumBtn" style="display: none;">Remove</button>
+            <button type="button" class="btn btn-primary" id="editRecoveryNumBtn">Add Recovery Number</button>
+            <button type="button" class="btn btn-secondary" id="removeRecoveryNumBtn" style="display: none;">Remove</button>
         </div>
         <div class="inline-msg" id="recoveryNumMsg"></div>
     </div>
@@ -486,8 +555,8 @@
         </div>
 
         <div class="btn-row">
-            <button class="btn btn-primary" id="editRecoveryEmailBtn">Add Recovery Email</button>
-            <button class="btn btn-secondary" id="removeRecoveryEmailBtn" style="display: none;">Remove</button>
+            <button type="button" class="btn btn-primary" id="editRecoveryEmailBtn">Add Recovery Email</button>
+            <button type="button" class="btn btn-secondary" id="removeRecoveryEmailBtn" style="display: none;">Remove</button>
         </div>
         <div class="inline-msg" id="recoveryEmailMsg"></div>
     </div>
@@ -498,13 +567,14 @@
             <h2 class="card-title">Passkeys</h2>
             <span class="status-pill off" id="passkeyBadge">0 saved</span>
         </div>
-        <p class="card-desc">Manage passwordless device passkeys in our dedicated Passkey Manager.</p>
+        <p class="card-desc">Create, test, revoke, or transfer device passkeys in the Passkey Manager.</p>
 
         <div class="passkey-list" id="passkeyList"></div>
 
         <div class="btn-row">
             <a class="btn btn-primary" id="createPasskeyLink" href="passkey.html">+ Create Passkey</a>
             <a class="btn btn-secondary" id="managePasskeysLink" href="passkey.html">Manage Passkeys</a>
+            <a class="btn btn-secondary" id="transferPasskeyLink" href="passkey.html">Transfer Passkey</a>
         </div>
     </div>
 </div>
@@ -530,8 +600,8 @@
         </div>
         <div class="inline-msg" id="passModalMsg"></div>
         <div class="modal-actions">
-            <button class="btn btn-secondary" data-close="passwordModal">Cancel</button>
-            <button class="btn btn-primary" id="savePassBtn">Update Password</button>
+            <button type="button" class="btn btn-secondary" data-close="passwordModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="savePassBtn">Update Password</button>
         </div>
     </div>
 </div>
@@ -548,10 +618,13 @@
             <label>6-Digit OTP</label>
             <input type="text" id="twoWayOtpInput" maxlength="6" autocomplete="off">
         </div>
+        <div class="resend-wrap">
+            <button type="button" class="text-link" id="resendTwoWayOtpBtn">Resend OTP</button>
+        </div>
         <div class="inline-msg" id="twoWayModalMsg"></div>
         <div class="modal-actions">
-            <button class="btn btn-secondary" data-close="twoWayModal">Cancel</button>
-            <button class="btn btn-primary" id="confirmTwoWayOtpBtn">Verify</button>
+            <button type="button" class="btn btn-secondary" data-close="twoWayModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="confirmTwoWayOtpBtn">Verify</button>
         </div>
     </div>
 </div>
@@ -569,8 +642,8 @@
         </div>
         <div class="inline-msg" id="recoveryNumModalMsg"></div>
         <div class="modal-actions">
-            <button class="btn btn-secondary" data-close="recoveryNumModal">Cancel</button>
-            <button class="btn btn-primary" id="saveRecoveryNumBtn">Save</button>
+            <button type="button" class="btn btn-secondary" data-close="recoveryNumModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveRecoveryNumBtn">Save</button>
         </div>
     </div>
 </div>
@@ -591,8 +664,8 @@
             </div>
             <div class="inline-msg" id="recEmailStep1Msg"></div>
             <div class="modal-actions">
-                <button class="btn btn-secondary" data-close="recoveryEmailModal">Cancel</button>
-                <button class="btn btn-primary" id="sendRecEmailOtpBtn">Send OTP</button>
+                <button type="button" class="btn btn-secondary" data-close="recoveryEmailModal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendRecEmailOtpBtn">Send OTP</button>
             </div>
         </div>
 
@@ -602,10 +675,13 @@
                 <label>6-Digit OTP</label>
                 <input type="text" id="recEmailOtpInput" maxlength="6" autocomplete="off">
             </div>
+            <div class="resend-wrap">
+                <button type="button" class="text-link" id="resendRecEmailOtpBtn">Resend OTP</button>
+            </div>
             <div class="inline-msg" id="recEmailStep2Msg"></div>
             <div class="modal-actions">
-                <button class="btn btn-secondary" id="backRecEmailBtn">Back</button>
-                <button class="btn btn-primary" id="verifyRecEmailOtpBtn">Verify &amp; Save</button>
+                <button type="button" class="btn btn-secondary" id="backRecEmailBtn">Back</button>
+                <button type="button" class="btn btn-primary" id="verifyRecEmailOtpBtn">Verify &amp; Save</button>
             </div>
         </div>
     </div>
@@ -679,14 +755,6 @@
     applyTheme();
     mediaQuery.addEventListener("change", () => { if (!theme) applyTheme(); });
 
-    document.getElementById('backLink').href = continueUrl;
-    document.getElementById('manageAccountsLink').href = theme ? `3.html?theme=${theme}` : '3.html';
-    document.getElementById('signInRedirectBtn').addEventListener('click', () => {
-        let target = `1.html?continue=${encodeURIComponent(window.location.href)}`;
-        if (theme) target += `&theme=${theme}`;
-        window.location.href = target;
-    });
-
     /* ================= STATE ================= */
     let currentUserDocId = null;
     let currentUserData = null;
@@ -718,11 +786,13 @@
         btn.addEventListener('click', () => closeModal(btn.dataset.close));
     });
 
-    function buildUrl(page, extra = {}) {
+    function buildUrl(page, extra = {}, includeLotus = true) {
         const p = new URLSearchParams();
         if (session) p.set('session', session);
-        const activeLotus = (currentUserData && currentUserData["Lotus"]) || lotusParam;
-        if (activeLotus) p.set('Lotus', activeLotus);
+        if (includeLotus) {
+            const activeLotus = (currentUserData && currentUserData["Lotus"]) || lotusParam;
+            if (activeLotus) p.set('Lotus', activeLotus);
+        }
         if (continueUrl) p.set('continue', continueUrl);
         if (provider) p.set('provider', provider);
         if (theme) p.set('theme', theme);
@@ -732,6 +802,11 @@
         const qs = p.toString();
         return qs ? `${page}?${qs}` : page;
     }
+
+    document.getElementById('backLink').href = continueUrl;
+    document.getElementById('signInRedirectBtn').addEventListener('click', () => {
+        window.location.href = buildUrl('1.html', { continue: window.location.href }, false);
+    });
 
     function detectDeviceType() {
         const ua = navigator.userAgent;
@@ -800,7 +875,20 @@
             currentUserData = snap.docs[0].data();
             syncLocalStorageUser();
 
-            document.getElementById('loggedInEmailLabel').textContent = currentUserData["Email"] || "";
+            const email = currentUserData["Email"] || "";
+            const firstName = currentUserData["First Name"] || email || "U";
+            document.getElementById('loggedInEmailLabel').textContent = email;
+
+            const pic = currentUserData["Profile_Picture"] || currentUserData["Profile Picture"];
+            if (pic) {
+                const img = document.getElementById('userAvatarImg');
+                img.src = pic;
+                img.style.display = 'inline-block';
+                document.getElementById('userAvatarFallback').style.display = 'none';
+            } else {
+                document.getElementById('userAvatarFallback').textContent = firstName[0].toUpperCase();
+            }
+
             document.getElementById('mainContent').style.display = 'block';
             renderAllSections();
         } catch (err) {
@@ -810,6 +898,7 @@
     }
 
     function renderAllSections() {
+        // 1. Auth Manager
         document.getElementById('currentDeviceText').textContent = detectDeviceType();
         const lotus = currentUserData["Lotus"] || "";
         document.getElementById('lotusTokenPreview').textContent =
@@ -822,6 +911,10 @@
             document.getElementById('savedAccountsCount').textContent = '0';
         }
 
+        document.getElementById('manageAccountsLink').href = buildUrl('3.html', {}, false);
+        document.getElementById('logoutPageLink').href = buildUrl('logout.html', {}, false);
+
+        // 2. 2 Way Security
         const twoWayOn = Boolean(currentUserData["Two_Way_Security"]);
         const twoWayBadge = document.getElementById('twoWayBadge');
         twoWayBadge.textContent = twoWayOn ? 'Enabled' : 'Disabled';
@@ -829,8 +922,9 @@
         document.getElementById('toggleTwoWayBtn').textContent =
             twoWayOn ? 'Disable 2 Way Security' : 'Enable 2 Way Security';
         document.getElementById('twoWayChannelText').textContent =
-            currentUserData["Recovery_Email"] || currentUserData["Email"] || 'Primary Email';
+            currentUserData["Email"] || 'Primary Email';
 
+        // 3. Recovery_Number
         const recNum = currentUserData["Recovery_Number"] || currentUserData["Phone Number"] || "";
         const recNumBadge = document.getElementById('recoveryNumBadge');
         document.getElementById('recoveryNumText').textContent = recNum || 'Not configured';
@@ -841,6 +935,7 @@
         document.getElementById('removeRecoveryNumBtn').style.display =
             currentUserData["Recovery_Number"] ? 'inline-flex' : 'none';
 
+        // 4. Recovery_Email
         const recEmail = currentUserData["Recovery_Email"] || currentUserData["Recovery Email"] || "";
         const recEmailBadge = document.getElementById('recoveryEmailBadge');
         document.getElementById('recoveryEmailText').textContent = recEmail || 'Not configured';
@@ -851,6 +946,7 @@
         document.getElementById('removeRecoveryEmailBtn').style.display =
             (currentUserData["Recovery_Email"] || currentUserData["Recovery Email"]) ? 'inline-flex' : 'none';
 
+        // 5. Passkeys (connected to passkey.html)
         renderPasskeySummary();
     }
 
@@ -880,6 +976,10 @@
         document.getElementById('confirmPassInput').value = '';
         setMsg('passModalMsg', '');
         openModal('passwordModal');
+    });
+
+    document.getElementById('confirmPassInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('savePassBtn').click();
     });
 
     document.getElementById('savePassBtn').addEventListener('click', async () => {
@@ -935,6 +1035,18 @@
     });
 
     /* ================= 2. 2 WAY SECURITY ================= */
+    async function sendTwoWayOtpEmail() {
+        const targetEmail = currentUserData["Email"];
+        twoWayOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        twoWayOtpExpires = Date.now() + 10 * 60 * 1000;
+
+        await sendEmail(
+            targetEmail,
+            "2 Way Security Verification OTP",
+            `Hello ${currentUserData["First Name"] || "User"},\n\nYour OTP to ${pendingTwoWayTarget ? 'enable' : 'disable'} 2 Way Security is: ${twoWayOtp}\n\nThis code expires in 10 minutes.`
+        );
+    }
+
     document.getElementById('toggleTwoWayBtn').addEventListener('click', async () => {
         const currentlyOn = Boolean(currentUserData["Two_Way_Security"]);
         pendingTwoWayTarget = !currentlyOn;
@@ -950,15 +1062,7 @@
         setMsg('twoWayMsg', 'Sending verification OTP...', '');
 
         try {
-            twoWayOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            twoWayOtpExpires = Date.now() + 10 * 60 * 1000;
-
-            await sendEmail(
-                targetEmail,
-                "2 Way Security Verification OTP",
-                `Hello ${currentUserData["First Name"] || "User"},\n\nYour OTP to ${pendingTwoWayTarget ? 'enable' : 'disable'} 2 Way Security is: ${twoWayOtp}\n\nThis code expires in 10 minutes.`
-            );
-
+            await sendTwoWayOtpEmail();
             document.getElementById('twoWayModalTitle').textContent =
                 pendingTwoWayTarget ? 'Enable 2 Way Security' : 'Disable 2 Way Security';
             document.getElementById('twoWayOtpDesc').textContent =
@@ -973,6 +1077,21 @@
         } finally {
             btn.disabled = false;
         }
+    });
+
+    document.getElementById('resendTwoWayOtpBtn').addEventListener('click', async () => {
+        try {
+            setMsg('twoWayModalMsg', 'Resending OTP...', '');
+            await sendTwoWayOtpEmail();
+            setMsg('twoWayModalMsg', 'New OTP sent!', 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('twoWayModalMsg', 'Failed to resend OTP.', 'error');
+        }
+    });
+
+    document.getElementById('twoWayOtpInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('confirmTwoWayOtpBtn').click();
     });
 
     document.getElementById('confirmTwoWayOtpBtn').addEventListener('click', async () => {
@@ -1007,6 +1126,10 @@
             currentUserData["Recovery_Number"] || currentUserData["Phone Number"] || '';
         setMsg('recoveryNumModalMsg', '');
         openModal('recoveryNumModal');
+    });
+
+    document.getElementById('recoveryNumInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('saveRecoveryNumBtn').click();
     });
 
     document.getElementById('saveRecoveryNumBtn').addEventListener('click', async () => {
@@ -1058,6 +1181,17 @@
         document.getElementById(stepId).classList.add('active');
     }
 
+    async function sendRecEmailOtp() {
+        recEmailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        recEmailOtpExpires = Date.now() + 10 * 60 * 1000;
+
+        await sendEmail(
+            pendingRecEmail,
+            "Verify Your Recovery Email",
+            `Hello ${currentUserData["First Name"] || "User"},\n\nYour OTP to verify ${pendingRecEmail} as your Recovery Email is: ${recEmailOtp}\n\nThis code is valid for 10 minutes.`
+        );
+    }
+
     document.getElementById('editRecoveryEmailBtn').addEventListener('click', () => {
         document.getElementById('recoveryEmailInput').value =
             currentUserData["Recovery_Email"] || currentUserData["Recovery Email"] || '';
@@ -1066,6 +1200,10 @@
         setMsg('recEmailStep2Msg', '');
         showRecEmailStep('recEmailStep1');
         openModal('recoveryEmailModal');
+    });
+
+    document.getElementById('recoveryEmailInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('sendRecEmailOtpBtn').click();
     });
 
     document.getElementById('sendRecEmailOtpBtn').addEventListener('click', async () => {
@@ -1081,15 +1219,7 @@
 
         try {
             pendingRecEmail = email;
-            recEmailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            recEmailOtpExpires = Date.now() + 10 * 60 * 1000;
-
-            await sendEmail(
-                email,
-                "Verify Your Recovery Email",
-                `Hello ${currentUserData["First Name"] || "User"},\n\nYour OTP to verify ${email} as your Recovery Email is: ${recEmailOtp}\n\nThis code is valid for 10 minutes.`
-            );
-
+            await sendRecEmailOtp();
             document.getElementById('recEmailOtpPrompt').textContent = `Enter the 6-digit OTP sent to ${email}.`;
             showRecEmailStep('recEmailStep2');
         } catch (err) {
@@ -1101,7 +1231,23 @@
         }
     });
 
+    document.getElementById('resendRecEmailOtpBtn').addEventListener('click', async () => {
+        if (!pendingRecEmail) return;
+        try {
+            setMsg('recEmailStep2Msg', 'Resending OTP...', '');
+            await sendRecEmailOtp();
+            setMsg('recEmailStep2Msg', 'New OTP sent!', 'success');
+        } catch (err) {
+            console.error(err);
+            setMsg('recEmailStep2Msg', 'Failed to resend OTP.', 'error');
+        }
+    });
+
     document.getElementById('backRecEmailBtn').addEventListener('click', () => showRecEmailStep('recEmailStep1'));
+
+    document.getElementById('recEmailOtpInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('verifyRecEmailOtpBtn').click();
+    });
 
     document.getElementById('verifyRecEmailOtpBtn').addEventListener('click', async () => {
         const code = document.getElementById('recEmailOtpInput').value.trim();
@@ -1162,7 +1308,6 @@
             localPasskeys = [];
         }
 
-        // Update connected links with the latest Lotus & params
         document.getElementById('createPasskeyLink').href = buildUrl('passkey.html', {
             mode: 'manage',
             create: '1',
@@ -1170,6 +1315,10 @@
         });
         document.getElementById('managePasskeysLink').href = buildUrl('passkey.html', {
             mode: 'manage',
+            from: 'security'
+        });
+        document.getElementById('transferPasskeyLink').href = buildUrl('passkey.html', {
+            mode: 'transfer',
             from: 'security'
         });
 
