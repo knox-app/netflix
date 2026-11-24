@@ -15,9 +15,14 @@
             --btn-bg: #111111;
             --btn-text: #ffffff;
             --btn-hover: #333333;
+            --btn-sec-bg: #f3f3f3;
+            --btn-sec-text: #111111;
             --badge-bg: #f0f0f0;
             --badge-text: #333333;
             --link-color: #0066cc;
+            --modal-bg: #ffffff;
+            --overlay-bg: rgba(0, 0, 0, 0.5);
+            --error-color: #d93025;
         }
 
         body.dark {
@@ -30,9 +35,14 @@
             --btn-bg: #ffffff;
             --btn-text: #000000;
             --btn-hover: #e0e0e0;
+            --btn-sec-bg: #1c1c1c;
+            --btn-sec-text: #ffffff;
             --badge-bg: #222222;
             --badge-text: #dddddd;
             --link-color: #4da3ff;
+            --modal-bg: #212121;
+            --overlay-bg: rgba(0, 0, 0, 0.72);
+            --error-color: #f28b82;
         }
 
         body {
@@ -122,9 +132,102 @@
             font-size: 16px;
             cursor: pointer;
             margin-top: 10px;
+            transition: background 0.2s, color 0.2s;
         }
 
-        .btn:hover { background: var(--btn-hover); }
+        .btn:hover:not(:disabled) { background: var(--btn-hover); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-secondary {
+            background: var(--btn-sec-bg);
+            color: var(--btn-sec-text);
+            border: 1px solid var(--input-border);
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--badge-bg);
+        }
+
+        .links {
+            margin-top: 18px;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .links a {
+            color: var(--link-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .links a:hover { text-decoration: underline; }
+
+        /* Passkey PIN Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay-bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 100;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--modal-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 22px;
+            width: 100%;
+            max-width: 380px;
+            padding: 24px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        .modal h3 { margin: 0 0 8px; font-size: 19px; }
+        .modal p { margin: 0 0 16px; font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+
+        .modal input[type="password"] {
+            margin-bottom: 8px;
+        }
+
+        .modal-err {
+            font-size: 13px;
+            color: var(--error-color);
+            min-height: 18px;
+            margin-bottom: 10px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            border: none;
+            border-radius: 24px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .modal-btn.cancel {
+            background: var(--btn-sec-bg);
+            color: var(--btn-sec-text);
+        }
+
+        .modal-btn.confirm {
+            background: var(--btn-bg);
+            color: var(--btn-text);
+        }
     </style>
 </head>
 <body>
@@ -147,6 +250,26 @@
     </div>
 
     <button class="btn" id="loginBtn">Login</button>
+
+    <button class="btn btn-secondary" id="passkeyLoginBtn" style="display: none;">Sign in with Passkey</button>
+
+    <div class="links">
+        <a id="transferPasskeyLink" href="passkey.html" style="display: none;">Transfer Passkey from another device</a>
+    </div>
+</div>
+
+<!-- PASSKEY PIN MODAL -->
+<div class="modal-overlay" id="passkeyPinModal">
+    <div class="modal">
+        <h3>Enter Passkey PIN</h3>
+        <p id="passkeyPinDesc">Verify your Passkey PIN to sign in.</p>
+        <input type="password" id="passkeyPinInput" maxlength="6" placeholder="Passkey PIN" autocomplete="off">
+        <div class="modal-err" id="passkeyPinErr"></div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn cancel" id="cancelPinBtn">Cancel</button>
+            <button type="button" class="modal-btn confirm" id="confirmPinLoginBtn">Verify &amp; Login</button>
+        </div>
+    </div>
 </div>
 
 <script type="module">
@@ -187,15 +310,17 @@
     const mailDb = getFirestore(mailApp);
 
     const urlParams = new URLSearchParams(window.location.search);
-    const session = urlParams.get('session');
+    const session = urlParams.get('session') || '';
     const lotus = urlParams.get('lotus') || urlParams.get('Lotus');
     const continueUrl = urlParams.get('continue') || '4.html';
+    const provider = urlParams.get('provider') || '';
     const theme = urlParams.get("theme") ? urlParams.get("theme").toLowerCase() : null;
     
     let currentUserDocId = null;
     let currentUserData = null;
+    let matchedDevicePasskey = null; // { serverPk, localEntry }
 
-    if (theme === "dark" || theme === "d" || window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    if (theme === "dark" || theme === "d" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
         document.body.classList.add("dark");
     }
 
@@ -211,6 +336,88 @@
         e.preventDefault();
         window.location.href = getForgotPasswordUrl();
     });
+
+    /* ================= SHA-256 HELPER (HTTPS + HTTP + FILE://) ================= */
+    async function sha256Hex(message) {
+        if (window.crypto && window.crypto.subtle) {
+            const msgUint8 = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+            return Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+        let ascii = unescape(encodeURIComponent(message));
+        const rightRotate = (v, a) => (v >>> a) | (v << (32 - a));
+        const mathPow = Math.pow;
+        const maxWord = mathPow(2, 32);
+        let result = '';
+        const words = [];
+        const asciiBitLength = ascii.length * 8;
+        const hash = [];
+        const k = [];
+        let primeCounter = 0;
+        const isComposite = {};
+        for (let candidate = 2; primeCounter < 64; candidate++) {
+            if (!isComposite[candidate]) {
+                for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+                hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+                k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+            }
+        }
+        ascii += '\x80';
+        while (ascii.length % 64 - 56) ascii += '\x00';
+        for (let i = 0; i < ascii.length; i++) {
+            const j = ascii.charCodeAt(i);
+            words[i >> 2] |= j << (((3 - i) % 4) * 8);
+        }
+        words[words.length] = (asciiBitLength / maxWord) | 0;
+        words[words.length] = asciiBitLength;
+        const H = hash.slice(0, 8);
+        for (let j = 0; j < words.length;) {
+            const w = words.slice(j, (j += 16));
+            const oldHash = H.slice(0);
+            for (let i = 0; i < 64; i++) {
+                const w15 = w[i - 15], w2 = w[i - 2];
+                const a = H[0], e = H[4];
+                const temp1 = H[7]
+                    + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+                    + ((e & H[5]) ^ ((~e) & H[6]))
+                    + k[i]
+                    + (w[i] = i < 16 ? w[i] : (
+                        w[i - 16]
+                        + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+                        + w[i - 7]
+                        + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+                    ) | 0);
+                const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+                    + ((a & H[1]) ^ (a & H[2]) ^ (H[1] & H[2]));
+                H.unshift((temp1 + temp2) | 0);
+                H.pop();
+                H[4] = (H[4] + temp1) | 0;
+            }
+            for (let i = 0; i < 8; i++) H[i] = (H[i] + oldHash[i]) | 0;
+        }
+        for (let i = 0; i < 8; i++) {
+            for (let j = 3; j + 1; j--) {
+                const b = (H[i] >> (j * 8)) & 255;
+                result += ((b < 16) ? 0 : '') + b.toString(16);
+            }
+        }
+        return result;
+    }
+
+    function buildPasskeyPageUrl(extra = {}) {
+        const p = new URLSearchParams();
+        if (session) p.set('session', session);
+        if (lotus) p.set('Lotus', lotus);
+        if (continueUrl) p.set('continue', continueUrl);
+        if (provider) p.set('provider', provider);
+        if (theme) p.set('theme', theme);
+        Object.entries(extra).forEach(([k, v]) => {
+            if (v) p.set(k, v);
+        });
+        return `passkey.html?${p.toString()}`;
+    }
 
     async function fetchUser() {
         try {
@@ -230,6 +437,8 @@
                     avatar.src = profilePicUrl;
                     avatar.style.display = "inline-block";
                 }
+
+                checkDevicePasskey();
             } else {
                 alert("Security token invalid.");
                 window.location.href = '1.html';
@@ -241,6 +450,36 @@
         }
     }
     fetchUser();
+
+    function checkDevicePasskey() {
+        const serverPasskeys = Array.isArray(currentUserData["Passkeys"]) ? currentUserData["Passkeys"] : [];
+        let localPasskeys = [];
+        try {
+            localPasskeys = JSON.parse(localStorage.getItem('custom_passkeys') || '[]');
+        } catch (e) { localPasskeys = []; }
+
+        // Find a passkey on this device that matches the account's server passkeys
+        for (const spk of serverPasskeys) {
+            const localMatch = localPasskeys.find(lp => lp.id === spk.id);
+            if (localMatch && spk.secretHash) {
+                matchedDevicePasskey = { serverPk: spk, localEntry: localMatch };
+                break;
+            }
+        }
+
+        if (matchedDevicePasskey) {
+            const btn = document.getElementById('passkeyLoginBtn');
+            btn.textContent = `Sign in with Passkey (${matchedDevicePasskey.serverPk.name || 'Device'})`;
+            btn.style.display = 'block';
+        }
+
+        // If user has any passkeys on another device (or wants to receive one), show transfer link
+        if (serverPasskeys.length > 0 && !matchedDevicePasskey) {
+            const transferLink = document.getElementById('transferPasskeyLink');
+            transferLink.href = buildPasskeyPageUrl({ mode: 'transfer', from: 'login' });
+            transferLink.style.display = 'inline-block';
+        }
+    }
 
     function generateNewLotus() {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -286,16 +525,15 @@
     }
 
     // --- Send Security Email Function (User + Guardian) ---
-    async function sendLoginAlertEmail() {
+    async function sendLoginAlertEmail(methodLabel = "password") {
         try {
             const userEmail = currentUserData["Email"] || "";
             if (!userEmail) return;
 
-            // Check if this is a kids account
             const isKids = currentUserData["Type"] === "kids" || 
                            currentUserData["Family"] === "commited" || 
                            currentUserData["Family"] === "commit" ||
-                           Boolean(currentUserData["Guardian"]);
+                           Boolean(currentUserData["Guardian"] || currentUserData["guardian"]);
 
             const firstName = currentUserData["First Name"] || "User";
             const accountLabel = isKids ? `${firstName} Kids Account` : "Personal";
@@ -311,16 +549,14 @@
             });
             const location = await getApproximateLocation();
 
-            // 1. Template for the kid/user
             const userBody = `Hello,
-We noticed a new sign-in to your ${accountLabel} account.
+We noticed a new sign-in to your ${accountLabel} account (${methodLabel}).
 On ${device} ${dateStr} Near ${location}
 
 If this was you, no action is needed.
 If you don't recognize this activity, please review your account security right away.
 Knox-app.github.io/cloud/links/task#review-account`;
 
-            // Send to user
             await addDoc(collection(mailDb, "Email"), {
                 subject: "New sign-in to your Account",
                 body: userBody,
@@ -329,7 +565,6 @@ Knox-app.github.io/cloud/links/task#review-account`;
                 timestamp: serverTimestamp()
             });
 
-            // 2. If Kids Account, also send notification to Guardian
             const guardianEmail = currentUserData["Guardian"] || currentUserData["guardian"];
             if (isKids && guardianEmail && guardianEmail !== userEmail) {
                 const guardianBody = `Hello,
@@ -353,57 +588,63 @@ Knox-app.github.io/cloud/links/task#review-account`;
         }
     }
 
+    async function completeAuthenticatedLogin(methodLabel = "password", extraUserUpdates = {}) {
+        // 1. Send Security Alert Emails (to User and Guardian)
+        await sendLoginAlertEmail(methodLabel);
+
+        // 2. Refresh user Lotus (+ any passkey updates)
+        const newLotus = generateNewLotus();
+        const updatePayload = { "Lotus": newLotus, ...extraUserUpdates };
+        await updateDoc(doc(db, "UARM", currentUserDocId), updatePayload);
+        currentUserData["Lotus"] = newLotus;
+        Object.assign(currentUserData, extraUserUpdates);
+
+        // 3. Notify QR Device via ASPX Keys
+        if (session) {
+            try {
+                await setDoc(doc(db, "ASPX Keys", session), {
+                    status: "authenticated",
+                    userData: {
+                        "Email": currentUserData["Email"] || "",
+                        "First Name": currentUserData["First Name"] || "",
+                        "Lotus": newLotus
+                    },
+                    authenticatedAt: new Date().toISOString()
+                });
+            } catch (err) {
+                console.error("Failed to notify QR device:", err);
+            }
+        }
+
+        // 4. Save locally on this phone/device
+        let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
+        accounts = accounts.filter(acc => acc.email !== currentUserData["Email"]);
+        accounts.push({
+            email: currentUserData["Email"],
+            firstName: currentUserData["First Name"] || "",
+            lotus: newLotus
+        });
+        localStorage.setItem('saved_accounts', JSON.stringify(accounts));
+        localStorage.setItem('active_user', JSON.stringify(currentUserData));
+
+        // 5. Redirect current device
+        window.location.href = continueUrl;
+    }
+
+    /* ================= PASSWORD LOGIN ================= */
     document.getElementById('password').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('loginBtn').click();
     });
 
     document.getElementById('loginBtn').addEventListener('click', async () => {
         const pass = document.getElementById('password').value;
-        if (!pass) return;
+        if (!pass || !currentUserData) return;
 
         document.getElementById('loginBtn').innerText = "Verifying...";
 
         try {
             if (currentUserData["Password"] === pass) {
-                // 1. Send Security Alert Emails (to User and Guardian)
-                await sendLoginAlertEmail();
-
-                // 2. Refresh user Lotus
-                const newLotus = generateNewLotus();
-                await updateDoc(doc(db, "UARM", currentUserDocId), { "Lotus": newLotus });
-                currentUserData["Lotus"] = newLotus;
-
-                // 3. Notify QR Device via ASPX Keys
-                if (session) {
-                    try {
-                        await setDoc(doc(db, "ASPX Keys", session), {
-                            status: "authenticated",
-                            userData: {
-                                "Email": currentUserData["Email"] || "",
-                                "First Name": currentUserData["First Name"] || "",
-                                "Lotus": newLotus
-                            },
-                            authenticatedAt: new Date().toISOString()
-                        });
-                        console.log("QR session document successfully updated:", session);
-                    } catch (err) {
-                        console.error("Failed to notify QR device:", err);
-                    }
-                }
-
-                // 4. Save locally on this phone/device
-                let accounts = JSON.parse(localStorage.getItem('saved_accounts') || '[]');
-                accounts = accounts.filter(acc => acc.email !== currentUserData["Email"]);
-                accounts.push({
-                    email: currentUserData["Email"],
-                    firstName: currentUserData["First Name"] || "",
-                    lotus: newLotus
-                });
-                localStorage.setItem('saved_accounts', JSON.stringify(accounts));
-                localStorage.setItem('active_user', JSON.stringify(currentUserData));
-
-                // 5. Redirect current device
-                window.location.href = continueUrl;
+                await completeAuthenticatedLogin("password");
             } else {
                 alert("Incorrect password");
                 document.getElementById('loginBtn').innerText = "Login";
@@ -412,6 +653,98 @@ Knox-app.github.io/cloud/links/task#review-account`;
             console.error("Login verification failed:", error);
             alert("Error verifying password. Please try again.");
             document.getElementById('loginBtn').innerText = "Login";
+        }
+    });
+
+    /* ================= PASSKEY LOGIN ================= */
+    async function verifyAndLoginWithPasskey(enteredPin = '') {
+        if (!matchedDevicePasskey) return "Passkey not found on this device.";
+        const { serverPk, localEntry } = matchedDevicePasskey;
+
+        if (serverPk.hasPin) {
+            const pinHash = await sha256Hex(`${enteredPin}:${serverPk.id}`);
+            if (pinHash !== serverPk.pinHash) {
+                return "Incorrect Passkey PIN.";
+            }
+        }
+
+        const secretHash = await sha256Hex(localEntry.secret);
+        if (secretHash !== serverPk.secretHash) {
+            return "Passkey secret mismatch on this device.";
+        }
+
+        const updatedPasskeys = (currentUserData["Passkeys"] || []).map(pk =>
+            pk.id === serverPk.id ? { ...pk, lastUsedAt: new Date().toISOString() } : pk
+        );
+
+        await completeAuthenticatedLogin(`passkey: ${serverPk.name}`, { "Passkeys": updatedPasskeys });
+        return null;
+    }
+
+    document.getElementById('passkeyLoginBtn').addEventListener('click', async () => {
+        if (!matchedDevicePasskey) return;
+        const { serverPk } = matchedDevicePasskey;
+
+        if (serverPk.hasPin) {
+            document.getElementById('passkeyPinDesc').textContent =
+                `Enter the Passkey PIN for "${serverPk.name}".`;
+            document.getElementById('passkeyPinInput').value = '';
+            document.getElementById('passkeyPinErr').textContent = '';
+            document.getElementById('passkeyPinModal').classList.add('open');
+            setTimeout(() => document.getElementById('passkeyPinInput').focus(), 50);
+            return;
+        }
+
+        const btn = document.getElementById('passkeyLoginBtn');
+        btn.disabled = true;
+        btn.textContent = "Verifying Passkey...";
+        try {
+            const err = await verifyAndLoginWithPasskey('');
+            if (err) {
+                alert(err);
+                btn.disabled = false;
+                btn.textContent = `Sign in with Passkey (${serverPk.name || 'Device'})`;
+            }
+        } catch (e) {
+            console.error("Passkey login error:", e);
+            alert("Passkey login failed.");
+            btn.disabled = false;
+            btn.textContent = `Sign in with Passkey (${serverPk.name || 'Device'})`;
+        }
+    });
+
+    document.getElementById('cancelPinBtn').addEventListener('click', () => {
+        document.getElementById('passkeyPinModal').classList.remove('open');
+    });
+
+    document.getElementById('passkeyPinInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('confirmPinLoginBtn').click();
+    });
+
+    document.getElementById('confirmPinLoginBtn').addEventListener('click', async () => {
+        const pin = document.getElementById('passkeyPinInput').value.trim();
+        const errEl = document.getElementById('passkeyPinErr');
+        if (!pin) {
+            errEl.textContent = "Please enter your Passkey PIN.";
+            return;
+        }
+
+        const btn = document.getElementById('confirmPinLoginBtn');
+        btn.disabled = true;
+        btn.textContent = "Verifying...";
+        errEl.textContent = "";
+
+        try {
+            const err = await verifyAndLoginWithPasskey(pin);
+            if (err) {
+                errEl.textContent = err;
+            }
+        } catch (e) {
+            console.error("PIN verify error:", e);
+            errEl.textContent = "Database connection error.";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Verify & Login";
         }
     });
 </script>
